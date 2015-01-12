@@ -7,6 +7,8 @@
                  ╚═════╝ ╚═╝       ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝
 ```
 
+[![NPM](https://nodei.co/npm/cfonts.png)](https://nodei.co/npm/cfonts/)
+
 
 > This is a silly little command line tool for sexy fonts in the console.
 
