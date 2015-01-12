@@ -16,11 +16,11 @@
 
 Different styles:
 
-[![NPM](https://github.com/dominikwilkowski/cfonts/blob/master/img/example1.png)]
+(https://github.com/dominikwilkowski/cfonts/blob/master/img/example1.png)
 
 Real world example:
 
-[![NPM](https://github.com/dominikwilkowski/cfonts/blob/master/img/example2.png)]
+(https://github.com/dominikwilkowski/cfonts/blob/master/img/example2.png)
 
 
 ## Installing
