@@ -19,7 +19,7 @@ var changeCase = require('change-case');
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Main logic
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function font($input, setFont, setColors, setBackground, setLetterSpacing, setSpace, setMaxLength) {
+function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, setSpace, setMaxLength) {
 
 	//options
 	var OPTIONS = {
@@ -31,7 +31,7 @@ function font($input, setFont, setColors, setBackground, setLetterSpacing, setSp
 		maxLength: setMaxLength || 10 //define how many character can be on one line
 	};
 
-	var $font = JSON.parse(fs.readFileSync('./fonts/' + OPTIONS.font + '.json', 'utf8'));
+	var $font = JSON.parse(fs.readFileSync(__dirname + '/fonts/' + OPTIONS.font + '.json', 'utf8'));
 
 	var $output = [];
 	for(var i = 0, length = $font.lines; i < length; i++) { //create first lines
@@ -110,4 +110,4 @@ function font($input, setFont, setColors, setBackground, setLetterSpacing, setSp
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Module export
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-module.exports = font;
+module.exports = cfonts;
