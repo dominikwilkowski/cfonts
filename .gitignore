@@ -1,0 +1,12 @@
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+codekit-config.json
+*.codekit
+node_modules
+.tmp
+temp
+tmp
+.sass-cache
+.idea
+npm-debug.log
