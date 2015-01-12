@@ -7,10 +7,20 @@
                  ╚═════╝ ╚═╝       ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝
 ```
 
-[![NPM](https://nodei.co/npm/cfonts.png)](https://nodei.co/npm/cfonts/)
+[![NPM](https://nodei.co/npm/cfonts.png?downloads=true)](https://nodei.co/npm/cfonts/)
 
 
 > This is a silly little command line tool for sexy fonts in the console.
+
+## Examples
+
+Different styles:
+
+[![NPM](https://github.com/dominikwilkowski/cfonts/blob/master/img/example1.png)]
+
+Real world example:
+
+[![NPM](https://github.com/dominikwilkowski/cfonts/blob/master/img/example2.png)]
 
 
 ## Installing
@@ -27,15 +37,17 @@ To use it in your project:
 var FONTS = require('cfonts');
 
 var fonts = new FONTS(
-	program.text, //text to be converted
-	program.font, //define the font face
-	program.colors, //define all colors
-	program.background, //define the background color
-	program.letterSpacing, //define letter spacing
-	program.space, //define if the output text should have empty lines on top and on the bottom
-	program.maxLength //define how many character can be on one line
+	text, //text to be converted
+	font, //define the font face
+	colors, //define all colors
+	background, //define the background color
+	letterSpacing, //define letter spacing
+	space, //define if the output text should have empty lines on top and on the bottom
+	maxLength //define how many character can be on one line
 );
 ```
+
+_Remember to escape the `!` character with `\` in the shell_
 
 
 ## Usage
@@ -155,7 +167,8 @@ Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
-* block [colors: 2]
+* `block`  [colors: 2]
+* `simple` [colors: 1]
 
 ```shell
 $ cfonts --font "block"
@@ -244,6 +257,7 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.3 - fixes, added new font
 * 0.0.2 - fixed paths
 * 0.0.1 - alpha test
 

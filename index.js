@@ -90,8 +90,8 @@ function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, set
 	var $write = $output.join("\n"); //convert to one line
 
 
-	if($font.colors > 1) { //add text color if only one
-		var color = OPTIONS.colors[o] || "white";
+	if($font.colors <= 1) { //add text color if only one
+		var color = OPTIONS.colors[0] || "white";
 
 		$write = chalk.styles[color.toLowerCase()].open + $write + chalk.styles[color.toLowerCase()].close;
 	}

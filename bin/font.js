@@ -14,10 +14,11 @@
 // Dependencies
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 var fs = require('fs');
+var chalk = require('chalk');
 var program = require('commander');
 var CFONTS = require('./../index.js');
 
-var $package = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+var $package = JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf8'));
 var $version = $package.version;
 
 
@@ -48,12 +49,19 @@ program
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Programm
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-var cfonts = new CFONTS(
-	program.text,
-	program.font,
-	program.colors,
-	program.background,
-	program.letterSpacing,
-	program.space,
-	program.maxLength
-);
+if(program.text !== undefined) {
+
+	var cfonts = new CFONTS(
+		program.text,
+		program.font,
+		program.colors,
+		program.background,
+		program.letterSpacing,
+		program.space,
+		program.maxLength
+	);
+
+}
+else {
+	console.log("\n" + '	Please provide a text to convert with ' + chalk.styles.green.open + 'fonts -t "Text"' + chalk.styles.green.close + "\n");
+}
