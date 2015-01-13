@@ -1,9 +1,21 @@
 {
 	"name": "simple",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"homepage": "https://github.com/dominikwilkowski/grunt-font",
 	"colors": 1,
 	"lines": 4,
+	"buffer": [
+		"",
+		"",
+		"",
+		""
+	],
+	"letterspace": [
+		" ",
+		" ",
+		" ",
+		" "
+	],
 	"chars": {
 		"A": [
 			"   _   ",

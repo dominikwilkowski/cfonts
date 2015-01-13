@@ -1,9 +1,25 @@
 {
 	"name": "block",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"homepage": "https://github.com/dominikwilkowski/grunt-font",
 	"colors": 2,
 	"lines": 6,
+	"buffer": [
+		"",
+		"",
+		"",
+		"",
+		"",
+		""
+	],
+	"letterspace": [
+		" ",
+		" ",
+		" ",
+		" ",
+		" ",
+		" "
+	],
 	"chars": {
 		"A": [
 			" <c1>█████</c1><c2>╗</c2> ",
