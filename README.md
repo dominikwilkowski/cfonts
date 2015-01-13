@@ -16,11 +16,11 @@
 
 Different styles:
 
-![cfont styles](https://github.com/dominikwilkowski/cfonts/blob/master/img/example1.png)
+![cfont styles](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/example1.png)
 
 Real world example:
 
-![api example](https://github.com/dominikwilkowski/cfonts/blob/master/img/example2.png)
+![api example](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/example2.png)
 
 
 ## Installing
@@ -129,7 +129,7 @@ _The `|` character will be replaced with a line break_
 ## Options
 
 #### -h, --help
-Type: `<command>`  
+Type: `<command>`
 Default value: `none`
 
 This shows a list of all available options.
@@ -140,7 +140,7 @@ $ cfonts --help
 
 
 #### -V, --version
-Type: `<command>`  
+Type: `<command>`
 Default value: `none`
 
 This shows the installed version.
@@ -151,7 +151,7 @@ $ cfonts --version
 
 
 #### -t, --text
-Type: `<string>`  
+Type: `<string>`
 Default value: `""`
 
 This is the "textinput" to be converted into a nice font
@@ -162,7 +162,7 @@ $ cfonts --text "Hello world!"
 
 
 #### -f, --font
-Type: `<string>`  
+Type: `<string>`
 Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
@@ -176,7 +176,7 @@ $ cfonts --font "block"
 
 
 #### -c, --colors
-Type: `<string list>`  
+Type: `<string list>`
 Default value: `[]`
 
 In this setting you can set the colors for each font face. Use the below color strings build in by [chalk](https://github.com/sindresorhus/chalk).
@@ -198,7 +198,7 @@ $ cfonts --colors white,blue
 
 
 #### -b, --background
-Type: `<string>`  
+Type: `<string>`
 Default value: `"Black"`
 
 In this setting you can set the background colors for the output. Use the below color strings build in by [chalk](https://github.com/sindresorhus/chalk).
@@ -219,7 +219,7 @@ $ cfonts --background "Green"
 
 
 #### -l, --letter-spacing
-Type: `<integer>`  
+Type: `<integer>`
 Default value: `1`
 
 Set this option to widen the space between characters.
@@ -230,7 +230,7 @@ $ cfonts --letter-spacing 2
 
 
 #### -s, --space
-Type: `<boolen>`  
+Type: `<boolen>`
 Default value: `true`
 
 Set this option to false if you don't want the plugin to insert two empty lines on top and on the bottom of the output.
@@ -241,7 +241,7 @@ $ cfonts --space false
 
 
 #### -m, --max-length
-Type: `<integer>`  
+Type: `<integer>`
 Default value: `10`
 
 This option sets the maximum characters that will be printed on one line. As the shell usually doesn't give you access to its width, this is nessesary
