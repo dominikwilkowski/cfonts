@@ -257,9 +257,10 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.6 - added `3d` font
 * 0.0.5 - added grunt test
 * 0.0.4 - fixed `simple` font
-* 0.0.3 - fixes, added new font
+* 0.0.3 - fixes, added `simple` font
 * 0.0.2 - fixed paths
 * 0.0.1 - alpha test
 

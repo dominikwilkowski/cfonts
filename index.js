@@ -17,6 +17,28 @@ var changeCase = require('change-case');
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Custom functions
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+function colorize($font, OPTIONS, $character) {
+
+	if($font.colors > 1) {
+		for(var o = 0, ll = $font.colors; o < ll; o++) { //convert colors
+			var open = new RegExp('<c' + (o + 1) + '>', 'g');
+			var close = new RegExp('</c' + (o + 1) + '>', 'g');
+
+			var color = OPTIONS.colors[o] || "white";
+
+			$character = $character.replace(open, chalk.styles[color.toLowerCase()].open);
+			$character = $character.replace(close, chalk.styles[color.toLowerCase()].close);
+		}
+	}
+
+	return $character;
+
+}
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Main logic
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, setSpace, setMaxLength) {
@@ -34,8 +56,8 @@ function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, set
 	var $font = JSON.parse(fs.readFileSync(__dirname + '/fonts/' + OPTIONS.font + '.json', 'utf8'));
 
 	var $output = [];
-	for(var i = 0, length = $font.lines; i < length; i++) { //create first lines
-		$output[i] = "";
+	for(var i = 0, length = $font.lines; i < length; i++) { //create first lines with buffer
+		$output[i] = $font.buffer[i];
 	}
 
 	var $charLength = 0; //use for max character per line
@@ -44,7 +66,7 @@ function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, set
 	var $letterSpacing = "";
 
 	for(var i = 0, length = OPTIONS.letterSpacing; i < length; i++) { //letter spacing
-		$letterSpacing += " ";
+		$letterSpacing += colorize($font, OPTIONS, $font.letterspace[i]);
 	}
 
 
@@ -56,8 +78,8 @@ function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, set
 			$charLength = 0;
 			$line += $font.lines;
 
-			for(var l = $line, lll = $line + $font.lines; l < lll; l++) { //create new lines
-				$output[l] = "";
+			for(var l = $line, lll = $line + $font.lines; l < lll; l++) { //create new lines with buffer
+				$output[l] = $font.buffer[ (l - $line) ];
 			}
 		}
 
@@ -68,17 +90,19 @@ function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, set
 
 				var $character = $font.chars[ $char ][c];
 
-				if($font.colors > 1) {
-					for(var o = 0, ll = $font.colors; o < ll; o++) { //convert colors
-						var open = new RegExp('<c' + (o + 1) + '>', 'g');
-						var close = new RegExp('</c' + (o + 1) + '>', 'g');
+				$character = colorize($font, OPTIONS, $character);
 
-						var color = OPTIONS.colors[o] || "white";
+				// if($font.colors > 1) {
+				// 	for(var o = 0, ll = $font.colors; o < ll; o++) { //convert colors
+				// 		var open = new RegExp('<c' + (o + 1) + '>', 'g');
+				// 		var close = new RegExp('</c' + (o + 1) + '>', 'g');
 
-						$character = $character.replace(open, chalk.styles[color.toLowerCase()].open);
-						$character = $character.replace(close, chalk.styles[color.toLowerCase()].close);
-					}
-				}
+				// 		var color = OPTIONS.colors[o] || "white";
+
+				// 		$character = $character.replace(open, chalk.styles[color.toLowerCase()].open);
+				// 		$character = $character.replace(close, chalk.styles[color.toLowerCase()].close);
+				// 	}
+				// }
 
 				$output[ ($line + c) ] += $character + $letterSpacing; //save output per character
 			}

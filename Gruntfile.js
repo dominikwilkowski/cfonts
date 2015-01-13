@@ -41,6 +41,8 @@ module.exports = function(grunt) {
 			test2: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -c red,magenta -m 15',
 			test3: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple"',
 			test4: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple" -c yellow -m 20',
+			test5: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "3d"',
+			test6: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "3d" -c magenta,yellow -m 7',
 		},
 
 	});
