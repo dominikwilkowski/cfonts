@@ -16,11 +16,11 @@
 
 Different styles:
 
-(https://github.com/dominikwilkowski/cfonts/blob/master/img/example1.png)
+![cfont styles](https://github.com/dominikwilkowski/cfonts/blob/master/img/example1.png)
 
 Real world example:
 
-(https://github.com/dominikwilkowski/cfonts/blob/master/img/example2.png)
+![api example](https://github.com/dominikwilkowski/cfonts/blob/master/img/example2.png)
 
 
 ## Installing
