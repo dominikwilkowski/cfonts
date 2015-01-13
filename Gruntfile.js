@@ -10,10 +10,11 @@
 
 module.exports = function(grunt) {
 
-	//Dependencies
-	grunt.loadTasks('tasks');
+	//------------------------------------------------------------------------------------------------------------------------------------------------------------
+	// Dependencies
+	//------------------------------------------------------------------------------------------------------------------------------------------------------------
 	grunt.loadNpmTasks('grunt-contrib-jshint');
-	// grunt.loadNpmTasks('grunt-contrib-nodeunit');
+	grunt.loadNpmTasks('grunt-exec');
 
 	grunt.initConfig({
 
@@ -26,38 +27,20 @@ module.exports = function(grunt) {
 			},
 
 			all: [
-				'Gruntfile.js',
-				'tasks/*.js',
+				'!node_modules/**/*',
+				'*.js',
 			],
 		},
 
 
 		//----------------------------------------------------------------------------------------------------------------------------------------------------------
-		// FONT
+		// TEST
 		//----------------------------------------------------------------------------------------------------------------------------------------------------------
-		font: {
-			default: {
-				text: 'a b c defghijklmnopqrstuvwxyz|0123456789|!?.+-_=@#$%&()/:;ü',
-			},
-
-			custom: {
-				options: { //deviate from defaults
-					font: 'simple',
-					colors: ['black', 'blue'],
-					background: 'cyan',
-					maxLength: 15,
-					space: false
-				},
-				text: 'a b c defghijklmnopqrstuvwxyz|0123456789|!?.+-_=@#$%&()/:;ü',
-			},
-		},
-
-
-		//----------------------------------------------------------------------------------------------------------------------------------------------------------
-		// UNIT TESTS
-		//----------------------------------------------------------------------------------------------------------------------------------------------------------
-		nodeunit: {
-			tests: ['test/*_test.js'], //not build in yet
+		exec: {
+			test1: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü"',
+			test2: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -c red,magenta -m 15',
+			test3: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple"',
+			test4: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple" -c yellow -m 20',
 		},
 
 	});
@@ -66,8 +49,6 @@ module.exports = function(grunt) {
 	//------------------------------------------------------------------------------------------------------------------------------------------------------------
 	// TASKS
 	//------------------------------------------------------------------------------------------------------------------------------------------------------------
-	grunt.registerTask('test', ['font'/*, 'nodeunit'*/]);
-
-	grunt.registerTask('default', ['jshint', 'test']);
+	grunt.registerTask('default', [/*'jshint', */'exec']);
 
 };
