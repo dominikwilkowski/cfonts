@@ -17,7 +17,7 @@
 	},
 	"licenses": [
 		{
-			"type": "MIT",
+			"type": "GNU-GPL",
 			"url": "https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE"
 		}
 	],
