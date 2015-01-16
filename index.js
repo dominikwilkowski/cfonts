@@ -41,19 +41,21 @@ function colorize($font, OPTIONS, $character) {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Main logic
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function cfonts($input, setFont, setColors, setBackground, setLetterSpacing, setSpace, setMaxLength) {
+function cfonts($SETTINGS) {
 
 	//options
 	var OPTIONS = {
-		font: setFont || 'block', //define the font face
-		colors: setColors || [], //define all colors
-		background: setBackground || 'Black', //define the background color
-		letterSpacing: setLetterSpacing || 1, //define letter spacing
-		space: setSpace === undefined ? true : true, //define if the output text should have empty lines on top and on the bottom
-		maxLength: setMaxLength || 10 //define how many character can be on one line
+		font: $SETTINGS.font || 'block', //define the font face
+		colors: $SETTINGS.colors || [], //define all colors
+		background: $SETTINGS.background || 'Black', //define the background color
+		letterSpacing: $SETTINGS.letterSpacing || 1, //define letter spacing
+		space: $SETTINGS.space === undefined ? true : true, //define if the output text should have empty lines on top and on the bottom
+		maxLength: $SETTINGS.maxLength || 10 //define how many character can be on one line
 	};
 
-	var $font = JSON.parse(fs.readFileSync(__dirname + '/fonts/' + OPTIONS.font + '.json', 'utf8'));
+	var $input = $SETTINGS.text;
+
+	var $font = JSON.parse(fs.readFileSync(__dirname + '/fonts/' + OPTIONS.font + '.json', 'utf8')); //TODO: needs error handling
 
 	var $output = [];
 	for(var i = 0, length = $font.lines; i < length; i++) { //create first lines with buffer
