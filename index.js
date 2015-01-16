@@ -48,8 +48,8 @@ function cfonts($SETTINGS) {
 		font: $SETTINGS.font || 'block', //define the font face
 		colors: $SETTINGS.colors || [], //define all colors
 		background: $SETTINGS.background || 'Black', //define the background color
-		letterSpacing: $SETTINGS.letterSpacing || 1, //define letter spacing
-		space: $SETTINGS.space === undefined ? true : true, //define if the output text should have empty lines on top and on the bottom
+		letterSpacing: $SETTINGS.letterSpacing === undefined ? 1 : $SETTINGS.letterSpacing, //define letter spacing
+		space: $SETTINGS.space === undefined ? true : $SETTINGS.space, //define if the output text should have empty lines on top and on the bottom
 		maxLength: $SETTINGS.maxLength || 10 //define how many character can be on one line
 	};
 

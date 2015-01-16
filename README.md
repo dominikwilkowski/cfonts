@@ -41,7 +41,7 @@ var fonts = new FONTS({
 	'font': 'block', //define the font face
 	'colors': '', //define all colors
 	'background': 'Black', //define the background color
-	'letterSpacing': '1', //define letter spacing
+	'letterSpacing': 1, //define letter spacing
 	'space': true, //define if the output text should have empty lines on top and on the bottom
 	'maxLength': '10' //define how many character can be on one line
 });
@@ -257,6 +257,7 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.8 - fixed bugs, docs
 * 0.0.7 - changed to settings object
 * 0.0.6 - added `3d` font
 * 0.0.5 - added grunt test
