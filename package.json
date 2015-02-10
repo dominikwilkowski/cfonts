@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "0.0.6",
+	"version": "0.0.9",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -17,7 +17,7 @@
 	},
 	"licenses": [
 		{
-			"type": "MIT",
+			"type": "GNU-GPL",
 			"url": "https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE"
 		}
 	],
@@ -43,11 +43,13 @@
 		"banner",
 		"logo",
 		"CLI",
-		"console"
+		"console",
+		"ascii",
+		"pretty"
 	],
 	"main": "index.js",
 	"bin": {
 		"cfonts": "./bin/font.js"
 	},
-	"license": "MIT"
+	"license": "GNU-GPL"
 }

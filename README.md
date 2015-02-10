@@ -36,15 +36,15 @@ To use it in your project:
 ```js
 var FONTS = require('cfonts');
 
-var fonts = new FONTS(
-	text, //text to be converted
-	font, //define the font face
-	colors, //define all colors
-	background, //define the background color
-	letterSpacing, //define letter spacing
-	space, //define if the output text should have empty lines on top and on the bottom
-	maxLength //define how many character can be on one line
-);
+var fonts = new FONTS({
+	'text': 'Hello World', //text to be converted
+	'font': 'block', //define the font face
+	'colors': '', //define all colors
+	'background': 'Black', //define the background color
+	'letterSpacing': 1, //define letter spacing
+	'space': true, //define if the output text should have empty lines on top and on the bottom
+	'maxLength': '10' //define how many character can be on one line
+});
 ```
 
 _Remember to escape the `!` character with `\` in the shell_
@@ -167,8 +167,10 @@ Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
-* `block`  [colors: 2]
-* `simple` [colors: 1]
+* `console` [colors: 1]
+* `block`   [colors: 2]
+* `simple`  [colors: 1]
+* `3d`      [colors: 2]
 
 ```shell
 $ cfonts --font "block"
@@ -257,6 +259,9 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.9 - added console font
+* 0.0.8 - fixed bugs, docs
+* 0.0.7 - changed to settings object
 * 0.0.6 - added `3d` font
 * 0.0.5 - added grunt test
 * 0.0.4 - fixed `simple` font

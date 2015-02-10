@@ -51,15 +51,15 @@ program
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 if(program.text !== undefined) {
 
-	var cfonts = new CFONTS(
-		program.text,
-		program.font,
-		program.colors,
-		program.background,
-		program.letterSpacing,
-		program.space,
-		program.maxLength
-	);
+	var cfonts = new CFONTS({
+		'text': program.text,
+		'font': program.font,
+		'colors': program.colors,
+		'background': program.background,
+		'letterSpacing': program.letterSpacing,
+		'space': program.space,
+		'maxLength': program.maxLength
+	});
 
 }
 else {
