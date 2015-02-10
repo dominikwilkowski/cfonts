@@ -167,8 +167,10 @@ Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
-* `block`  [colors: 2]
-* `simple` [colors: 1]
+* `console` [colors: 1]
+* `block`   [colors: 2]
+* `simple`  [colors: 1]
+* `3d`      [colors: 2]
 
 ```shell
 $ cfonts --font "block"
@@ -257,6 +259,7 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.9 - added console font
 * 0.0.8 - fixed bugs, docs
 * 0.0.7 - changed to settings object
 * 0.0.6 - added `3d` font

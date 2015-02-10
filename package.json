@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "0.0.8",
+	"version": "0.0.9",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -43,7 +43,9 @@
 		"banner",
 		"logo",
 		"CLI",
-		"console"
+		"console",
+		"ascii",
+		"pretty"
 	],
 	"main": "index.js",
 	"bin": {

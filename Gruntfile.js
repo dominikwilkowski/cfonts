@@ -39,10 +39,15 @@ module.exports = function(grunt) {
 		exec: {
 			test1: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü"',
 			test2: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -c red,magenta -m 15',
+
 			test3: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple"',
 			test4: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple" -c yellow -m 20',
+
 			test5: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "3d"',
 			test6: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "3d" -c magenta,yellow -m 7',
+
+			test7: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "console"',
+			test8: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "console" -c blue -b white',
 		},
 
 	});
