@@ -259,15 +259,16 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
-* 0.0.9 - added console font
-* 0.0.8 - fixed bugs, docs
-* 0.0.7 - changed to settings object
-* 0.0.6 - added `3d` font
-* 0.0.5 - added grunt test
-* 0.0.4 - fixed `simple` font
-* 0.0.3 - fixes, added `simple` font
-* 0.0.2 - fixed paths
-* 0.0.1 - alpha test
+* 0.0.10 -  added npmignore, added to docs
+* 0.0.9  -  added console font
+* 0.0.8  -  fixed bugs, docs
+* 0.0.7  -  changed to settings object
+* 0.0.6  -  added `3d` font
+* 0.0.5  -  added grunt test
+* 0.0.4  -  fixed `simple` font
+* 0.0.3  -  fixes, added `simple` font
+* 0.0.2  -  fixed paths
+* 0.0.1  -  alpha test
 
 
 ## License
