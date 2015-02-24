@@ -167,10 +167,11 @@ Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
-* `console` [colors: 1]
-* `block`   [colors: 2]
-* `simple`  [colors: 1]
-* `3d`      [colors: 2]
+* `console`  [colors: 1]
+* `block`    [colors: 2]
+* `simple`   [colors: 1]
+* `3d`       [colors: 2]
+* `simple3d` [colors: 1]
 
 ```shell
 $ cfonts --font "block"
@@ -259,6 +260,7 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.11 -  added simple3d font
 * 0.0.10 -  added npmignore, added to docs
 * 0.0.9  -  added console font
 * 0.0.8  -  fixed bugs, docs
@@ -272,4 +274,4 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## License
-Copyright (c) 2015 Dominik Wilkowski. Licensed under the [MIT license](https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE).
+Copyright (c) 2015 Dominik Wilkowski. Licensed under the [GNU GPL](https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE).
