@@ -260,6 +260,7 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+* 0.0.13 -  fixed simple3d
 * 0.0.12 -  fixed simple3d and added to grunt test
 * 0.0.11 -  added simple3d font
 * 0.0.10 -  added npmignore, added to docs
