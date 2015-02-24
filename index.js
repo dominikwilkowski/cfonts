@@ -38,6 +38,21 @@ function colorize($font, OPTIONS, $character) {
 }
 
 
+function equalWidth($character) {
+	var charWidth = 0;
+
+	for(var w = $character.length - 1; w >= 0; w--) {
+		$char = $character[w].replace(/(<([^>]+)>)/ig, '');
+
+		if( $char.length > charWidth ) {
+			charWidth = $char.length;
+		}
+	};
+
+	return charWidth;
+}
+
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Main logic
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -54,7 +69,7 @@ function cfonts($SETTINGS) {
 	};
 
 	var $input = $SETTINGS.text; //text to be converted
-	var FONTS = '*console*block*simple*3d*'; //all supported font files
+	var FONTS = '*console*block*simple*3d*simple3d*'; //all supported font files
 	var $font = {}; //the font object
 	OPTIONS.background = changeCase.upperCaseFirst(OPTIONS.background); //background color case convertion
 
@@ -73,7 +88,7 @@ function cfonts($SETTINGS) {
 	}
 	else { //throw error if the font does not exist
 		console.log("\n" + '	Please use a font from the support stack: ' +
-			chalk.styles.green.open + '[ console | block | simple | 3d ]' + chalk.styles.green.close + "\n");
+			chalk.styles.green.open + '[ console | block | simple | 3d | simple3d ]' + chalk.styles.green.close + "\n");
 		process.exit(1);
 	}
 
@@ -110,9 +125,17 @@ function cfonts($SETTINGS) {
 			if( $font.chars[ $char ] !== undefined) { //make sure this character exists in the font
 				$charLength++; //counting all printed characters
 
+				var charWidth = equalWidth( $font.chars[ $char ] );
+
 				for(var c = 0, l = $font.lines; c < l; c++) { //iterate over font face lines
 
 					var $character = $font.chars[ $char ][c];
+
+					if( $character.length < charWidth ) {
+						for(var w = (charWidth - $character.length) - 1; w >= 0; w--) {
+							$character += ' ';
+						};
+					}
 
 					$character = colorize($font, OPTIONS, $character);
 
