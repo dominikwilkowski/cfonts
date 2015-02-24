@@ -35,7 +35,7 @@
 	"peerDependencies": {},
 	"dependencies": {
 		"change-case": "^2.1.6",
-		"chalk": "^0.5.1",
+		"chalk": "^1.0.0",
 		"commander": "^2.6.0"
 	},
 	"keywords": [
