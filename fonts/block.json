@@ -1,7 +1,7 @@
 {
 	"name": "block",
 	"version": "0.0.3",
-	"homepage": "https://github.com/dominikwilkowski/grunt-font",
+	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"colors": 2,
 	"lines": 6,
 	"buffer": [

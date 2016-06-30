@@ -1,7 +1,7 @@
 {
 	"name": "simple",
 	"version": "0.0.2",
-	"homepage": "https://github.com/dominikwilkowski/grunt-font",
+	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"colors": 1,
 	"lines": 4,
 	"buffer": [

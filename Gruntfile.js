@@ -37,22 +37,27 @@ module.exports = function(grunt) {
 		// TEST
 		//----------------------------------------------------------------------------------------------------------------------------------------------------------
 		exec: {
-			test01: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü"',
-			test02: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -c red,magenta -m 15',
+			test01: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü"',
+			test02: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -c red,magenta -m 15',
 
-			test03: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple"',
-			test04: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple" -c yellow -m 20',
+			test03: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simple"',
+			test04: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simple" -c yellow -m 20',
 
-			test05: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "3d"',
-			test06: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "3d" -c magenta,yellow -m 7',
+			test05: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "3d"',
+			test06: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "3d" -c magenta,yellow -m 7',
 
-			test07: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "console"',
-			test08: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "console" -c blue -b white',
+			test07: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "console"',
+			test08: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "console" -c blue -b white',
 
-			test09: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple3d"',
-			test10: 'cfonts -t "a b c defghijklmnopqrstuvwxyz|0123456789|\!?.+-_=@#$%&()/:;ü" -f "simple3d" -c cyan -b white',
+			test09: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simple3d"',
+			test10: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simple3d" -c cyan -b white',
+
+			test11: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simpleBlock"',
+			test12: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simpleBlock" -c green -b white',
+
+			test13: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -a "center"',
+			test13: 'cfonts "a b c" -a right',
 		},
-
 	});
 
 
