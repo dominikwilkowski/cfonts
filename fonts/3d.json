@@ -1,7 +1,7 @@
 {
 	"name": "3D",
 	"version": "0.0.1",
-	"homepage": "https://github.com/dominikwilkowski/grunt-font",
+	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"colors": 2,
 	"lines": 9,
 	"buffer": [

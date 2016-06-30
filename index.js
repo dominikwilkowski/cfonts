@@ -1,173 +1,607 @@
-/*
- * cfonts
- * https://github.com/dominikwilkowski/cfonts
+/***************************************************************************************************************************************************************
  *
- * Copyright (c) 2015 Dominik Wilkowski
- * Licensed under the MIT license.
- */
+ * cfonts
+ *
+ * Sexy fonts for the console. (CLI output)
+ *
+ * @license     https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE  GNU GPLv2
+ * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
+ * @repository  https://github.com/dominikwilkowski/cfonts
+ *
+ **************************************************************************************************************************************************************/
 
-// 'use strict';
+'use strict';
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Dependencies
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-var fs = require('fs');
-var chalk = require('chalk');
-var changeCase = require('change-case');
+const ChangeCase = require('change-case');
+const WinSize = require('window-size');
+const Chalk = require(`chalk`);
+const Fs = require(`fs`);
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Custom functions
+// Constructor
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function colorize($font, OPTIONS, $character) {
+const CFonts = (() => { //constructor factory
 
-	if($font.colors > 1) {
-		for(var o = 0, ll = $font.colors; o < ll; o++) { //convert colors
-			var open = new RegExp('<c' + (o + 1) + '>', 'g');
-			var close = new RegExp('</c' + (o + 1) + '>', 'g');
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// GetFont, Get and set a selected JSON font-file object into global namespace
+//
+// @param  font  {string}  The name of the font to be returned
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const GetFont = ( font ) => {
+		CFonts.debugging.report(`Running GetFont`, 1);
 
-			var color = OPTIONS.colors[o] || "white";
+		//check selected font exists in preset
+		if( CFonts.FONTFACES.indexOf( font ) === -1 ) {
+			CFonts.log.error(`Please use a font from the supported stack:\n${Chalk.green(`[ ${CFonts.FONTFACES.join(' | ')} ]`)}`);
 
-			$character = $character.replace(open, chalk.styles[color.toLowerCase()].open);
-			$character = $character.replace(close, chalk.styles[color.toLowerCase()].close);
+			process.exit(1); //exit program with failure code
 		}
-	}
 
-	return $character;
+		//try loading the font file
+		try {
+			let fontFile = __dirname + '/fonts/' + font + '.json'; //build font path
+			let FONTFACE = JSON.parse( Fs.readFileSync(fontFile, 'utf8') ); //read font file
 
-}
+			CFonts.debugging.report(`GetFont: Fontface path selected: "${fontFile}"`, 2);
 
+			CFonts.FONTFACE = FONTFACE;
+		}
+		catch( error ) {
+			CFonts.debugging.error(`Font file for "${font}" errored out: ${error}`, 2);
 
-function equalWidth($character) {
-	var charWidth = 0;
+			CFonts.log.error(`Font file for "${font}" failed to connect to us.\nTry reinstalling this package.`);
 
-	for(var w = $character.length - 1; w >= 0; w--) {
-		$char = $character[w].replace(/(<([^>]+)>)/ig, '');
-
-		if( $char.length > charWidth ) {
-			charWidth = $char.length;
+			process.exit(1); //exit program with failure code
 		}
 	};
 
-	return charWidth;
-}
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Main logic
+// Private function
+// CharLength, return the max width of a character by looking at its longest line
+//
+// @param  character  {array}    The character array from the font face object
+//
+// @return            {integer}  The length of a longest line in a charater
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function cfonts($SETTINGS) {
+	const CharLength = ( character ) => {
+		CFonts.debugging.report(`Running CharLength`, 1);
 
-	//options
-	var OPTIONS = {
-		font: $SETTINGS.font || 'block', //define the font face
-		colors: $SETTINGS.colors || [], //define all colors
-		background: $SETTINGS.background || 'Black', //define the background color
-		letterSpacing: $SETTINGS.letterSpacing === undefined ? 1 : $SETTINGS.letterSpacing, //define letter spacing
-		space: $SETTINGS.space === undefined ? true : $SETTINGS.space, //define if the output text should have empty lines on top and on the bottom
-		maxLength: $SETTINGS.maxLength || 10 //define how many character can be on one line
+		let charWidth = 0;
+
+		for(let i = 0; i < CFonts.FONTFACE.lines; i++) {
+			let char = character[ i ].replace(/(<([^>]+)>)/ig, ''); //get character and strip color infos
+
+			if( char.length > charWidth ) {
+				charWidth = char.length; //assign only largest
+			}
+		};
+
+		if( charWidth === 0 && CFonts.OPTIONS.letterSpacing > 0 ) {
+			CFonts.debugging.report(`CharLength: Adding space to letter spacing`, 1);
+
+			charWidth = 1;
+		}
+
+		return charWidth;
 	};
 
-	var $input = $SETTINGS.text; //text to be converted
-	var FONTS = '*console*block*simple*3d*simple3d*'; //all supported font files
-	var $font = {}; //the font object
-	OPTIONS.background = changeCase.upperCaseFirst(OPTIONS.background); //background color case convertion
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// AddLine, Add a new line to the output array
+//
+// @param  output    {array}   The output array the line shall be appended to
+//
+// @return           {array}   The output array with new line
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const AddLine = ( output ) => {
+		CFonts.debugging.report(`Running AddLine`, 1);
 
-	if( FONTS.indexOf(OPTIONS.font) && OPTIONS.font !== 'console') { //getting font file
-
-		var fontFile = __dirname + '/fonts/' + OPTIONS.font + '.json';
-		$font = JSON.parse( fs.readFileSync(fontFile, 'utf8') );
-
-	}
-	else if(OPTIONS.font === 'console') { //writing in console text
-
-		var $write = $input.replace('|', "\n");
-		$font['colors'] = 0;
-
-	}
-	else { //throw error if the font does not exist
-		console.log("\n" + '	Please use a font from the support stack: ' +
-			chalk.styles.green.open + '[ console | block | simple | 3d | simple3d ]' + chalk.styles.green.close + "\n");
-		process.exit(1);
-	}
-
-
-	if(OPTIONS.font !== 'console') { //only render a font if it isn't the console font
-
-		var $output = [];
-		for(var i = 0, length = $font.lines; i < length; i++) { //create first lines with buffer
-			$output[i] = $font.buffer[i];
+		let lineHeight = CFonts.OPTIONS.lineHeight;
+		if( output.length === 0 ) {
+			lineHeight = 0;
 		}
 
-		var $charLength = 0; //use for max character per line
-		var $line = 0; //start with line 0
-		var $letterSpacing = "";
+		let lines = CFonts.FONTFACE.lines + output.length + lineHeight;
+		let length = output.length;
 
-		for(var i = 0, length = OPTIONS.letterSpacing; i < length; i++) { //letter spacing
-			$letterSpacing += colorize($font, OPTIONS, $font.letterspace[i]);
+		for(let i = length; i < lines; i++) {
+			let index = i - length;
+
+			if( index > lineHeight ) {
+				output[ i ] = CFonts.FONTFACE.buffer[ ( index - lineHeight ) ];
+			}
+			else {
+				output[ i ] = '';
+			}
+		}
+
+		return output;
+	};
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// AddChar, Add a new character to the output array
+//
+// @param  CHAR      {string}  The character to be added
+// @param  output    {array}   The output array the line shall be appended to
+//
+// @return           {array}   The output array with new line
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const AddChar = ( CHAR, output ) => {
+		CFonts.debugging.report(`Running AddChar with "${CHAR}"`, 1);
+
+		let lines = output.length - CFonts.FONTFACE.lines; //last line is CFonts.FONTFACE.lines tall and is located at the bottom of the output array
+
+		for(let i = lines; i < output.length; i++) { //iterate over last line
+			let index = i - lines;
+
+			output[ i ] += Colorize( CFonts.FONTFACE.chars[ CHAR ][ index ] );
+		}
+
+		return output;
+	};
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// AddLetterSpacing, Add letter spacing for the next character
+//
+// @param  output    {array}   The output array the line shall be appended to
+//
+// @return           {array}   The output array with space
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const AddLetterSpacing = ( output ) => {
+		CFonts.debugging.report(`Running AddLetterSpacing`, 1);
+
+		let lines = output.length - CFonts.FONTFACE.lines; //last line is CFonts.FONTFACE.lines tall and is located at the bottom of the output array
+
+		for(let i = lines; i < output.length; i++) { //iterate over last line
+			let index = i - lines;
+			let space = Colorize( CFonts.FONTFACE.letterspace[ index ] )
+
+			if( space.length === 0 && CFonts.OPTIONS.letterSpacing > 0 ) {
+				CFonts.debugging.report(`AddLetterSpacing: Adding space to letter spacing`, 1);
+
+				space = ' ';
+			}
+
+			output[ i ] += space.repeat( CFonts.OPTIONS.letterSpacing );
+		}
+
+		return output;
+	};
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// Colorize, replace placeholders with color information
+//
+// @param  character  {string}  The string to be converted
+//
+// @return            {string}  The character with color information for CLI
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const Colorize = ( character ) => {
+		CFonts.debugging.report(`Running Colorize`, 1);
+
+		if( CFonts.FONTFACE.colors > 1 && character !== undefined ) {
+			for(let i = 0; i < CFonts.FONTFACE.colors; i++) { //convert all colors
+				let open = new RegExp(`<c${(i + 1)}>`, 'g');
+				let close = new RegExp(`</c${(i + 1)}>`, 'g');
+
+				let color = CFonts.OPTIONS.colors[ i ] || 'white';
+
+				character = character.replace( open, Chalk.styles[ color.toLowerCase() ].open );
+				character = character.replace( close, Chalk.styles[ color.toLowerCase() ].close );
+			}
+		}
+
+		return character;
+	};
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// AlignText, calculate the spaces to be added to the left of each line to align them either center or right
+//
+// @param  output      {array}    The output array the line shall be appended to
+// @param  lineLength  {integer}  the current line length
+//
+// @return             {array}    The output array with space added on the left for alignment
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const AlignText = ( output, lineLength ) => {
+		CFonts.debugging.report(`Running AlignText`, 1);
+
+		let space = 0;
+
+		if( CFonts.OPTIONS.align === 'center' ) { //calculate the size for center alignment
+			space = Math.floor(( WinSize.width - lineLength ) / 2);
+
+			CFonts.debugging.report(`AlignText: Center lineLength: ${lineLength}, WinSize.width: ${WinSize.width}, space: ${space}`, 2);
+		}
+
+		if( CFonts.OPTIONS.align === 'right' ) { //calculate the size for right alignment
+			space = WinSize.width - lineLength;
+
+			CFonts.debugging.report(`AlignText: Right lineLength: ${lineLength}, WinSize.width: ${WinSize.width}, space: ${space}`, 2);
 		}
 
 
-		for(var i = 0, length = $input.length; i < length; i++) { //iterate through the message
+		if( space > 0 ) { //only add if there is something to add
+			let lines = output.length - CFonts.FONTFACE.lines; //last line is CFonts.FONTFACE.lines tall and is located at the bottom of the output array
+			space = ' '.repeat( space );
 
-			var $char = $input.charAt(i).toUpperCase(); //only upper case is supported at this time
+			for(let i = lines; i < output.length; i++) { //iterate over last line
+				output[ i ] = space + output[ i ];
+			}
+		}
 
-			if($charLength >= OPTIONS.maxLength || $char === "|") { //jump to next line after OPTIONS.maxLength characters or when line break is found
-				$charLength = 0;
-				$line += $font.lines;
+		return output;
+	};
 
-				for(var l = $line, lll = $line + $font.lines; l < lll; l++) { //create new lines with buffer
-					$output[l] = $font.buffer[ (l - $line) ];
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	return {
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// settings
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+		DEBUG: false,    //Debug setting
+		DEBUGLEVEL: 2,  //Debug level setting
+		COLORS: [       //All allowed font colors
+			'black',
+			'red',
+			'green',
+			'yellow',
+			'blue',
+			'magenta',
+			'cyan',
+			'white',
+			'gray',
+		],
+		BGCOLORS: [     //All allowed background colors
+			'black',
+			'red',
+			'green',
+			'yellow',
+			'blue',
+			'magenta',
+			'cyan',
+			'white',
+		],
+		ALIGNMENT: [    //All allowed alignment options
+			'left',
+			'center',
+			'right',
+		],
+		FONTFACES: [    //All allowed fonts
+			'console',
+			'block',
+			'simpleBlock',
+			'simple',
+			'3d',
+			'simple3d',
+		],
+		FONTFACE: {},   //Font face object to be filled with selected fontface
+		OPTIONS: {},    //User options
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Public function
+// say, main method to write out your string
+//
+// @param  INPUT     {string}   The string you want to write out
+// @param  SETTINGS  {object}   (optional) Settings object
+//                              font           {string}   Font face, Default 'block'
+//                              align          {string}   Text alignment, Default: 'left'
+//                              colors         {array}    Colors for font, Default: []
+//                              background     {string}   Chalk color string for background, Default 'Black'
+//                              letterSpacing  {integer}  Space between letters, Default: set by selected font face
+//                              lineHeight     {integer}  Space between lines, Default: 1
+//                              space          {boolean}  Output space before and after output, Default: true
+//                              maxLength      {integer}  Maximum amount of characters per line, Default width of console window
+//
+// @return           {string}   CLI output of INPUT
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+		say: ( INPUT = '', SETTINGS = {} ) => {
+			CFonts.debugging.report(`Running say`, 1);
+
+			let write = ''; //output to be build
+			CFonts.OPTIONS = { //SETTINGS and defaults
+				font: SETTINGS.font || 'block',
+				align: SETTINGS.align || 'left',
+				colors: SETTINGS.colors || [],
+				background: ChangeCase.upperCaseFirst( SETTINGS.background ) || 'Black',
+				letterSpacing: SETTINGS.letterSpacing === undefined ? 1 : SETTINGS.letterSpacing,
+				lineHeight: SETTINGS.lineHeight === undefined ? 1 : parseInt( SETTINGS.lineHeight ),
+				space: SETTINGS.space === undefined ? true : SETTINGS.space,
+				maxLength: SETTINGS.maxLength || 0,
+			};
+
+			if( INPUT === undefined || INPUT === '' ) {
+				CFonts.log.error(`Please provide text to convert`);
+
+				process.exit(1); //exit program with failure code
+			}
+
+			for( let color in CFonts.OPTIONS.colors ) { //check color usage
+				if( CFonts.COLORS.indexOf( CFonts.OPTIONS.colors[ color ] ) === -1 ) {
+					CFonts.log.error(
+						`"${Chalk.red( CFonts.OPTIONS.colors[ color ] )}" is not a valid font color option.\n` +
+						`Please use a color from the supported stack:\n${Chalk.green(`[ ${CFonts.COLORS.join(' | ')} ]`)}`
+					);
+
+					process.exit(1); //exit program with failure code
 				}
 			}
 
-			if( $font.chars[ $char ] !== undefined) { //make sure this character exists in the font
-				$charLength++; //counting all printed characters
+			if( CFonts.BGCOLORS.indexOf( CFonts.OPTIONS.background.toLowerCase() ) === -1 ) {
+				CFonts.log.error(
+					`"${Chalk.red( CFonts.OPTIONS.background )}" is not a valid background option.\n` +
+					`Please use a color from the supported stack:\n${Chalk.green(`[ ${CFonts.BGCOLORS.join(' | ')} ]`)}`
+				);
 
-				var charWidth = equalWidth( $font.chars[ $char ] );
+				process.exit(1); //exit program with failure code
+			}
 
-				for(var c = 0, l = $font.lines; c < l; c++) { //iterate over font face lines
+			if( CFonts.ALIGNMENT.indexOf( CFonts.OPTIONS.align ) === -1 ) {
+				CFonts.log.error(
+					`"${Chalk.red( CFonts.OPTIONS.align )}" is not a valid alignment option.\n` +
+					`Please use an alignment option from the supported stack:\n${Chalk.green(`[ ${CFonts.ALIGNMENT.join(' | ')} ]`)}`
+				);
 
-					var $character = $font.chars[ $char ][c];
+				process.exit(1); //exit program with failure code
+			}
 
-					if( $character.length < charWidth ) {
-						for(var w = (charWidth - $character.length) - 1; w >= 0; w--) {
-							$character += ' ';
-						};
+
+			//log OPTIONS for debugging
+			if( CFonts.DEBUG ) {
+				let outOption = `OPTIONS:\n  Text: ${INPUT}`;
+
+				for( let key in CFonts.OPTIONS ) {
+					outOption += `\n  Options.${key}: ${CFonts.OPTIONS[ key ]}`;
+				}
+
+				CFonts.debugging.report( outOption, 2 );
+			}
+
+
+			if( CFonts.OPTIONS.font === 'console' ) { //console fontface is pretty easy to process
+				let color = CFonts.OPTIONS.colors[0].toLowerCase() || 'white'; //font color
+				let lines = INPUT.split('|'); //each line
+				let output = []
+
+				CFonts.FONTFACE.lines = 1;
+
+				for(let line in lines) {
+					let length = lines[ line ].length;
+
+					lines[ line ] = Chalk[ color ]( lines[ line ] );
+					output.push( lines[ line ] );
+
+					output = AlignText( output, length ); //calculate alignment based on lineLength
+				}
+
+
+				write = output.join(`\n`); //convert to one line
+			}
+			else { //all other fontfaces need the font-file and some more work
+				GetFont( CFonts.OPTIONS.font ); //get fontface object and make it global
+
+				//setting the letterspacing preference from font face if there is no user overwrite
+				if( SETTINGS.letterSpacing === undefined ) {
+					CFonts.debugging.report(`Looking up letter spacing from font face`, 1);
+
+					let width = 0;
+
+					for( let i in CFonts.FONTFACE.letterspace ) {
+						let char = CFonts.FONTFACE.letterspace[ i ].replace(/(<([^>]+)>)/ig, ''); //get character and strip color infos
+
+						if( width < char.length ) {
+							width = char.length;
+						}
 					}
 
-					$character = colorize($font, OPTIONS, $character);
-
-					$output[ ($line + c) ] += $character + $letterSpacing; //save output per character
+					CFonts.debugging.report(`Letter spacing set to font face default: "${width}"`, 2);
+					CFonts.OPTIONS.letterSpacing = width;
 				}
+
+				let output = AddLine( [] ); //create first lines with buffer
+				let lineLength = CharLength( CFonts.FONTFACE.buffer ); //count each output character per line and start with the buffer
+				let maxChars = 0; //count each character we print for maxLength option
+
+				output = AddLetterSpacing( output ); //add letter spacing to the beginning
+				lineLength += CharLength( CFonts.FONTFACE.letterspace ) * CFonts.OPTIONS.letterSpacing; //count the space for the letter spacing
+
+				for(let i = 0; i < INPUT.length; i++) { //iterate through the message
+
+					let CHAR = INPUT.charAt( i ).toUpperCase(); //the current character we convert, only upper case is supported at this time
+
+					if( CFonts.FONTFACE.chars[ CHAR ] === undefined && CHAR !== `|` ) { //make sure this character exists in the font
+						CFonts.debugging.error(`Character not found in font: "${CHAR}"`, 2); //fail silently
+					}
+					else {
+						CFonts.debugging.report(`Character found in font: "${CHAR}"`, 2);
+
+						let lastLineLength = lineLength; //we need the lineLength for alignment before we look up if the next char fits
+
+						if( CHAR !== `|` ) { //what will the line length be if we add the next char?
+							lineLength += CharLength( CFonts.FONTFACE.chars[ CHAR ] ); //get the length of this character
+							lineLength += CharLength( CFonts.FONTFACE.letterspace ) * CFonts.OPTIONS.letterSpacing; //new line, new line length
+						}
+
+						//jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would has ran out of space
+						if(maxChars >= CFonts.OPTIONS.maxLength && CFonts.OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > WinSize.width) {
+							CFonts.debugging.report(
+								`NEWLINE: maxChars: ${maxChars}, ` +
+								`CFonts.OPTIONS.maxLength: ${CFonts.OPTIONS.maxLength}, ` +
+								`CHAR: ${CHAR}, ` +
+								`lineLength: ${lineLength}, ` +
+								`WinSize.width: ${WinSize.width} `, 2
+							);
+
+							output = AlignText( output, lastLineLength ); //calculate alignment based on lineLength
+
+							lineLength = CharLength( CFonts.FONTFACE.buffer ); //new line: new line length
+							lineLength += CharLength( CFonts.FONTFACE.letterspace ) * CFonts.OPTIONS.letterSpacing; //each new line starts with letter spacing
+							if( CHAR !== `|` ) { //if this is a character
+								lineLength += CharLength( CFonts.FONTFACE.chars[ CHAR ] ); //get the length of this character
+								lineLength += CharLength( CFonts.FONTFACE.letterspace ) * CFonts.OPTIONS.letterSpacing; //add letter spacing at the end
+							}
+							maxChars = 0; //new line, new maxLength goal
+
+							output = AddLine( output ); //adding new line
+							output = AddLetterSpacing( output ); //add letter spacing to the beginning
+						}
+
+						CFonts.debugging.report(`lineLength at: "${lineLength}"`, 2);
+
+						if( CHAR !== `|` ) {
+							maxChars++; //counting all printed characters
+							output = AddChar( CHAR, output ); //add new character
+							output = AddLetterSpacing( output ); //add letter spacing
+						}
+					}
+				}
+
+				output = AlignText( output, lineLength ); //alignment last line
+
+				write = output.join(`\n`); //convert to one line
 			}
 
-		}
+
+			if( CFonts.FONTFACE.colors <= 1 ) { //add text color if only one
+				let color = CFonts.OPTIONS.colors[0] || `white`;
+
+				write = Chalk[ color.toLowerCase() ]( write );
+			}
 
 
-		var $write = $output.join("\n"); //convert to one line
+			if( CFonts.OPTIONS.space ) { //add space
+				write = `\n\n` + write + `\n\n`;
+			}
+
+
+			console.log( Chalk[ 'bg' + CFonts.OPTIONS.background ]( write ) ); //write out
+		},
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Debugging prettiness
+//
+// debugging, Print debug message that will be logged to console.
+//
+// @method  headline                      Return a headline preferably at the beginning of your app
+//          @param    [text]   {string}   The sting you want to log
+//          @param    [level]  {integer}  (optional) The debug level. Show equal and greater levels. Default: 99
+//          @return   [ansi]   {output}
+//
+// @method  report                        Return a message to report starting a process
+//          @param    [text]   {string}   The sting you want to log
+//          @param    [level]  {integer}  (optional) The debug level. Show equal and greater levels. Default: 99
+//          @return   [ansi]   {output}
+//
+// @method  error                         Return a message to report an error
+//          @param    [text]   {string}   The sting you want to log
+//          @param    [level]  {integer}  (optional) The debug level. Show equal and greater levels. Default: 99
+//          @return   [ansi]   {output}
+//
+// @method  interaction                   Return a message to report an interaction
+//          @param    [text]   {string}   The sting you want to log
+//          @param    [level]  {integer}  (optional) The debug level. Show equal and greater levels. Default: 99
+//          @return   [ansi]   {output}
+//
+// @method  send                          Return a message to report data has been sent
+//          @param    [text]   {string}   The sting you want to log
+//          @param    [level]  {integer}  (optional) The debug level. Show equal and greater levels. Default: 99
+//          @return   [ansi]   {output}
+//
+// @method  received                      Return a message to report data has been received
+//          @param    [text]   {string}   The sting you want to log
+//          @param    [level]  {integer}  (optional) The debug level. Show equal and greater levels. Default: 99
+//          @return   [ansi]   {output}
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+		debugging: {
+
+			headline: ( text, level = 99 ) => {
+				if( CFonts.DEBUG && level >= CFonts.DEBUGLEVEL ) {
+					console.log(
+						Chalk.bgWhite(`\n${Chalk.bold(' \u2611  ')} ${text}`)
+					);
+				}
+			},
+
+			report: ( text, level = 99 ) => {
+				if( CFonts.DEBUG && level >= CFonts.DEBUGLEVEL ) {
+					console.log(
+						Chalk.bgWhite(`\n${Chalk.bold.green(' \u2611  ')} ${Chalk.black(`${text} `)}`)
+					);
+				}
+			},
+
+			error: ( text, level = 99 ) => {
+				if( CFonts.DEBUG && level >= CFonts.DEBUGLEVEL ) {
+					console.log(
+						Chalk.bgWhite(`\n${Chalk.red(' \u2612  ')} ${Chalk.black(`${text} `)}`)
+					);
+				}
+			},
+
+			interaction: ( text, level = 99 ) => {
+				if( CFonts.DEBUG && level >= CFonts.DEBUGLEVEL ) {
+					console.log(
+						Chalk.bgWhite(`\n${Chalk.blue(' \u261C  ')} ${Chalk.black(`${text} `)}`)
+					);
+				}
+			},
+
+			send: ( text, level = 99 ) => {
+				if( CFonts.DEBUG && level >= CFonts.DEBUGLEVEL ) {
+					console.log(
+						Chalk.bgWhite(`\n${Chalk.bold.cyan(' \u219D  ')} ${Chalk.black(`${text} `)}`)
+					);
+				}
+			},
+
+			received: ( text, level = 99 ) => {
+				if( CFonts.DEBUG && level >= CFonts.DEBUGLEVEL ) {
+					console.log(
+						Chalk.bgWhite(`\n${Chalk.bold.cyan(' \u219C  ')} ${Chalk.black(`${text} `)}`)
+					);
+				}
+			}
+		},
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Logging prettiness
+//
+// log, Print error message to console.
+//
+// @method  error                       Return a headline preferably at the beginning of your app
+//          @param    [text]  {string}  The sting you want to log
+//          @return   [ansi]  {output}
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+		log: {
+			error: ( text ) => {
+				text = text.replace(/(?:\r\n|\r|\n)/g, '\n       '); //indent each line
+
+				console.log(`\n ${Chalk.bold.red('Ouch:')} ${text}\n`);
+			},
+		},
 	}
 
-
-	if($font.colors <= 1) { //add text color if only one
-		var color = OPTIONS.colors[0] || "white";
-
-		$write = chalk.styles[color.toLowerCase()].open + $write + chalk.styles[color.toLowerCase()].close;
-	}
-
-
-	if(OPTIONS.space) { //add space
-		$write = "\n\n" + $write + "\n\n";
-	}
-
-
-	console.log( chalk['bg' + OPTIONS.background]( $write ) ); //write out
-
-}
+})();
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Module export
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-module.exports = cfonts;
+module.exports = CFonts;
