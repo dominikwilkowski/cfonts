@@ -45,7 +45,7 @@ const CFonts = (() => { //constructor factory
 
 		//try loading the font file
 		try {
-			let fontFile = __dirname + '/fonts/' + font + '.json'; //build font path
+			let fontFile = `${__dirname}/fonts/${font}.json`; //build font path
 			let FONTFACE = JSON.parse( Fs.readFileSync(fontFile, 'utf8') ); //read font file
 
 			CFonts.debugging.report(`GetFont: Fontface path selected: "${fontFile}"`, 2);
@@ -288,6 +288,7 @@ const CFonts = (() => { //constructor factory
 			'simple',
 			'3d',
 			'simple3d',
+			'chrome',
 		],
 		FONTFACE: {},   //Font face object to be filled with selected fontface
 		OPTIONS: {},    //User options
@@ -585,7 +586,7 @@ const CFonts = (() => { //constructor factory
 //
 // log, Print error message to console.
 //
-// @method  error                       Return a headline preferably at the beginning of your app
+// @method  error                       Log an error out to the user
 //          @param    [text]  {string}  The sting you want to log
 //          @return   [ansi]  {output}
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
