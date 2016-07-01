@@ -55,6 +55,9 @@ module.exports = function(grunt) {
 			test11: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simpleBlock"',
 			test12: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "simpleBlock" -c green -b white',
 
+			test11: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "chrome"',
+			test12: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -f "chrome" -c green,magenta',
+
 			test13: 'cfonts "a b c defghijklmnopqrstuvwxyz0123456789\!?.+-_=@#$%&()/:;ü" -a "center"',
 			test13: 'cfonts "a b c" -a right',
 		},

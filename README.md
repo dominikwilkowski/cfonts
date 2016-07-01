@@ -182,6 +182,7 @@ This is the font face you want to use. So far this plugin ships with with follow
 - `simple`      [colors: 1]
 - `3d`          [colors: 2]
 - `simple3d`    [colors: 1]
+- `chrome`      [colors: 3]
 
 ```shell
 $ cfonts "text" -f "block3d"
@@ -294,7 +295,24 @@ $ cfonts "text" --max-length 15
 Please look at the coding style and work with it, not against it ;)
 
 
+## Test
+The package comes with a testing tool for the font json format. Run the test with:
+
+```shell
+node test/fonttest.js
+```
+
+This tool checks:
+- the existence
+- all attributes of a font
+- each character for:
+	- existence
+	- consistent width
+	- consistent lines
+
+
 ## Release History
+* 1.0.1  -  added chrome font, fonttest
 * 1.0.0  -  refactor, added alignment and line height option, new cli commands, added simpleBlock
 * 0.0.13 -  fixed simple3d
 * 0.0.12 -  fixed simple3d and added to grunt test
