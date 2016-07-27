@@ -314,7 +314,7 @@ This tool checks:
 
 
 ## Release History
-* 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method
+* 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method, added candy color
 * 1.0.1  -  added `chrome` font, fonttest
 * 1.0.0  -  refactor, added alignment and line height option, new cli commands, added `simpleBlock`
 * 0.0.13 -  fixed `simple3d`

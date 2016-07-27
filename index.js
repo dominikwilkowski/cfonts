@@ -199,6 +199,12 @@ const CFonts = (() => { //constructor factory
 
 				let color = CFonts.OPTIONS.colors[ i ] || 'white';
 
+				if( color === 'candy' ) {
+					let allowedColors = ['red','green','yellow','magenta','cyan' ];
+
+					color = allowedColors[ Math.floor( Math.random() * allowedColors.length ) ];
+				}
+
 				character = character.replace( open, Chalk.styles[ color.toLowerCase() ].open );
 				character = character.replace( close, Chalk.styles[ color.toLowerCase() ].close );
 			}
@@ -297,7 +303,7 @@ const CFonts = (() => { //constructor factory
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Public function
-// render, main method to write out your string
+// render, main method to get the ANSI output for a string
 //
 // @param  INPUT     {string}   The string you want to write out
 // @param  SETTINGS  {object}   (optional) Settings object
@@ -334,7 +340,10 @@ const CFonts = (() => { //constructor factory
 			}
 
 			for( let color in CFonts.OPTIONS.colors ) { //check color usage
-				if( CFonts.COLORS.indexOf( CFonts.OPTIONS.colors[ color ] ) === -1 ) {
+				if(
+					CFonts.COLORS.indexOf( CFonts.OPTIONS.colors[ color ] ) === -1 &&
+					CFonts.OPTIONS.colors[ color ] !== 'candy'
+				) {
 					CFonts.log.error(
 						`"${Chalk.red( CFonts.OPTIONS.colors[ color ] )}" is not a valid font color option.\n` +
 						`Please use a color from the supported stack:\n${Chalk.green(`[ ${CFonts.COLORS.join(' | ')} ]`)}`
