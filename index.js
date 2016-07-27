@@ -253,7 +253,7 @@ const CFonts = (() => { //constructor factory
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // settings
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-		DEBUG: false,    //Debug setting
+		DEBUG: false,   //Debug setting
 		DEBUGLEVEL: 2,  //Debug level setting
 		COLORS: [       //All allowed font colors
 			'black',
@@ -487,6 +487,9 @@ const CFonts = (() => { //constructor factory
 
 			if( CFonts.OPTIONS.space ) { //add space
 				write = `\n\n` + write + `\n\n`;
+			}
+			else {
+				write = `\n` + write;
 			}
 
 
