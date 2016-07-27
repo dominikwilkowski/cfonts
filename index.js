@@ -289,6 +289,7 @@ const CFonts = (() => { //constructor factory
 			'3d',
 			'simple3d',
 			'chrome',
+			'huge',
 		],
 		FONTFACE: {},   //Font face object to be filled with selected fontface
 		OPTIONS: {},    //User options
@@ -296,7 +297,7 @@ const CFonts = (() => { //constructor factory
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Public function
-// say, main method to write out your string
+// render, main method to write out your string
 //
 // @param  INPUT     {string}   The string you want to write out
 // @param  SETTINGS  {object}   (optional) Settings object
@@ -309,10 +310,10 @@ const CFonts = (() => { //constructor factory
 //                              space          {boolean}  Output space before and after output, Default: true
 //                              maxLength      {integer}  Maximum amount of characters per line, Default width of console window
 //
-// @return           {string}   CLI output of INPUT
+// @return           {string}   CLI output of INPUT to be consoled out
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-		say: ( INPUT = '', SETTINGS = {} ) => {
-			CFonts.debugging.report(`Running say`, 1);
+		render: ( INPUT = '', SETTINGS = {} ) => {
+			CFonts.debugging.report(`Running render`, 1);
 
 			let write = ''; //output to be build
 			CFonts.OPTIONS = { //SETTINGS and defaults
@@ -493,7 +494,22 @@ const CFonts = (() => { //constructor factory
 			}
 
 
-			console.log( Chalk[ 'bg' + CFonts.OPTIONS.background ]( write ) ); //write out
+			return Chalk[ 'bg' + CFonts.OPTIONS.background ]( write ) //return write out
+		},
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Public function
+// say, print to console
+//
+// @param same as render method
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+		say: ( INPUT = '', SETTINGS = {} ) => {
+			CFonts.debugging.report(`Running say`, 1);
+
+			let write = CFonts.render( INPUT, SETTINGS );
+
+			console.log( write ); //write out
 		},
 
 

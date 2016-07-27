@@ -37,7 +37,7 @@ const FontText = (() => { //constructor factory
 		CHARS: [        //All allowed font colors
 			"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
 			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "!",
-			"?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", " "
+			"?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", ",", " "
 		],
 		FONTFACES: [    //All allowed fonts
 			'block',
@@ -46,6 +46,7 @@ const FontText = (() => { //constructor factory
 			'3d',
 			'simple3d',
 			'chrome',
+			'huge',
 		],
 
 

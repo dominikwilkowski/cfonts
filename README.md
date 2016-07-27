@@ -130,6 +130,7 @@ $ cfonts --help
 - /
 - :
 - ;
+- ,
 - ` ` (space)
 
 _The `|` character will be replaced with a line break_
@@ -183,6 +184,7 @@ This is the font face you want to use. So far this plugin ships with with follow
 - `3d`          [colors: 2]
 - `simple3d`    [colors: 1]
 - `chrome`      [colors: 3]
+- `huge`        [colors: 2]
 
 ```shell
 $ cfonts "text" -f "block3d"
@@ -312,13 +314,14 @@ This tool checks:
 
 
 ## Release History
-* 1.0.1  -  added chrome font, fonttest
-* 1.0.0  -  refactor, added alignment and line height option, new cli commands, added simpleBlock
-* 0.0.13 -  fixed simple3d
-* 0.0.12 -  fixed simple3d and added to grunt test
-* 0.0.11 -  added simple3d font
+* 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method
+* 1.0.1  -  added `chrome` font, fonttest
+* 1.0.0  -  refactor, added alignment and line height option, new cli commands, added `simpleBlock`
+* 0.0.13 -  fixed `simple3d`
+* 0.0.12 -  fixed `simple3d` and added to grunt test
+* 0.0.11 -  added `simple3d` font
 * 0.0.10 -  added npmignore, added to docs
-* 0.0.9  -  added console font
+* 0.0.9  -  added `console` font
 * 0.0.8  -  fixed bugs, docs
 * 0.0.7  -  changed to settings object
 * 0.0.6  -  added `3d` font
