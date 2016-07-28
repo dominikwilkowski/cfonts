@@ -42,21 +42,34 @@ _Remember to escape the `!` character with `\` in the shell_
 Or use it in your project:
 
 ```js
-var CFonts = require('cfonts');
+const CFonts = require('cfonts');
 
 CFonts.say('Hello|world!', {
-	'font': 'block',        //define the font face
-	'align': 'left',        //define text alignment
-	'colors': ['white'],    //define all colors
-	'background': 'Black',  //define the background color
-	'letterSpacing': 1,     //define letter spacing
-	'lineHeight': 1,        //define the line height
-	'space': true,          //define if the output text should have empty lines on top and on the bottom
-	'maxLength': '0'        //define how many character can be on one line
+	font: 'block',        //define the font face
+	align: 'left',        //define text alignment
+	colors: ['white'],    //define all colors
+	background: 'Black',  //define the background color
+	letterSpacing: 1,     //define letter spacing
+	lineHeight: 1,        //define the line height
+	space: true,          //define if the output text should have empty lines on top and on the bottom
+	maxLength: '0'        //define how many character can be on one line
 });
 ```
 
 _All settings are optional and shown here with their default_
+
+You can use CFonts in your project without the direct output to the console:
+
+```js
+const CFonts = require('cfonts');
+
+const prettyFont = CFonts.render('Hello|world!', {/* same settings object as above */});
+
+prettyFont.string //the ansi string for sexy console font
+prettyFont.array //returns the array for the output
+prettyFont.lines //returns the lines used
+prettyFont.options //returns the options used
+```
 
 
 ## Usage
@@ -222,6 +235,7 @@ Provide colors in a comma-separated string, eg: `red,blue` _(no spaces)_
 - `cyan`
 - `white` _(default)_
 - `gray`
+- `candy`
 
 ```shell
 $ cfonts "text" --colors white,blue

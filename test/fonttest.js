@@ -1,8 +1,12 @@
 /***************************************************************************************************************************************************************
  *
- * cfonts
+ * cfonts, Sexy fonts for the console. (CLI output)
  *
- * Sexy fonts for the console. (CLI output)
+ * Testing the each font file:
+ * - Font file has all font attributes?
+ * - All characters included?
+ * - All characters have the correct width?
+ * - All characters have consistent lines?
  *
  * @license     https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE  GNU GPLv2
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
