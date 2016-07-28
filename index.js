@@ -408,7 +408,7 @@ const CFonts = (() => { //constructor factory
 
 
 			if( CFonts.OPTIONS.font === 'console' ) { //console fontface is pretty easy to process
-				let outputLines = INPUT.split('|'); //each line
+				let outputLines = INPUT.replace('\\', '').split('|'); //remove escape characters and split into each line
 
 				CFonts.FONTFACE.colors = 1; //console defaults
 				CFonts.FONTFACE.lines = 1;
