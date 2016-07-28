@@ -42,21 +42,34 @@ _Remember to escape the `!` character with `\` in the shell_
 Or use it in your project:
 
 ```js
-var CFonts = require('cfonts');
+const CFonts = require('cfonts');
 
 CFonts.say('Hello|world!', {
-	'font': 'block',        //define the font face
-	'align': 'left',        //define text alignment
-	'colors': ['white'],    //define all colors
-	'background': 'Black',  //define the background color
-	'letterSpacing': 1,     //define letter spacing
-	'lineHeight': 1,        //define the line height
-	'space': true,          //define if the output text should have empty lines on top and on the bottom
-	'maxLength': '0'        //define how many character can be on one line
+	font: 'block',        //define the font face
+	align: 'left',        //define text alignment
+	colors: ['white'],    //define all colors
+	background: 'Black',  //define the background color
+	letterSpacing: 1,     //define letter spacing
+	lineHeight: 1,        //define the line height
+	space: true,          //define if the output text should have empty lines on top and on the bottom
+	maxLength: '0'        //define how many character can be on one line
 });
 ```
 
 _All settings are optional and shown here with their default_
+
+You can use CFonts in your project without the direct output to the console:
+
+```js
+const CFonts = require('cfonts');
+
+const prettyFont = CFonts.render('Hello|world!', {/* same settings object as above */});
+
+prettyFont.string //the ansi string for sexy console font
+prettyFont.array //returns the array for the output
+prettyFont.lines //returns the lines used
+prettyFont.options //returns the options used
+```
 
 
 ## Usage
@@ -130,6 +143,7 @@ $ cfonts --help
 - /
 - :
 - ;
+- ,
 - ` ` (space)
 
 _The `|` character will be replaced with a line break_
@@ -183,6 +197,7 @@ This is the font face you want to use. So far this plugin ships with with follow
 - `3d`          [colors: 2]
 - `simple3d`    [colors: 1]
 - `chrome`      [colors: 3]
+- `huge`        [colors: 2]
 
 ```shell
 $ cfonts "text" -f "block3d"
@@ -220,6 +235,7 @@ Provide colors in a comma-separated string, eg: `red,blue` _(no spaces)_
 - `cyan`
 - `white` _(default)_
 - `gray`
+- `candy`
 
 ```shell
 $ cfonts "text" --colors white,blue
@@ -312,13 +328,14 @@ This tool checks:
 
 
 ## Release History
-* 1.0.1  -  added chrome font, fonttest
-* 1.0.0  -  refactor, added alignment and line height option, new cli commands, added simpleBlock
-* 0.0.13 -  fixed simple3d
-* 0.0.12 -  fixed simple3d and added to grunt test
-* 0.0.11 -  added simple3d font
+* 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method, added candy color
+* 1.0.1  -  added `chrome` font, fonttest
+* 1.0.0  -  refactor, added alignment and line height option, new cli commands, added `simpleBlock`
+* 0.0.13 -  fixed `simple3d`
+* 0.0.12 -  fixed `simple3d` and added to grunt test
+* 0.0.11 -  added `simple3d` font
 * 0.0.10 -  added npmignore, added to docs
-* 0.0.9  -  added console font
+* 0.0.9  -  added `console` font
 * 0.0.8  -  fixed bugs, docs
 * 0.0.7  -  changed to settings object
 * 0.0.6  -  added `3d` font

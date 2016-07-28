@@ -1,8 +1,12 @@
 /***************************************************************************************************************************************************************
  *
- * cfonts
+ * cfonts, Sexy fonts for the console. (CLI output)
  *
- * Sexy fonts for the console. (CLI output)
+ * Testing the each font file:
+ * - Font file has all font attributes?
+ * - All characters included?
+ * - All characters have the correct width?
+ * - All characters have consistent lines?
  *
  * @license     https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE  GNU GPLv2
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
@@ -37,7 +41,7 @@ const FontText = (() => { //constructor factory
 		CHARS: [        //All allowed font colors
 			"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
 			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "!",
-			"?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", " "
+			"?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", ",", " "
 		],
 		FONTFACES: [    //All allowed fonts
 			'block',
@@ -46,6 +50,7 @@ const FontText = (() => { //constructor factory
 			'3d',
 			'simple3d',
 			'chrome',
+			'huge',
 		],
 
 

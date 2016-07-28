@@ -36,13 +36,6 @@ const CFonts = (() => { //constructor factory
 	const GetFont = ( font ) => {
 		CFonts.debugging.report(`Running GetFont`, 1);
 
-		//check selected font exists in preset
-		if( CFonts.FONTFACES.indexOf( font ) === -1 ) {
-			CFonts.log.error(`Please use a font from the supported stack:\n${Chalk.green(`[ ${CFonts.FONTFACES.join(' | ')} ]`)}`);
-
-			process.exit(1); //exit program with failure code
-		}
-
 		//try loading the font file
 		try {
 			let fontFile = `${__dirname}/fonts/${font}.json`; //build font path
@@ -192,15 +185,33 @@ const CFonts = (() => { //constructor factory
 	const Colorize = ( character ) => {
 		CFonts.debugging.report(`Running Colorize`, 1);
 
-		if( CFonts.FONTFACE.colors > 1 && character !== undefined ) {
-			for(let i = 0; i < CFonts.FONTFACE.colors; i++) { //convert all colors
-				let open = new RegExp(`<c${(i + 1)}>`, 'g');
-				let close = new RegExp(`</c${(i + 1)}>`, 'g');
+		let candyColors = ['red','green','yellow','magenta','cyan' ]; //allowed candy colors
 
-				let color = CFonts.OPTIONS.colors[ i ] || 'white';
+		if( character !== undefined ) {
+			if( CFonts.FONTFACE.colors > 1 ) {
+				for(let i = 0; i < CFonts.FONTFACE.colors; i++) { //convert all colors
+					let open = new RegExp(`<c${(i + 1)}>`, 'g');
+					let close = new RegExp(`</c${(i + 1)}>`, 'g');
 
-				character = character.replace( open, Chalk.styles[ color.toLowerCase() ].open );
-				character = character.replace( close, Chalk.styles[ color.toLowerCase() ].close );
+					let color = CFonts.OPTIONS.colors[ i ] || 'white';
+
+					if( color === 'candy' ) {
+						color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
+					}
+
+					character = character.replace( open, Chalk.styles[ color.toLowerCase() ].open );
+					character = character.replace( close, Chalk.styles[ color.toLowerCase() ].close );
+				}
+			}
+
+			if( CFonts.FONTFACE.colors === 1 ) {
+				let color = CFonts.OPTIONS.colors[ 0 ] || 'white';
+
+				if( color === 'candy' ) {
+					color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
+				}
+
+				character = Chalk.styles[ color.toLowerCase() ].open + character + Chalk.styles[ color.toLowerCase() ].close;
 			}
 		}
 
@@ -253,7 +264,7 @@ const CFonts = (() => { //constructor factory
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // settings
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-		DEBUG: false,    //Debug setting
+		DEBUG: false,   //Debug setting
 		DEBUGLEVEL: 2,  //Debug level setting
 		COLORS: [       //All allowed font colors
 			'black',
@@ -289,6 +300,7 @@ const CFonts = (() => { //constructor factory
 			'3d',
 			'simple3d',
 			'chrome',
+			'huge',
 		],
 		FONTFACE: {},   //Font face object to be filled with selected fontface
 		OPTIONS: {},    //User options
@@ -296,7 +308,7 @@ const CFonts = (() => { //constructor factory
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Public function
-// say, main method to write out your string
+// render, main method to get the ANSI output for a string
 //
 // @param  INPUT     {string}   The string you want to write out
 // @param  SETTINGS  {object}   (optional) Settings object
@@ -309,12 +321,16 @@ const CFonts = (() => { //constructor factory
 //                              space          {boolean}  Output space before and after output, Default: true
 //                              maxLength      {integer}  Maximum amount of characters per line, Default width of console window
 //
-// @return           {string}   CLI output of INPUT
+// @return           {string}   CLI output of INPUT to be consoled out
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-		say: ( INPUT = '', SETTINGS = {} ) => {
-			CFonts.debugging.report(`Running say`, 1);
+		render: ( INPUT = '', SETTINGS = {} ) => {
+			CFonts.debugging.report(`Running render`, 1);
 
-			let write = ''; //output to be build
+			let write = ''; //output in a string
+			let output = []; //output in an array
+			let lines = 0; //count each line
+
+			//SETTINGS
 			CFonts.OPTIONS = { //SETTINGS and defaults
 				font: SETTINGS.font || 'block',
 				align: SETTINGS.align || 'left',
@@ -326,23 +342,39 @@ const CFonts = (() => { //constructor factory
 				maxLength: SETTINGS.maxLength || 0,
 			};
 
+			//CHECKING INPUT
 			if( INPUT === undefined || INPUT === '' ) {
 				CFonts.log.error(`Please provide text to convert`);
 
 				process.exit(1); //exit program with failure code
 			}
 
+			//CHECKING FONT
+			if( CFonts.FONTFACES.indexOf( CFonts.OPTIONS.font ) === -1 ) {
+				CFonts.log.error(
+					`"${Chalk.red( SETTINGS.font )}" is not a valid font option.\n` +
+					`Please use a font from the supported stack:\n${Chalk.green(`[ ${CFonts.FONTFACES.join(' | ')} ]`)}`
+				);
+
+				process.exit(1); //exit program with failure code
+			}
+
+			//CHECKING COLORS
 			for( let color in CFonts.OPTIONS.colors ) { //check color usage
-				if( CFonts.COLORS.indexOf( CFonts.OPTIONS.colors[ color ] ) === -1 ) {
+				if(
+					CFonts.COLORS.indexOf( CFonts.OPTIONS.colors[ color ] ) === -1 &&
+					CFonts.OPTIONS.colors[ color ] !== 'candy'
+				) {
 					CFonts.log.error(
 						`"${Chalk.red( CFonts.OPTIONS.colors[ color ] )}" is not a valid font color option.\n` +
-						`Please use a color from the supported stack:\n${Chalk.green(`[ ${CFonts.COLORS.join(' | ')} ]`)}`
+						`Please use a color from the supported stack:\n${Chalk.green(`[ ${CFonts.COLORS.join(' | ')} | candy ]`)}`
 					);
 
 					process.exit(1); //exit program with failure code
 				}
 			}
 
+			//CHECKING BACKGROUND COLORS
 			if( CFonts.BGCOLORS.indexOf( CFonts.OPTIONS.background.toLowerCase() ) === -1 ) {
 				CFonts.log.error(
 					`"${Chalk.red( CFonts.OPTIONS.background )}" is not a valid background option.\n` +
@@ -352,6 +384,7 @@ const CFonts = (() => { //constructor factory
 				process.exit(1); //exit program with failure code
 			}
 
+			//CHECKING ALIGNMENT
 			if( CFonts.ALIGNMENT.indexOf( CFonts.OPTIONS.align ) === -1 ) {
 				CFonts.log.error(
 					`"${Chalk.red( CFonts.OPTIONS.align )}" is not a valid alignment option.\n` +
@@ -362,8 +395,8 @@ const CFonts = (() => { //constructor factory
 			}
 
 
-			//log OPTIONS for debugging
-			if( CFonts.DEBUG ) {
+			//DEBUG
+			if( CFonts.DEBUG ) { //log options
 				let outOption = `OPTIONS:\n  Text: ${INPUT}`;
 
 				for( let key in CFonts.OPTIONS ) {
@@ -375,23 +408,29 @@ const CFonts = (() => { //constructor factory
 
 
 			if( CFonts.OPTIONS.font === 'console' ) { //console fontface is pretty easy to process
-				let color = CFonts.OPTIONS.colors[0].toLowerCase() || 'white'; //font color
-				let lines = INPUT.split('|'); //each line
-				let output = []
+				let outputLines = INPUT.replace('\\', '').split('|'); //remove escape characters and split into each line
 
+				CFonts.FONTFACE.colors = 1; //console defaults
 				CFonts.FONTFACE.lines = 1;
 
-				for(let line in lines) {
-					let length = lines[ line ].length;
+				for(let line in outputLines) { //each line needs to be pushed into the output array
+					lines += Math.ceil( outputLines[ line ].length / WinSize.width ); //count each line even when they overflow
 
-					lines[ line ] = Chalk[ color ]( lines[ line ] );
-					output.push( lines[ line ] );
+					if( CFonts.OPTIONS.colors[0] === "candy" ) { //if the color is candy
+						let character = '';
 
-					output = AlignText( output, length ); //calculate alignment based on lineLength
+						for(let i = 0; i < outputLines[ line ].length; i++) { //iterate through the message
+							character += Colorize( outputLines[ line ][ i ] ); //and colorize each character individually
+						}
+
+						output.push( character ); //push each line to the output array
+					}
+					else {
+						output.push( Colorize( outputLines[ line ] ) ); //colorize line
+					}
+
+					output = AlignText( output, outputLines[ line ].length ); //calculate alignment based on lineLength
 				}
-
-
-				write = output.join(`\n`); //convert to one line
 			}
 			else { //all other fontfaces need the font-file and some more work
 				GetFont( CFonts.OPTIONS.font ); //get fontface object and make it global
@@ -414,9 +453,11 @@ const CFonts = (() => { //constructor factory
 					CFonts.OPTIONS.letterSpacing = width;
 				}
 
-				let output = AddLine( [] ); //create first lines with buffer
 				let lineLength = CharLength( CFonts.FONTFACE.buffer ); //count each output character per line and start with the buffer
 				let maxChars = 0; //count each character we print for maxLength option
+
+				output = AddLine( [] ); //create first lines with buffer
+				lines ++;
 
 				output = AddLetterSpacing( output ); //add letter spacing to the beginning
 				lineLength += CharLength( CFonts.FONTFACE.letterspace ) * CFonts.OPTIONS.letterSpacing; //count the space for the letter spacing
@@ -440,6 +481,8 @@ const CFonts = (() => { //constructor factory
 
 						//jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would has ran out of space
 						if(maxChars >= CFonts.OPTIONS.maxLength && CFonts.OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > WinSize.width) {
+							lines ++;
+
 							CFonts.debugging.report(
 								`NEWLINE: maxChars: ${maxChars}, ` +
 								`CFonts.OPTIONS.maxLength: ${CFonts.OPTIONS.maxLength}, ` +
@@ -473,24 +516,47 @@ const CFonts = (() => { //constructor factory
 				}
 
 				output = AlignText( output, lineLength ); //alignment last line
-
-				write = output.join(`\n`); //convert to one line
 			}
+
+			write = output.join(`\n`); //convert to a string
 
 
 			if( CFonts.FONTFACE.colors <= 1 ) { //add text color if only one
-				let color = CFonts.OPTIONS.colors[0] || `white`;
-
-				write = Chalk[ color.toLowerCase() ]( write );
+				write = Colorize( write );
 			}
 
 
 			if( CFonts.OPTIONS.space ) { //add space
 				write = `\n\n` + write + `\n\n`;
 			}
+			else {
+				write = `\n` + write;
+			}
+
+			write = Chalk[ 'bg' + CFonts.OPTIONS.background ]( write ) //result in one string
 
 
-			console.log( Chalk[ 'bg' + CFonts.OPTIONS.background ]( write ) ); //write out
+			return {
+				string: write,
+				array: output,
+				lines: lines,
+				options: CFonts.OPTIONS,
+			}
+		},
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Public function
+// say, print to console
+//
+// @param same as render method
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+		say: ( INPUT = '', SETTINGS = {} ) => {
+			CFonts.debugging.report(`Running say`, 1);
+
+			let write = CFonts.render( INPUT, SETTINGS );
+
+			console.log( write.string ); //write out
 		},
 
 
