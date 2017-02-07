@@ -308,6 +308,18 @@ $ cfonts "text" --max-length 15
 
 
 ## Contributing
+To build the repo install dependencies via:
+
+```shell
+yarn
+```
+
+and run the watch to continuously transpile the code.
+
+```shell
+npm run watch
+```
+
 Please look at the coding style and work with it, not against it ;)
 
 
@@ -315,7 +327,7 @@ Please look at the coding style and work with it, not against it ;)
 The package comes with a testing tool for the font json format. Run the test with:
 
 ```shell
-node test/fonttest.js
+npm test
 ```
 
 This tool checks:
@@ -328,6 +340,7 @@ This tool checks:
 
 
 ## Release History
+* 1.1.0  -  transpiled code to support node 0.12.15 and up
 * 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method, added candy color
 * 1.0.1  -  added `chrome` font, fonttest
 * 1.0.0  -  refactor, added alignment and line height option, new cli commands, added `simpleBlock`
