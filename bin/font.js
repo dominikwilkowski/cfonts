@@ -18,7 +18,12 @@
 // Dependencies
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-require('babel-polyfill'); //get this to work in node 0.12.x
+var _stringify = require('babel-runtime/core-js/json/stringify');
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 var Fs = require('fs');
 var Chalk = require('chalk');
 var Program = require('commander');
@@ -53,7 +58,7 @@ Program.description('This is a tool for sexy fonts in the console. Give your cli
 if (Program.text !== undefined) {
 	//log OPTIONS for debugging
 	if (CFonts.DEBUG) {
-		CFonts.debugging.report('OPTIONS:\n' + ('  CFonts.say("' + Program.text + '", {\n') + ('\t\'font\': "' + Program.font + '",\n') + ('\t\'align\': "' + Program.align + '",\n') + ('\t\'colors\': ' + (Program.colors ? JSON.stringify(Program.colors.split(',')) : []) + ',\n') + ('\t\'background\': "' + Program.background + '",\n') + ('\t\'letterSpacing\': ' + Program.letterSpacing + ',\n') + ('\t\'lineHeight\': ' + Program.lineHeight + ',\n') + ('\t\'space\': ' + (Program.spaceless ? false : true) + ',\n') + ('\t\'maxLength\': ' + Program.maxLength + '\n') + '  });', 3);
+		CFonts.debugging.report('OPTIONS:\n' + ('  CFonts.say("' + Program.text + '", {\n') + ('\t\'font\': "' + Program.font + '",\n') + ('\t\'align\': "' + Program.align + '",\n') + ('\t\'colors\': ' + (Program.colors ? (0, _stringify2.default)(Program.colors.split(',')) : []) + ',\n') + ('\t\'background\': "' + Program.background + '",\n') + ('\t\'letterSpacing\': ' + Program.letterSpacing + ',\n') + ('\t\'lineHeight\': ' + Program.lineHeight + ',\n') + ('\t\'space\': ' + (Program.spaceless ? false : true) + ',\n') + ('\t\'maxLength\': ' + Program.maxLength + '\n') + '  });', 3);
 	}
 
 	//execute cfonts

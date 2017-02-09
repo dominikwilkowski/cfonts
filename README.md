@@ -191,13 +191,21 @@ Default value: `"block"`
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
 - `console`     [colors: 1]
+	![console font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/console.png)
 - `block`       [colors: 2] _(default)_
-- `simpleBlock` [colors: 1]
+	![block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/block.png)
 - `simple`      [colors: 1]
+	![simple font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/simple.png)
+- `simpleBlock` [colors: 1]
+	![simple-block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/simple-block.png)
 - `3d`          [colors: 2]
+	![3d font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/3d.png)
 - `simple3d`    [colors: 1]
+	![simple-3d font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/simple-3d.png)
 - `chrome`      [colors: 3]
+	![chrome font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/chrome.png)
 - `huge`        [colors: 2]
+	![huge font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/huge.png)
 
 ```shell
 $ cfonts "text" -f "block3d"
@@ -340,6 +348,7 @@ This tool checks:
 
 
 ## Release History
+* 1.1.1  -  moved from `babel-polyfill` to `babel-plugin-transform-runtime`, added files to package.json, added images to docs, fixed dependencies
 * 1.1.0  -  transpiled code to support node 0.12.15 and up
 * 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method, added candy color
 * 1.0.1  -  added `chrome` font, fonttest

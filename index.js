@@ -16,6 +16,12 @@
 // Dependencies
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+var _repeat = require('babel-runtime/core-js/string/repeat');
+
+var _repeat2 = _interopRequireDefault(_repeat);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 var ChangeCase = require('change-case');
 var WinSize = require('window-size');
 var Chalk = require('chalk');
@@ -163,7 +169,7 @@ var CFonts = function () {
 				space = ' ';
 			}
 
-			output[i] += space.repeat(CFonts.OPTIONS.letterSpacing);
+			output[i] += (0, _repeat2.default)(space, CFonts.OPTIONS.letterSpacing);
 		}
 
 		return output;
@@ -245,7 +251,7 @@ var CFonts = function () {
 		if (space > 0) {
 			//only add if there is something to add
 			var lines = output.length - CFonts.FONTFACE.lines; //last line is CFonts.FONTFACE.lines tall and is located at the bottom of the output array
-			space = ' '.repeat(space);
+			space = (0, _repeat2.default)(' ', space);
 
 			for (var i = lines; i < output.length; i++) {
 				//iterate over last line
