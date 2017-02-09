@@ -167,7 +167,7 @@ const CFonts = (() => { //constructor factory
 				space = ' ';
 			}
 
-			output[ i ] += space.repeat( CFonts.OPTIONS.letterSpacing );
+			output[ i ] += String.repeat(space, CFonts.OPTIONS.letterSpacing );
 		}
 
 		return output;
@@ -248,7 +248,7 @@ const CFonts = (() => { //constructor factory
 
 		if( space > 0 ) { //only add if there is something to add
 			let lines = output.length - CFonts.FONTFACE.lines; //last line is CFonts.FONTFACE.lines tall and is located at the bottom of the output array
-			space = ' '.repeat( space );
+			space = String.repeat(' ', space );
 
 			for(let i = lines; i < output.length; i++) { //iterate over last line
 				output[ i ] = space + output[ i ];
