@@ -208,7 +208,7 @@ This is the font face you want to use. So far this plugin ships with with follow
 	![huge font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/huge.png)
 
 ```shell
-$ cfonts "text" -f "block3d"
+$ cfonts "text" -f "3d"
 ```
 
 
