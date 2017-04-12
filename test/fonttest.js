@@ -364,19 +364,19 @@ const FontText = (() => { //constructor factory
 		log: {
 			headline: ( text ) => {
 				let space = Math.floor( (WinSize.width - text.length - 6) / 2 );
-				console.log(`\n${Chalk.bgWhite.black(`\n${' '.repeat( space )}══ ${text} ══`)}`);
+				console.log(`\n${Chalk.bgWhite.black(`\n${ String.repeat(' ', space )}══ ${text} ══`)}`);
 			},
 
 			check: ( text ) => {
 				let prefix = `${Chalk.bold.green(' \u231B     ')} ${Chalk.bold.black('Testing:')} `;
 
-				text = text.replace(/(?:\r\n|\r|\n)/g, `\n${' '.repeat( prefix.length )}`); //indent each line
+				text = text.replace(/(?:\r\n|\r|\n)/g, `\n${ String.repeat(' ', prefix.length )}`); //indent each line
 				process.stdout.write(`\n${Chalk.bgWhite(`${prefix}${Chalk.black(text)}`)}`);
 			},
 
 			subdone: ( text ) => {
 				let prefix = ` ${Chalk.bold.black('OK')} `;
-				text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${' '.repeat( prefix.length )}`); //indent each line
+				text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${ String.repeat(' ', prefix.length )}`); //indent each line
 
 				Readline.cursorTo( process.stdout, 0 );
 				console.log(`${Chalk.bgGreen(` ${prefix}`)}`);
@@ -385,7 +385,7 @@ const FontText = (() => { //constructor factory
 
 			suberror: ( text ) => {
 				let prefix = ` ${Chalk.bold.black('FAIL')} `;
-				text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${' '.repeat( prefix.length )}`); //indent each line
+				text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${ String.repeat(' ', prefix.length )}`); //indent each line
 
 				Readline.cursorTo( process.stdout, 0 );
 				console.log(`${Chalk.bgRed(` ${prefix}`)}`);
