@@ -364,6 +364,10 @@ const FontText = (() => { //constructor factory
 		log: {
 			headline: ( text ) => {
 				let space = Math.floor( (WinSize.width - text.length - 6) / 2 );
+				if( space < 0 ) {
+					space = 1;
+				}
+
 				console.log(`\n${Chalk.bgWhite.black(`\n${' '.repeat( space )}══ ${text} ══`)}`);
 			},
 
