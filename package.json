@@ -51,7 +51,7 @@
 		"babel-runtime": "6.22.0",
 		"chalk": "1.0.0",
 		"change-case": "3.0.0",
-		"commander": "2.6.0",
+		"commander": "2.9.0",
 		"window-size": "0.3.0"
 	},
 	"keywords": [
