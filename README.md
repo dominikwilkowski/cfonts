@@ -348,6 +348,7 @@ This tool checks:
 
 
 ## Release History
+* 1.1.3  -  Fixed help text, removing old -t option
 * 1.1.2  -  Fixed issue with older commander version #3, updated docs
 * 1.1.1  -  moved from `babel-polyfill` to `babel-plugin-transform-runtime`, added files to package.json, added images to docs, fixed dependencies
 * 1.1.0  -  transpiled code to support node 0.12.15 and up
