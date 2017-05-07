@@ -35,7 +35,7 @@ var Version = Package.version;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Setting up command line tool
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-Program.description('This is a tool for sexy fonts in the console. Give your cli some love.').version('v' + Version).usage('"<value>" [option1] <input1> [option2] <input1>,<input2> [option3]').option('-f, --font            <keyword>', 'define "font face"', 'block').option('-a, --align           <keyword>', 'define "alignment" for the text', 'left').option('-c, --colors          <keyword>,<keyword>...', 'provide colors for text', 'white').option('-b, --background      <keyword>', 'provide background color', 'Black').option('-l, --letter-spacing  <n>', 'define letter spacing {integer}').option('-z, --line-height     <n>', 'define line height {integer}', 1).option('-s, --spaceless', 'surpress space on top and on the bottom').option('-m, --max-length     <keyword>', 'define how many character can be on one line').action(function (text) {
+Program.usage('"<value>" [option1] <input1> [option2] <input1>,<input2> [option3]\n' + ('  Example: $ ' + Chalk.bold('cfonts "sexy font" -f chrome -a center -c red,green,gray'))).description('This is a tool for sexy fonts in the console. Give your cli some love.').version('v' + Version).option('-f, --font            <keyword>', 'define "font face"', 'block').option('-a, --align           <keyword>', 'define "alignment" for the text', 'left').option('-c, --colors          <keyword>,<keyword>...', 'provide colors for text; comma separated (no space)', 'white').option('-b, --background      <keyword>', 'provide background color', 'Black').option('-l, --letter-spacing  <n>', 'define letter spacing {integer}').option('-z, --line-height     <n>', 'define line height {integer}', 1).option('-s, --spaceless', 'surpress space on top and on the bottom').option('-m, --max-length     <keyword>', 'define how many character can be on one line').action(function (text) {
 	Program.text = text; //add flagless option for text
 }).on('--help', function () {
 	//adding options for each keyword section
@@ -74,5 +74,5 @@ if (Program.text !== undefined) {
 	});
 } else {
 	//we do need text to convert
-	CFonts.log.error('Please provide text to convert with ' + Chalk.green('cfonts -t "Text"') + '\n' + ('Run ' + Chalk.green('cfonts --help') + ' for more infos'));
+	CFonts.log.error('Please provide text to convert with ' + Chalk.green('cfonts "Text"') + '\n' + ('Run ' + Chalk.green('cfonts --help') + ' for more infos'));
 }
