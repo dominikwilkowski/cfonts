@@ -190,6 +190,10 @@ Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
+```shell
+$ cfonts "text" -f "console"
+```
+
 - `console`     [colors: 1]
 	![console font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/console.png)
 - `block`       [colors: 2] _(default)_
@@ -206,10 +210,6 @@ This is the font face you want to use. So far this plugin ships with with follow
 	![chrome font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/chrome.png)
 - `huge`        [colors: 2]
 	![huge font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/huge.png)
-
-```shell
-$ cfonts "text" -f "3d"
-```
 
 
 #### -a, --align
