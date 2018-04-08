@@ -45,14 +45,14 @@ Or use it in your project:
 const CFonts = require('cfonts');
 
 CFonts.say('Hello|world!', {
-	font: 'block',        //define the font face
-	align: 'left',        //define text alignment
-	colors: ['white'],    //define all colors
-	background: 'Black',  //define the background color
-	letterSpacing: 1,     //define letter spacing
-	lineHeight: 1,        //define the line height
-	space: true,          //define if the output text should have empty lines on top and on the bottom
-	maxLength: '0'        //define how many character can be on one line
+	font: 'block',              //define the font face
+	align: 'left',              //define text alignment
+	colors: ['white'],          //define all colors
+	background: 'transparent',  //define the background color, you can also use `backgroundColor` here as key
+	letterSpacing: 1,           //define letter spacing
+	lineHeight: 1,              //define the line height
+	space: true,                //define if the output text should have empty lines on top and on the bottom
+	maxLength: '0',             //define how many character can be on one line
 });
 ```
 
@@ -229,11 +229,13 @@ $ cfonts "text" -a "center"
 
 #### -c, --colors
 Type: `<string list>`  
-Default value: `[]`
+Default value: `['system']`
 
 With this setting you can set the colors for your font. Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk).
 Provide colors in a comma-separated string, eg: `red,blue` _(no spaces)_
+The `system` color falls back to the system color of your terminal.
 
+- `system` _(default)_
 - `black`
 - `red`
 - `green`
@@ -241,9 +243,15 @@ Provide colors in a comma-separated string, eg: `red,blue` _(no spaces)_
 - `blue`
 - `magenta`
 - `cyan`
-- `white` _(default)_
+- `white`
 - `gray`
-- `candy`
+- `redBright`
+- `greenBright`
+- `yellowBright`
+- `blueBright`
+- `magentaBright`
+- `cyanBright`
+- `whiteBright`
 
 ```shell
 $ cfonts "text" --colors white,blue
@@ -252,19 +260,28 @@ $ cfonts "text" --colors white,blue
 
 #### -b, --background
 Type: `<string>`  
-Default value: `"Black"`
+Default value: `"transparent"`
 
 With this setting you can set the background colors for the output. Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk).
-Provide the background color from the below supported list, eg: 'White'
+Provide the background color from the below supported list, eg: 'white'
 
-- `Black` _(default)_
-- `Red`
-- `Green`
-- `Yellow`
-- `Blue`
-- `Magenta`
-- `Cyan`
-- `White`
+- `transparent` _(default)_
+- `black`
+- `red`
+- `green`
+- `yellow`
+- `blue`
+- `magenta`
+- `cyan`
+- `white`
+- `blackBright`
+- `redBright`
+- `greenBright`
+- `yellowBright`
+- `blueBright`
+- `magentaBright`
+- `cyanBright`
+- `whiteBright`
 
 ```shell
 $ cfonts "text" --background "Green"
@@ -348,6 +365,7 @@ This tool checks:
 
 
 ## Release History
+* 1.2.0  -  Added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
 * 1.1.3  -  Fixed help text, removing old -t option
 * 1.1.2  -  Fixed issue with older commander version #3, updated docs
 * 1.1.1  -  moved from `babel-polyfill` to `babel-plugin-transform-runtime`, added files to package.json, added images to docs, fixed dependencies
@@ -371,4 +389,4 @@ This tool checks:
 
 
 ## License
-Copyright (c) 2016 Dominik Wilkowski. Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE).
+Copyright (c) 2018 Dominik Wilkowski. Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE).
