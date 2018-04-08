@@ -33,7 +33,7 @@
 		"prepublish": "npm run build",
 		"test": "node ./test/fonttest.js",
 		"build": "npm run build:bin & npm run build:lib",
-		"build:bin": "babel src/bin.js --out-file bin/font.js --presets=es2015 --plugins transform-runtime",
+		"build:bin": "mkdir bin && babel src/bin.js --out-file bin/font.js --presets=es2015 --plugins transform-runtime",
 		"build:lib": "babel src/lib.js --out-file index.js --presets=es2015 --plugins transform-runtime",
 		"watch": "npm run build && onchange 'src/**/*' -- npm run build"
 	},
