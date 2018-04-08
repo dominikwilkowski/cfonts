@@ -10,3 +10,5 @@ tmp
 .sass-cache
 .idea
 npm-debug.log
+bin/
+index.js
