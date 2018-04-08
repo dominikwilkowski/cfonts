@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "1.2.0",
+	"version": "2.0.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -33,8 +33,8 @@
 		"prepublish": "npm run build",
 		"test": "node ./test/fonttest.js",
 		"build": "npm run build:bin & npm run build:lib",
-		"build:bin": "mkdir bin && babel src/bin.js --out-file bin/font.js --presets=es2015 --plugins transform-runtime",
-		"build:lib": "babel src/lib.js --out-file index.js --presets=es2015 --plugins transform-runtime",
+		"build:bin": "mkdir -p bin && babel src/bin.js --out-file bin/index.js --presets=es2015 --plugins transform-runtime",
+		"build:lib": "mkdir -p lib && babel src/lib.js --out-file lib/index.js --presets=es2015 --plugins transform-runtime",
 		"watch": "npm run build && onchange 'src/**/*' -- npm run build"
 	},
 	"devDependencies": {
@@ -65,13 +65,13 @@
 		"pretty"
 	],
 	"files": [
-		"index.js",
+		"lib/*",
 		"bin/*",
 		"fonts/*"
 	],
-	"main": "index.js",
+	"main": "lib/index.js",
 	"bin": {
-		"cfonts": "./bin/font.js"
+		"cfonts": "./bin/index.js"
 	},
 	"license": "GNU-GPLv2"
 }

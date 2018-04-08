@@ -17,12 +17,13 @@
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Dependencies
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-const Fs = require('fs');
-const Chalk = require('chalk');
+const CFonts = require('../lib/index.js');
 const Program = require('commander');
-const CFonts = require('./../index.js');
+const Chalk = require('chalk');
+const Path = require('path');
+const Fs = require('fs');
 
-const Package = JSON.parse(Fs.readFileSync(__dirname + '/../package.json', 'utf8'));
+const Package = JSON.parse( Fs.readFileSync( Path.normalize(`${ __dirname }/../package.json`), 'utf8' ) );
 const Version = Package.version;
 
 
@@ -34,31 +35,31 @@ Program
 		`"<value>" [option1] <input1> [option2] <input1>,<input2> [option3]\n` +
 		`  Example: $ ${ Chalk.bold(`cfonts "sexy font" -f chrome -a center -c red,green,gray`) }`
 	)
-	.description(`This is a tool for sexy fonts in the console. Give your cli some love.`)
-	.version(`v${Version}`)
-	.option(`-f, --font            <keyword>`,               `define "font face"`, `block`)
-	.option(`-a, --align           <keyword>`,               `define "alignment" for the text`, `left`)
-	.option(`-c, --colors          <keyword>,<keyword>...`,  `provide colors for text; comma separated (no space)`, `system`)
-	.option(`-b, --background      <keyword>`,               `provide background color`, `transparent`)
-	.option(`-l, --letter-spacing  <n>`,                     `define letter spacing {integer}`)
-	.option(`-z, --line-height     <n>`,                     `define line height {integer}`, 1)
-	.option(`-s, --spaceless`,                               `surpress space on top and on the bottom`)
-	.option(`-m, --max-length     <keyword>`,                `define how many character can be on one line`)
-	.action(function( text ) {
+	.description( `This is a tool for sexy fonts in the console. Give your cli some love.` )
+	.version( `v${ Version }`)
+	.option( `-f, --font            <keyword>`,               `define "font face"`, `block` )
+	.option( `-a, --align           <keyword>`,               `define "alignment" for the text`, `left` )
+	.option( `-c, --colors          <keyword>,<keyword>...`,  `provide colors for text; comma separated (no space)`, `system` )
+	.option( `-b, --background      <keyword>`,               `provide background color`, `transparent` )
+	.option( `-l, --letter-spacing  <n>`,                     `define letter spacing {integer}` )
+	.option( `-z, --line-height     <n>`,                     `define line height {integer}`, 1 )
+	.option( `-s, --spaceless`,                               `surpress space on top and on the bottom` )
+	.option( `-m, --max-length     <keyword>`,                `define how many character can be on one line` )
+	.action( ( text ) => {
 			Program.text = text; //add flagless option for text
 	 })
-	.on('--help', function() { //adding options for each keyword section
+	.on( '--help', () => { //adding options for each keyword section
 		console.log( Chalk.bold(`  Font face options:`) );
-		console.log(`  [ ${CFonts.FONTFACES.join(', ')} ]\n`);
+		console.log(`  [ ${ CFonts.FONTFACES.join(', ') } ]\n`);
 
 		console.log( Chalk.bold(`  Alignment options:`) );
-		console.log(`  [ ${CFonts.ALIGNMENT.join(', ')} ]\n`);
+		console.log(`  [ ${ CFonts.ALIGNMENT.join(', ') } ]\n`);
 
 		console.log( Chalk.bold(`  Color options:`) );
-		console.log(`  [ ${CFonts.COLORS.join(', ')} ]\n`);
+		console.log(`  [ ${ CFonts.COLORS.join(', ') } ]\n`);
 
 		console.log( Chalk.bold(`  background color options:`) );
-		console.log(`  [ ${CFonts.BGCOLORS.join(', ')} ]\n`);
+		console.log(`  [ ${ CFonts.BGCOLORS.join(', ') } ]\n`);
 	})
 	.parse( process.argv );
 
@@ -69,24 +70,24 @@ Program
 if(Program.text !== undefined) {
 	//log OPTIONS for debugging
 	if( CFonts.DEBUG ) {
-		CFonts.debugging.report(
+		CFonts.Debugging.report(
 			`OPTIONS:\n` +
-			`  CFonts.say("${Program.text}", {\n` +
-			`	'font': "${Program.font}",\n` +
-			`	'align': "${Program.align}",\n` +
-			`	'colors': ${Program.colors ? JSON.stringify( Program.colors.split(',') ) : []},\n` +
-			`	'background': "${Program.background}",\n` +
-			`	'letterSpacing': ${Program.letterSpacing},\n` +
-			`	'lineHeight': ${Program.lineHeight},\n` +
-			`	'space': ${Program.spaceless ? false : true},\n` +
-			`	'maxLength': ${Program.maxLength}\n` +
+			`  CFonts.say("${ Program.text }", {\n` +
+			`	'font': "${ Program.font }",\n` +
+			`	'align': "${ Program.align }",\n` +
+			`	'colors': ${ Program.colors ? JSON.stringify( Program.colors.split(',') ) : [] },\n` +
+			`	'background': "${ Program.background }",\n` +
+			`	'letterSpacing': ${ Program.letterSpacing },\n` +
+			`	'lineHeight': ${ Program.lineHeight },\n` +
+			`	'space': ${ Program.spaceless ? false : true },\n` +
+			`	'maxLength': ${ Program.maxLength }\n` +
 			`  });`,
 			3
 		);
 	}
 
 	//execute cfonts
-	CFonts.say(Program.text, {
+	CFonts.say( Program.text, {
 		'font': Program.font,
 		'align': Program.align,
 		'colors': Program.colors ? Program.colors.split(',') : [],
@@ -99,8 +100,8 @@ if(Program.text !== undefined) {
 
 }
 else { //we do need text to convert
-	CFonts.log.error(
-		`Please provide text to convert with ${Chalk.green(`cfonts "Text"`)}\n` +
-		`Run ${Chalk.green(`cfonts --help`)} for more infos`
+	CFonts.Log.error(
+		`Please provide text to convert with ${ Chalk.green(`cfonts "Text"`) }\n` +
+		`Run ${ Chalk.green(`cfonts --help`) } for more infos`
 	);
 }
