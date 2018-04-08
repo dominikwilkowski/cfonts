@@ -18,6 +18,7 @@
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 const ChangeCase = require('change-case');
 const WinSize = require('window-size');
+const Style = require('ansi-styles');
 const Chalk = require(`chalk`);
 const Fs = require(`fs`);
 
@@ -174,6 +175,16 @@ const CFonts = (() => { //constructor factory
 	};
 
 
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Private function
+// AnsiSytle, return all ansi codes with open and close keys
+//
+// @return  {object}  An object with all supported ansi escape sequences
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+	const AnsiSytle = Object.assign( { system: { open: '', close: '' } }, Style );
+
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Private function
 // Colorize, replace placeholders with color information
@@ -185,7 +196,19 @@ const CFonts = (() => { //constructor factory
 	const Colorize = ( character ) => {
 		CFonts.debugging.report(`Running Colorize`, 1);
 
-		let candyColors = ['red','green','yellow','magenta','cyan' ]; //allowed candy colors
+		let candyColors = [
+			'red',
+			'green',
+			'yellow',
+			'magenta',
+			'cyan',
+			'redBright',
+			'greenBright',
+			'yellowBright',
+			'blueBright',
+			'magentaBright',
+			'cyanBright',
+		]; //allowed candy colors
 
 		if( character !== undefined ) {
 			if( CFonts.FONTFACE.colors > 1 ) {
@@ -193,25 +216,25 @@ const CFonts = (() => { //constructor factory
 					let open = new RegExp(`<c${(i + 1)}>`, 'g');
 					let close = new RegExp(`</c${(i + 1)}>`, 'g');
 
-					let color = CFonts.OPTIONS.colors[ i ] || 'white';
+					let color = CFonts.OPTIONS.colors[ i ] || 'system';
 
 					if( color === 'candy' ) {
 						color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
 					}
 
-					character = character.replace( open, Chalk.styles[ color.toLowerCase() ].open );
-					character = character.replace( close, Chalk.styles[ color.toLowerCase() ].close );
+					character = character.replace( open, AnsiSytle[ color ].open );
+					character = character.replace( close, AnsiSytle[ color ].close );
 				}
 			}
 
 			if( CFonts.FONTFACE.colors === 1 ) {
-				let color = CFonts.OPTIONS.colors[ 0 ] || 'white';
+				let color = CFonts.OPTIONS.colors[ 0 ] || 'system';
 
 				if( color === 'candy' ) {
 					color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
 				}
 
-				character = Chalk.styles[ color.toLowerCase() ].open + character + Chalk.styles[ color.toLowerCase() ].close;
+				character = AnsiSytle[ color ].open + character + AnsiSytle[ color ].close;
 			}
 		}
 
@@ -267,6 +290,7 @@ const CFonts = (() => { //constructor factory
 		DEBUG: false,   //Debug setting
 		DEBUGLEVEL: 2,  //Debug level setting
 		COLORS: [       //All allowed font colors
+			'system',
 			'black',
 			'red',
 			'green',
@@ -276,8 +300,16 @@ const CFonts = (() => { //constructor factory
 			'cyan',
 			'white',
 			'gray',
+			'redBright',
+			'greenBright',
+			'yellowBright',
+			'blueBright',
+			'magentaBright',
+			'cyanBright',
+			'whiteBright',
 		],
 		BGCOLORS: [     //All allowed background colors
+			'transparent',
 			'black',
 			'red',
 			'green',
@@ -286,6 +318,14 @@ const CFonts = (() => { //constructor factory
 			'magenta',
 			'cyan',
 			'white',
+			'blackBright',
+			'redBright',
+			'greenBright',
+			'yellowBright',
+			'blueBright',
+			'magentaBright',
+			'cyanBright',
+			'whiteBright',
 		],
 		ALIGNMENT: [    //All allowed alignment options
 			'left',
@@ -335,7 +375,7 @@ const CFonts = (() => { //constructor factory
 				font: SETTINGS.font || 'block',
 				align: SETTINGS.align || 'left',
 				colors: SETTINGS.colors || [],
-				background: ChangeCase.upperCaseFirst( SETTINGS.background ) || 'Black',
+				background: SETTINGS.background || SETTINGS.backgroundColor || 'transparent',
 				letterSpacing: SETTINGS.letterSpacing === undefined ? 1 : SETTINGS.letterSpacing,
 				lineHeight: SETTINGS.lineHeight === undefined ? 1 : parseInt( SETTINGS.lineHeight ),
 				space: SETTINGS.space === undefined ? true : SETTINGS.space,
@@ -375,7 +415,7 @@ const CFonts = (() => { //constructor factory
 			}
 
 			//CHECKING BACKGROUND COLORS
-			if( CFonts.BGCOLORS.indexOf( CFonts.OPTIONS.background.toLowerCase() ) === -1 ) {
+			if( CFonts.BGCOLORS.indexOf( CFonts.OPTIONS.background ) === -1 ) {
 				CFonts.log.error(
 					`"${Chalk.red( CFonts.OPTIONS.background )}" is not a valid background option.\n` +
 					`Please use a color from the supported stack:\n${Chalk.green(`[ ${CFonts.BGCOLORS.join(' | ')} ]`)}`
@@ -529,11 +569,13 @@ const CFonts = (() => { //constructor factory
 			if( CFonts.OPTIONS.space ) { //add space
 				write = `\n\n` + write + `\n\n`;
 			}
-			else {
-				write = `\n` + write;
-			}
 
-			write = Chalk[ 'bg' + CFonts.OPTIONS.background ]( write ) //result in one string
+
+			if( CFonts.OPTIONS.background !== 'transparent' ) {
+				const bgcolor = `bg${ ChangeCase.upperCaseFirst( CFonts.OPTIONS.background ) }`;
+
+				write = AnsiSytle[ bgcolor ].open + '\n' + write + AnsiSytle[ bgcolor ].close; //result in one string with background
+			}
 
 
 			return {

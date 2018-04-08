@@ -26,3 +26,19 @@ console.log(prettyFont.string);
 console.log(prettyFont.array);
 console.log(prettyFont.lines);
 console.log(prettyFont.options);
+
+CFonts.say('Hello world!', {
+	font: 'block',
+	align: 'left',
+	colors: ['white'],
+	background: 'transparent',
+	letterSpacing: 1,
+	lineHeight: 1,
+	space: true,
+	maxLength: '0',
+});
+
+CFonts.say('Hello world!', {
+	background: 'red',
+	backgroundColor: 'green',
+});
