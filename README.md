@@ -47,7 +47,7 @@ const CFonts = require('cfonts');
 CFonts.say('Hello|world!', {
 	font: 'block',              //define the font face
 	align: 'left',              //define text alignment
-	colors: ['white'],          //define all colors
+	colors: ['system'],         //define all colors
 	background: 'transparent',  //define the background color, you can also use `backgroundColor` here as key
 	letterSpacing: 1,           //define letter spacing
 	lineHeight: 1,              //define the line height
