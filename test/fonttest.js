@@ -20,6 +20,7 @@
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Dependencies
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
+const CFonts = require('../lib/index.js');
 const WinSize = require('window-size');
 const Readline = require('readline');
 const Chalk = require(`chalk`);
@@ -30,28 +31,16 @@ const Fs = require(`fs`);
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Constructor
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-const FontText = (() => { //constructor factory
+const FontTest = (() => { //constructor factory
 
 	return {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // settings
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-		DEBUG: true,    //Debug mode
-		DEBUGLEVEL: 2,  //Debug level setting
-		CHARS: [        //All allowed font colors
-			"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "!",
-			"?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", ",", " "
-		],
-		FONTFACES: [    //All allowed fonts
-			'block',
-			'simpleBlock',
-			'simple',
-			'3d',
-			'simple3d',
-			'chrome',
-			'huge',
-		],
+		DEBUG: true,
+		DEBUGLEVEL: 2,
+		CHARS: CFonts.CHARS.filter( font => font !== '|' ), // we won't have the pip in the char-set
+		FONTFACES: CFonts.FONTFACES.filter( font => font !== 'console' ), // console is a font but not a font-file
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -59,33 +48,33 @@ const FontText = (() => { //constructor factory
 // fonts, test each font is there
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 		fonts: () => {
-			FontText.debugging.report(`Running fonts`, 1);
+			FontTest.debugging.report(`Running fonts`, 1);
 
 			let font = '';
 			let fontFile = '';
 			let FONTFACE = {};
 
-			for( let i in FontText.FONTFACES ) { //iterate over all installed fonts
-				font = FontText.FONTFACES[ i ];
+			for( let i in FontTest.FONTFACES ) { //iterate over all installed fonts
+				font = FontTest.FONTFACES[ i ];
 				fontFile = Path.normalize( `${__dirname}/../fonts/${font}.json` ); //build font path
 
-				FontText.log.headline(`${font}`);
+				FontTest.log.headline(`${font}`);
 
-				FontText.log.check(`Checking: "${font}" existence`);
+				FontTest.log.check(`Checking: "${font}" existence`);
 
 				try {
 					FONTFACE = JSON.parse( Fs.readFileSync(fontFile, 'utf8') ); //read font file
 
-					FontText.log.subdone(`FOUND!`);
+					FontTest.log.subdone(`FOUND!`);
 				}
 				catch( e ) {
-					FontText.log.suberror(`NOT FOUND: "${fontFile}"`);
+					FontTest.log.suberror(`NOT FOUND: "${fontFile}"`);
 				}
 
-				FontText.attributes( FONTFACE );  //for this font run attributes test
-				FontText.chars( FONTFACE );       //for this font run char test
-				FontText.width( FONTFACE );       //for this font run width test
-				FontText.lines( FONTFACE );       //for this font run line test
+				FontTest.attributes( FONTFACE );  //for this font run attributes test
+				FontTest.chars( FONTFACE );       //for this font run char test
+				FontTest.width( FONTFACE );       //for this font run width test
+				FontTest.lines( FONTFACE );       //for this font run line test
 			}
 
 			console.log(`\n`);
@@ -99,8 +88,8 @@ const FontText = (() => { //constructor factory
 // @param  FONTFACE  {object}  The font object to be checked
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 		attributes: ( FONTFACE ) => {
-			FontText.debugging.report(`Running attributes`, 1);
-			FontText.log.check(`Checking font attributes of "${FONTFACE.name}"`);
+			FontTest.debugging.report(`Running attributes`, 1);
+			FontTest.log.check(`Checking font attributes of "${FONTFACE.name}"`);
 			let fails = [];
 
 			if( FONTFACE.name === undefined ) {
@@ -136,10 +125,10 @@ const FontText = (() => { //constructor factory
 			}
 
 			if( fails.length > 0 ) {
-				FontText.log.suberror(`Font has missing attributes: "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+				FontTest.log.suberror(`Font has missing attributes: "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
 			}
 			else {
-				FontText.log.subdone(`All THERE!`);
+				FontTest.log.subdone(`All THERE!`);
 			}
 		},
 
@@ -151,12 +140,12 @@ const FontText = (() => { //constructor factory
 // @param  FONTFACE  {object}  The font object to be checked
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 		chars: ( FONTFACE ) => {
-			FontText.debugging.report(`Running chars`, 1);
-			FontText.log.check(`Checking all characters in "${FONTFACE.name}"`);
+			FontTest.debugging.report(`Running chars`, 1);
+			FontTest.log.check(`Checking all characters in "${FONTFACE.name}"`);
 			let fails = [];
 
-			for( let i in FontText.CHARS ) { //each character
-				let char = FontText.CHARS[ i ];
+			for( let i in FontTest.CHARS ) { //each character
+				let char = FontTest.CHARS[ i ];
 
 				if( FONTFACE.chars[ char ] === undefined ) {
 					fails.push( char );
@@ -164,10 +153,10 @@ const FontText = (() => { //constructor factory
 			}
 
 			if( fails.length > 0 ) {
-				FontText.log.suberror(`Character could not be found: "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+				FontTest.log.suberror(`Character could not be found: "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
 			}
 			else {
-				FontText.log.subdone(`All THERE!`);
+				FontTest.log.subdone(`All THERE!`);
 			}
 		},
 
@@ -179,8 +168,8 @@ const FontText = (() => { //constructor factory
 // @param  FONTFACE  {object}  The font object to be checked
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 		lines: ( FONTFACE ) => {
-			FontText.debugging.report(`Running lines`, 1);
-			FontText.log.check(`Checking all character lines in "${FONTFACE.name}"`);
+			FontTest.debugging.report(`Running lines`, 1);
+			FontTest.log.check(`Checking all character lines in "${FONTFACE.name}"`);
 			let fails = [];
 
 			if( FONTFACE.buffer.length !== FONTFACE.lines ) {
@@ -191,8 +180,8 @@ const FontText = (() => { //constructor factory
 				fails.push(`letterspace`);
 			}
 
-			for( let i in FontText.CHARS ) { //each character
-				let char = FontText.CHARS[ i ];
+			for( let i in FontTest.CHARS ) { //each character
+				let char = FontTest.CHARS[ i ];
 
 				if( FONTFACE.chars[ char ] !== undefined ) {
 
@@ -203,10 +192,10 @@ const FontText = (() => { //constructor factory
 			}
 
 			if( fails.length > 0 ) {
-				FontText.log.suberror(`Character lines are not correct in "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+				FontTest.log.suberror(`Character lines are not correct in "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
 			}
 			else {
-				FontText.log.subdone(`All CORRECT!`);
+				FontTest.log.subdone(`All CORRECT!`);
 			}
 		},
 
@@ -218,12 +207,12 @@ const FontText = (() => { //constructor factory
 // @param  FONTFACE  {object}  The font object to be checked
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 		width: ( FONTFACE ) => {
-			FontText.debugging.report(`Running width`, 1);
-			FontText.log.check(`Checking all character widths in "${FONTFACE.name}"`);
+			FontTest.debugging.report(`Running width`, 1);
+			FontTest.log.check(`Checking all character widths in "${FONTFACE.name}"`);
 			let fails = [];
 
-			for( let i in FontText.CHARS ) { //each character
-				let char = FontText.CHARS[ i ];
+			for( let i in FontTest.CHARS ) { //each character
+				let char = FontTest.CHARS[ i ];
 
 				if( FONTFACE.chars[ char ] !== undefined ) {
 					let character = FONTFACE.chars[ char ];
@@ -245,10 +234,10 @@ const FontText = (() => { //constructor factory
 			}
 
 			if( fails.length > 0 ) {
-				FontText.log.suberror(`Character width is not consistent in "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+				FontTest.log.suberror(`Character width is not consistent in "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
 			}
 			else {
-				FontText.log.subdone(`All CONSISTENT!`);
+				FontTest.log.subdone(`All CONSISTENT!`);
 			}
 		},
 
@@ -291,7 +280,7 @@ const FontText = (() => { //constructor factory
 		debugging: {
 
 			headline: ( text, level = 99 ) => {
-				if( FontText.DEBUG && level >= FontText.DEBUGLEVEL ) {
+				if( FontTest.DEBUG && level >= FontTest.DEBUGLEVEL ) {
 					console.log(
 						Chalk.bgWhite(`\n${Chalk.bold(' \u2611  ')} ${text}`)
 					);
@@ -299,7 +288,7 @@ const FontText = (() => { //constructor factory
 			},
 
 			report: ( text, level = 99 ) => {
-				if( FontText.DEBUG && level >= FontText.DEBUGLEVEL ) {
+				if( FontTest.DEBUG && level >= FontTest.DEBUGLEVEL ) {
 					console.log(
 						Chalk.bgWhite(`\n${Chalk.bold.green(' \u2611  ')} ${Chalk.black(`${text} `)}`)
 					);
@@ -307,7 +296,7 @@ const FontText = (() => { //constructor factory
 			},
 
 			error: ( text, level = 99 ) => {
-				if( FontText.DEBUG && level >= FontText.DEBUGLEVEL ) {
+				if( FontTest.DEBUG && level >= FontTest.DEBUGLEVEL ) {
 					console.log(
 						Chalk.bgWhite(`\n${Chalk.red(' \u2612  ')} ${Chalk.black(`${text} `)}`)
 					);
@@ -315,7 +304,7 @@ const FontText = (() => { //constructor factory
 			},
 
 			interaction: ( text, level = 99 ) => {
-				if( FontText.DEBUG && level >= FontText.DEBUGLEVEL ) {
+				if( FontTest.DEBUG && level >= FontTest.DEBUGLEVEL ) {
 					console.log(
 						Chalk.bgWhite(`\n${Chalk.blue(' \u261C  ')} ${Chalk.black(`${text} `)}`)
 					);
@@ -323,7 +312,7 @@ const FontText = (() => { //constructor factory
 			},
 
 			send: ( text, level = 99 ) => {
-				if( FontText.DEBUG && level >= FontText.DEBUGLEVEL ) {
+				if( FontTest.DEBUG && level >= FontTest.DEBUGLEVEL ) {
 					console.log(
 						Chalk.bgWhite(`\n${Chalk.bold.cyan(' \u219D  ')} ${Chalk.black(`${text} `)}`)
 					);
@@ -331,7 +320,7 @@ const FontText = (() => { //constructor factory
 			},
 
 			received: ( text, level = 99 ) => {
-				if( FontText.DEBUG && level >= FontText.DEBUGLEVEL ) {
+				if( FontTest.DEBUG && level >= FontTest.DEBUGLEVEL ) {
 					console.log(
 						Chalk.bgWhite(`\n${Chalk.bold.cyan(' \u219C  ')} ${Chalk.black(`${text} `)}`)
 					);
@@ -402,4 +391,4 @@ const FontText = (() => { //constructor factory
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-FontText.fonts(); //running the test for fonts
+FontTest.fonts(); //running the test for fonts

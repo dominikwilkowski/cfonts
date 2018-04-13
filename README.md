@@ -349,10 +349,18 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Test
-The package comes with a testing tool for the font json format. Run the test with:
+The package comes with a bunch of unit tests and a test suite for font files.
+
+Run the unit tests via:
 
 ```shell
-npm test
+npm test:unit
+```
+
+Run the font test suite via:
+
+```shell
+npm test:fonts
 ```
 
 This tool checks:
@@ -362,6 +370,12 @@ This tool checks:
 	- existence
 	- consistent width
 	- consistent lines
+
+Or run all tests via:
+
+```shell
+npm run test
+```
 
 
 ## Release History

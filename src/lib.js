@@ -25,7 +25,12 @@ const Fs = require(`fs`);
 // settings
 const DEBUG = false;
 const DEBUGLEVEL = 2;
-const COLORS = [       // All allowed font colors
+const CHARS = [
+	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "|",
+	"!", "?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", ",", " ",
+];
+const COLORS = [
 	'system',
 	'black',
 	'red',
@@ -44,7 +49,7 @@ const COLORS = [       // All allowed font colors
 	'cyanBright',
 	'whiteBright',
 ];
-const BGCOLORS = [     // All allowed background colors
+const BGCOLORS = [
 	'transparent',
 	'black',
 	'red',
@@ -63,12 +68,12 @@ const BGCOLORS = [     // All allowed background colors
 	'cyanBright',
 	'whiteBright',
 ];
-const ALIGNMENT = [    // All allowed alignment options
+const ALIGNMENT = [
 	'left',
 	'center',
 	'right',
 ];
-const FONTFACES = [    // All allowed fonts
+const FONTFACES = [
 	'console',
 	'block',
 	'simpleBlock',
@@ -101,9 +106,8 @@ const GetFont = ( font ) => {
 	}
 	catch( error ) {
 		Debugging.error( `Font file for "${ font }" errored out: ${ error }`, 2 );
-		Log.error( `Font file for "${ font }" could not be found.\nTry reinstalling this package.` );
 
-		process.exit( 1 ); // exit program with failure code
+		return false;
 	}
 };
 
@@ -111,18 +115,18 @@ const GetFont = ( font ) => {
 /**
  * Return the max width of a character by looking at its longest line
  *
- * @param  {array}  character - The character array from the font face object
- * @param  {object} FONTFACE  - The font file object
- * @param  {object} OPTIONS   - Our options
+ * @param  {array}   character     - The character array from the font face object
+ * @param  {integer} fontLines     - The number of lines this font has per character
+ * @param  {integer} letterSpacing - The user defined letter spacing
  *
- * @return {integer}         - The length of a longest line in a character
+ * @return {integer}               - The length of a longest line in a character
  */
-const CharLength = ( character, FONTFACE, OPTIONS ) => {
+const CharLength = ( character, fontLines, letterSpacing ) => {
 	Debugging.report( `Running CharLength`, 1 );
 
 	let charWidth = 0;
 
-	for( let i = 0; i < FONTFACE.lines; i++ ) {
+	for( let i = 0; i < fontLines; i++ ) {
 		let char = character[ i ].replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
 
 		if( char.length > charWidth ) {
@@ -130,7 +134,7 @@ const CharLength = ( character, FONTFACE, OPTIONS ) => {
 		}
 	};
 
-	if( charWidth === 0 && OPTIONS.letterSpacing > 0 ) {
+	if( charWidth === 0 && letterSpacing > 0 ) {
 		Debugging.report( `CharLength: Adding space to letter spacing`, 1 );
 
 		charWidth = 1;
@@ -143,28 +147,28 @@ const CharLength = ( character, FONTFACE, OPTIONS ) => {
 /**
  * Add a new line to the output array
  *
- * @param  {array}  output   - The output array the line shall be appended to
- * @param  {object} FONTFACE - The font file object
- * @param  {object} OPTIONS  - Our options
+ * @param  {array}   output      - The output array the line shall be appended to
+ * @param  {integer} fontLines   - The number of lines this font has per character
+ * @param  {array}   FontBuffer  - An array of the space we add at the beginning of each line
+ * @param  {integer} lineHeight  - The user defined line height
  *
- * @return {array}           - The output array with new line
+ * @return {array}               - The output array with new line
  */
-const AddLine = ( output, FONTFACE, OPTIONS ) => {
+const AddLine = ( output, fontLines, FontBuffer, lineHeight ) => {
 	Debugging.report( `Running AddLine`, 1 );
 
-	let lineHeight = OPTIONS.lineHeight;
 	if( output.length === 0 ) {
 		lineHeight = 0;
 	}
 
-	let lines = FONTFACE.lines + output.length + lineHeight;
+	let lines = fontLines + output.length + lineHeight;
 	let length = output.length;
 
-	for(let i = length; i < lines; i++) {
+	for( let i = length; i < lines; i++ ) {
 		let index = i - length;
 
 		if( index > lineHeight ) {
-			output[ i ] = FONTFACE.buffer[ ( index - lineHeight ) ];
+			output[ i ] = FontBuffer[ ( index - lineHeight ) ];
 		}
 		else {
 			output[ i ] = '';
@@ -186,16 +190,16 @@ const AnsiSytle = Object.assign( { system: { open: '', close: '' } }, Style );
 /**
  * Replace placeholders with color information
  *
- * @param  {string} character - The string to be converted
- * @param  {object} FONTFACE  - The font file object
- * @param  {object} OPTIONS   - Our options
+ * @param  {string}  character    - The string to be converted
+ * @param  {integer} fontColors   - The number of allowed colors for this font
+ * @param  {array}   optionColors - An array of user defined colors
  *
- * @return {string}           - The character with color information for CLI
+ * @return {string}               - The character with color ansi escape sequences for CLI
  */
-const Colorize = ( character, FONTFACE, OPTIONS ) => {
+const Colorize = ( character, fontColors, optionColors ) => {
 	Debugging.report( `Running Colorize`, 1 );
 
-	let candyColors = [
+	let candyColors = [ // allowed candy colors
 		'red',
 		'green',
 		'yellow',
@@ -207,15 +211,15 @@ const Colorize = ( character, FONTFACE, OPTIONS ) => {
 		'blueBright',
 		'magentaBright',
 		'cyanBright',
-	]; // allowed candy colors
+	];
 
 	if( character !== undefined ) {
-		if( FONTFACE.colors > 1 ) {
-			for( let i = 0; i < FONTFACE.colors; i++ ) { // convert all colors
+		if( fontColors > 1 ) {
+			for( let i = 0; i < fontColors; i++ ) { // we have to replace all color placeholder with ansi escape sequences
 				let open = new RegExp(`<c${ ( i + 1 ) }>`, 'g');
 				let close = new RegExp(`</c${ ( i + 1 ) }>`, 'g');
 
-				let color = OPTIONS.colors[ i ] || 'system';
+				let color = optionColors[ i ] || 'system';
 
 				if( color === 'candy' ) {
 					color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
@@ -226,8 +230,8 @@ const Colorize = ( character, FONTFACE, OPTIONS ) => {
 			}
 		}
 
-		if( FONTFACE.colors === 1 ) {
-			let color = OPTIONS.colors[ 0 ] || 'system';
+		if( fontColors === 1 ) { // if only one color is allowed there won't be any color placeholders in the characters
+			let color = optionColors[ 0 ] || 'system';
 
 			if( color === 'candy' ) {
 				color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
@@ -244,22 +248,24 @@ const Colorize = ( character, FONTFACE, OPTIONS ) => {
 /**
  * Add a new character to the output array
  *
- * @param  {string} CHAR     - The character to be added
- * @param  {array}  output   - The output array the line shall be appended to
- * @param  {object} FONTFACE - The font file object
- * @param  {object} OPTIONS  - Our options
+ * @param  {string}  CHAR       - The character to be added
+ * @param  {array}   output     - The output array the line shall be appended to
+ * @param  {integer} fontLines  - The number of lines this font has per character
+ * @param  {object}  fontChars  - An object with all character arrays
+ * @param  {integer} fontColors - The amount of colors allowed for this font
+ * @param  {object}  colors     - Our options
  *
- * @return {array}           - The output array with new line
+ * @return {array}              - The output array with new line
  */
-const AddChar = ( CHAR, output, FONTFACE, OPTIONS ) => {
+const AddChar = ( CHAR, output, fontLines, fontChars, fontColors, colors ) => {
 	Debugging.report( `Running AddChar with "${ CHAR }"`, 1 );
 
-	let lines = output.length - FONTFACE.lines; // last line is FONTFACE.lines tall and is located at the bottom of the output array
+	let lines = output.length - fontLines; // last line is fontLines tall and is located at the bottom of the output array
 
 	for( let i = lines; i < output.length; i++ ) { // iterate over last line
 		let index = i - lines;
 
-		output[ i ] += Colorize( FONTFACE.chars[ CHAR ][ index ], FONTFACE, OPTIONS );
+		output[ i ] += Colorize( fontChars[ CHAR ][ index ], fontColors, colors );
 	}
 
 	return output;
@@ -269,28 +275,31 @@ const AddChar = ( CHAR, output, FONTFACE, OPTIONS ) => {
 /**
  * Add letter spacing for the next character
  *
- * @param  {array}  output   - The output array the line shall be appended to
- * @param  {object} FONTFACE - The font file object
- * @param  {object} OPTIONS  - Our options
+ * @param  {array}   output          - The output array the line shall be appended to
+ * @param  {integer} fontLines       - The number of lines this font has per character
+ * @param  {array}   fontLetterspace - A space between the letters
+ * @param  {integer} fontColors      - The amount of colors allowed for this font
+ * @param  {array}   colors          - The user defined colors
+ * @param  {integer} letterSpacing   - The user defined letter spacing
  *
- * @return {array}           - The output array with space
+ * @return {array}                   - The output array with space
  */
-const AddLetterSpacing = ( output, FONTFACE, OPTIONS ) => {
+const AddLetterSpacing = ( output, fontLines, fontLetterspace, fontColors, colors, letterSpacing ) => {
 	Debugging.report( `Running AddLetterSpacing`, 1 );
 
-	let lines = output.length - FONTFACE.lines; // last line is FONTFACE.lines tall and is located at the bottom of the output array
+	let lines = output.length - fontLines; // last line is fontLines tall and is located at the bottom of the output array
 
 	for( let i = lines; i < output.length; i++ ) { // iterate over last line
 		let index = i - lines;
-		let space = Colorize( FONTFACE.letterspace[ index ], FONTFACE, OPTIONS );
+		let space = Colorize( fontLetterspace[ index ], fontColors, colors );
 
-		if( space.length === 0 && OPTIONS.letterSpacing > 0 ) {
+		if( space.length === 0 && letterSpacing > 0 ) {
 			Debugging.report( `AddLetterSpacing: Adding space to letter spacing`, 1 );
 
 			space = ' ';
 		}
 
-		output[ i ] += String.repeat( space, OPTIONS.letterSpacing );
+		output[ i ] += String.repeat( space, letterSpacing );
 	}
 
 	return output;
@@ -311,36 +320,39 @@ const Size = {
 /**
  * Calculate the spaces to be added to the left of each line to align them either center or right
  *
- * @param  {array}   output     - The output array the line shall be appended to
- * @param  {integer} lineLength - The current line length
- * @param  {object}  FONTFACE   - The font file object
- * @param  {object}  OPTIONS    - Our options
+ * @param  {array}   output         - The output array the line shall be appended to
+ * @param  {integer} lineLength     - The current line length
+ * @param  {integer} characterLines - The amount of line breaks in one character
+ * @param  {string}  align          - The alignment of the text, only `center` and `right` will do anything
+ * @param  {object}  size           - The size of the terminal as an object, default: Size
+ * @param  {integer} size.width     - The width of the terminal
+ * @param  {integer} size.height    - The height of the terminal
  *
- * @return {array}              - The output array with space added on the left for alignment
+ * @return {array}                  - The output array with space added on the left for alignment
  */
-const AlignText = ( output, lineLength, FONTFACE, OPTIONS ) => {
+const AlignText = ( output, lineLength, characterLines, align, size = Size ) => {
 	Debugging.report( `Running AlignText`, 1 );
 
 	let space = 0;
 
-	if( OPTIONS.align === 'center' ) { // calculate the size for center alignment
-		space = Math.floor( ( Size.width - lineLength ) / 2 );
+	if( align === 'center' ) { // calculate the size for center alignment
+		space = Math.floor( ( size.width - lineLength ) / 2 );
 
-		Debugging.report( `AlignText: Center lineLength: ${ lineLength }, Size.width: ${ Size.width }, space: ${ space }`, 2 );
+		Debugging.report( `AlignText: Center lineLength: ${ lineLength }, size.width: ${ size.width }, space: ${ space }`, 2 );
 	}
 
-	if( OPTIONS.align === 'right' ) { // calculate the size for right alignment
-		space = Size.width - lineLength;
+	if( align === 'right' ) { // calculate the size for right alignment
+		space = size.width - lineLength;
 
-		Debugging.report( `AlignText: Right lineLength: ${ lineLength }, Size.width: ${ Size.width }, space: ${ space }`, 2 );
+		Debugging.report( `AlignText: Right lineLength: ${ lineLength }, size.width: ${ size.width }, space: ${ space }`, 2 );
 	}
 
 
 	if( space > 0 ) { // only add if there is something to add
-		let lines = output.length - FONTFACE.lines; // last line is FONTFACE.lines tall and is located at the bottom of the output array
+		let lines = output.length - characterLines; // last line is characterLines tall and is located at the bottom of the output array
 		space = String.repeat(' ', space );
 
-		for( let i = lines; i < output.length; i++ ) { // iterate over last line
+		for( let i = lines; i < output.length; i++ ) { // iterate over last line (which can be several line breaks long)
 			output[ i ] = space + output[ i ];
 		}
 	}
@@ -350,100 +362,238 @@ const AlignText = ( output, lineLength, FONTFACE, OPTIONS ) => {
 
 
 /**
- * Main method to get the ANSI output for a string
+ * Check input for human errors
  *
- * @param  {string}  INPUT                  - The string you want to write out
- * @param  {object}  SETTINGS               - Settings object
- * @param  {string}  SETTINGS.font          - Font face, Default 'block'
- * @param  {string}  SETTINGS.align         - Text alignment, Default: 'left'
- * @param  {array}   SETTINGS.colors        - Colors for font, Default: []
- * @param  {string}  SETTINGS.background    - Chalk color string for background, Default 'Black'
- * @param  {integer} SETTINGS.letterSpacing - Space between letters, Default: set by selected font face
- * @param  {integer} SETTINGS.lineHeight    - Space between lines, Default: 1
- * @param  {boolean} SETTINGS.space         - Output space before and after output, Default: true
- * @param  {integer} SETTINGS.maxLength     - Maximum amount of characters per line, Default width of console window
+ * @param  {string} INPUT         - The string you want to write out
+ * @param  {object} FONTFACES     - All allowed fontfaces
+ * @param  {string} font          - The font the user chose
+ * @param  {array}  colors        - The color the user chose
+ * @param  {string} background    - The background the user chose
+ * @param  {string} align         - The alignment the user chose
  *
- * @return {object}                         - CLI output of INPUT to be consoled out
- *                                            {string}  string  - The pure string for output with all line breaks
- *                                            {array}   array   - Each line of output in an array
- *                                            {integer} lines   - The number of lines
- *                                            {object}  options - All options used
+ * @typedef  {object} ReturnObject
+ *   @property {boolean} pass    - Whether the input is valid
+ *   @property {string}  message - Possible error messages
+ *
+ * @return {ReturnObject}        - An object with error messages and a pass key
  */
-const Render = ( INPUT = '', SETTINGS = {} ) => {
-	Debugging.report(`Running render`, 1);
-
-	let write = ''; // output in a string
-	let output = []; // output in an array
-	let lines = 0; // count each line
-	let fontface = {};
-
-	// Options
-	const OPTIONS = { // SETTINGS merged with defaults
-		font: SETTINGS.font || 'block',
-		align: SETTINGS.align || 'left',
-		colors: SETTINGS.colors || [],
-		background: SETTINGS.background || SETTINGS.backgroundColor || 'transparent',
-		letterSpacing: SETTINGS.letterSpacing === undefined ? 1 : SETTINGS.letterSpacing,
-		lineHeight: SETTINGS.lineHeight === undefined ? 1 : parseInt( SETTINGS.lineHeight ),
-		space: SETTINGS.space === undefined ? true : SETTINGS.space,
-		maxLength: SETTINGS.maxLength || 0,
-	};
-
-	// CHECKING INPUT
+const CheckInput = (
+	INPUT,
+	userFont,
+	userColors,
+	userBackground,
+	userAlign,
+	fontfaces = FONTFACES,
+	colors = COLORS,
+	bgcolors = BGCOLORS,
+	alignment = ALIGNMENT
+) => {
+	// checking input
 	if( INPUT === undefined || INPUT === '' ) {
-		Log.error(`Please provide text to convert`);
-
-		process.exit(1); // exit program with failure code
+		return {
+			message: 'Please provide text to convert',
+			pass: false,
+		};
 	}
 
-	// CHECKING FONT
-	if( FONTFACES.indexOf( OPTIONS.font ) === -1 ) {
-		Log.error(
-			`"${ Chalk.red( SETTINGS.font ) }" is not a valid font option.\n` +
-			`Please use a font from the supported stack:\n${ Chalk.green(`[ ${ FONTFACES.join(' | ') } ]`) }`
-		);
-
-		process.exit(1); // exit program with failure code
+	// checking font
+	if( fontfaces.indexOf( userFont ) === -1 ) {
+		return {
+			message: `"${ Chalk.red( userFont ) }" is not a valid font option.\n` +
+				`Please use a font from the supported stack:\n${ Chalk.green(`[ ${ FONTFACES.join(' | ') } ]`) }`,
+			pass: false,
+		};
 	}
 
-	// CHECKING COLORS
-	for( let color in OPTIONS.colors ) { // check color usage
+	// checking colors
+	for( let color in userColors ) { // check color usage
 		if(
-			COLORS.indexOf( OPTIONS.colors[ color ] ) === -1 &&
-			OPTIONS.colors[ color ] !== 'candy'
+			colors.indexOf( userColors[ color ] ) === -1 &&
+			userColors[ color ] !== 'candy'
 		) {
-			Log.error(
-				`"${ Chalk.red( OPTIONS.colors[ color ] ) }" is not a valid font color option.\n` +
-				`Please use a color from the supported stack:\n${ Chalk.green(`[ ${ COLORS.join(' | ') } | candy ]`) }`
-			);
-
-			process.exit(1); // exit program with failure code
+			return {
+				message: `"${ Chalk.red( userColors[ color ] ) }" is not a valid font color option.\n` +
+					`Please use a color from the supported stack:\n${ Chalk.green(`[ ${ colors.join(' | ') } | candy ]`) }`,
+				pass: false,
+			};
 		}
 	}
 
-	// CHECKING BACKGROUND COLORS
-	if( BGCOLORS.indexOf( OPTIONS.background ) === -1 ) {
-		Log.error(
-			`"${ Chalk.red( OPTIONS.background ) }" is not a valid background option.\n` +
-			`Please use a color from the supported stack:\n${ Chalk.green(`[ ${ BGCOLORS.join(' | ') } ]`) }`
-		);
-
-		process.exit(1); // exit program with failure code
+	// checking background colors
+	if( bgcolors.indexOf( userBackground ) === -1 ) {
+		return {
+			message: `"${ Chalk.red( userBackground ) }" is not a valid background option.\n` +
+				`Please use a color from the supported stack:\n${ Chalk.green(`[ ${ bgcolors.join(' | ') } ]`) }`,
+			pass: false,
+		};
 	}
 
 	// CHECKING ALIGNMENT
-	if( ALIGNMENT.indexOf( OPTIONS.align ) === -1 ) {
-		Log.error(
-			`"${ Chalk.red( OPTIONS.align ) }" is not a valid alignment option.\n` +
-			`Please use an alignment option from the supported stack:\n${ Chalk.green(`[ ${ CFonts.ALIGNMENT.join(' | ') } ]`) }`
-		);
+	if( alignment.indexOf( userAlign ) === -1 ) {
+		return {
+			message: `"${ Chalk.red( userAlign ) }" is not a valid alignment option.\n` +
+				`Please use an alignment option from the supported stack:\n${ Chalk.green(`[ ${ alignment.join(' | ') } ]`) }`,
+			pass: false,
+		};
+	}
+
+	return {
+		message: '',
+		pass: true,
+	}
+};
+
+
+/**
+ * Render our input with the console font
+ *
+ * @param  {string} INPUT       - The string you want to write out
+ * @param  {object} OPTIONS     - All user options
+ *
+ * @typedef  {object} ReturnObject
+ *   @property {array}   output - An array of each line of the output
+ *   @property {integer} lines  - The count of line breaks
+ *
+ * @return {ReturnObject}       - An object with the output and the line breaks
+ */
+const RenderConsole = ( INPUT, FONTFACE, OPTIONS ) => {
+	let output = [];
+	let i = 0;
+
+	// the defaults need to cramp a little so console doesn't look silly
+	OPTIONS.letterSpacing = OPTIONS.letterSpacing <= 1 ? 0 : OPTIONS.letterSpacing - 1;
+	OPTIONS.lineHeight = OPTIONS.lineHeight <= 1 ? 0 : OPTIONS.lineHeight - 1;
+
+	let space = '';
+	if( OPTIONS.letterSpacing > 0 ) {
+		space = String.repeat( ' ', OPTIONS.letterSpacing );
+	}
+
+	// we have to add our letter spacing first
+	let outputLines = INPUT
+		.replace( /(?:\r\n|\r|\n)/g, '|' )
+		.split( '|' )
+		.map( line =>
+			line
+				.trim()
+				.split('')
+				.join( space )
+	);
+
+	// now we check each line for it's length and split them if too long
+	while( i < outputLines.length ) {
+		let line = outputLines[ i ];
+
+		if( line.length > Size.width ) {
+			outputLines[ i ] = line.slice( 0, Size.width ).trim();
+			outputLines.splice( i + 1, 0, line.slice( Size.width ).trim() );
+			line = outputLines[ i ];
+		}
+
+		if( OPTIONS.colors[ 0 ] === "candy" ) {
+			output.push( line
+				.split('')
+				.map( character => Colorize( character, FONTFACE.colors, OPTIONS.colors ) )
+				.join('')
+			);
+		}
+		else {
+			output.push( line );
+		}
+
+		output = AlignText( output, line.length, FONTFACE.lines, OPTIONS.align );
+		output = AddLine( output, 0, [''], OPTIONS.lineHeight );
+
+		i++;
+	}
+
+	return {
+		output,
+		lines: output.length,
+	};
+};
+
+
+/**
+ * Filter only allowed character
+ *
+ * @param  {string} INPUT - The input text to be filtered
+ * @param  {array}  CHARS - An array of all allowed characters
+ *
+ * @return {string}       - The filtered input text
+ */
+const CleanInput = ( INPUT, CHARS ) => {
+	const clean = INPUT
+		.split('')
+		.filter( char => CHARS.includes( char.toUpperCase() ) )
+		.join('');
+
+	return clean;
+};
+
+
+/**
+ * Merge user settings with default options
+ *
+ * @param  {SETTINGS} SETTINGS         - Some or all of the allowed settings
+ *
+ * @typedef  {object} SETTINGS
+ *   @param  {string}  font          - Font face, Default 'block'
+ *   @param  {string}  align         - Text alignment, Default: 'left'
+ *   @param  {array}   colors        - Colors for font, Default: []
+ *   @param  {string}  background    - Chalk color string for background, Default 'Black'
+ *   @param  {integer} letterSpacing - Space between letters, Default: set by selected font face
+ *   @param  {integer} lineHeight    - Space between lines, Default: 1
+ *   @param  {boolean} space         - Output space before and after output, Default: true
+ *   @param  {integer} maxLength     - Maximum amount of characters per line, Default width of console window
+ *
+ * @return {object}                  - Our merged options
+ */
+const GetOptions = ({ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength }) => ({
+	font: font || 'block',
+	align: align || 'left',
+	colors: colors || [],
+	background: background || backgroundColor || 'transparent',
+	letterSpacing: letterSpacing === undefined ? 1 : letterSpacing,
+	lineHeight: lineHeight === undefined ? 1 : parseInt( lineHeight ),
+	space: space === undefined ? true : space,
+	maxLength: maxLength || 0,
+});
+
+
+/**
+ * Main method to get the ANSI output for a string
+ *
+ * @param  {string}  input                  - The string you want to write out
+ * @param  {object}  SETTINGS               - Settings object
+ *
+ * @typedef  {object} ReturnObject
+ *   @property {string}  string             - The pure string for output with all line breaks
+ *   @property {array}   array              - Each line of output in an array
+ *   @property {integer} lines              - The number of lines
+ *   @property {object}  options            - All options used
+ *
+ * @return {ReturnObject}                   - CLI output of INPUT to be consoled out
+ */
+const Render = ( input, SETTINGS = {} ) => {
+	Debugging.report(`Running render`, 1);
+
+	const INPUT = CleanInput( input, CHARS );
+	let output = [];   // for output where each line is an output line
+	let lines = 0;     // for counting each line
+	let FONTFACE = {}; // scoping the fontface object higher for fonts with just one color
+	const OPTIONS = GetOptions( SETTINGS );
+
+	const _isGoodHuman = CheckInput( INPUT, OPTIONS.font, OPTIONS.colors, OPTIONS.background, OPTIONS.align );
+	if( !_isGoodHuman.pass ) {
+		Log.error( _isGoodHuman.message );
 
 		process.exit(1); // exit program with failure code
 	}
 
 
-	// DEBUG
-	if( DEBUG ) { // log options
+	// display an overview of options if debug flag is enabled
+	if( DEBUG ) {
 		let outOption = `OPTIONS:\n  Text: ${ INPUT }`;
 
 		for( let key in OPTIONS ) {
@@ -455,42 +605,33 @@ const Render = ( INPUT = '', SETTINGS = {} ) => {
 
 
 	if( OPTIONS.font === 'console' ) { // console fontface is pretty easy to process
-		let outputLines = INPUT.replace('\\', '').split('|'); // remove escape characters and split into each line
+		FONTFACE = {
+			colors: 1,
+			lines: 1,
+		};
 
-		FONTFACE.colors = 1; // console defaults
-		FONTFACE.lines = 1;
+		const consoleOutput = RenderConsole( INPUT, FONTFACE, OPTIONS );
 
-		for(let line in outputLines) { // each line needs to be pushed into the output array
-			lines += Math.ceil( outputLines[ line ].length / Size.width ); // count each line even when they overflow
-
-			if( OPTIONS.colors[0] === "candy" ) { // if the color is candy
-				let character = '';
-
-				for(let i = 0; i < outputLines[ line ].length; i++) { // iterate through the message
-					character += Colorize( outputLines[ line ][ i ], FONTFACE, OPTIONS ); // and colorize each character individually
-				}
-
-				output.push( character ); // push each line to the output array
-			}
-			else {
-				output.push( Colorize( outputLines[ line ], FONTFACE, OPTIONS ) ); // colorize line
-			}
-
-			output = AlignText( output, outputLines[ line ].length, FONTFACE, OPTIONS ); // calculate alignment based on lineLength
-		}
+		output = consoleOutput.output;
+		lines = consoleOutput.lines;
 	}
 	else { // all other fontfaces need the font-file and some more work
-		const FONTFACE = GetFont( OPTIONS.font ); // get fontface object and make it global
-		fontface = FONTFACE;
+		FONTFACE = GetFont( OPTIONS.font );
+
+		if( !FONTFACE ) {
+			Log.error( `Font file for "${ font }" could not be found.\nTry reinstalling this package.` );
+
+			process.exit( 1 );
+		}
 
 		// setting the letterspacing preference from font face if there is no user overwrite
 		if( SETTINGS.letterSpacing === undefined ) {
-			Debugging.report(`Looking up letter spacing from font face`, 1);
+			Debugging.report( `Looking up letter spacing from font face`, 1 );
 
 			let width = 0;
 
 			for( let i in FONTFACE.letterspace ) {
-				let char = FONTFACE.letterspace[ i ].replace(/(<([^>]+)>)/ig, ''); // get character and strip color infos
+				let char = FONTFACE.letterspace[ i ].replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
 
 				if( width < char.length ) {
 					width = char.length;
@@ -501,14 +642,14 @@ const Render = ( INPUT = '', SETTINGS = {} ) => {
 			OPTIONS.letterSpacing = width;
 		}
 
-		let lineLength = CharLength( FONTFACE.buffer, FONTFACE, OPTIONS ); // count each output character per line and start with the buffer
+		let lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // count each output character per line and start with the buffer
 		let maxChars = 0; // count each character we print for maxLength option
 
-		output = AddLine( [], FONTFACE, OPTIONS ); // create first lines with buffer
+		output = AddLine( [], FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // create first lines with buffer
 		lines ++;
 
-		output = AddLetterSpacing( output, FONTFACE, OPTIONS ); // add letter spacing to the beginning
-		lineLength += CharLength( FONTFACE.letterspace, FONTFACE, OPTIONS ) * OPTIONS.letterSpacing; // count the space for the letter spacing
+		output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing ); // add letter spacing to the beginning
+		lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // count the space for the letter spacing
 
 		for( let i = 0; i < INPUT.length; i++ ) { // iterate through the message
 
@@ -523,12 +664,12 @@ const Render = ( INPUT = '', SETTINGS = {} ) => {
 				let lastLineLength = lineLength; // we need the lineLength for alignment before we look up if the next char fits
 
 				if( CHAR !== `|` ) { // what will the line length be if we add the next char?
-					lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE, OPTIONS ); // get the length of this character
-					lineLength += CharLength( FONTFACE.letterspace, FONTFACE, OPTIONS ) * OPTIONS.letterSpacing; // new line, new line length
+					lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
+					lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // new line, new line length
 				}
 
-				// jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would has ran out of space
-				if(maxChars >= OPTIONS.maxLength && OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > Size.width) {
+				// jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would have ran out of space
+				if( maxChars >= OPTIONS.maxLength && OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > Size.width ) {
 					lines ++;
 
 					Debugging.report(
@@ -539,43 +680,46 @@ const Render = ( INPUT = '', SETTINGS = {} ) => {
 						`Size.width: ${ Size.width } `, 2
 					);
 
-					output = AlignText( output, lastLineLength, FONTFACE, OPTIONS ); // calculate alignment based on lineLength
+					output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align ); // calculate alignment based on lineLength
 
-					lineLength = CharLength( FONTFACE.buffer, FONTFACE, OPTIONS ); // new line: new line length
-					lineLength += CharLength( FONTFACE.letterspace, FONTFACE, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
-					if( CHAR !== `|` ) { // if this is a character
-						lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE, OPTIONS ); // get the length of this character
-						lineLength += CharLength( FONTFACE.letterspace, FONTFACE, OPTIONS ) * OPTIONS.letterSpacing; // add letter spacing at the end
+					lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
+					lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
+
+					if( CHAR !== `|` ) { // if this is a character and not a line break
+						lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
+						lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // add letter spacing at the end
 					}
+
 					maxChars = 0; // new line, new maxLength goal
 
-					output = AddLine( output, FONTFACE, OPTIONS ); // adding new line
-					output = AddLetterSpacing( output, FONTFACE, OPTIONS ); // add letter spacing to the beginning
+					output = AddLine( output, FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // adding new line
+					// add letter spacing to the beginning
+					output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing );
 				}
 
 				Debugging.report(`lineLength at: "${ lineLength }"`, 2);
 
 				if( CHAR !== `|` ) {
 					maxChars++; // counting all printed characters
-					output = AddChar( CHAR, output, FONTFACE, OPTIONS ); // add new character
-					output = AddLetterSpacing( output, FONTFACE, OPTIONS ); // add letter spacing
+					output = AddChar( CHAR, output, FONTFACE.lines, FONTFACE.chars, FONTFACE.colors, OPTIONS.colors ); // add new character
+					output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing );
 				}
 			}
 		}
 
-		output = AlignText( output, lineLength, FONTFACE, OPTIONS ); // alignment last line
+		output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align ); // alignment last line
 	}
 
-	write = output.join(`\n`);
+	let write = output.join(`\n`);
 
 
-	if( fontface.colors <= 1 ) {
-		write = Colorize( write, fontface, OPTIONS );
+	if( FONTFACE.colors <= 1 ) {
+		write = Colorize( write, FONTFACE.colors, OPTIONS.colors );
 	}
 
 
 	if( OPTIONS.space ) { // add space
-		write = `\n\n` + write + `\n\n`;
+		write = `\n\n${ write }\n\n`;
 	}
 
 
@@ -600,7 +744,7 @@ const Render = ( INPUT = '', SETTINGS = {} ) => {
  *
  * @param same as render method
  */
-const Say = ( INPUT = '', SETTINGS = {} ) => {
+const Say = ( INPUT, SETTINGS = {} ) => {
 	Debugging.report(`Running say`, 1);
 
 	let write = Render( INPUT, SETTINGS );
@@ -671,7 +815,7 @@ const Log = {
 	 * @param  {string} text - The sting you want to log
 	 */
 	error: ( text ) => {
-		text = text.replace(/(?:\r\n|\r|\n)/g, '\n       '); // indent each line
+		text = text.replace( /(?:\r\n|\r|\n)/g, '\n       ' ); // indent each line
 
 		console.error(`\n ${ Chalk.bold.red('Ouch:') } ${ text }\n`);
 	},
@@ -684,6 +828,7 @@ module.exports = exports = {
 	say: Say,
 	DEBUG,
 	DEBUGLEVEL,
+	CHARS,
 	COLORS,
 	BGCOLORS,
 	ALIGNMENT,
@@ -691,7 +836,7 @@ module.exports = exports = {
 	Debugging,
 	Log,
 
-	__testing__: {
+	__test__: {
 		GetFont,
 		CharLength,
 		AddLine,
@@ -701,5 +846,9 @@ module.exports = exports = {
 		AddLetterSpacing,
 		Size,
 		AlignText,
+		CheckInput,
+		RenderConsole,
+		CleanInput,
+		GetOptions,
 	},
 };
