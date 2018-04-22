@@ -447,16 +447,19 @@ const CheckInput = (
 /**
  * Render our input with the console font
  *
- * @param  {string} INPUT       - The string you want to write out
- * @param  {object} OPTIONS     - All user options
+ * @param  {string}  INPUT       - The string you want to write out
+ * @param  {object}  OPTIONS     - All user options
+ * @param  {object}  size        - The size of the terminal as an object, default: Size
+ * @param  {integer} size.width  - The width of the terminal
+ * @param  {integer} size.height - The height of the terminal
  *
  * @typedef  {object} ReturnObject
- *   @property {array}   output - An array of each line of the output
- *   @property {integer} lines  - The count of line breaks
+ *   @property {array}   output  - An array of each line of the output
+ *   @property {integer} lines   - The count of line breaks
  *
- * @return {ReturnObject}       - An object with the output and the line breaks
+ * @return {ReturnObject}        - An object with the output and the line breaks
  */
-const RenderConsole = ( INPUT, FONTFACE, OPTIONS ) => {
+const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 	let output = [];
 	let i = 0;
 
@@ -484,16 +487,16 @@ const RenderConsole = ( INPUT, FONTFACE, OPTIONS ) => {
 	while( i < outputLines.length ) {
 		let line = outputLines[ i ];
 
-		if( line.length > Size.width ) {
-			outputLines[ i ] = line.slice( 0, Size.width ).trim();
-			outputLines.splice( i + 1, 0, line.slice( Size.width ).trim() );
+		if( line.length > size.width ) {
+			outputLines[ i ] = line.slice( 0, size.width ).trim();
+			outputLines.splice( i + 1, 0, line.slice( size.width ).trim() );
 			line = outputLines[ i ];
 		}
 
 		if( OPTIONS.colors[ 0 ] === "candy" ) {
 			output.push( line
 				.split('')
-				.map( character => Colorize( character, FONTFACE.colors, OPTIONS.colors ) )
+				.map( character => Colorize( character, 1, OPTIONS.colors ) )
 				.join('')
 			);
 		}
@@ -501,7 +504,7 @@ const RenderConsole = ( INPUT, FONTFACE, OPTIONS ) => {
 			output.push( line );
 		}
 
-		output = AlignText( output, line.length, FONTFACE.lines, OPTIONS.align );
+		output = AlignText( output, line.length, 1, OPTIONS.align, size );
 		output = AddLine( output, 0, [''], OPTIONS.lineHeight );
 
 		i++;
@@ -518,14 +521,14 @@ const RenderConsole = ( INPUT, FONTFACE, OPTIONS ) => {
  * Filter only allowed character
  *
  * @param  {string} INPUT - The input text to be filtered
- * @param  {array}  CHARS - An array of all allowed characters
+ * @param  {array}  chars - An array of all allowed characters
  *
  * @return {string}       - The filtered input text
  */
-const CleanInput = ( INPUT, CHARS ) => {
+const CleanInput = ( INPUT, chars = CHARS ) => {
 	const clean = INPUT
 		.split('')
-		.filter( char => CHARS.includes( char.toUpperCase() ) )
+		.filter( char => chars.includes( char.toUpperCase() ) )
 		.join('');
 
 	return clean;
@@ -564,18 +567,21 @@ const GetOptions = ({ font, align, colors, background, backgroundColor, letterSp
 /**
  * Main method to get the ANSI output for a string
  *
- * @param  {string}  input                  - The string you want to write out
- * @param  {object}  SETTINGS               - Settings object
+ * @param  {string}  input       - The string you want to write out
+ * @param  {object}  SETTINGS    - Settings object
+ * @param  {object}  size        - The size of the terminal as an object, default: Size
+ * @param  {integer} size.width  - The width of the terminal
+ * @param  {integer} size.height - The height of the terminal
  *
  * @typedef  {object} ReturnObject
- *   @property {string}  string             - The pure string for output with all line breaks
- *   @property {array}   array              - Each line of output in an array
- *   @property {integer} lines              - The number of lines
- *   @property {object}  options            - All options used
+ *   @property {string}  string  - The pure string for output with all line breaks
+ *   @property {array}   array   - Each line of output in an array
+ *   @property {integer} lines   - The number of lines
+ *   @property {object}  options - All options used
  *
- * @return {ReturnObject}                   - CLI output of INPUT to be consoled out
+ * @return {ReturnObject}        - CLI output of INPUT to be consoled out
  */
-const Render = ( input, SETTINGS = {} ) => {
+const Render = ( input, SETTINGS = {}, size = Size ) => {
 	Debugging.report(`Running render`, 1);
 
 	const INPUT = CleanInput( input, CHARS );
@@ -610,7 +616,7 @@ const Render = ( input, SETTINGS = {} ) => {
 			lines: 1,
 		};
 
-		const consoleOutput = RenderConsole( INPUT, FONTFACE, OPTIONS );
+		const consoleOutput = RenderConsole( INPUT, OPTIONS, size );
 
 		output = consoleOutput.output;
 		lines = consoleOutput.lines;
@@ -669,7 +675,7 @@ const Render = ( input, SETTINGS = {} ) => {
 				}
 
 				// jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would have ran out of space
-				if( maxChars >= OPTIONS.maxLength && OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > Size.width ) {
+				if( maxChars >= OPTIONS.maxLength && OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > size.width ) {
 					lines ++;
 
 					Debugging.report(
@@ -677,10 +683,10 @@ const Render = ( input, SETTINGS = {} ) => {
 						`OPTIONS.maxLength: ${ OPTIONS.maxLength }, ` +
 						`CHAR: ${ CHAR }, ` +
 						`lineLength: ${ lineLength }, ` +
-						`Size.width: ${ Size.width } `, 2
+						`Size.width: ${ size.width } `, 2
 					);
 
-					output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align ); // calculate alignment based on lineLength
+					output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align, size ); // calculate alignment based on lineLength
 
 					lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
 					lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
@@ -707,7 +713,7 @@ const Render = ( input, SETTINGS = {} ) => {
 			}
 		}
 
-		output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align ); // alignment last line
+		output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align, size ); // alignment last line
 	}
 
 	let write = output.join(`\n`);
@@ -765,8 +771,8 @@ const Debugging = {
 	 * @param  {string}  text  - The sting you want to log
 	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
 	 */
-	headline: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
+	headline: ( text, level = 99, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
+		if( debug && level >= debuglevel ) {
 			console.log(
 				Chalk.bgWhite(`\n${ Chalk.bold(' \u2611  ') } ${ text }`)
 			);
@@ -779,8 +785,8 @@ const Debugging = {
 	 * @param  {string}  text  - The sting you want to log
 	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
 	 */
-	report: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
+	report: ( text, level = 99, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
+		if( debug && level >= debuglevel ) {
 			console.log(
 				Chalk.bgWhite(`\n${ Chalk.bold.green(' \u2611  ') } ${ Chalk.black(`${ text } `) }`)
 			);
@@ -793,8 +799,8 @@ const Debugging = {
 	 * @param  {string}  text  - The sting you want to log
 	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
 	 */
-	error: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
+	error: ( text, level = 99, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
+		if( debug && level >= debuglevel ) {
 			console.error(
 				Chalk.bgWhite(`\n${ Chalk.red(' \u2612  ') } ${ Chalk.black(`${ text } `) }`)
 			);
