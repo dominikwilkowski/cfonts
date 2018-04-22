@@ -30,8 +30,8 @@
 		"node": ">=0.12.15"
 	},
 	"scripts": {
-		"prepublish": "npm run test && npm run build",
-		"test": "npm run test:unit && npm run test:fonts",
+		"prepublish": "npm run build && npm run test",
+		"test": "npm run build && npm run test:unit && npm run test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
 		"test:unit": "jest",
