@@ -349,10 +349,18 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Test
-The package comes with a testing tool for the font json format. Run the test with:
+The package comes with a bunch of unit tests and a test suite for font files.
+
+Run the unit tests via:
 
 ```shell
-npm test
+npm test:unit
+```
+
+Run the font test suite via:
+
+```shell
+npm test:fonts
 ```
 
 This tool checks:
@@ -363,8 +371,15 @@ This tool checks:
 	- consistent width
 	- consistent lines
 
+Or run all tests via:
+
+```shell
+npm run test
+```
+
 
 ## Release History
+* 2.0.0  -  Added tests, split into more pure functions
 * 1.2.0  -  Added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
 * 1.1.3  -  Fixed help text, removing old -t option
 * 1.1.2  -  Fixed issue with older commander version #3, updated docs
