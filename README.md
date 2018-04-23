@@ -379,6 +379,7 @@ npm run test
 
 
 ## Release History
+* 2.0.1  -  Foxed terminal width detection
 * 2.0.0  -  Added tests, split into more pure functions
 * 1.2.0  -  Added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
 * 1.1.3  -  Fixed help text, removing old -t option
