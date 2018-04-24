@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../src/lib.js');
 const AddLine = CFonts.__test__.AddLine;
 
 
@@ -19,6 +19,7 @@ test(`AddLine - Adding a line to a single-line font`, () => {
 	expect( AddLine( [ ...input ], 1, [''], 1 ) ).toEqual( [ ...input, '', '' ] );
 	expect( AddLine( [ ...input ], 1, [''], 5 ) ).toEqual( [ ...input, '', '', '', '', '', '' ] );
 });
+
 
 test(`AddLine - Adding a line to a multi-line font`, () => {
 	const input = [

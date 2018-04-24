@@ -40,7 +40,7 @@ const FontTest = (() => { //constructor factory
 		DEBUG: true,
 		DEBUGLEVEL: 2,
 		CHARS: CFonts.CHARS.filter( font => font !== '|' ), // we won't have the pip in the char-set
-		FONTFACES: CFonts.FONTFACES.filter( font => font !== 'console' ), // console is a font but not a font-file
+		FONTFACES: Object.keys( CFonts.FONTFACES ).map( font => CFonts.FONTFACES[ font ] ).filter( font => font !== 'console' ), // console is a font but not a font-file
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------

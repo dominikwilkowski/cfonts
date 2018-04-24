@@ -39,6 +39,6 @@ CFonts.say('Hello world!', {
 });
 
 CFonts.say('Hello world!', {
-	background: 'red',
-	backgroundColor: 'green',
+	background: 'GREEN',
+	backgroundColor: 'RED',
 });

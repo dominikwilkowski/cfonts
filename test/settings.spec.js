@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../src/lib.js');
 const DEBUG = CFonts.DEBUG;
 const DEBUGLEVEL = CFonts.DEBUGLEVEL;
 const CHARS = CFonts.CHARS;
@@ -19,6 +19,7 @@ test(`DEBUG - Should be defined as boolean`, () => {
 	expect( typeof DEBUG ).toEqual( 'boolean' );
 });
 
+
 test(`DEBUGLEVEL - Should be defined as number`, () => {
 	expect( typeof DEBUGLEVEL ).toEqual( 'number' );
 });
@@ -30,11 +31,12 @@ test(`CHARS - Should have 56 characters defined`, () => {
 
 
 test(`COLORS - Should have n number of colors defined`, () => {
-	expect( COLORS.length > 0 ).toEqual( true );
+	expect( Object.keys( COLORS ).length > 0 ).toEqual( true );
 });
 
+
 test(`BGCOLORS - Should have n number of colors defined`, () => {
-	expect( BGCOLORS.length > 0 ).toEqual( true );
+	expect( Object.keys( BGCOLORS ).length > 0 ).toEqual( true );
 });
 
 
@@ -44,6 +46,7 @@ test(`ALIGNMENT - Should have all alignment options`, () => {
 	expect( ALIGNMENT[ 2 ] ).toEqual( 'right' );
 });
 
+
 test(`FONTFACES - Should have a bunch of fontfaces defined`, () => {
-	expect( FONTFACES.length > 0 ).toEqual( true );
+	expect( Object.keys( FONTFACES ).length > 0 ).toEqual( true );
 });

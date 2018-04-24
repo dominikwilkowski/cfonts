@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../src/lib.js');
 const Render = CFonts.render;
 
 
@@ -49,6 +49,32 @@ test(`Render - Render console string with a color`, () => {
 		space: true,
 		maxLength: 0,
 	});
+});
+
+
+test(`Render - Fail on bad user input`, () => {
+	console.error = jest.fn();
+
+	const test1 = Render( void( 0 ), {}, { width: 100, height: 10 });
+	const test2 = Render( 'text', { font: 'notfound' }, { width: 100, height: 10 });
+	const test3 = Render( 'text', { align: 'notfound' }, { width: 100, height: 10 });
+	const test4 = Render( 'text', { colors: ['notfound'] }, { width: 100, height: 10 });
+	const test5 = Render( 'text', { background: 'notfound' }, { width: 100, height: 10 });
+
+	expect( test1 ).toBe( false );
+	expect( test2 ).toBe( false );
+	expect( test3 ).toBe( false );
+	expect( test4 ).toBe( false );
+	expect( test5 ).toBe( false );
+});
+
+
+test(`Render - Output debug infos`, () => {
+	console.log = jest.fn();
+
+	Render( 'text', {}, { width: 100, height: 10 }, true, 1 );
+
+	expect( console.log.mock.calls.length > 0 ).toBe( true );
 });
 
 

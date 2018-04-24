@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../src/lib.js');
 const AddChar = CFonts.__test__.AddChar;
 
 
@@ -19,6 +19,7 @@ test(`AddChar - Add a single line letter without color`, () => {
 	expect( AddChar( 'A', [''], 1, fontChars, 1, [] ) ).toEqual( ['A'] );
 });
 
+
 test(`AddChar - Add a single line letter with color`, () => {
 	const fontChars = {
 		A: [
@@ -28,6 +29,7 @@ test(`AddChar - Add a single line letter with color`, () => {
 
 	expect( AddChar( 'A', [''], 1, fontChars, 1, ['red'] ) ).toEqual( ['\u001b[31mA\u001b[39m'] );
 });
+
 
 test(`AddChar - Add a multi line letter without color`, () => {
 	const fontChars = {
@@ -40,6 +42,7 @@ test(`AddChar - Add a multi line letter without color`, () => {
 
 	expect( AddChar( 'A', ['','',''], 3, fontChars, 1, [] ) ).toEqual( fontChars.A );
 });
+
 
 test(`AddChar - Add a multi line letter with color`, () => {
 	const fontChars = {
@@ -58,6 +61,7 @@ test(`AddChar - Add a multi line letter with color`, () => {
 
 	expect( AddChar( 'A', ['','',''], 3, fontChars, 1, ['red'] ) ).toEqual( result );
 });
+
 
 test(`AddChar - Add a multi line letter with multiple colors`, () => {
 	const fontChars = {
