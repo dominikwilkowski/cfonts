@@ -43,23 +43,25 @@ Program
 	.option( `-b, --background      <keyword>`,               `provide background color`, `transparent` )
 	.option( `-l, --letter-spacing  <n>`,                     `define letter spacing {integer}` )
 	.option( `-z, --line-height     <n>`,                     `define line height {integer}`, 1 )
-	.option( `-s, --spaceless`,                               `surpress space on top and on the bottom` )
-	.option( `-m, --max-length     <keyword>`,                `define how many character can be on one line` )
+	.option( `-s, --spaceless`,                               `surpress space on top and on the bottom`, false )
+	.option( `-m, --max-length      <keyword>`,               `define how many character can be on one line` )
+	.option( `-d, --debug`,                                   `enable debug mode`, false )
+	.option( `-x, --debug-level     <n>`,                     `define debug level`, 1 )
 	.action( ( text ) => {
-			Program.text = text; //add flagless option for text
+			Program.text = text; // add flagless option for text
 	 })
-	.on( '--help', () => { //adding options for each keyword section
+	.on( '--help', () => { // adding options for each keyword section
 		console.log( Chalk.bold(`  Font face options:`) );
-		console.log(`  [ ${ CFonts.FONTFACES.join(', ') } ]\n`);
+		console.log(`  ${ Object.keys( CFonts.FONTFACES ).map( color => CFonts.FONTFACES[ color ] ).join(', ') }\n`);
 
 		console.log( Chalk.bold(`  Alignment options:`) );
-		console.log(`  [ ${ CFonts.ALIGNMENT.join(', ') } ]\n`);
+		console.log(`  ${ CFonts.ALIGNMENT.join(', ') }\n`);
 
 		console.log( Chalk.bold(`  Color options:`) );
-		console.log(`  [ ${ CFonts.COLORS.join(', ') } ]\n`);
+		console.log(`  ${ Object.keys( CFonts.COLORS ).map( color => CFonts.COLORS[ color ] ).join(', ') }\n`);
 
 		console.log( Chalk.bold(`  background color options:`) );
-		console.log(`  [ ${ CFonts.BGCOLORS.join(', ') } ]\n`);
+		console.log(`  ${ Object.keys( CFonts.BGCOLORS ).map( color => CFonts.BGCOLORS[ color ] ).join(', ') }\n`);
 	})
 	.parse( process.argv );
 
@@ -67,39 +69,43 @@ Program
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Execute program
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-if(Program.text !== undefined) {
-	//log OPTIONS for debugging
-	if( CFonts.DEBUG ) {
+if( Program.text !== undefined ) {
+	const DEBUG = Program.debug || false;
+
+	// log OPTIONS for debugging
+	if( DEBUG ) {
 		CFonts.Debugging.report(
 			`OPTIONS:\n` +
 			`  CFonts.say("${ Program.text }", {\n` +
-			`	'font': "${ Program.font }",\n` +
-			`	'align': "${ Program.align }",\n` +
-			`	'colors': ${ Program.colors ? JSON.stringify( Program.colors.split(',') ) : [] },\n` +
-			`	'background': "${ Program.background }",\n` +
-			`	'letterSpacing': ${ Program.letterSpacing },\n` +
-			`	'lineHeight': ${ Program.lineHeight },\n` +
-			`	'space': ${ Program.spaceless ? false : true },\n` +
-			`	'maxLength': ${ Program.maxLength }\n` +
-			`  });`,
-			3
+			`    font: "${ Program.font }",\n` +
+			`    align: "${ Program.align }",\n` +
+			`    colors: ${ Program.colors ? JSON.stringify( Program.colors.split(',') ) : [] },\n` +
+			`    background: "${ Program.background }",\n` +
+			`    letterSpacing: ${ Program.letterSpacing },\n` +
+			`    lineHeight: ${ Program.lineHeight },\n` +
+			`    space: ${ Program.spaceless ? false : true },\n` +
+			`    maxLength: ${ Program.maxLength }\n` +
+			`  }, ${ DEBUG }, ${ Program.debugLevel } );`,
+			3,
+			true,
+			Program.debugLevel
 		);
 	}
 
-	//execute cfonts
+	// execute cfonts
 	CFonts.say( Program.text, {
-		'font': Program.font,
-		'align': Program.align,
-		'colors': Program.colors ? Program.colors.split(',') : [],
-		'background': Program.background,
-		'letterSpacing': Program.letterSpacing,
-		'lineHeight': Program.lineHeight,
-		'space': Program.spaceless ? false : true,
-		'maxLength': Program.maxLength
-	});
+		font: Program.font,
+		align: Program.align,
+		colors: Program.colors ? Program.colors.split(',') : [],
+		background: Program.background,
+		letterSpacing: Program.letterSpacing,
+		lineHeight: Program.lineHeight,
+		space: Program.spaceless ? false : true,
+		maxLength: Program.maxLength
+	}, DEBUG, Program.debugLevel );
 
 }
-else { //we do need text to convert
+else { // we do need text to convert
 	CFonts.Log.error(
 		`Please provide text to convert with ${ Chalk.green(`cfonts "Text"`) }\n` +
 		`Run ${ Chalk.green(`cfonts --help`) } for more infos`

@@ -407,7 +407,9 @@ const CheckInput = (
 	if( Object.keys( fontfaces ).indexOf( userFont.toLowerCase() ) === -1 ) {
 		return {
 			message: `"${ Chalk.red( userFont ) }" is not a valid font option.\n` +
-				`Please use a font from the supported stack:\n${ Chalk.green(`[ ${ Object.keys( FONTFACES ).join(' | ') } ]`) }`,
+				`Please use a font from the supported stack:\n${
+					Chalk.green( Object.keys( fontfaces ).map( font => fontfaces[ font ] ).join(', ') )
+				}`,
 			pass: false,
 		};
 	}
@@ -420,7 +422,9 @@ const CheckInput = (
 		) {
 			return {
 				message: `"${ Chalk.red( userColors[ color ] ) }" is not a valid font color option.\n` +
-					`Please use a color from the supported stack:\n${ Chalk.green(`[ ${ Object.keys( colors ).join(' | ') } | candy ]`) }`,
+					`Please use a color from the supported stack:\n${ Chalk.green(`${
+						Object.keys( colors ).map( color => colors[ color ] ).join(', ')
+					}, candy`) }`,
 				pass: false,
 			};
 		}
@@ -430,7 +434,9 @@ const CheckInput = (
 	if( Object.keys( bgcolors ).indexOf( userBackground.toLowerCase() ) === -1 ) {
 		return {
 			message: `"${ Chalk.red( userBackground ) }" is not a valid background option.\n` +
-				`Please use a color from the supported stack:\n${ Chalk.green(`[ ${ Object.keys( bgcolors ).join(' | ') } ]`) }`,
+				`Please use a color from the supported stack:\n${
+					Chalk.green( Object.keys( bgcolors ).map( bgcolor => bgcolors[ bgcolor ] ).join(', ') )
+				}`,
 			pass: false,
 		};
 	}
@@ -439,7 +445,9 @@ const CheckInput = (
 	if( alignment.indexOf( userAlign.toLowerCase() ) === -1 ) {
 		return {
 			message: `"${ Chalk.red( userAlign ) }" is not a valid alignment option.\n` +
-				`Please use an alignment option from the supported stack:\n${ Chalk.green(`[ ${ alignment.join(' | ') } ]`) }`,
+				`Please use an alignment option from the supported stack:\n${
+					Chalk.green( alignment.join(' | ') )
+				}`,
 			pass: false,
 		};
 	}
@@ -605,11 +613,11 @@ const GetOptions = (
  *
  * @param  {string}  input       - The string you want to write out
  * @param  {object}  SETTINGS    - Settings object
+ * @param  {boolean} debug       - A flag to enable debug mode
+ * @param  {integer} debuglevel  - The debug level we want to show
  * @param  {object}  size        - The size of the terminal as an object, default: Size
  * @param  {integer} size.width  - The width of the terminal
  * @param  {integer} size.height - The height of the terminal
- * @param  {boolean} debug       - A flag to enable debug mode
- * @param  {integer} debuglevel  - The debug level we want to show
  *
  * @typedef  {object} ReturnObject
  *   @property {string}  string  - The pure string for output with all line breaks
@@ -619,7 +627,7 @@ const GetOptions = (
  *
  * @return {ReturnObject}        - CLI output of INPUT to be consoled out
  */
-const Render = ( input, SETTINGS = {}, size = Size, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
+const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size = Size ) => {
 	Debugging.report(`Running render`, 1);
 
 	DEBUG = debug;
@@ -648,7 +656,7 @@ const Render = ( input, SETTINGS = {}, size = Size, debug = DEBUG, debuglevel = 
 			outOption += `\n  Options.${ key }: ${ OPTIONS[ key ] }`;
 		}
 
-		Debugging.report( outOption, 2 );
+		Debugging.report( outOption, 3 );
 	}
 
 
@@ -785,13 +793,13 @@ const Render = ( input, SETTINGS = {}, size = Size, debug = DEBUG, debuglevel = 
  *
  * @param same as render method
  */
-const Say = ( INPUT, SETTINGS = {}, size = Size, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
+const Say = ( INPUT, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size = Size ) => {
 	Debugging.report(`Running say`, 1);
 
 	DEBUG = debug;
 	DEBUGLEVEL = debuglevel;
 
-	let write = Render( INPUT, SETTINGS, size, debug, debuglevel );
+	let write = Render( INPUT, SETTINGS, debug, debuglevel, size );
 
 	if( write ) {
 		console.log( write.string ); // write out
