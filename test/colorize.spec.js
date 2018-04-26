@@ -37,7 +37,7 @@ test(`Colorize - Strings with two colors are replaced`, () => {
 
 
 test(`Colorize - Strings with candy color`, () => {
-	const test = Colorize( 'text', 1, ['candy'] );
+	const test = Colorize( '<c1>text</c1>', 2, ['candy'] );
 
 	expect( StripColor( test ) ).toEqual('text');
 	expect( StripColor( test ).length < test.length ).toEqual( true );

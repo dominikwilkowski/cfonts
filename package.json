@@ -51,9 +51,8 @@
 	"dependencies": {
 		"ansi-styles": "^3.2.1",
 		"babel-runtime": "^6.26.0",
-		"chalk": "^2.3.2",
+		"chalk": "^2.4.1",
 		"change-case": "^3.0.2",
-		"commander": "^2.15.1",
 		"window-size": "^1.1.0"
 	},
 	"jest": {

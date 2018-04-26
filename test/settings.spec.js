@@ -13,6 +13,8 @@ const COLORS = CFonts.COLORS;
 const BGCOLORS = CFonts.BGCOLORS;
 const ALIGNMENT = CFonts.ALIGNMENT;
 const FONTFACES = CFonts.FONTFACES;
+const CLIOPTIONS = CFonts.CLIOPTIONS;
+const PACKAGE = CFonts.__test__.PACKAGE
 
 
 test(`DEBUG - Should be defined as boolean`, () => {
@@ -49,4 +51,19 @@ test(`ALIGNMENT - Should have all alignment options`, () => {
 
 test(`FONTFACES - Should have a bunch of fontfaces defined`, () => {
 	expect( Object.keys( FONTFACES ).length > 0 ).toEqual( true );
+});
+
+
+test(`CLIOPTIONS - Should have all keys`, () => {
+	Object.keys( CLIOPTIONS ).map( option => {
+		expect( typeof CLIOPTIONS[ option ].description ).toEqual( 'string' );
+		expect( typeof CLIOPTIONS[ option ].example ).toEqual( 'string' );
+		expect( typeof CLIOPTIONS[ option ].short ).toEqual( 'string' );
+		expect( typeof CLIOPTIONS[ option ].default !== undefined ).toEqual( true );
+	});
+});
+
+
+test(`PACKAGE - Should exist and have a version key`, () => {
+	expect( PACKAGE.version.length > 0 ).toEqual( true );
 });

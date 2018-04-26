@@ -22,7 +22,7 @@ const Path = require(`path`);
 const Fs = require(`fs`);
 
 
-// settings
+// global defaults
 let DEBUG = false;
 let DEBUGLEVEL = 2;
 const CHARS = [
@@ -83,6 +83,89 @@ const FONTFACES = {
 	chrome: 'chrome',
 	huge: 'huge',
 };
+const CLIOPTIONS = {
+	'--version': {
+		description: 'Use to display the version of cfonts',
+		example: '--version',
+		short: '-v',
+		default: false,
+	},
+	'--help': {
+		description: 'Use to display this help',
+		example: '--help',
+		short: '-h',
+		default: false,
+	},
+	'--font': {
+		description: 'Use to define the font face',
+		example: '--font block',
+		short: '-f',
+		options: Object.keys( FONTFACES ).map( color => FONTFACES[ color ] ),
+		default: 'block',
+	},
+	'--colors': {
+		description: 'Use to define the font color',
+		example: '--colors block',
+		short: '-c',
+		options: true, // Object.keys( COLORS ).map( color => COLORS[ color ] ),
+		default: 'system',
+	},
+	'--background': {
+		description: 'Use to define background color',
+		example: '--background block',
+		short: '-b',
+		options: Object.keys( BGCOLORS ).map( color => BGCOLORS[ color ] ),
+		default: 'transparent',
+	},
+	'--align': {
+		description: 'Use to align your text output',
+		example: '--align block',
+		short: '-a',
+		options: ALIGNMENT,
+		default: 'left',
+	},
+	'--letter-spacing': {
+		description: 'Use to define your letter spacing',
+		example: '--letter-spacing 2',
+		short: '-l',
+		options: true,
+		default: 1,
+	},
+	'--line-height': {
+		description: 'Use to define your line height',
+		example: '--line-height 5',
+		short: '-z',
+		options: true,
+		default: 1,
+	},
+	'--spaceless': {
+		description: 'Use to disable the padding around your output',
+		example: '--spaceless',
+		short: '-s',
+		default: 1,
+	},
+	'--max-length': {
+		description: 'Use to define the amount of maximum characters per line',
+		example: '--max-length 10',
+		short: '-m',
+		options: true,
+		default: 1,
+	},
+	'--debug': {
+		description: 'Use to enable debug mode',
+		example: '--debug',
+		short: '-d',
+		default: false,
+	},
+	'--debug-level': {
+		description: 'Use to define the debug level. The higher, the less debug infos',
+		example: '--debug-level 2',
+		short: '-m',
+		options: true,
+		default: 1,
+	},
+};
+const PACKAGE = JSON.parse( Fs.readFileSync( Path.normalize(`${ __dirname }/../package.json`), 'utf8' ) );
 
 
 /**
@@ -808,6 +891,127 @@ const Say = ( INPUT, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size
 
 
 /**
+ * Flatten the shortcuts in our cli options object
+ *
+ * @param  {object} options - An object objects with a short key
+ *
+ * @return {object}         - All short keys flattened into first level
+ */
+const AddShortcuts = ( options ) => {
+	const flatOptions = Object.assign( {}, options );
+
+	Object.keys( flatOptions ).forEach( option => {
+		flatOptions[ option ]._name = option;
+		flatOptions[ flatOptions[ option ].short ] = flatOptions[ option ];
+	});
+
+	return flatOptions;
+};
+
+
+/**
+ * Parse cli arguments into a nice object
+ *
+ * @param  {array} inputOptions - All possible options registered for this app
+ * @param  {array} inputArgs    - The arguments given to us in our cli, default: process.argv
+ *
+ * @return {object}             - An object of all options with at least their default values
+ */
+const ParseArgs = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
+	const parsedArgs = {
+		text: inputArgs[ 2 ],
+	};
+
+	// create defaults
+	Object.keys( inputOptions ).forEach( option => {
+		const name = option.replace( '--', '' );
+
+		parsedArgs[ name ] = inputOptions[ option ].default;
+	});
+
+	if( inputArgs[ 2 ] === '--help' || inputArgs[ 2 ] === '-h' ) {
+		parsedArgs.help = true;
+	}
+
+	if( inputArgs[ 2 ] === '--version' || inputArgs[ 2 ] === '-v' ) {
+		parsedArgs.version = true;
+	}
+
+	const args = inputArgs.splice( 3 ); // the first two are node specific, the third is our text
+
+	const options = AddShortcuts( inputOptions );
+
+	for( let index = 0; args.length > index; index ++ ) {
+		const option = options[ args[ index ] ];
+
+		if( option ) {
+			const name = option._name.replace( '--', '' );
+
+			if( option.options !== undefined ) {
+				index ++;
+				const value = args[ index ];
+
+				if( option.options === true ) {
+					parsedArgs[ name ] = value;
+				}
+				else {
+					if( option.options.includes( value ) ) {
+						parsedArgs[ name ] = value;
+					}
+					else {
+						parsedArgs[ name ] = option.default;
+					}
+				}
+			}
+			else {
+				parsedArgs[ name ] = true;
+			}
+		}
+		else {
+			Debugging.report( `The cli argument ${ args[ index ] } was not found and ignored`, 2 );
+		}
+	};
+
+	return parsedArgs;
+};
+
+
+/**
+ * Display the help generated from our CLIOPTIONS
+ */
+const DisplayHelp = () => {
+	console.log(
+		` ${ Render( 'cfonts', { align: 'center', colors: ['redBright','greenBright'] } ).string }` +
+		`This is a tool for sexy fonts in the console. Give your cli some love.\n\n` +
+		`Usage: cfonts "<value>" [option1] <input1> [option2] <input1>,<input2> [option3]\n` +
+		`Example: ${ Chalk.bold('$ cfonts "sexy font" -f chrome -a center -c red,green,gray') }\n\n` +
+		`Options:\n`
+	);
+
+	let command = [];
+	let largestSize = 0;
+
+	Object.keys( CLIOPTIONS ).forEach( option => {
+		console.log( Chalk.bold( CLIOPTIONS[ option ].description ) );
+		console.log(`${ option }, ${ CLIOPTIONS[ option ].short }`);
+		console.log(`${ Chalk.bold('$') } cfonts ${ option }${
+			typeof CLIOPTIONS[ option ].options !== 'boolean' && typeof CLIOPTIONS[ option ].options !== 'undefined'
+				? Chalk.green(` ( ${ CLIOPTIONS[ option ].options.join(', ') } )`)
+				: ''
+		}\n`);
+	});
+};
+
+
+/**
+ * Display the version of this package
+ */
+const DisplayVersion = () => {
+	console.log( PACKAGE.version );
+};
+
+
+/**
  * Debugging prettiness
  *
  * @type {object}
@@ -876,7 +1080,7 @@ const Log = {
 };
 
 
-// Module export
+// Export for API use and unit tests
 module.exports = exports = {
 	render: Render,
 	say: Say,
@@ -887,10 +1091,16 @@ module.exports = exports = {
 	BGCOLORS,
 	ALIGNMENT,
 	FONTFACES,
+	CLIOPTIONS,
+	ParseArgs,
+	DisplayHelp,
+	DisplayVersion,
 	Debugging,
 	Log,
 
 	__test__: {
+		PACKAGE,
+		AddShortcuts,
 		GetFont,
 		CharLength,
 		AddLine,
