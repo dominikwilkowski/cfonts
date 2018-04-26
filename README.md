@@ -349,7 +349,8 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Test
-The package comes with a bunch of unit tests and a test suite for font files.
+The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/master/test/unit) and a
+[test suite](https://github.com/dominikwilkowski/cfonts/blob/master/test/fonttest.js) for font files.
 
 Run the unit tests via:
 
@@ -364,7 +365,7 @@ npm test:fonts
 ```
 
 This tool checks:
-- the existence
+- the existence of the font
 - all attributes of a font
 - each character for:
 	- existence
@@ -379,7 +380,7 @@ npm run test
 
 
 ## Release History
-* 2.0.1  -  Foxed terminal width detection
+* 2.0.1  -  Fixed terminal width detection
 * 2.0.0  -  Added tests, split into more pure functions
 * 1.2.0  -  Added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
 * 1.1.3  -  Fixed help text, removing old -t option

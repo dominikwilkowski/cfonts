@@ -497,3 +497,12 @@ test(`Render - Add background color`, () => {
 		maxLength: 0,
 	});
 });
+
+
+test(`Render - Returns false if font is not known`, () => {
+	const test = Render( 'text', {
+		font: 'unknown',
+	}, false, 1, { width: 100, height: 10 });
+
+	expect( test ).toBe( false );
+});
