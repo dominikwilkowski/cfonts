@@ -6,7 +6,7 @@
 
 
 const CFonts = require('../src/lib.js');
-const DisplayVersion = CFonts.DisplayVersion;
+const DisplayVersion = CFonts.__test__.DisplayVersion;
 
 
 test(`DisplayVersion - Show the version`, () => {

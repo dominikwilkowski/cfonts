@@ -6,7 +6,7 @@
 
 
 const CFonts = require('../src/lib.js');
-const ParseArgs = CFonts.ParseArgs;
+const ParseArgs = CFonts.__test__.ParseArgs;
 
 
 test(`ParseArgs - Return defaults without arguments`, () => {

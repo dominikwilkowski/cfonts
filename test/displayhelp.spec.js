@@ -6,7 +6,7 @@
 
 
 const CFonts = require('../src/lib.js');
-const DisplayHelp = CFonts.DisplayHelp;
+const DisplayHelp = CFonts.__test__.DisplayHelp;
 
 
 test(`DisplayHelp - Show the help`, () => {

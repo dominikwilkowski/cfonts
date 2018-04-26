@@ -21,7 +21,7 @@ const fontArray = [
 ];
 
 
-Object.keys( CFonts.FONTFACES )
+Object.keys( CFonts.__test__.FONTFACES )
 	.filter( font => font !== 'console' )
 	.map( font => {
 		test(`GetFont - ${ font } font should exist and have the right keys`, () => {

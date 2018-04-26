@@ -6,7 +6,7 @@
 
 
 const CFonts = require('../src/lib.js');
-const Log = CFonts.Log;
+const Log = CFonts.__test__.Log;
 
 
 test(`Log - Display error message`, () => {

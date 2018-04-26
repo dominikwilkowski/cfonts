@@ -6,14 +6,14 @@
 
 
 const CFonts = require('../src/lib.js');
-const DEBUG = CFonts.DEBUG;
-const DEBUGLEVEL = CFonts.DEBUGLEVEL;
-const CHARS = CFonts.CHARS;
-const COLORS = CFonts.COLORS;
-const BGCOLORS = CFonts.BGCOLORS;
-const ALIGNMENT = CFonts.ALIGNMENT;
-const FONTFACES = CFonts.FONTFACES;
-const CLIOPTIONS = CFonts.CLIOPTIONS;
+const DEBUG = CFonts.__test__.DEBUG;
+const DEBUGLEVEL = CFonts.__test__.DEBUGLEVEL;
+const CHARS = CFonts.__test__.CHARS;
+const COLORS = CFonts.__test__.COLORS;
+const BGCOLORS = CFonts.__test__.BGCOLORS;
+const ALIGNMENT = CFonts.__test__.ALIGNMENT;
+const FONTFACES = CFonts.__test__.FONTFACES;
+const CLIOPTIONS = CFonts.__test__.CLIOPTIONS;
 const PACKAGE = CFonts.__test__.PACKAGE
 
 

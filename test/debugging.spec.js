@@ -6,7 +6,7 @@
 
 
 const CFonts = require('../src/lib.js');
-const Debugging = CFonts.Debugging;
+const Debugging = CFonts.__test__.Debugging;
 
 
 test(`Debugging - Show headline message when debug is enabled`, () => {

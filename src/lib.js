@@ -1012,6 +1012,62 @@ const DisplayVersion = () => {
 
 
 /**
+ * Run cli commands
+ *
+ * @param  {array} inputOptions - All possible options registered for this app
+ * @param  {array} inputArgs    - The arguments given to us in our cli, default: process.argv
+ */
+const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
+	const args = ParseArgs( inputOptions, inputArgs );
+
+	Debugging.report(
+		`OPTIONS:\n` +
+		`  CFonts.say("${ args.text }", {\n` +
+		`    font: "${ args.font }",\n` +
+		`    align: "${ args.align }",\n` +
+		`    colors: ${ args.colors ? JSON.stringify( args.colors.split(',') ) : [] },\n` +
+		`    background: "${ args.background }",\n` +
+		`    letterSpacing: ${ args.letterSpacing },\n` +
+		`    lineHeight: ${ args.lineHeight },\n` +
+		`    space: ${ args.spaceless },\n` +
+		`    maxLength: ${ args.maxLength }\n` +
+		`  }, ${ args.debug }, ${ args.debugLevel } );`,
+		3,
+		args.debug,
+		args.debugLevel
+	);
+
+	if( args.help ) {
+		DisplayHelp();
+		return;
+	}
+
+	if( args.version ) {
+		DisplayVersion();
+		return;
+	}
+
+	if( !args.text ) {
+		Log.error(
+			`Please provide text to convert with ${ Chalk.green(`cfonts "Text"`) }\n` +
+			`Run ${ Chalk.green(`cfonts --help`) } for more infos`
+		);
+	}
+
+	Say( args.text, {
+		font: args.font,
+		align: args.align,
+		colors: args.colors ? args.colors.split(',') : [],
+		background: args.background,
+		letterSpacing: args.letterSpacing,
+		lineHeight: args.lineHeight,
+		space: args.spaceless,
+		maxLength: args.maxLength
+	}, args.debug, args.debugLevel );
+};
+
+
+/**
  * Debugging prettiness
  *
  * @type {object}
@@ -1084,21 +1140,16 @@ const Log = {
 module.exports = exports = {
 	render: Render,
 	say: Say,
-	DEBUG,
-	DEBUGLEVEL,
-	CHARS,
-	COLORS,
-	BGCOLORS,
-	ALIGNMENT,
-	FONTFACES,
-	CLIOPTIONS,
-	ParseArgs,
-	DisplayHelp,
-	DisplayVersion,
-	Debugging,
-	Log,
 
 	__test__: {
+		DEBUG,
+		DEBUGLEVEL,
+		CHARS,
+		COLORS,
+		BGCOLORS,
+		ALIGNMENT,
+		FONTFACES,
+		CLIOPTIONS,
 		PACKAGE,
 		AddShortcuts,
 		GetFont,
@@ -1114,5 +1165,11 @@ module.exports = exports = {
 		RenderConsole,
 		CleanInput,
 		GetOptions,
+		ParseArgs,
+		DisplayHelp,
+		DisplayVersion,
+		Cli,
+		Debugging,
+		Log,
 	},
 };

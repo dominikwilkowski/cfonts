@@ -27,6 +27,9 @@ const Chalk = require(`chalk`);
 const Path = require('path');
 const Fs = require(`fs`);
 
+const CHARS = CFonts.__test__.CHARS;
+const FONTFACES = CFonts.__test__.FONTFACES;
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Constructor
@@ -39,8 +42,8 @@ const FontTest = (() => { //constructor factory
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 		DEBUG: true,
 		DEBUGLEVEL: 2,
-		CHARS: CFonts.CHARS.filter( font => font !== '|' ), // we won't have the pip in the char-set
-		FONTFACES: Object.keys( CFonts.FONTFACES ).map( font => CFonts.FONTFACES[ font ] ).filter( font => font !== 'console' ), // console is a font but not a font-file
+		CHARS: CHARS.filter( font => font !== '|' ), // we won't have the pip in the char-set
+		FONTFACES: Object.keys( FONTFACES ).map( font => FONTFACES[ font ] ).filter( font => font !== 'console' ), // console is a font but not a font-file
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
