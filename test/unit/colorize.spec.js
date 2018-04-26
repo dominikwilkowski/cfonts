@@ -6,7 +6,7 @@
 
 
 const StripColor = require('./_common.js').StripColor;
-const CFonts = require('../src/lib.js');
+const CFonts = require('../../src/lib.js');
 const Colorize = CFonts.__test__.Colorize;
 
 

@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js');
+const CFonts = require('../../src/lib.js');
 const AddShortcuts = CFonts.__test__.AddShortcuts;
 
 

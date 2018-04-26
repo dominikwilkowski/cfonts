@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js');
+const CFonts = require('../../src/lib.js');
 const DisplayVersion = CFonts.__test__.DisplayVersion;
 
 

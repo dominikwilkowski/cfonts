@@ -2,7 +2,7 @@
  *
  * cfonts, Sexy fonts for the console. (CLI output)
  *
- * Testing the API side of things. Not automated yet :(
+ * Testing the API side of things.
  *
  * @license     https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE  GNU GPLv2
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com

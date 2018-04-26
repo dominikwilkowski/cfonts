@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js');
+const CFonts = require('../../src/lib.js');
 const CleanInput = CFonts.__test__.CleanInput;
 const CHARS = CFonts.__test__.CHARS;
 

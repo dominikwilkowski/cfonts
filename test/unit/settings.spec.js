@@ -5,7 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js');
+const CFonts = require('../../src/lib.js');
 const DEBUG = CFonts.__test__.DEBUG;
 const DEBUGLEVEL = CFonts.__test__.DEBUGLEVEL;
 const CHARS = CFonts.__test__.CHARS;

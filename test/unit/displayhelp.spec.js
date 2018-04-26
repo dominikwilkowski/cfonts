@@ -1,18 +1,18 @@
 /***************************************************************************************************************************************************************
  *
- * Say unit tests
+ * DisplayHelp unit tests
  *
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js');
-const Say = CFonts.say;
+const CFonts = require('../../src/lib.js');
+const DisplayHelp = CFonts.__test__.DisplayHelp;
 
 
-test(`Say - Say will print to console log`, () => {
+test(`DisplayHelp - Show the help`, () => {
 	console.log = jest.fn();
 
-	Say( 'text' );
+	DisplayHelp();
 
-	expect( console.log.mock.calls[0][0].length > 0 ).toBe( true );
+	expect( console.log.mock.calls.length > 0 ).toBe( true );
 });
