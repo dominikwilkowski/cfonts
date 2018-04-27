@@ -5,7 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const StripColor = require('./_common.js').StripColor;
+const CFonts = require('../../src/lib.js');
 const RenderConsole = CFonts.__test__.RenderConsole;
 
 
@@ -259,21 +260,6 @@ test(`RenderConsole - Should output colored text`, () => {
 
 
 test(`RenderConsole - Should output candy colored text`, () => {
-	const StripColor = ( text ) => {
-		const pattern = [
-			'[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\\u0007)',
-			'(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))'
-		].join('|');
-		const ansi = new RegExp(pattern, 'g');
-
-		if( typeof text === 'string' ) {
-			return text.replace( ansi, '' );
-		}
-		else {
-			return text;
-		}
-	};
-
 	const test = RenderConsole( 'test', {
 		align: 'left',
 		colors: ['candy'],

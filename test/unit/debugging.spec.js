@@ -5,24 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
-const Debugging = CFonts.Debugging;
-
-
-const StripColor = ( text ) => {
-	const pattern = [
-		'[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\\u0007)',
-		'(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))'
-	].join('|');
-	const ansi = new RegExp(pattern, 'g');
-
-	if( typeof text === 'string' ) {
-		return text.replace( ansi, '' );
-	}
-	else {
-		return text;
-	}
-};
+const CFonts = require('../../src/lib.js');
+const Debugging = CFonts.__test__.Debugging;
 
 
 test(`Debugging - Show headline message when debug is enabled`, () => {
@@ -71,6 +55,17 @@ test(`Debugging - Don’t show message when debuglevel is too high`, () => {
 	Debugging.headline( 'text', 1, true, 2 );
 	Debugging.report( 'text', 1, true, 2 );
 	Debugging.error( 'text', 1, true, 2 );
+
+	expect( console.log.mock.calls.length ).toBe( 0 );
+});
+
+
+test(`Debugging - Debugging is off by default`, () => {
+	console.log = jest.fn();
+
+	Debugging.headline( 'text' );
+	Debugging.report( 'text' );
+	Debugging.error( 'text' );
 
 	expect( console.log.mock.calls.length ).toBe( 0 );
 });

@@ -1,18 +1,15 @@
 /***************************************************************************************************************************************************************
  *
- * Say unit tests
+ * Size unit tests
  *
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
-const Say = CFonts.say;
+const CFonts = require('../../src/lib.js');
+const Size = CFonts.__test__.Size;
 
 
-test(`Say - Say will print to console log`, () => {
-	console.log = jest.fn();
-
-	Say( 'text' );
-
-	expect( console.log.mock.calls[0][0].length > 0 ).toBe( true );
+test(`Size - Should have two keys with numbers`, () => {
+	expect( typeof Size.width ).toEqual( 'number' );
+	expect( typeof Size.height ).toEqual( 'number' );
 });

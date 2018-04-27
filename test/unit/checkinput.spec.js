@@ -5,14 +5,14 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../../src/lib.js');
 const CheckInput = CFonts.__test__.CheckInput;
 
 
 test(`CheckInput - Should pass with correct input`, () => {
-	const FONTFACES = [ 'font1', 'font2', 'font3' ];
-	const COLORS = [ 'color1', 'color2', 'color3' ];
-	const BGCOLORS = [ 'bgcolor1', 'bgcolor2', 'bgcolor3' ];
+	const FONTFACES = { font1: 'font1', font2: 'font2', font3: 'font3' };
+	const COLORS = { color1: 'color1', color2: 'color2', color3: 'color3' };
+	const BGCOLORS = { bgcolor1: 'bgcolor1', bgcolor2: 'bgcolor2', bgcolor3: 'bgcolor3' };
 	const ALIGNMENT = [ 'left', 'center', 'right' ];
 
 	expect( CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', FONTFACES, COLORS, BGCOLORS, ALIGNMENT ).pass ).toEqual( true );
@@ -21,10 +21,24 @@ test(`CheckInput - Should pass with correct input`, () => {
 	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', FONTFACES, COLORS, BGCOLORS, ALIGNMENT ).pass ).toEqual( true );
 });
 
+
+test(`CheckInput - Should be able to work out casing automatically`, () => {
+	const FONTFACES = { font1: 'FONT1', font2: 'FONT2', font3: 'FONT3' };
+	const COLORS = { color1: 'coLOr1', color2: 'coLOr2', color3: 'cOLor3' };
+	const BGCOLORS = { bgcolor1: 'bGCOlor1', bgcolor2: 'bGCOlor2', bgcolor3: 'bGCOlor3' };
+	const ALIGNMENT = [ 'left', 'center', 'right' ];
+
+	expect( CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', FONTFACES, COLORS, BGCOLORS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font2', ['color2', 'candy'], 'bgcolor2', 'center', FONTFACES, COLORS, BGCOLORS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['color3'], 'bgcolor3', 'right', FONTFACES, COLORS, BGCOLORS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', FONTFACES, COLORS, BGCOLORS, ALIGNMENT ).pass ).toEqual( true );
+});
+
+
 test(`CheckInput - Should fail with wrong input`, () => {
-	const FONTFACES = [ 'font1', 'font2', 'font3' ];
-	const COLORS = [ 'color1', 'color2', 'color3' ];
-	const BGCOLORS = [ 'bgcolor1', 'bgcolor2', 'bgcolor3' ];
+	const FONTFACES = { font1: 'font1', font2: 'font2', font3: 'font3' };
+	const COLORS = { color1: 'color1', color2: 'color2', color3: 'color3' };
+	const BGCOLORS = { bgcolor1: 'bgcolor1', bgcolor2: 'bgcolor2', bgcolor3: 'bgcolor3' };
 	const ALIGNMENT = [ 'left', 'center', 'right' ];
 
 	const fail = CheckInput( undefined, 'font1', ['color1'], 'bgcolor1', 'left', FONTFACES, COLORS, BGCOLORS, ALIGNMENT );

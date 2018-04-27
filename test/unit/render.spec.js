@@ -5,14 +5,14 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../../src/lib.js');
 const Render = CFonts.render;
 
 
 test(`Render - Render console string`, () => {
 	const test = Render( 'text', {
 		font: 'console',
-	}, { width: 100, height: 10 });
+	}, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe( '\n\ntext\n\n' );
 	expect( test.array ).toEqual( ['text'] );
@@ -34,7 +34,7 @@ test(`Render - Render console string with a color`, () => {
 	const test = Render( 'text', {
 		font: 'console',
 		colors: ['red'],
-	}, { width: 100, height: 10 });
+	}, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe( '\n\n\u001b[31mtext\u001b[39m\n\n' );
 	expect( test.array ).toEqual( ['text'] );
@@ -52,8 +52,34 @@ test(`Render - Render console string with a color`, () => {
 });
 
 
+test(`Render - Fail on bad user input`, () => {
+	console.error = jest.fn();
+
+	const test1 = Render( void( 0 ), {}, false, 1, { width: 100, height: 10 });
+	const test2 = Render( 'text', { font: 'notfound' }, false, 1, { width: 100, height: 10 });
+	const test3 = Render( 'text', { align: 'notfound' }, false, 1, { width: 100, height: 10 });
+	const test4 = Render( 'text', { colors: ['notfound'] }, false, 1, { width: 100, height: 10 });
+	const test5 = Render( 'text', { background: 'notfound' }, false, 1, { width: 100, height: 10 });
+
+	expect( test1 ).toBe( false );
+	expect( test2 ).toBe( false );
+	expect( test3 ).toBe( false );
+	expect( test4 ).toBe( false );
+	expect( test5 ).toBe( false );
+});
+
+
+test(`Render - Output debug infos`, () => {
+	console.log = jest.fn();
+
+	Render( 'text', {}, true, 1, { width: 100, height: 10 } );
+
+	expect( console.log.mock.calls.length > 0 ).toBe( true );
+});
+
+
 test(`Render - Render block font`, () => {
-	const test = Render( 'text', { width: 100, height: 10 } );
+	const test = Render( 'text', false, 1, { width: 100, height: 10 } );
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -89,7 +115,7 @@ test(`Render - Render block font`, () => {
 test(`Render - Render letter spacing`, () => {
 	const test1 = Render( 'text', {
 		letterSpacing: 2,
-	}, { width: 100, height: 10 });
+	}, false, 1, { width: 100, height: 10 });
 
 	expect( test1.string ).toBe(
 		'\n\n' +
@@ -123,7 +149,7 @@ test(`Render - Render letter spacing`, () => {
 
 	const test2 = Render( 'text', {
 		letterSpacing: 10,
-	}, { width: 100, height: 10 });
+	}, false, 1, { width: 100, height: 10 });
 
 	expect( test2.string ).toBe(
 		'\n\n' +
@@ -159,7 +185,7 @@ test(`Render - Render letter spacing`, () => {
 test(`Render - Center align block font`, () => {
 	const test = Render( 'text', {
 		align: 'center',
-	}, { width: 50, height: 10 });
+	}, false, 1, { width: 50, height: 10 });
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -195,7 +221,7 @@ test(`Render - Center align block font`, () => {
 test(`Render - Right align block font`, () => {
 	const test = Render( 'text', {
 		align: 'right',
-	}, { width: 50, height: 10 });
+	}, false, 1, { width: 50, height: 10 });
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -229,7 +255,7 @@ test(`Render - Right align block font`, () => {
 
 
 test(`Render - Break into new line on smaller viewports`, () => {
-	const test = Render( 'text', {}, { width: 20, height: 10 });
+	const test = Render( 'text', {}, false, 1, { width: 20, height: 10 });
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -276,7 +302,7 @@ test(`Render - Break into new line on smaller viewports`, () => {
 
 
 test(`Render - Add line break`, () => {
-	const test = Render( 'te|xt', {}, { width: 100, height: 10 });
+	const test = Render( 'te|xt', {}, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -323,7 +349,7 @@ test(`Render - Add line break`, () => {
 
 
 test(`Render - Add line height`, () => {
-	const test = Render( 'te|xt', { lineHeight: 2 }, { width: 100, height: 10 });
+	const test = Render( 'te|xt', { lineHeight: 2 }, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -371,7 +397,7 @@ test(`Render - Add line height`, () => {
 
 
 test(`Render - Non supported characters are ignored`, () => {
-	const test = Render( 'te*xt', {}, { width: 100, height: 10 } );
+	const test = Render( 'te*xt', {}, false, 1, { width: 100, height: 10 } );
 
 	expect( test.string ).toBe(
 		'\n\n' +
@@ -405,7 +431,7 @@ test(`Render - Non supported characters are ignored`, () => {
 
 
 test(`Render - Remove space`, () => {
-	const test = Render( 'text', { space: false }, { width: 100, height: 10 } );
+	const test = Render( 'text', { space: false }, false, 1, { width: 100, height: 10 } );
 
 	expect( test.string ).toBe(
 		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ \n' +
@@ -438,7 +464,7 @@ test(`Render - Remove space`, () => {
 
 
 test(`Render - Add background color`, () => {
-	const test = Render( 'text', { background: 'red' }, { width: 100, height: 10 } );
+	const test = Render( 'text', { background: 'red' }, false, 1, { width: 100, height: 10 } );
 
 	expect( test.string ).toBe(
 		'\u001b[41m' +
@@ -470,4 +496,13 @@ test(`Render - Add background color`, () => {
 		space: true,
 		maxLength: 0,
 	});
+});
+
+
+test(`Render - Returns false if font is not known`, () => {
+	const test = Render( 'text', {
+		font: 'unknown',
+	}, false, 1, { width: 100, height: 10 });
+
+	expect( test ).toBe( false );
 });

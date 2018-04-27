@@ -1,15 +1,18 @@
 /***************************************************************************************************************************************************************
  *
- * Size unit tests
+ * DisplayHelp unit tests
  *
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
-const Size = CFonts.__test__.Size;
+const CFonts = require('../../src/lib.js');
+const DisplayHelp = CFonts.__test__.DisplayHelp;
 
 
-test(`Size - Should have two keys with numbers`, () => {
-	expect( typeof Size.width ).toEqual( 'number' );
-	expect( typeof Size.height ).toEqual( 'number' );
+test(`DisplayHelp - Show the help`, () => {
+	console.log = jest.fn();
+
+	DisplayHelp();
+
+	expect( console.log.mock.calls.length > 0 ).toBe( true );
 });

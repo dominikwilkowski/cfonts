@@ -2,7 +2,7 @@
  *
  * cfonts, Sexy fonts for the console. (CLI output)
  *
- * Testing the API side of things. Not automated yet :(
+ * Testing the API side of things.
  *
  * @license     https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE  GNU GPLv2
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
@@ -12,10 +12,6 @@
 
 'use strict';
 
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Dependencies
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------
 const CFonts = require('../lib/index.js');
 
 let prettyFont = CFonts.render('H', {
@@ -39,6 +35,6 @@ CFonts.say('Hello world!', {
 });
 
 CFonts.say('Hello world!', {
-	background: 'red',
-	backgroundColor: 'green',
+	background: 'GREEN',
+	backgroundColor: 'RED',
 });

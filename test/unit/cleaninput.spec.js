@@ -5,9 +5,9 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../src/lib.js')
+const CFonts = require('../../src/lib.js');
 const CleanInput = CFonts.__test__.CleanInput;
-const CHARS = CFonts.CHARS;
+const CHARS = CFonts.__test__.CHARS;
 
 
 test(`CleanInput - Should white list characters`, () => {
@@ -18,6 +18,7 @@ test(`CleanInput - Should white list characters`, () => {
 	expect( CleanInput( 'abc•', ['A','B','C'] ) ).toEqual( 'abc' );
 	expect( CleanInput( ' abc', ['A','B','C'] ) ).toEqual( 'abc' );
 });
+
 
 test(`CleanInput - Should keep all letters that are allowed`, () => {
 	expect( CleanInput( CHARS.join(' ') ) ).toEqual( CHARS.join(' ') );

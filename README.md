@@ -7,21 +7,14 @@
      ╚═════╝ ╚═╝       ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝
 ```
 
-[![NPM](https://nodei.co/npm/cfonts.png?downloads=true)](https://nodei.co/npm/cfonts/)
-
-
-> This is a silly little command line tool for sexy fonts in the console. **Give your cli some love.**
-
-## Examples
-
-Different styles:
-
 ![cfont styles](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/example1.png)
 
-Real world example:
 
-![api example](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/example2.png)
+<p align="center"><img src="https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/example2.png" alt="api example"></p>
+<p align="center"><a href="https://nodei.co/npm/cfonts/"><img src="https://nodei.co/npm/cfonts.png?downloads=true" alt="npm status"></a></p>
+<p align="center"><a href="https://travis-ci.org/dominikwilkowski/cfonts"><img src="https://travis-ci.org/dominikwilkowski/cfonts.svg?branch=master" alt="build status"></a></p>
 
+<p align="center">This is a silly little command line tool for sexy fonts in the console. <strong>Give your cli some love.</strong></p>
 
 ## Installing
 
@@ -45,14 +38,14 @@ Or use it in your project:
 const CFonts = require('cfonts');
 
 CFonts.say('Hello|world!', {
-	font: 'block',              //define the font face
-	align: 'left',              //define text alignment
-	colors: ['system'],         //define all colors
-	background: 'transparent',  //define the background color, you can also use `backgroundColor` here as key
-	letterSpacing: 1,           //define letter spacing
-	lineHeight: 1,              //define the line height
-	space: true,                //define if the output text should have empty lines on top and on the bottom
-	maxLength: '0',             //define how many character can be on one line
+	font: 'block',              // define the font face
+	align: 'left',              // define text alignment
+	colors: ['system'],         // define all colors
+	background: 'transparent',  // define the background color, you can also use `backgroundColor` here as key
+	letterSpacing: 1,           // define letter spacing
+	lineHeight: 1,              // define the line height
+	space: true,                // define if the output text should have empty lines on top and on the bottom
+	maxLength: '0',             // define how many character can be on one line
 });
 ```
 
@@ -65,10 +58,10 @@ const CFonts = require('cfonts');
 
 const prettyFont = CFonts.render('Hello|world!', {/* same settings object as above */});
 
-prettyFont.string //the ansi string for sexy console font
-prettyFont.array //returns the array for the output
-prettyFont.lines //returns the lines used
-prettyFont.options //returns the options used
+prettyFont.string  // the ansi string for sexy console font
+prettyFont.array   // returns the array for the output
+prettyFont.lines   // returns the lines used
+prettyFont.options // returns the options used
 ```
 
 
@@ -349,7 +342,8 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Test
-The package comes with a bunch of unit tests and a test suite for font files.
+The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/master/test/unit) and a
+[test suite](https://github.com/dominikwilkowski/cfonts/blob/master/test/fonttest.js) for font files.
 
 Run the unit tests via:
 
@@ -364,7 +358,7 @@ npm test:fonts
 ```
 
 This tool checks:
-- the existence
+- the existence of the font
 - all attributes of a font
 - each character for:
 	- existence
@@ -379,7 +373,8 @@ npm run test
 
 
 ## Release History
-* 2.0.1  -  Foxed terminal width detection
+* 2.1.0  -  Rebuilt cfonts with pure functions, made colors case-insensitive
+* 2.0.1  -  Fixed terminal width detection
 * 2.0.0  -  Added tests, split into more pure functions
 * 1.2.0  -  Added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
 * 1.1.3  -  Fixed help text, removing old -t option
