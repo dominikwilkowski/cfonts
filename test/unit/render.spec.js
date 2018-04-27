@@ -79,7 +79,7 @@ test(`Render - Output debug infos`, () => {
 
 
 test(`Render - Render block font`, () => {
-	const test = Render( 'text', false, 1, { width: 100, height: 10 } );
+	const test = Render( 'text', {}, false, 1, { width: 100, height: 10 } );
 
 	expect( test.string ).toBe(
 		'\n\n' +

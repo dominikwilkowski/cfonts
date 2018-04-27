@@ -23,7 +23,9 @@ const fontArray = [
 
 Object.keys( CFonts.__test__.FONTFACES )
 	.filter( font => font !== 'console' )
-	.map( font => {
+	.map( fontkey => {
+		const font = CFonts.__test__.FONTFACES[ fontkey ];
+
 		test(`GetFont - ${ font } font should exist and have the right keys`, () => {
 			expect( Object.keys( GetFont( font ) ) ).toEqual( fontArray );
 		});
