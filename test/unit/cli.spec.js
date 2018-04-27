@@ -27,6 +27,12 @@ const options = {
 		short: '-3',
 		default: false,
 	},
+	'--colors': {
+		description: 'desc colors',
+		short: '-c',
+		options: true,
+		default: 'system',
+	},
 };
 
 
@@ -35,6 +41,17 @@ test(`CLI - Text should be outputted`, () => {
 	console.error = jest.fn();
 
 	Cli( options, [ 'node', 'script', 'text' ] );
+
+	expect( console.log.mock.calls.length > 0 ).toBe( true );
+	expect( console.error.mock.calls.length === 0 ).toBe( true );
+});
+
+
+test(`CLI - Text should be outputted even when options are not given completely`, () => {
+	console.log = jest.fn();
+	console.error = jest.fn();
+
+	Cli( options, [ 'node', 'script', 'text', '-c' ] );
 
 	expect( console.log.mock.calls.length > 0 ).toBe( true );
 	expect( console.error.mock.calls.length === 0 ).toBe( true );
@@ -63,7 +80,7 @@ test(`CLI - Version should be outputted`, () => {
 });
 
 
-test(`CLI - Version should be outputted`, () => {
+test(`CLI - Should error out when no text has been given`, () => {
 	console.log = jest.fn();
 	console.error = jest.fn();
 

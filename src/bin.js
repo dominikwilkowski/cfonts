@@ -17,4 +17,4 @@
 // Dependencies
 const CFonts = require('..');
 
-CFonts.Cli();
+CFonts.__test__.Cli();

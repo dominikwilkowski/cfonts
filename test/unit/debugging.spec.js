@@ -58,3 +58,14 @@ test(`Debugging - Don’t show message when debuglevel is too high`, () => {
 
 	expect( console.log.mock.calls.length ).toBe( 0 );
 });
+
+
+test(`Debugging - Debugging is off by default`, () => {
+	console.log = jest.fn();
+
+	Debugging.headline( 'text' );
+	Debugging.report( 'text' );
+	Debugging.error( 'text' );
+
+	expect( console.log.mock.calls.length ).toBe( 0 );
+});

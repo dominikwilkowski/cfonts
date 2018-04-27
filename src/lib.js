@@ -992,8 +992,8 @@ const DisplayHelp = () => {
 	let largestSize = 0;
 
 	Object.keys( CLIOPTIONS ).forEach( option => {
-		console.log( Chalk.bold( CLIOPTIONS[ option ].description ) );
-		console.log(`${ option }, ${ CLIOPTIONS[ option ].short }`);
+		console.log( Chalk.bold(`${ option }, ${ CLIOPTIONS[ option ].short }`) );
+		console.log( CLIOPTIONS[ option ].description );
 		console.log(`${ Chalk.bold('$') } cfonts ${ option }${
 			typeof CLIOPTIONS[ option ].options !== 'boolean' && typeof CLIOPTIONS[ option ].options !== 'undefined'
 				? Chalk.green(` ( ${ CLIOPTIONS[ option ].options.join(', ') } )`)
@@ -1052,6 +1052,7 @@ const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 			`Please provide text to convert with ${ Chalk.green(`cfonts "Text"`) }\n` +
 			`Run ${ Chalk.green(`cfonts --help`) } for more infos`
 		);
+		return;
 	}
 
 	Say( args.text, {
