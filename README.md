@@ -335,7 +335,8 @@ npm run test
 
 
 ## Release History
-* 2.1.2  -  Fixed size detection in non-tty environments
+* 2.1.2  -  Made WinSize more robust
+* 2.1.1  -  Fixed size detection in non-tty environments
 * 2.1.0  -  Rebuilt cfonts with pure functions, made colors case-insensitive
 * 2.0.1  -  Fixed terminal width detection
 * 2.0.0  -  Added tests, split into more pure functions
