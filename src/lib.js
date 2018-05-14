@@ -395,10 +395,10 @@ const AddLetterSpacing = ( output, fontLines, fontLetterspace, fontColors, color
  * @type {object}
  */
 const Size = {
-	width: WinSize.width
+	width: WinSize
 		? WinSize.width
 		: 80,
-	height: WinSize.height
+	height: WinSize
 		? WinSize.height
 		: 24,
 };
