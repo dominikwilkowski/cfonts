@@ -335,6 +335,7 @@ npm run test
 
 
 ## Release History
+* 2.1.3  -  Refactored some loops
 * 2.1.2  -  Made WinSize more robust
 * 2.1.1  -  Fixed size detection in non-tty environments
 * 2.1.0  -  Rebuilt cfonts with pure functions, made colors case-insensitive

@@ -482,6 +482,11 @@ const CheckInput = (
 	bgcolors = BGCOLORS,
 	alignment = ALIGNMENT
 ) => {
+	let result = {
+		message: '',
+		pass: true,
+	};
+
 	// checking input
 	if( INPUT === undefined || INPUT === '' ) {
 		return {
@@ -502,20 +507,20 @@ const CheckInput = (
 	}
 
 	// checking colors
-	for( let color in userColors ) { // check color usage
+	userColors.forEach( color => { // check color usage
 		if(
-			Object.keys( colors ).indexOf( userColors[ color ].toLowerCase() ) === -1 &&
-			userColors[ color ] !== 'candy'
+			Object.keys( colors ).indexOf( color.toLowerCase() ) === -1
+			&& color !== 'candy'
 		) {
-			return {
-				message: `"${ Chalk.red( userColors[ color ] ) }" is not a valid font color option.\n` +
+			result = {
+				message: `"${ Chalk.red( color ) }" is not a valid font color option.\n` +
 					`Please use a color from the supported stack:\n${ Chalk.green(`${
 						Object.keys( colors ).map( color => colors[ color ] ).join(', ')
 					}, candy`) }`,
 				pass: false,
 			};
 		}
-	}
+	});
 
 	// checking background colors
 	if( Object.keys( bgcolors ).indexOf( userBackground.toLowerCase() ) === -1 ) {
@@ -539,10 +544,7 @@ const CheckInput = (
 		};
 	}
 
-	return {
-		message: '',
-		pass: true,
-	}
+	return result;
 };
 
 
@@ -773,13 +775,13 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, s
 
 			let width = 0;
 
-			for( let i in FONTFACE.letterspace ) {
-				let char = FONTFACE.letterspace[ i ].replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
+			FONTFACE.letterspace.forEach( item => {
+				let char = item.replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
 
 				if( width < char.length ) {
 					width = char.length;
 				}
-			}
+			});
 
 			Debugging.report(`Letter spacing set to font face default: "${ width }"`, 2);
 			OPTIONS.letterSpacing = width;
