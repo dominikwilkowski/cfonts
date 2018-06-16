@@ -38,3 +38,8 @@ CFonts.say('Hello world!', {
 	background: 'GREEN',
 	backgroundColor: 'RED',
 });
+
+
+// for issue #13
+Array.prototype.foo = () => { return 0; };
+CFonts.say('Hello', { colors: [ 'green' ] });
