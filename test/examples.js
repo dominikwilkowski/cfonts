@@ -39,6 +39,19 @@ CFonts.say('Hello world!', {
 	backgroundColor: 'RED',
 });
 
+CFonts.say('Hello|world!', {
+	font: 'console',
+	align: 'center',
+	colors: ['red'],
+});
+
+CFonts.say(`Hello
+world\nagain|!`, {
+	font: 'simple',
+	align: 'center',
+	colors: ['red'],
+});
+
 
 // for issue #13
 Array.prototype.foo = () => { return 0; };
