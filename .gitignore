@@ -13,3 +13,4 @@ tmp
 npm-debug.log
 bin/
 index.js
+package-lock.json

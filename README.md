@@ -335,16 +335,17 @@ npm run test
 
 
 ## Release History
-* 2.2.0  -  Inside the API you can use line breaks as well as the pipe
-* 2.1.3  -  Refactored some loops
-* 2.1.2  -  Made WinSize more robust
-* 2.1.1  -  Fixed size detection in non-tty environments
-* 2.1.0  -  Rebuilt cfonts with pure functions, made colors case-insensitive
-* 2.0.1  -  Fixed terminal width detection
-* 2.0.0  -  Added tests, split into more pure functions
-* 1.2.0  -  Added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
-* 1.1.3  -  Fixed help text, removing old -t option
-* 1.1.2  -  Fixed issue with older commander version #3, updated docs
+* 2.2.1  -  bumped dependencies
+* 2.2.0  -  inside the API you can use line breaks as well as the pipe
+* 2.1.3  -  refactored some loops
+* 2.1.2  -  made WinSize more robust
+* 2.1.1  -  fixed size detection in non-tty environments
+* 2.1.0  -  rebuilt cfonts with pure functions, made colors case-insensitive
+* 2.0.1  -  fixed terminal width detection
+* 2.0.0  -  added tests, split into more pure functions
+* 1.2.0  -  added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps
+* 1.1.3  -  fixed help text, removing old -t option
+* 1.1.2  -  fixed issue with older commander version #3, updated docs
 * 1.1.1  -  moved from `babel-polyfill` to `babel-plugin-transform-runtime`, added files to package.json, added images to docs, fixed dependencies
 * 1.1.0  -  transpiled code to support node 0.12.15 and up
 * 1.0.2  -  fixed background in `console` font, added comma, added font `huge`, added render method, added candy color
