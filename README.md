@@ -335,6 +335,7 @@ npm run test
 
 
 ## Release History
+* 2.2.0  -  Inside the API you can use line breaks as well as the pipe
 * 2.1.3  -  Refactored some loops
 * 2.1.2  -  Made WinSize more robust
 * 2.1.1  -  Fixed size detection in non-tty environments

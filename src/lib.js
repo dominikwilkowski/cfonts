@@ -632,6 +632,7 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 const CleanInput = ( INPUT, chars = CHARS ) => {
 	if( typeof INPUT === 'string' ) {
 		const clean = INPUT
+			.replace(/(?:\r\n|\r|\n)/g, '|')
 			.split('')
 			.filter( char => chars.includes( char.toUpperCase() ) )
 			.join('');
