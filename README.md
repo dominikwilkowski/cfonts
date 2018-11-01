@@ -335,6 +335,7 @@ npm run test
 
 
 ## Release History
+* 2.2.3  -  bumped dependencies
 * 2.2.2  -  bumped dependencies
 * 2.2.1  -  bumped dependencies
 * 2.2.0  -  inside the API you can use line breaks as well as the pipe
