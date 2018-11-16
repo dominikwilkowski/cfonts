@@ -28,7 +28,7 @@ test(`DEBUGLEVEL - Should be defined as number`, () => {
 
 
 test(`CHARS - Should have 56 characters defined`, () => {
-	expect( CHARS.length ).toEqual( 56 );
+	expect( CHARS.length ).toEqual( 57 );
 });
 
 

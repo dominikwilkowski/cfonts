@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.2.3",
+	"version": "2.3.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -22,7 +22,7 @@
 	},
 	"licenses": [
 		{
-			"type": "GNU-GPL",
+			"type": "GPL-2.0",
 			"url": "https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE"
 		}
 	],
@@ -45,7 +45,7 @@
 		"babel-plugin-transform-runtime": "^6.23.0",
 		"babel-preset-es2015": "^6.24.1",
 		"jest-cli": "^23.6.0",
-		"onchange": "^5.0.2"
+		"onchange": "^5.1.0"
 	},
 	"peerDependencies": {},
 	"dependencies": {
@@ -88,5 +88,5 @@
 	"bin": {
 		"cfonts": "./bin/index.js"
 	},
-	"license": "GNU-GPLv2"
+	"license": "GPL-2.0"
 }

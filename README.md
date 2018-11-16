@@ -97,8 +97,8 @@ $ cfonts --help
 | `J` | `X` | `?` | `?` | `:`         |
 | `K` | `Y` | `.` | `.` | `;`         |
 | `L` | `Z` | `+` | `+` | `,`         |
-| `M` | `0` | `-` | `-` | ` ` (space) |
-| `N` | `1` | `_` | `_` |             |
+| `M` | `0` | `-` | `-` | `'`         |
+| `N` | `1` | `_` | `_` | ` ` (space) |
 
 
 _The `|` character will be replaced with a line break_
@@ -335,6 +335,7 @@ npm run test
 
 
 ## Release History
+* 2.3.0  -  added apostrophe support in all fonts
 * 2.2.3  -  bumped dependencies
 * 2.2.2  -  bumped dependencies
 * 2.2.1  -  bumped dependencies
