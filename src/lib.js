@@ -142,14 +142,14 @@ const CLIOPTIONS = {
 		description: 'Use to disable the padding around your output',
 		example: '--spaceless',
 		short: '-s',
-		default: 1,
+		default: false,
 	},
 	'--max-length': {
 		description: 'Use to define the amount of maximum characters per line',
 		example: '--max-length 10',
 		short: '-m',
 		options: true,
-		default: 1,
+		default: 0,
 	},
 	'--debug': {
 		description: 'Use to enable debug mode',
@@ -160,7 +160,7 @@ const CLIOPTIONS = {
 	'--debug-level': {
 		description: 'Use to define the debug level. The higher, the less debug infos',
 		example: '--debug-level 2',
-		short: '-m',
+		short: '-x',
 		options: true,
 		default: 1,
 	},
@@ -597,7 +597,7 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 			line = outputLines[ i ];
 		}
 
-		if( OPTIONS.colors[ 0 ] === "candy" ) {
+		if( OPTIONS.colors[ 0 ] === 'candy' ) {
 			output.push( line
 				.split('')
 				.map( character => Colorize( character, 1, OPTIONS.colors ) )
@@ -685,7 +685,7 @@ const GetOptions = (
 		: background === undefined
 			? allowedBG[ backgroundColor.toLowerCase() ] || backgroundColor
 			: allowedBG[ background.toLowerCase() ] || background,
-	letterSpacing: typeof letterSpacing === 'number' && letterSpacing > 0
+	letterSpacing: typeof parseInt( letterSpacing ) === 'number' && letterSpacing > 0
 		? letterSpacing
 		: 1,
 	lineHeight: lineHeight === undefined
@@ -1034,10 +1034,10 @@ const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 		`    align: "${ args.align }",\n` +
 		`    colors: ${ args.colors ? JSON.stringify( args.colors.split(',') ) : [] },\n` +
 		`    background: "${ args.background }",\n` +
-		`    letterSpacing: ${ args.letterSpacing },\n` +
-		`    lineHeight: ${ args.lineHeight },\n` +
-		`    space: ${ args.spaceless },\n` +
-		`    maxLength: ${ args.maxLength }\n` +
+		`    letterSpacing: ${ args['letter-spacing'] },\n` +
+		`    lineHeight: ${ args['line-height'] },\n` +
+		`    space: ${ !args.spaceless },\n` +
+		`    maxLength: ${ args['max-length'] }\n` +
 		`  }, ${ args.debug }, ${ args.debugLevel } );`,
 		3,
 		args.debug,
@@ -1067,10 +1067,10 @@ const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 		align: args.align,
 		colors: args.colors ? args.colors.split(',') : [],
 		background: args.background,
-		letterSpacing: args.letterSpacing,
-		lineHeight: args.lineHeight,
-		space: args.spaceless,
-		maxLength: args.maxLength
+		letterSpacing: args['letter-spacing'],
+		lineHeight: args['line-height'],
+		space: !args.spaceless,
+		maxLength: args['max-length'],
 	}, args.debug, args.debugLevel );
 };
 

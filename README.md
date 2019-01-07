@@ -335,6 +335,7 @@ npm run test
 
 
 ## Release History
+* 2.3.1  -  added tests, fixed options, updated dependencies
 * 2.3.0  -  added apostrophe support in all fonts
 * 2.2.3  -  bumped dependencies
 * 2.2.2  -  bumped dependencies
