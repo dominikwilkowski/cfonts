@@ -146,13 +146,15 @@ Default value: `"block"`
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
 ```shell
-$ cfonts "text" -f "console"
+$ cfonts "text" -f "chrome"
 ```
 
-- `console`     [colors: 1]
-	![console font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/console.png)
 - `block`       [colors: 2] _(default)_
 	![block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/block.png)
+- `shade`       [colors: 2]
+	![shade font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/shade.png)
+- `chrome`      [colors: 3]
+	![chrome font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/chrome.png)
 - `simple`      [colors: 1]
 	![simple font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/simple.png)
 - `simpleBlock` [colors: 1]
@@ -161,10 +163,10 @@ $ cfonts "text" -f "console"
 	![3d font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/3d.png)
 - `simple3d`    [colors: 1]
 	![simple-3d font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/simple-3d.png)
-- `chrome`      [colors: 3]
-	![chrome font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/chrome.png)
 - `huge`        [colors: 2]
 	![huge font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/huge.png)
+- `console`     [colors: 1]
+	![console font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/console.png)
 
 
 #### -a, --align
@@ -186,8 +188,10 @@ $ cfonts "text" -a "center"
 Type: `<string list>`  
 Default value: `['system']`
 
-With this setting you can set the colors for your font. Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk).
-Provide colors in a comma-separated string, eg: `red,blue` _(no spaces)_
+With this setting you can set the colors for your font.
+Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk) or a hex color.
+Provide colors in a comma-separated string, eg: `red,blue`. _(no spaces)_
+IF you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_
 The `system` color falls back to the system color of your terminal.
 
 - `system` _(default)_
@@ -207,9 +211,11 @@ The `system` color falls back to the system color of your terminal.
 - `magentaBright`
 - `cyanBright`
 - `whiteBright`
+- `#ff8800` _(any valid hex color)_
+- `#f80` _(short form is supported as well)_
 
 ```shell
-$ cfonts "text" --colors white,blue
+$ cfonts "text" --colors white,"#f80"
 ```
 
 
@@ -335,6 +341,7 @@ npm run test
 
 
 ## Release History
+* 2.4.0  -  added font `shade`, added hex color support
 * 2.3.1  -  added tests, fixed options, updated dependencies
 * 2.3.0  -  added apostrophe support in all fonts
 * 2.2.3  -  bumped dependencies
