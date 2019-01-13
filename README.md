@@ -189,9 +189,9 @@ Type: `<string list>`
 Default value: `['system']`
 
 With this setting you can set the colors for your font.
-Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk) or a hex color.
-Provide colors in a comma-separated string, eg: `red,blue`. _(no spaces)_
-IF you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_
+Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk) or a hex color.  
+Provide colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
+If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
 The `system` color falls back to the system color of your terminal.
 
 - `system` _(default)_
