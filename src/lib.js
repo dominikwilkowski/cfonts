@@ -8,6 +8,42 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
+ * Constants:
+ *   DEBUG
+ *   DEBUGLEVEL
+ *   CHARS
+ *   COLORS
+ *   BGCOLORS
+ *   ALIGNMENT
+ *   FONTFACES
+ *   CLIOPTIONS
+ *   PACKAGE
+ *   HEXTEST
+ *
+ * Methods:
+ *   GetFont          - Get a selected JSON font-file object
+ *   CharLength       - Return the max width of a character by looking at its longest line
+ *   AddLine          - Add a new line to the output array
+ *   AnsiSytle        - Abstraction for all ansi codes with open and close keys
+ *   Colorize         - Replace placeholders with color information
+ *   AddChar          - Add a new character to the output array
+ *   AddLetterSpacing - Add letter spacing for the next character
+ *   Size             - Abstraction for windows size
+ *   AlignText        - Calculate the spaces to be added to the left of each line to align them either center or right
+ *   CheckInput       - Check input for human errors
+ *   RenderConsole    - Render our input with the console font
+ *   CleanInput       - Filter only allowed character
+ *   GetOptions       - Merge user settings with default options
+ *   Render           - Main method to get the ANSI output for a string
+ *   Say              - Print to console
+ *   AddShortcuts     - Flatten the shortcuts in our cli options object
+ *   ParseArgs        - Parse cli arguments into a nice object
+ *   DisplayHelp      - Display the help generated from our CLIOPTIONS
+ *   DisplayVersion   - Display the version of this package
+ *   Cli              - Run cli commands
+ *   Debugging        - Debugging prettiness
+ *   Log              - Logging prettiness
+ *
  **************************************************************************************************************************************************************/
 
 'use strict';
@@ -82,6 +118,7 @@ const FONTFACES = {
 	simple3d: 'simple3d',
 	chrome: 'chrome',
 	huge: 'huge',
+	shade: 'shade',
 };
 const CLIOPTIONS = {
 	'--version': {
@@ -166,6 +203,7 @@ const CLIOPTIONS = {
 	},
 };
 const PACKAGE = JSON.parse( Fs.readFileSync( Path.normalize(`${ __dirname }/../package.json`), 'utf8' ) );
+const HEXTEST = RegExp('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$');
 
 
 /**
@@ -299,28 +337,36 @@ const Colorize = ( character, fontColors, optionColors ) => {
 	if( character !== undefined ) {
 		if( fontColors > 1 ) {
 			for( let i = 0; i < fontColors; i++ ) { // we have to replace all color placeholder with ansi escape sequences
-				let open = new RegExp(`<c${ ( i + 1 ) }>`, 'g');
-				let close = new RegExp(`</c${ ( i + 1 ) }>`, 'g');
+				const color = optionColors[ i ] === 'candy'
+					? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
+					: optionColors[ i ] || 'system';
+				const openNew = HEXTEST.test( color )
+					? Chalk.hex( color )._styles[0].open
+					: AnsiSytle[ color ].open;
+				const closeNew = HEXTEST.test( color )
+					? Chalk.hex( color )._styles[0].close
+					: AnsiSytle[ color ].close;
 
-				let color = optionColors[ i ] || 'system';
+				const open = new RegExp(`<c${ ( i + 1 ) }>`, 'g');
+				const close = new RegExp(`</c${ ( i + 1 ) }>`, 'g');
 
-				if( color === 'candy' ) {
-					color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
-				}
-
-				character = character.replace( open, AnsiSytle[ color ].open );
-				character = character.replace( close, AnsiSytle[ color ].close );
+				character = character.replace( open, openNew );
+				character = character.replace( close, closeNew );
 			}
 		}
 
 		if( fontColors === 1 ) { // if only one color is allowed there won't be any color placeholders in the characters
-			let color = optionColors[ 0 ] || 'system';
+			const color = optionColors[0] === 'candy'
+				? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
+				: optionColors[0] || 'system';
+			const openNew = HEXTEST.test( color )
+				? Chalk.hex( color )._styles[0].open
+				: AnsiSytle[ color ].open;
+			const closeNew = HEXTEST.test( color )
+				? Chalk.hex( color )._styles[0].close
+				: AnsiSytle[ color ].close;
 
-			if( color === 'candy' ) {
-				color = candyColors[ Math.floor( Math.random() * candyColors.length ) ];
-			}
-
-			character = AnsiSytle[ color ].open + character + AnsiSytle[ color ].close;
+			character = openNew + character + closeNew;
 		}
 	}
 
@@ -511,12 +557,13 @@ const CheckInput = (
 		if(
 			Object.keys( colors ).indexOf( color.toLowerCase() ) === -1
 			&& color !== 'candy'
+			&& !HEXTEST.test( color )
 		) {
 			result = {
 				message: `"${ Chalk.red( color ) }" is not a valid font color option.\n` +
-					`Please use a color from the supported stack:\n${ Chalk.green(`${
+					`Please use a color from the supported stack or any valid hex color:\n${ Chalk.green(`${
 						Object.keys( colors ).map( color => colors[ color ] ).join(', ')
-					}, candy`) }`,
+					}, candy, "#3456ff", "#f80", etc...`) }`,
 				pass: false,
 			};
 		}
@@ -958,17 +1005,7 @@ const ParseArgs = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 				index ++;
 				const value = args[ index ];
 
-				if( option.options === true ) {
-					parsedArgs[ name ] = value;
-				}
-				else {
-					if( option.options.includes( value ) ) {
-						parsedArgs[ name ] = value;
-					}
-					else {
-						parsedArgs[ name ] = option.default;
-					}
-				}
+				parsedArgs[ name ] = value;
 			}
 			else {
 				parsedArgs[ name ] = true;

@@ -76,39 +76,6 @@ test(`ParseArgs - Parse out variables no matter the order`, () => {
 });
 
 
-test(`ParseArgs - Ignore unknown options`, () => {
-	const options = {
-		'--1': {
-			description: 'desc value 1',
-			short: '-1',
-			options: true,
-			default: '2',
-		},
-		'--2': {
-			description: 'desc value 2',
-			short: '-2',
-			options: ['one', 'two', 'three'],
-			default: 'one',
-		},
-		'--3': {
-			description: 'desc value 3',
-			short: '-3',
-			default: false,
-		},
-	};
-
-	const result = {
-		text: 'text',
-		1: 'x',
-		2: 'one',
-		3: false,
-	};
-
-	expect( ParseArgs( options, [ 'node', 'script', 'text', '--1', 'x', 'unknown' ] ) ).toEqual( result );
-	expect( ParseArgs( options, [ 'node', 'script', 'text', '--1', 'x', '--2', 'unknown' ] ) ).toEqual( result );
-});
-
-
 test(`ParseArgs - Help flag can be on text place`, () => {
 	const options = {
 		'--1': {
