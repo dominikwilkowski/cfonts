@@ -428,7 +428,7 @@ const AddLetterSpacing = ( output, fontLines, fontLetterspace, fontColors, color
 			space = ' ';
 		}
 
-		output[ i ] += String.repeat( space, letterSpacing );
+		output[ i ] += space.repeat( letterSpacing );
 	}
 
 	return output;
@@ -487,7 +487,7 @@ const AlignText = ( output, lineLength, characterLines, align, size = Size ) => 
 
 	if( space > 0 ) { // only add if there is something to add
 		let lines = output.length - characterLines; // last line is characterLines tall and is located at the bottom of the output array
-		space = String.repeat(' ', space );
+		space = ' '.repeat( space );
 
 		for( let i = lines; i < output.length; i++ ) { // iterate over last line (which can be several line breaks long)
 			output[ i ] = space + output[ i ];
@@ -620,7 +620,7 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 
 	let space = '';
 	if( OPTIONS.letterSpacing > 0 ) {
-		space = String.repeat( ' ', OPTIONS.letterSpacing );
+		space = ' '.repeat( OPTIONS.letterSpacing );
 	}
 
 	// we have to add our letter spacing first
