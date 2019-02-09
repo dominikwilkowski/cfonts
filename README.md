@@ -341,6 +341,7 @@ npm run test
 
 
 ## Release History
+* 2.4.2  -  bumped dependencies
 * 2.4.1  -  updated to babel 7, removed runtime from dependencies
 * 2.4.0  -  added font `shade`, added hex color support
 * 2.3.1  -  added tests, fixed options, updated dependencies
