@@ -66,6 +66,7 @@ const CHARS = [
 	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "|",
 	"!", "?", ".", "+", "-", "_", "=", "@", "#", "$", "%", "&", "(", ")", "/", ":", ";", ",", " ", "'"
 ];
+/** @typedef {typeof COLORS} Colors */
 const COLORS = {
 	system: 'system',
 	black: 'black',
@@ -85,6 +86,7 @@ const COLORS = {
 	cyanbright: 'cyanBright',
 	whitebright: 'whiteBright',
 };
+/** @typedef {typeof BGCOLORS} BGColors */
 const BGCOLORS = {
 	transparent: 'transparent',
 	black: 'black',
@@ -104,11 +106,13 @@ const BGCOLORS = {
 	cyanbright: 'cyanBright',
 	whitebright: 'whiteBright',
 };
+/** @typedef {typeof ALIGNMENT} Alignment */
 const ALIGNMENT = [
 	'left',
 	'center',
 	'right',
 ];
+/** @typedef {typeof FONTFACES} FontFaces */
 const FONTFACES = {
 	console: 'console',
 	block: 'block',
@@ -120,6 +124,7 @@ const FONTFACES = {
 	huge: 'huge',
 	shade: 'shade',
 };
+/** @typedef {typeof CLIOPTIONS} CLIOptions */
 const CLIOPTIONS = {
 	'--version': {
 		description: 'Use to display the version of cfonts',
@@ -236,11 +241,11 @@ const GetFont = ( font ) => {
 /**
  * Return the max width of a character by looking at its longest line
  *
- * @param  {array}   character     - The character array from the font face object
- * @param  {integer} fontLines     - The number of lines this font has per character
- * @param  {integer} letterSpacing - The user defined letter spacing
+ * @param  {string[]}   character     - The character array from the font face object
+ * @param  {number}     fontLines     - The number of lines this font has per character
+ * @param  {number}     letterSpacing - The user defined letter spacing
  *
- * @return {integer}               - The length of a longest line in a character
+ * @return {number}                   - The length of a longest line in a character
  */
 const CharLength = ( character, fontLines, letterSpacing ) => {
 	Debugging.report( `Running CharLength`, 1 );
@@ -268,12 +273,12 @@ const CharLength = ( character, fontLines, letterSpacing ) => {
 /**
  * Add a new line to the output array
  *
- * @param  {array}   output      - The output array the line shall be appended to
- * @param  {integer} fontLines   - The number of lines this font has per character
- * @param  {array}   FontBuffer  - An array of the space we add at the beginning of each line
- * @param  {integer} lineHeight  - The user defined line height
+ * @param  {string[]}   output      - The output array the line shall be appended to
+ * @param  {number}     fontLines   - The number of lines this font has per character
+ * @param  {array}      FontBuffer  - An array of the space we add at the beginning of each line
+ * @param  {number}     lineHeight  - The user defined line height
  *
- * @return {array}               - The output array with new line
+ * @return {string[]}               - The output array with new line
  */
 const AddLine = ( output, fontLines, FontBuffer, lineHeight ) => {
 	Debugging.report( `Running AddLine`, 1 );
@@ -312,7 +317,7 @@ const AnsiSytle = Object.assign( { system: { open: '', close: '' } }, Style );
  * Replace placeholders with color information
  *
  * @param  {string}  character    - The string to be converted
- * @param  {integer} fontColors   - The number of allowed colors for this font
+ * @param  {number}  fontColors   - The number of allowed colors for this font
  * @param  {array}   optionColors - An array of user defined colors
  *
  * @return {string}               - The character with color ansi escape sequences for CLI
@@ -377,14 +382,14 @@ const Colorize = ( character, fontColors, optionColors ) => {
 /**
  * Add a new character to the output array
  *
- * @param  {string}  CHAR       - The character to be added
- * @param  {array}   output     - The output array the line shall be appended to
- * @param  {integer} fontLines  - The number of lines this font has per character
- * @param  {object}  fontChars  - An object with all character arrays
- * @param  {integer} fontColors - The amount of colors allowed for this font
- * @param  {object}  colors     - Our options
+ * @param  {string}     CHAR       - The character to be added
+ * @param  {string[]}   output     - The output array the line shall be appended to
+ * @param  {number}     fontLines  - The number of lines this font has per character
+ * @param  {object}     fontChars  - An object with all character arrays
+ * @param  {number}     fontColors - The amount of colors allowed for this font
+ * @param  {object}     colors     - Our options
  *
- * @return {array}              - The output array with new line
+ * @return {array}                 - The output array with new line
  */
 const AddChar = ( CHAR, output, fontLines, fontChars, fontColors, colors ) => {
 	Debugging.report( `Running AddChar with "${ CHAR }"`, 1 );
@@ -404,14 +409,14 @@ const AddChar = ( CHAR, output, fontLines, fontChars, fontColors, colors ) => {
 /**
  * Add letter spacing for the next character
  *
- * @param  {array}   output          - The output array the line shall be appended to
- * @param  {integer} fontLines       - The number of lines this font has per character
- * @param  {array}   fontLetterspace - A space between the letters
- * @param  {integer} fontColors      - The amount of colors allowed for this font
- * @param  {array}   colors          - The user defined colors
- * @param  {integer} letterSpacing   - The user defined letter spacing
+ * @param  {string[]}   output          - The output array the line shall be appended to
+ * @param  {number}     fontLines       - The number of lines this font has per character
+ * @param  {string[]}   fontLetterspace - A space between the letters
+ * @param  {number}     fontColors      - The amount of colors allowed for this font
+ * @param  {array}      colors          - The user defined colors
+ * @param  {number}     letterSpacing   - The user defined letter spacing
  *
- * @return {array}                   - The output array with space
+ * @return {string[]}                   - The output array with space
  */
 const AddLetterSpacing = ( output, fontLines, fontLetterspace, fontColors, colors, letterSpacing ) => {
 	Debugging.report( `Running AddLetterSpacing`, 1 );
@@ -436,11 +441,17 @@ const AddLetterSpacing = ( output, fontLines, fontLetterspace, fontColors, color
 
 
 /**
+ * @typedef {object} Size
+ *   @property {number} width - The width of the terminal
+ *   @property {number} height - The height of the terminal
+ */
+
+/**
  * Abstraction for windows size
  *
- * @type {object}
+ * @type {Size}
  */
-const Size = {
+const DefaultSize = {
 	width: WinSize
 		? WinSize.width > 0
 			? WinSize.width
@@ -457,17 +468,15 @@ const Size = {
 /**
  * Calculate the spaces to be added to the left of each line to align them either center or right
  *
- * @param  {array}   output         - The output array the line shall be appended to
- * @param  {integer} lineLength     - The current line length
- * @param  {integer} characterLines - The amount of line breaks in one character
- * @param  {string}  align          - The alignment of the text, only `center` and `right` will do anything
- * @param  {object}  size           - The size of the terminal as an object, default: Size
- * @param  {integer} size.width     - The width of the terminal
- * @param  {integer} size.height    - The height of the terminal
+ * @param  {string[]}              output         - The output array the line shall be appended to
+ * @param  {number}                lineLength     - The current line length
+ * @param  {number}                characterLines - The amount of line breaks in one character
+ * @param  {'center'|'right'|void} align          - The alignment of the text, only `center` and `right` will do anything
+ * @param  {Size}                  [size]         - The size of the terminal as an object, default: DefaultSize
  *
- * @return {array}                  - The output array with space added on the left for alignment
+ * @return {string[]}                             - The output array with space added on the left for alignment
  */
-const AlignText = ( output, lineLength, characterLines, align, size = Size ) => {
+const AlignText = ( output, lineLength, characterLines, align, size = DefaultSize ) => {
 	Debugging.report( `Running AlignText`, 1 );
 
 	let space = 0;
@@ -487,10 +496,10 @@ const AlignText = ( output, lineLength, characterLines, align, size = Size ) => 
 
 	if( space > 0 ) { // only add if there is something to add
 		let lines = output.length - characterLines; // last line is characterLines tall and is located at the bottom of the output array
-		space = ' '.repeat( space );
+		let spaces = ' '.repeat( space );
 
 		for( let i = lines; i < output.length; i++ ) { // iterate over last line (which can be several line breaks long)
-			output[ i ] = space + output[ i ];
+			output[ i ] = spaces + output[ i ];
 		}
 	}
 
@@ -501,21 +510,21 @@ const AlignText = ( output, lineLength, characterLines, align, size = Size ) => 
 /**
  * Check input for human errors
  *
- * @param  {string} INPUT          - The string you want to write out
- * @param  {string} userFont       - The user specified font
- * @param  {array}  userColors     - The user specified colors
- * @param  {string} userBackground - The user specified background color
- * @param  {string} userAlign      - The user specified alignment option
- * @param  {object} fontfaces      - All allowed fontfaces
- * @param  {object} colors         - All allowed font colors
- * @param  {object} bgcolors       - All allowed background colors
- * @param  {array}  alignment      - All allowed alignments
+ * @param  {string}    INPUT          - The string you want to write out
+ * @param  {string}    userFont       - The user specified font
+ * @param  {array}     userColors     - The user specified colors
+ * @param  {string}    userBackground - The user specified background color
+ * @param  {string}    userAlign      - The user specified alignment option
+ * @param  {FontFaces} [fontfaces]    - All allowed fontfaces
+ * @param  {Colors}    [colors]       - All allowed font colors
+ * @param  {BGColors}  [bgcolors]     - All allowed background colors
+ * @param  {array}     [alignment]    - All allowed alignments
  *
- * @typedef  {object} ReturnObject
+ * @typedef  {object} CheckInputResult
  *   @property {boolean} pass      - Whether the input is valid
  *   @property {string}  message   - Possible error messages
  *
- * @return {ReturnObject}          - An object with error messages and a pass key
+ * @return {CheckInputResult}      - An object with error messages and a pass key
  */
 const CheckInput = (
 	INPUT,
@@ -600,17 +609,15 @@ const CheckInput = (
  *
  * @param  {string}  INPUT       - The string you want to write out
  * @param  {object}  OPTIONS     - All user options
- * @param  {object}  size        - The size of the terminal as an object, default: Size
- * @param  {integer} size.width  - The width of the terminal
- * @param  {integer} size.height - The height of the terminal
+ * @param  {Size}    [size]      - The size of the terminal as an object, default: DefaultSize
  *
- * @typedef  {object} ReturnObject
+ * @typedef  {object} RenderConsoleResult
  *   @property {array}   output  - An array of each line of the output
- *   @property {integer} lines   - The count of line breaks
+ *   @property {number}  lines   - The count of line breaks
  *
- * @return {ReturnObject}        - An object with the output and the line breaks
+ * @return {RenderConsoleResult} - An object with the output and the line breaks
  */
-const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
+const RenderConsole = ( INPUT, OPTIONS, size = DefaultSize ) => {
 	let output = [];
 	let i = 0;
 
@@ -671,10 +678,10 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 /**
  * Filter only allowed character
  *
- * @param  {string} INPUT - The input text to be filtered
- * @param  {array}  chars - An array of all allowed characters
+ * @param  {string}    INPUT   - The input text to be filtered
+ * @param  {string[]}  [chars] - An array of all allowed characters
  *
- * @return {string}       - The filtered input text
+ * @return {string}            - The filtered input text
  */
 const CleanInput = ( INPUT, chars = CHARS ) => {
 	if( typeof INPUT === 'string' ) {
@@ -695,25 +702,26 @@ const CleanInput = ( INPUT, chars = CHARS ) => {
 /**
  * Merge user settings with default options
  *
- * @param  {SETTINGS} SETTINGS       - Some or all of the allowed settings
- * @param  {array}     allowedColors - All allowed font colors
- * @param  {array}     allowedBG     - All allowed background colors
- * @param  {array}     allowedFont   - All allowed fontfaces
+ * @param  {SETTINGS}  [SETTINGS]       - Some or all of the allowed settings
+ * @param  {Colors}    [allowedColors] - All allowed font colors
+ * @param  {BGColors}  [allowedBG]     - All allowed background colors
+ * @param  {FontFaces} [allowedFont]   - All allowed fontfaces
  *
  * @typedef  {object} SETTINGS
- *   @param  {string}  font          - Font face, Default 'block'
- *   @param  {string}  align         - Text alignment, Default: 'left'
- *   @param  {array}   colors        - Colors for font, Default: []
- *   @param  {string}  background    - Chalk color string for background, Default 'Black'
- *   @param  {integer} letterSpacing - Space between letters, Default: set by selected font face
- *   @param  {integer} lineHeight    - Space between lines, Default: 1
- *   @param  {boolean} space         - Output space before and after output, Default: true
- *   @param  {integer} maxLength     - Maximum amount of characters per line, Default width of console window
+ *   @property  {string}  [font]            - Font face, Default 'block'
+ *   @property  {string}  [align]           - Text alignment, Default: 'left'
+ *   @property  {array}   [colors]          - Colors for font, Default: []
+ *   @property  {string}  [background]      - Chalk color string for background, Default 'Black'
+ *   @property  {string}  [backgroundColor] - Chalk color string for background, Default 'Black'
+ *   @property  {number}  [letterSpacing]   - Space between letters, Default: set by selected font face
+ *   @property  {number}  [lineHeight]      - Space between lines, Default: 1
+ *   @property  {boolean} [space]           - Output space before and after output, Default: true
+ *   @property  {number}  [maxLength]       - Maximum amount of characters per line, Default width of console window
  *
- * @return {object}                  - Our merged options
+ * @return {object}                    - Our merged options
  */
 const GetOptions = (
-	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength },
+	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength } = {},
 	allowedColors = COLORS,
 	allowedBG = BGCOLORS,
 	allowedFont = FONTFACES
@@ -748,23 +756,21 @@ const GetOptions = (
 /**
  * Main method to get the ANSI output for a string
  *
- * @param  {string}  input       - The string you want to write out
- * @param  {object}  SETTINGS    - Settings object
- * @param  {boolean} debug       - A flag to enable debug mode
- * @param  {integer} debuglevel  - The debug level we want to show
- * @param  {object}  size        - The size of the terminal as an object, default: Size
- * @param  {integer} size.width  - The width of the terminal
- * @param  {integer} size.height - The height of the terminal
+ * @param {string}   input          - The string you want to write out
+ * @param {SETTINGS} [SETTINGS]     - Settings object
+ * @param {boolean}  [debug]        - A flag to enable debug mode
+ * @param {number}   [debuglevel]   - The debug level we want to show
+ * @param {Size}     [size]         - The size of the terminal as an object, default: DefaultSize
  *
- * @typedef  {object} ReturnObject
- *   @property {string}  string  - The pure string for output with all line breaks
- *   @property {array}   array   - Each line of output in an array
- *   @property {integer} lines   - The number of lines
- *   @property {object}  options - All options used
+ * @typedef {object} RenderResult
+ *   @property {string} string    - The pure string for output with all line breaks
+ *   @property {array}  array     - Each line of output in an array
+ *   @property {number} lines     - The number of lines
+ *   @property {object} options   - All options used
  *
- * @return {ReturnObject}        - CLI output of INPUT to be consoled out
+ * @return {RenderResult|false} - CLI output of INPUT to be consoled out
  */
-const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size = Size ) => {
+const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size = DefaultSize ) => {
 	Debugging.report(`Running render`, 1);
 
 	DEBUG = debug;
@@ -812,7 +818,7 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, s
 		FONTFACE = GetFont( OPTIONS.font );
 
 		if( !FONTFACE ) {
-			Log.error( `Font file for the font "${ font }" could not be found.\nTry reinstalling this package.` );
+			Log.error( `Font file for the font "${ OPTIONS.font }" could not be found.\nTry reinstalling this package.` );
 
 			return false;
 		}
@@ -928,9 +934,15 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, s
 /**
  * Print to console
  *
- * @param same as render method
+ * @param {string}   INPUT          - The string you want to write out
+ * @param {SETTINGS} [SETTINGS]     - Settings object
+ * @param {boolean}  [debug]        - A flag to enable debug mode
+ * @param {number}   [debuglevel]   - The debug level we want to show
+ * @param {Size}     [size]         - The size of the terminal as an object, default: DefaultSize
+ *
+ * @returns {void}
  */
-const Say = ( INPUT, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size = Size ) => {
+const Say = ( INPUT, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size = DefaultSize ) => {
 	Debugging.report(`Running say`, 1);
 
 	DEBUG = debug;
@@ -947,11 +959,11 @@ const Say = ( INPUT, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, size
 /**
  * Flatten the shortcuts in our cli options object
  *
- * @param  {object} options - An object objects with a short key
+ * @param   {object} options - An object objects with a short key
  *
- * @return {object}         - All short keys flattened into first level
+ * @returns {object}         - All short keys flattened into first level
  */
-const AddShortcuts = ( options ) => {
+function AddShortcuts( options ) {
 	const flatOptions = Object.assign( {}, options );
 
 	Object.keys( flatOptions ).forEach( option => {
@@ -966,10 +978,10 @@ const AddShortcuts = ( options ) => {
 /**
  * Parse cli arguments into a nice object
  *
- * @param  {array} inputOptions - All possible options registered for this app
- * @param  {array} inputArgs    - The arguments given to us in our cli, default: process.argv
+ * @param   {CLIOptions} [inputOptions] - All possible options registered for this app
+ * @param   {string[]}   [inputArgs]    - The arguments given to us in our cli, default: process.argv
  *
- * @return {object}             - An object of all options with at least their default values
+ * @returns {object}                    - An object of all options with at least their default values
  */
 const ParseArgs = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 	const parsedArgs = {
@@ -1024,16 +1036,15 @@ const ParseArgs = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
  * Display the help generated from our CLIOPTIONS
  */
 const DisplayHelp = () => {
+	const title = Render( 'cfonts', { align: 'center', colors: ['redBright','greenBright'] } );
+
 	console.log(
-		` ${ Render( 'cfonts', { align: 'center', colors: ['redBright','greenBright'] } ).string }` +
+		` ${ title ? title.string : 'cfonts' }` +
 		`This is a tool for sexy fonts in the console. Give your cli some love.\n\n` +
 		`Usage: cfonts "<value>" [option1] <input1> [option2] <input1>,<input2> [option3]\n` +
 		`Example: ${ Chalk.bold('$ cfonts "sexy font" -f chrome -a center -c red,green,gray') }\n\n` +
 		`Options:\n`
 	);
-
-	let command = [];
-	let largestSize = 0;
 
 	Object.keys( CLIOPTIONS ).forEach( option => {
 		console.log( Chalk.bold(`${ option }, ${ CLIOPTIONS[ option ].short }`) );
@@ -1058,8 +1069,8 @@ const DisplayVersion = () => {
 /**
  * Run cli commands
  *
- * @param  {array} inputOptions - All possible options registered for this app
- * @param  {array} inputArgs    - The arguments given to us in our cli, default: process.argv
+ * @param  {CLIOptions} [inputOptions] - All possible options registered for this app
+ * @param  {string[]}   [inputArgs]    - The arguments given to us in our cli, default: process.argv
  */
 const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 	const args = ParseArgs( inputOptions, inputArgs );
@@ -1121,8 +1132,10 @@ const Debugging = {
 	/**
 	 * Return a headline preferably at the beginning of your app
 	 *
-	 * @param  {string}  text  - The sting you want to log
-	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {string}  text    - The string you want to log
+	 * @param  {number}  [level] - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {boolean} [debug]
+	 * @param  {number}  [debuglevel]
 	 */
 	headline: ( text, level = 99, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
 		if( debug && level >= debuglevel ) {
@@ -1135,8 +1148,10 @@ const Debugging = {
 	/**
 	 * Return a message to report starting a process
 	 *
-	 * @param  {string}  text  - The sting you want to log
-	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {string}  text    - The string you want to log
+	 * @param  {number}  [level] - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {boolean} [debug]
+	 * @param  {number}  [debuglevel]
 	 */
 	report: ( text, level = 99, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
 		if( debug && level >= debuglevel ) {
@@ -1149,8 +1164,10 @@ const Debugging = {
 	/**
 	 * Return a message to report an error
 	 *
-	 * @param  {string}  text  - The sting you want to log
-	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {string}  text    - The string you want to log
+	 * @param  {number}  [level] - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {boolean} [debug]
+	 * @param  {number}  [debuglevel]
 	 */
 	error: ( text, level = 99, debug = DEBUG, debuglevel = DEBUGLEVEL ) => {
 		if( debug && level >= debuglevel ) {
@@ -1165,7 +1182,7 @@ const Debugging = {
 /**
  * Logging prettiness
  *
- * @type {object}
+ * @type {{ error: (text: string) => void }}
  */
 const Log = {
 	/**
@@ -1204,7 +1221,7 @@ module.exports = exports = {
 		Colorize,
 		AddChar,
 		AddLetterSpacing,
-		Size,
+		Size: DefaultSize,
 		AlignText,
 		CheckInput,
 		RenderConsole,
