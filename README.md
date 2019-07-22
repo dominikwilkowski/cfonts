@@ -341,6 +341,7 @@ npm run test
 
 
 ## Release History
+* 2.4.4  -  bumped dependencies
 * 2.4.3  -  bumped dependencies
 * 2.4.2  -  bumped dependencies
 * 2.4.1  -  updated to babel 7, removed runtime from dependencies
