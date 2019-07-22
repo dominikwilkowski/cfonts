@@ -10,7 +10,7 @@ const AnsiSytle = CFonts.__test__.AnsiSytle;
 
 
 test(`AnsiSytle - Has a bunch of keys`, () => {
-	expect( Object.keys( AnsiSytle ).length ).toEqual( 42 );
+	expect( Object.keys( AnsiSytle ).length ).toEqual( 45 );
 });
 
 
