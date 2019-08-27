@@ -202,7 +202,7 @@ const CLIOPTIONS = {
 		default: 1,
 	},
 };
-const PACKAGE = JSON.parse( Fs.readFileSync( Path.normalize(`${ __dirname }/../package.json`), 'utf8' ) );
+const PACKAGE = require('../package.json');
 const HEXTEST = RegExp('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$');
 
 
@@ -218,10 +218,9 @@ const GetFont = ( font ) => {
 
 	// try loading the font file
 	try {
-		let fontFile = Path.normalize( `${ __dirname }/../fonts/${ font }.json` ); // build font path
-		let FONTFACE = JSON.parse( Fs.readFileSync( fontFile, 'utf8' ) ); // read font file
+		let FONTFACE = require(`../fonts/${ font }.json`); // read font file
 
-		Debugging.report( `GetFont: Fontface path selected: "${ fontFile }"`, 2 );
+		Debugging.report( `GetFont: Fontface path selected: "${ font }.json"`, 2 );
 
 		return FONTFACE;
 	}
