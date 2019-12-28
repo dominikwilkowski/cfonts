@@ -341,6 +341,7 @@ npm run test
 
 
 ## Release History
+* 2.4.6  -  bumped dependencies, removed `change-case` dependency, added `UpperCaseFirst` with tests
 * 2.4.5  -  bumped dependencies, moved to relative links for fonts for webpack support (#22)
 * 2.4.4  -  bumped dependencies
 * 2.4.3  -  bumped dependencies
