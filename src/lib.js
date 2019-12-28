@@ -26,6 +26,7 @@
  *   AddLine          - Add a new line to the output array
  *   AnsiSytle        - Abstraction for all ansi codes with open and close keys
  *   Colorize         - Replace placeholders with color information
+ *   UpperCaseFirst   - Upper case the first character of an input string
  *   AddChar          - Add a new character to the output array
  *   AddLetterSpacing - Add letter spacing for the next character
  *   Size             - Abstraction for windows size
@@ -50,7 +51,6 @@
 
 
 // Dependencies
-const ChangeCase = require('change-case');
 const WinSize = require('window-size');
 const Style = require('ansi-styles');
 const Chalk = require(`chalk`);
@@ -371,6 +371,20 @@ const Colorize = ( character, fontColors, optionColors ) => {
 
 	return character;
 };
+
+
+/**
+ * Upper case the first character of an input string.
+ *
+ * @author https://github.com/blakeembrey/change-case/tree/master/packages/upper-case-first
+ *
+ * @param  {string} input - A string to be converted
+ *
+ * @return {string}       - A string with the first letter in upper case
+ */
+const UpperCaseFirst = input => typeof input === 'string'
+	? input.charAt(0).toUpperCase() + input.substr(1)
+	: input;
 
 
 /**
@@ -909,7 +923,7 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, s
 
 
 	if( OPTIONS.background !== 'transparent' ) {
-		const bgcolor = `bg${ ChangeCase.upperCaseFirst( OPTIONS.background ) }`;
+		const bgcolor = `bg${ UpperCaseFirst( OPTIONS.background ) }`;
 
 		write = AnsiSytle[ bgcolor ].open + '\n' + write + AnsiSytle[ bgcolor ].close; // result in one string with background
 	}
@@ -1201,6 +1215,7 @@ module.exports = exports = {
 		AddLine,
 		AnsiSytle,
 		Colorize,
+		UpperCaseFirst,
 		AddChar,
 		AddLetterSpacing,
 		Size,
