@@ -36,7 +36,7 @@ test(`Render - Render console string with a color`, () => {
 		colors: ['red'],
 	}, false, 1, { width: 100, height: 10 });
 
-	expect( test.string ).toBe( '\n\n\u001b[31mtext\u001b[39m\n\n' );
+	expect( test.string ).toBe( '\n\n\u001b[38;2;255;0;0mtext\u001b[39m\n\n' );
 	expect( test.array ).toEqual( ['text'] );
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
@@ -467,7 +467,7 @@ test(`Render - Add background color`, () => {
 	const test = Render( 'text', { background: 'red' }, false, 1, { width: 100, height: 10 } );
 
 	expect( test.string ).toBe(
-		'\u001b[41m' +
+		'\u001b[48;2;255;0;0m' +
 		'\n\n\n' +
 		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ \n' +
 		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ \n' +

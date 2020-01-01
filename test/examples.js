@@ -13,6 +13,9 @@
 'use strict';
 
 const CFonts = require('../lib/index.js');
+const Chalk = require('chalk');
+
+console.log(Chalk.yellow.bold('Global chalk instance not affected'));
 
 let prettyFont = CFonts.render('H', {
 	font: 'simple',

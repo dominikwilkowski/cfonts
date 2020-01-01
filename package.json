@@ -31,10 +31,10 @@
 	},
 	"scripts": {
 		"prepublish": "yarn build && yarn test",
-		"test": "yarn build && FORCE_COLOR=3 yarn test:unit && yarn test:fonts",
+		"test": "yarn build && yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
-		"test:unit": "jest --coverage",
+		"test:unit": "FORCE_COLOR=3 jest --coverage",
 		"build": "yarn build:bin & yarn build:lib",
 		"build:bin": "mkdir -p bin && babel src/bin.js --out-file bin/index.js",
 		"build:lib": "mkdir -p lib && babel src/lib.js --out-file lib/index.js",
@@ -63,12 +63,15 @@
 		"collectCoverageFrom": [
 			"src/*.js"
 		],
+		"setupFiles": [
+			"<rootDir>/test/env.js"
+		],
 		"coverageThreshold": {
 			"global": {
-				"branches": 0,
-				"functions": 0,
-				"lines": 0,
-				"statements": 0
+				"branches": 90,
+				"functions": 100,
+				"lines": 95,
+				"statements": 95
 			}
 		}
 	},
