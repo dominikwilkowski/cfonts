@@ -340,10 +340,10 @@ const Colorize = ( character, fontColors, optionColors ) => {
 					? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
 					: optionColors[ i ] || 'system';
 				const openNew = HEXTEST.test( color )
-					? Chalk.hex( color )._styles[0].open
+					? Chalk.hex( color )._styler.open
 					: AnsiSytle[ color ].open;
 				const closeNew = HEXTEST.test( color )
-					? Chalk.hex( color )._styles[0].close
+					? Chalk.hex( color )._styler.close
 					: AnsiSytle[ color ].close;
 
 				const open = new RegExp(`<c${ ( i + 1 ) }>`, 'g');
@@ -359,10 +359,10 @@ const Colorize = ( character, fontColors, optionColors ) => {
 				? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
 				: optionColors[0] || 'system';
 			const openNew = HEXTEST.test( color )
-				? Chalk.hex( color )._styles[0].open
+				? Chalk.hex( color )._styler.open
 				: AnsiSytle[ color ].open;
 			const closeNew = HEXTEST.test( color )
-				? Chalk.hex( color )._styles[0].close
+				? Chalk.hex( color )._styler.close
 				: AnsiSytle[ color ].close;
 
 			character = openNew + character + closeNew;

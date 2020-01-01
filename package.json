@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.4.6",
+	"version": "2.4.7",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -30,15 +30,15 @@
 		"node": ">=0.12.15"
 	},
 	"scripts": {
-		"prepublish": "npm run build && npm run test",
-		"test": "npm run build && npm run test:unit && npm run test:fonts",
+		"prepublish": "yarn build && yarn test",
+		"test": "yarn build && yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
-		"test:unit": "jest",
-		"build": "npm run build:bin & npm run build:lib",
+		"test:unit": "jest --coverage",
+		"build": "yarn build:bin & yarn build:lib",
 		"build:bin": "mkdir -p bin && babel src/bin.js --out-file bin/index.js",
 		"build:lib": "mkdir -p lib && babel src/lib.js --out-file lib/index.js",
-		"watch": "npm run build && onchange 'src/**/*' -- npm run build",
+		"watch": "yarn build && onchange 'src/**/*' -- yarn build",
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {

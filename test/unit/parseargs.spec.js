@@ -76,6 +76,38 @@ test(`ParseArgs - Parse out variables no matter the order`, () => {
 });
 
 
+test(`ParseArgs - Ignore flags not in the options`, () => {
+	const options = {
+		'--1': {
+			description: 'desc value 1',
+			short: '-1',
+			options: true,
+			default: '2',
+		},
+		'--2': {
+			description: 'desc value 2',
+			short: '-2',
+			options: ['one', 'two', 'three'],
+			default: 'one',
+		},
+		'--3': {
+			description: 'desc value 3',
+			short: '-3',
+			default: false,
+		},
+	};
+
+	const result = {
+		text: 'text',
+		1: 'x',
+		2: 'one',
+		3: true,
+	};
+
+	expect( ParseArgs( options, [ 'node', 'script', 'text', '--1', 'x', '--4', 'two', '--3' ] ) ).toEqual( result );
+});
+
+
 test(`ParseArgs - Help flag can be on text place`, () => {
 	const options = {
 		'--1': {
