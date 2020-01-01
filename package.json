@@ -31,7 +31,7 @@
 	},
 	"scripts": {
 		"prepublish": "yarn build && yarn test",
-		"test": "yarn build && yarn test:unit && yarn test:fonts",
+		"test": "yarn build && FORCE_COLOR=3 yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
 		"test:unit": "jest --coverage",
@@ -50,7 +50,7 @@
 	},
 	"peerDependencies": {},
 	"dependencies": {
-		"ansi-styles": "^4.2.0",
+		"ansi-styles": "^4.2.1",
 		"chalk": "^3.0.0",
 		"window-size": "^1.1.1"
 	},
