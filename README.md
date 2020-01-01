@@ -316,13 +316,13 @@ The package comes with a bunch of [unit tests](https://github.com/dominikwilkows
 Run the unit tests via:
 
 ```shell
-npm test:unit
+npm run test:unit
 ```
 
 Run the font test suite via:
 
 ```shell
-npm test:fonts
+npm run test:fonts
 ```
 
 This tool checks:
@@ -341,6 +341,7 @@ npm run test
 
 
 ## Release History
+* 2.4.7  -  fixed bug from adopting chalk v3 and hex colors
 * 2.4.6  -  bumped dependencies, removed `change-case` dependency, added `UpperCaseFirst` with tests
 * 2.4.5  -  bumped dependencies, moved to relative links for fonts for webpack support (#22)
 * 2.4.4  -  bumped dependencies
