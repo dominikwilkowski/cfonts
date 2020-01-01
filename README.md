@@ -293,6 +293,15 @@ $ cfonts "text" --max-length 15
 ```
 
 
+## Consistency
+[Chalk](https://github.com/chalk/chalk) detects what colors are supported on your platform.
+It sets a [level of support](https://github.com/chalk/chalk#256-and-truecolor-color-support) automatically.
+In CFonts you can override this by passing in the `FORCE_COLOR` environment variable.
+
+```shell
+FORCE_COLOR=3 cfonts "hello world" -c "#0088ff"
+```
+
 ## Contributing
 To build the repo install dependencies via:
 

@@ -10,11 +10,14 @@ const Spawn = require('child_process').spawnSync;
 const path = require('path');
 
 
-test(`CFonts - Will output with no flags`, () => {
+test(`Bin - Will output with no flags`, () => {
 	const output = Spawn(
 		'node',
 		[ path.normalize(`${__dirname }/../../src/bin.js`), 'abc' ],
-		{ encoding : 'utf8' }
+		{
+			encoding : 'utf8',
+			env: { ...process.env },
+		}
 	);
 
 	const expected = '' +
@@ -32,20 +35,23 @@ test(`CFonts - Will output with no flags`, () => {
 });
 
 
-test(`CFonts - Will output with color flag`, () => {
+test(`Bin - Will output with color flag`, () => {
 	const output = Spawn(
 		'node',
 		[ path.normalize(`${__dirname }/../../src/bin.js`), 'abc', '-c', 'red' ],
-		{ encoding : 'utf8' }
+		{
+			encoding : 'utf8',
+			env: { ...process.env },
+		}
 	);
 
 	const expected = '' +
 		'\n\n' +
-		'  \u001b[31m█████\u001b[39m╗  \u001b[31m██████\u001b[39m╗   \u001b[31m██████\u001b[39m╗ \n' +
-		' \u001b[31m██\u001b[39m╔══\u001b[31m██\u001b[39m╗ \u001b[31m██\u001b[39m╔══\u001b[31m██\u001b[39m╗ \u001b[31m██\u001b[39m╔════╝ \n' +
-		' \u001b[31m███████\u001b[39m║ \u001b[31m██████\u001b[39m╔╝ \u001b[31m██\u001b[39m║      \n' +
-		' \u001b[31m██\u001b[39m╔══\u001b[31m██\u001b[39m║ \u001b[31m██\u001b[39m╔══\u001b[31m██\u001b[39m╗ \u001b[31m██\u001b[39m║      \n' +
-		' \u001b[31m██\u001b[39m║\u001b[31m  ██\u001b[39m║ \u001b[31m██████\u001b[39m╔╝ ╚\u001b[31m██████\u001b[39m╗ \n' +
+		'  \u001b[38;2;255;0;0m█████\u001b[39m╗  \u001b[38;2;255;0;0m██████\u001b[39m╗   \u001b[38;2;255;0;0m██████\u001b[39m╗ \n' +
+		' \u001b[38;2;255;0;0m██\u001b[39m╔══\u001b[38;2;255;0;0m██\u001b[39m╗ \u001b[38;2;255;0;0m██\u001b[39m╔══\u001b[38;2;255;0;0m██\u001b[39m╗ \u001b[38;2;255;0;0m██\u001b[39m╔════╝ \n' +
+		' \u001b[38;2;255;0;0m███████\u001b[39m║ \u001b[38;2;255;0;0m██████\u001b[39m╔╝ \u001b[38;2;255;0;0m██\u001b[39m║      \n' +
+		' \u001b[38;2;255;0;0m██\u001b[39m╔══\u001b[38;2;255;0;0m██\u001b[39m║ \u001b[38;2;255;0;0m██\u001b[39m╔══\u001b[38;2;255;0;0m██\u001b[39m╗ \u001b[38;2;255;0;0m██\u001b[39m║      \n' +
+		' \u001b[38;2;255;0;0m██\u001b[39m║\u001b[38;2;255;0;0m  ██\u001b[39m║ \u001b[38;2;255;0;0m██████\u001b[39m╔╝ ╚\u001b[38;2;255;0;0m██████\u001b[39m╗ \n' +
 		' ╚═╝  ╚═╝ ╚═════╝   ╚═════╝ \n' +
 		'\n\n';
 
@@ -65,11 +71,14 @@ test(`CFonts - Will output with color flag`, () => {
 });
 
 
-test(`CFonts - Will output with hex color flag`, () => {
+test(`Bin - Will output with hex color flag`, () => {
 	const output = Spawn(
 		'node',
 		[ path.normalize(`${__dirname }/../../src/bin.js`), 'abc', '-c', '#ff8800', '#0088ff' ],
-		{ encoding : 'utf8' }
+		{
+			encoding : 'utf8',
+			env: { ...process.env },
+		}
 	);
 
 	const expected = '' +

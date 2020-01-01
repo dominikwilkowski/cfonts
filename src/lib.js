@@ -24,7 +24,7 @@
  *   GetFont          - Get a selected JSON font-file object
  *   CharLength       - Return the max width of a character by looking at its longest line
  *   AddLine          - Add a new line to the output array
- *   AnsiSytle        - Abstraction for all ansi codes with open and close keys
+ *   Color            - Abstraction for coloring hex-, keyword- and background-colors
  *   Colorize         - Replace placeholders with color information
  *   UpperCaseFirst   - Upper case the first character of an input string
  *   AddChar          - Add a new character to the output array
@@ -51,11 +51,20 @@
 
 
 // Dependencies
+const chalkOriginal = require(`chalk`);
 const WinSize = require('window-size');
 const Style = require('ansi-styles');
-const Chalk = require(`chalk`);
 const Path = require(`path`);
 const Fs = require(`fs`);
+
+// We pass on the FORCE_COLOR env var to chalk so we can force it in ci
+const Chalk = new chalkOriginal.Instance({
+	...(
+		process.env.FORCE_COLOR
+			? { level: parseInt( process.env.FORCE_COLOR ) }
+			: null
+	)
+});
 
 
 // global defaults
@@ -300,11 +309,53 @@ const AddLine = ( output, fontLines, FontBuffer, lineHeight ) => {
 
 
 /**
- * Abstraction for all ansi codes with open and close keys
+ * Abstraction for coloring hex-, keyword- and background-colors
  *
- * @type {object}
+ * @param  {string}  color    - The color to be used
+ * @param  {boolean} bg       - Whether this is a background or not
+ *
+ * @typedef  {object} ReturnObject
+ *   @property {string} open  - The open ansi code
+ *   @property {string} close - The close ansi code
+ *
+ * @return {ReturnObject}     - An object with open and close ansi codes
  */
-const AnsiSytle = Object.assign( { system: { open: '', close: '' } }, Style );
+const Color = ( color, bg = false ) => {
+	// bail early if we use system color
+	if( color === 'system' || process.env.FORCE_COLOR == 0 ) {
+		return { open: '', close: '' };
+	}
+
+	// bail if this is a chalk defined color
+	if( color.includes('Bright') ) {
+		if( bg ) {
+			color = `bg${ UpperCaseFirst( color ) }`;
+		}
+
+		return {
+			open: Chalk[ color ]._styler.open,
+			close: Chalk[ color ]._styler.close,
+		};
+	}
+
+	const kind = HEXTEST.test( color )
+		? 'hex'
+		: `${ bg ? 'bgK' : 'k' }eyword`;
+
+	let styles;
+	try {
+		styles = Chalk[ kind ]( color )._styler;
+	}
+	catch( error ) {
+		Debugging.error(`The color ${ Chalk.yellow( color ) } could not be found. Sorry about this.`);
+		return { open: '', close: '' };
+	}
+
+	return {
+		open: styles.open,
+		close: styles.close,
+	};
+}
 
 
 /**
@@ -335,16 +386,13 @@ const Colorize = ( character, fontColors, optionColors ) => {
 
 	if( character !== undefined ) {
 		if( fontColors > 1 ) {
-			for( let i = 0; i < fontColors; i++ ) { // we have to replace all color placeholder with ansi escape sequences
+			// we have to replace all color placeholder with ansi escape sequences
+			for( let i = 0; i < fontColors; i++ ) {
 				const color = optionColors[ i ] === 'candy'
 					? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
 					: optionColors[ i ] || 'system';
-				const openNew = HEXTEST.test( color )
-					? Chalk.hex( color )._styler.open
-					: AnsiSytle[ color ].open;
-				const closeNew = HEXTEST.test( color )
-					? Chalk.hex( color )._styler.close
-					: AnsiSytle[ color ].close;
+
+				const { open: openNew, close: closeNew } = Color( color );
 
 				const open = new RegExp(`<c${ ( i + 1 ) }>`, 'g');
 				const close = new RegExp(`</c${ ( i + 1 ) }>`, 'g');
@@ -354,16 +402,13 @@ const Colorize = ( character, fontColors, optionColors ) => {
 			}
 		}
 
-		if( fontColors === 1 ) { // if only one color is allowed there won't be any color placeholders in the characters
+		// if only one color is allowed there won't be any color placeholders in the characters
+		if( fontColors === 1 ) {
 			const color = optionColors[0] === 'candy'
 				? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
 				: optionColors[0] || 'system';
-			const openNew = HEXTEST.test( color )
-				? Chalk.hex( color )._styler.open
-				: AnsiSytle[ color ].open;
-			const closeNew = HEXTEST.test( color )
-				? Chalk.hex( color )._styler.close
-				: AnsiSytle[ color ].close;
+
+			const { open: openNew, close: closeNew } = Color( color );
 
 			character = openNew + character + closeNew;
 		}
@@ -923,9 +968,9 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG, debuglevel = DEBUGLEVEL, s
 
 
 	if( OPTIONS.background !== 'transparent' ) {
-		const bgcolor = `bg${ UpperCaseFirst( OPTIONS.background ) }`;
+		const { open: openNew, close: closeNew } = Color( OPTIONS.background, true );
 
-		write = AnsiSytle[ bgcolor ].open + '\n' + write + AnsiSytle[ bgcolor ].close; // result in one string with background
+		write = openNew + '\n' + write + closeNew; // result in one string with background
 	}
 
 
@@ -1213,7 +1258,7 @@ module.exports = exports = {
 		GetFont,
 		CharLength,
 		AddLine,
-		AnsiSytle,
+		Color,
 		Colorize,
 		UpperCaseFirst,
 		AddChar,

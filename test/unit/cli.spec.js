@@ -143,7 +143,6 @@ test(`CLI - Should log the right two dots with alignment center`, () => {
 test(`CLI - Should log the right two dots in two colors`, () => {
 	console.log = jest.fn();
 	console.error = jest.fn();
-
 	Cli( CLIOPTIONS, [ 'node', 'script', '..', '-c', 'red,blue' ] );
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
@@ -152,8 +151,9 @@ test(`CLI - Should log the right two dots in two colors`, () => {
 		'         \n' +
 		'         \n' +
 		'         \n' +
-		' \u001b[31m██\u001b[39m\u001b[34m╗\u001b[39m \u001b[31m██\u001b[39m\u001b[34m╗\u001b[39m \n' +
-		' \u001b[34m╚═╝\u001b[39m \u001b[34m╚═╝\u001b[39m \n\n'
+		' \u001b[38;2;255;0;0m██\u001b[39m\u001b[38;2;0;0;255m╗\u001b[39m \u001b[38;2;255;0;0m██\u001b[39m\u001b[38;2;0;0;255m╗\u001b[39m \n' +
+		' \u001b[38;2;0;0;255m╚═╝\u001b[39m \u001b[38;2;0;0;255m╚═╝\u001b[39m' +
+		' \n\n'
 	);
 });
 
@@ -166,7 +166,7 @@ test(`CLI - Should log the right two dots and background color`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\u001b[41m\n\n\n         \n' +
+		'\u001b[48;2;255;0;0m\n\n\n         \n' +
 		'         \n' +
 		'         \n' +
 		'         \n' +

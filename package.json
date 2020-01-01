@@ -34,7 +34,7 @@
 		"test": "yarn build && yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
-		"test:unit": "jest --coverage",
+		"test:unit": "FORCE_COLOR=3 jest --coverage",
 		"build": "yarn build:bin & yarn build:lib",
 		"build:bin": "mkdir -p bin && babel src/bin.js --out-file bin/index.js",
 		"build:lib": "mkdir -p lib && babel src/lib.js --out-file lib/index.js",
@@ -50,7 +50,7 @@
 	},
 	"peerDependencies": {},
 	"dependencies": {
-		"ansi-styles": "^4.2.0",
+		"ansi-styles": "^4.2.1",
 		"chalk": "^3.0.0",
 		"window-size": "^1.1.1"
 	},
@@ -63,12 +63,15 @@
 		"collectCoverageFrom": [
 			"src/*.js"
 		],
+		"setupFiles": [
+			"<rootDir>/test/env.js"
+		],
 		"coverageThreshold": {
 			"global": {
-				"branches": 0,
-				"functions": 0,
-				"lines": 0,
-				"statements": 0
+				"branches": 90,
+				"functions": 100,
+				"lines": 95,
+				"statements": 95
 			}
 		}
 	},
