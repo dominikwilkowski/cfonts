@@ -53,7 +53,6 @@
 // Dependencies
 const chalkOriginal = require(`chalk`);
 const WinSize = require('window-size');
-const Style = require('ansi-styles');
 const Path = require(`path`);
 const Fs = require(`fs`);
 
