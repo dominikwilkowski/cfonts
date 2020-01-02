@@ -350,6 +350,7 @@ npm run test
 
 
 ## Release History
+* 2.4.8  -  removed `ansi-styles` from direct dependencies
 * 2.4.7  -  fixed bug from adopting chalk v3 and hex colors
 * 2.4.6  -  bumped dependencies, removed `change-case` dependency, added `UpperCaseFirst` with tests
 * 2.4.5  -  bumped dependencies, moved to relative links for fonts for webpack support (#22)
