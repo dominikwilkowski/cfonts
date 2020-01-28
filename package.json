@@ -42,10 +42,10 @@
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.7.7",
-		"@babel/core": "^7.7.7",
-		"@babel/preset-env": "^7.7.7",
-		"jest-cli": "^24.9.0",
+		"@babel/cli": "^7.8.3",
+		"@babel/core": "^7.8.3",
+		"@babel/preset-env": "^7.8.3",
+		"jest-cli": "^25.1.0",
 		"onchange": "^6.1.0"
 	},
 	"peerDependencies": {},
