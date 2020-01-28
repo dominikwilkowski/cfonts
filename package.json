@@ -34,7 +34,7 @@
 		"test": "yarn build && yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
-		"test:unit": "FORCE_COLOR=3 jest --coverage",
+		"test:unit": "FORCE_COLOR=3 jest",
 		"build": "yarn build:lib && yarn build:bin",
 		"build:bin": "mkdir -p bin && mv lib/bin.js bin/index.js",
 		"build:lib": "mkdir -p lib && babel src --out-dir lib",
