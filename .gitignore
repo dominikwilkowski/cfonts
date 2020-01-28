@@ -12,5 +12,5 @@ tmp
 .idea
 npm-debug.log
 bin/
-index.js
+lib/
 package-lock.json
