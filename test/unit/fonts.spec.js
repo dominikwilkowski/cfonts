@@ -67,8 +67,8 @@ test(`Fonts - Will output all characters for font blocks`, () => {
 		'  ╚═╝ ╚═╝  ╚═▀▀▀══╝ ╚═╝ ╚═╝ ╚═════╝    ╚═╝ ╚═╝  ╚═╝         ▀═╝ ▀═╝     \n' +
 		'\n\n';
 
-	expect( output.stdout ).toBe( expected );
 	expect( output.stderr ).toBe( '' );
+	expect( output.stdout ).toBe( expected );
 });
 
 
