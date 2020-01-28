@@ -5,8 +5,27 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const Render = CFonts.render;
+const { Render } = require('../../src/Render.js');
+
+
+beforeEach(() => {
+	jest.resetModules();
+});
+
+
+test(`Render - Catch when a fontface is missing`, () => {
+	console.error = jest.fn();
+
+	jest.doMock('../../src/GetFont.js', () => ({ GetFont: jest.fn().mockReturnValue( false ) }) );
+	const { GetFont } = require('../../src/GetFont.js');
+
+	const { Render } = require('../../src/Render.js');
+
+	const test = Render( 'x' );
+
+	expect( GetFont.mock.calls.length ).toBe( 1 );
+	expect( console.error.mock.calls.length ).toBe( 1 );
+});
 
 
 test(`Render - Render console string`, () => {
@@ -26,6 +45,7 @@ test(`Render - Render console string`, () => {
 		lineHeight: 0,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -48,6 +68,7 @@ test(`Render - Render console string with a color`, () => {
 		lineHeight: 0,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -75,6 +96,7 @@ test(`Render - Output debug infos`, () => {
 	Render( 'text', {}, true, 1, { width: 100, height: 10 } );
 
 	expect( console.log.mock.calls.length > 0 ).toBe( true );
+	expect( console.log.mock.calls[ 0 ][ 0 ].includes('OPTIONS:') ).toBe( true );
 });
 
 
@@ -108,6 +130,7 @@ test(`Render - Render block font`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -144,6 +167,7 @@ test(`Render - Render letter spacing`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 
@@ -178,6 +202,7 @@ test(`Render - Render letter spacing`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -214,6 +239,7 @@ test(`Render - Center align block font`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -250,6 +276,7 @@ test(`Render - Right align block font`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -297,6 +324,7 @@ test(`Render - Break into new line on smaller viewports`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -344,6 +372,7 @@ test(`Render - Add line break`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -392,6 +421,7 @@ test(`Render - Add line height`, () => {
 		lineHeight: 2,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -426,6 +456,7 @@ test(`Render - Non supported characters are ignored`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -459,6 +490,7 @@ test(`Render - Remove space`, () => {
 		lineHeight: 1,
 		space: false,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -495,6 +527,7 @@ test(`Render - Add background color`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 

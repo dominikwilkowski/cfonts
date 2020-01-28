@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const CharLength = CFonts.__test__.CharLength;
+const { CharLength } = require('../../src/CharLength.js');
 
 
 test(`CharLength - Should return the largest character length`, () => {

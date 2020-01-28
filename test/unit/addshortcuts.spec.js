@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const AddShortcuts = CFonts.__test__.AddShortcuts;
+const { AddShortcuts } = require('../../src/AddShortcuts.js');
 
 
 test(`AddShortcuts - Should flatten shortcuts into object`, () => {

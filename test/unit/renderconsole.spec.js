@@ -6,8 +6,7 @@
 
 
 const StripColor = require('./_common.js').StripColor;
-const CFonts = require('../../src/lib.js');
-const RenderConsole = CFonts.__test__.RenderConsole;
+const { RenderConsole } = require('../../src/RenderConsole.js');
 
 
 test(`RenderConsole - Should output default text`, () => {
@@ -19,6 +18,19 @@ test(`RenderConsole - Should output default text`, () => {
 	}, { width: 100, height: 10 } );
 
 	expect( test.output ).toEqual( ['test'] );
+	expect( test.lines ).toEqual( 1 );
+});
+
+
+test(`RenderConsole - Should work with default Size`, () => {
+	const test = RenderConsole( 'x', {
+		align: 'left',
+		colors: [],
+		letterSpacing: 1,
+		lineHeight: 1,
+	});
+
+	expect( test.output ).toEqual( ['x'] );
 	expect( test.lines ).toEqual( 1 );
 });
 

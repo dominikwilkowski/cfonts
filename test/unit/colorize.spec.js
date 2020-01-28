@@ -5,9 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const StripColor = require('./_common.js').StripColor;
-const CFonts = require('../../src/lib.js');
-const Colorize = CFonts.__test__.Colorize;
+const { StripColor } = require('./_common.js');
+const { Colorize } = require('../../src/Colorize.js');
 
 
 test(`Colorize - An undefined string will return just that`, () => {

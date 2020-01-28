@@ -5,26 +5,15 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const DEBUG = CFonts.__test__.DEBUG;
-const DEBUGLEVEL = CFonts.__test__.DEBUGLEVEL;
-const CHARS = CFonts.__test__.CHARS;
-const COLORS = CFonts.__test__.COLORS;
-const BGCOLORS = CFonts.__test__.BGCOLORS;
-const ALIGNMENT = CFonts.__test__.ALIGNMENT;
-const FONTFACES = CFonts.__test__.FONTFACES;
-const CLIOPTIONS = CFonts.__test__.CLIOPTIONS;
-const PACKAGE = CFonts.__test__.PACKAGE
-
-
-test(`DEBUG - Should be defined as boolean`, () => {
-	expect( typeof DEBUG ).toEqual( 'boolean' );
-});
-
-
-test(`DEBUGLEVEL - Should be defined as number`, () => {
-	expect( typeof DEBUGLEVEL ).toEqual( 'number' );
-});
+const {
+	CHARS,
+	COLORS,
+	BGCOLORS,
+	ALIGNMENT,
+	FONTFACES,
+	CLIOPTIONS,
+	PACKAGE,
+} = require('../../src/constants.js');
 
 
 test(`CHARS - Should have 56 characters defined`, () => {

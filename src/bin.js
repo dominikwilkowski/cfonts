@@ -13,8 +13,4 @@
 
 'use strict';
 
-
-// Dependencies
-const CFonts = require('..');
-
-CFonts.__test__.Cli();
+require('../lib/index.js').Cli();

@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const GetOptions = CFonts.__test__.GetOptions;
+const { GetOptions } = require('../../src/GetOptions.js');
 
 
 test(`GetOptions - Should return default options`, () => {
@@ -19,6 +18,7 @@ test(`GetOptions - Should return default options`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -46,6 +46,7 @@ test(`GetOptions - Should be able to handle casing`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -71,6 +72,7 @@ test(`GetOptions - Should be able to handle background and backgroundColor`, () 
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 });
 
@@ -85,6 +87,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ align: 'xxx' }) ).toEqual({
@@ -96,6 +99,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ colors: ['xxx'] }) ).toEqual({
@@ -107,6 +111,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ background: 'xxx' }) ).toEqual({
@@ -118,6 +123,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ backgroundColor: 'xxx' }) ).toEqual({
@@ -129,6 +135,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ letterSpacing: 555 }) ).toEqual({
@@ -140,6 +147,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ lineHeight: 555 }) ).toEqual({
@@ -151,6 +159,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 555,
 		space: true,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ space: false }) ).toEqual({
@@ -162,6 +171,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: false,
 		maxLength: 0,
+		gradient: false,
 	});
 
 	expect( GetOptions({ maxLength: 555 }) ).toEqual({
@@ -173,5 +183,18 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 555,
+		gradient: false,
+	});
+
+	expect( GetOptions({ gradient: 'red,green' }) ).toEqual({
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: 'red,green',
 	});
 });

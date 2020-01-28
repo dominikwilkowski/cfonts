@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const AddLetterSpacing = CFonts.__test__.AddLetterSpacing;
+const { AddLetterSpacing } = require('../../src/AddLetterSpacing.js');
 
 
 test(`AddLetterSpacing - Add a letter space to the last line for single line font`, () => {

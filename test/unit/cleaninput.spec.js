@@ -5,9 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const CleanInput = CFonts.__test__.CleanInput;
-const CHARS = CFonts.__test__.CHARS;
+const { CleanInput } = require('../../src/CleanInput.js');
+const { CHARS } = require('../../src/constants.js');
 
 
 test(`CleanInput - Should white list characters`, () => {

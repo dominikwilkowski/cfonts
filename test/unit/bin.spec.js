@@ -10,6 +10,19 @@ const Spawn = require('child_process').spawnSync;
 const path = require('path');
 
 
+beforeEach(() => {
+	jest.resetModules();
+});
+
+test(`Bin - Should call Cli function`, () => {
+	jest.doMock('../../lib/index.js', () => ({ Cli: jest.fn() }) );
+	const Cfonts = require('../../lib/index.js');
+
+	require('../../src/bin.js');
+
+	expect( Cfonts.Cli.mock.calls.length ).toBe( 1 );
+});
+
 test(`Bin - Will output with no flags`, () => {
 	const output = Spawn(
 		'node',

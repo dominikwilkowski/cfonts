@@ -5,8 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const ParseArgs = CFonts.__test__.ParseArgs;
+const { CLIOPTIONS } = require('../../src/constants.js');
+const { ParseArgs } = require('../../src/ParseArgs.js');
 
 
 test(`ParseArgs - Return defaults without arguments`, () => {
@@ -37,8 +37,27 @@ test(`ParseArgs - Return defaults without arguments`, () => {
 		3: false,
 	};
 
+	const defaultResult = {
+		"align": "left",
+		"background": "transparent",
+		"colors": "system",
+		"debug": false,
+		"debug-level": 1,
+		"font": "block",
+		"gradient": false,
+		"help": false,
+		"letter-spacing": 1,
+		"line-height": 1,
+		"max-length": 0,
+		"spaceless": false,
+		"text": undefined,
+		"version": false,
+	};
+
 	expect( ParseArgs( options, [ 'node', 'script' ] ) ).toEqual( result );
 	expect( ParseArgs( options, [] ) ).toEqual( result );
+	expect( ParseArgs( options ) ).toEqual( result );
+	expect( ParseArgs() ).toEqual( defaultResult );
 });
 
 

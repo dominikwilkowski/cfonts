@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const UpperCaseFirst = CFonts.__test__.UpperCaseFirst;
+const { UpperCaseFirst } = require('../../src/UpperCaseFirst.js');
 
 
 test(`UpperCaseFirst - Should uppercase the first character`, () => {

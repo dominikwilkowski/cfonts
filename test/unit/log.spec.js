@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const Log = CFonts.__test__.Log;
+const { Log } = require('../../src/Log.js');
 
 
 test(`Log - Display error message`, () => {

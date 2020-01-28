@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const Color = CFonts.__test__.Color;
+const { Color } = require('../../src/Color.js');
 
 
 test(`Color - Return right object for colors`, () => {

@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const Say = CFonts.say;
+const { Say } = require('../../src/Say.js');
 
 
 test(`Say - Say will print to console log`, () => {

@@ -35,9 +35,9 @@
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
 		"test:unit": "FORCE_COLOR=3 jest --coverage",
-		"build": "yarn build:bin & yarn build:lib",
-		"build:bin": "mkdir -p bin && babel src/bin.js --out-file bin/index.js",
-		"build:lib": "mkdir -p lib && babel src/lib.js --out-file lib/index.js",
+		"build": "yarn build:lib && yarn build:bin",
+		"build:bin": "mkdir -p bin && mv lib/bin.js bin/index.js",
+		"build:lib": "mkdir -p lib && babel src --out-dir lib",
 		"watch": "yarn build && onchange 'src/**/*' -- yarn build",
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},

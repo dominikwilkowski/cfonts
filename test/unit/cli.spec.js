@@ -5,9 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const Cli = CFonts.__test__.Cli;
-const CLIOPTIONS = CFonts.__test__.CLIOPTIONS;
+const { CLIOPTIONS } = require('../../src/constants.js');
+const { Cli } = require('../../src/index.js');
 const PKG = require('../../package.json');
 
 
@@ -36,6 +35,17 @@ const options = {
 		default: 'system',
 	},
 };
+
+
+test(`CLI - Calling Cli alone should output an error`, () => {
+	console.log = jest.fn();
+	console.error = jest.fn();
+
+	Cli();
+
+	expect( console.log.mock.calls.length ).toBe( 0 );
+	expect( console.error.mock.calls.length ).toBe( 1 );
+});
 
 
 test(`CLI - Text should be outputted`, () => {

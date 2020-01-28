@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const AddLine = CFonts.__test__.AddLine;
+const { AddLine } = require('../../src/AddLine.js');
 
 
 test(`AddLine - Adding a line to a single-line font`, () => {

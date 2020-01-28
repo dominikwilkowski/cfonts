@@ -15,7 +15,7 @@ const supportedCharacters = `abcdefghijklmnopqrstuvwxyz0123456789!?.+-_=@#$%&()/
 test(`Fonts - Will output all characters for font blocks`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -75,7 +75,7 @@ test(`Fonts - Will output all characters for font blocks`, () => {
 test(`Fonts - Will output all characters for font blocks in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-c', 'red,blue' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-c', 'red,blue' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -96,7 +96,7 @@ test(`Fonts - Will output all characters for font blocks in all colors`, () => {
 test(`Fonts - Will output all characters for font chrome`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'chrome' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'chrome' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -126,7 +126,7 @@ test(`Fonts - Will output all characters for font chrome`, () => {
 test(`Fonts - Will output all characters for font chrome in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'chrome', '-c', 'red,blue,green' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'chrome', '-c', 'red,blue,green' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -146,7 +146,7 @@ test(`Fonts - Will output all characters for font chrome in all colors`, () => {
 test(`Fonts - Will output all characters for font 3d`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', '3d' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', '3d' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -314,7 +314,7 @@ test(`Fonts - Will output all characters for font 3d`, () => {
 test(`Fonts - Will output all characters for font 3d in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', '3d', '-c', 'red,blue' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', '3d', '-c', 'red,blue' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -334,7 +334,7 @@ test(`Fonts - Will output all characters for font 3d in all colors`, () => {
 test(`Fonts - Will output all characters for font huge`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'huge' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'huge' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -472,7 +472,7 @@ test(`Fonts - Will output all characters for font huge`, () => {
 test(`Fonts - Will output all characters for font huge in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'huge', '-c', 'red,blue' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'huge', '-c', 'red,blue' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -492,7 +492,7 @@ test(`Fonts - Will output all characters for font huge in all colors`, () => {
 test(`Fonts - Will output all characters for font shade`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'shade' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'shade' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -546,7 +546,7 @@ test(`Fonts - Will output all characters for font shade`, () => {
 test(`Fonts - Will output all characters for font shade in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'shade', '-c', 'red,blue' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'shade', '-c', 'red,blue' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -566,7 +566,7 @@ test(`Fonts - Will output all characters for font shade in all colors`, () => {
 test(`Fonts - Will output all characters for font simple`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simple' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simple' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -609,7 +609,7 @@ test(`Fonts - Will output all characters for font simple`, () => {
 test(`Fonts - Will output all characters for font simple in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simple', '-c', 'red' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simple', '-c', 'red' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -629,7 +629,7 @@ test(`Fonts - Will output all characters for font simple in all colors`, () => {
 test(`Fonts - Will output all characters for font simple3d`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simple3d' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simple3d' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -703,7 +703,7 @@ test(`Fonts - Will output all characters for font simple3d`, () => {
 test(`Fonts - Will output all characters for font simple3d in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simple3d', '-c', 'red' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simple3d', '-c', 'red' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -723,7 +723,7 @@ test(`Fonts - Will output all characters for font simple3d in all colors`, () =>
 test(`Fonts - Will output all characters for font simple3d`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simple3d' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simple3d' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -797,7 +797,7 @@ test(`Fonts - Will output all characters for font simple3d`, () => {
 test(`Fonts - Will output all characters for font simple3d in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simple3d', '-c', 'red' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simple3d', '-c', 'red' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -817,7 +817,7 @@ test(`Fonts - Will output all characters for font simple3d in all colors`, () =>
 test(`Fonts - Will output all characters for font simpleBlock`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simpleBlock' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simpleBlock' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },
@@ -899,7 +899,7 @@ test(`Fonts - Will output all characters for font simpleBlock`, () => {
 test(`Fonts - Will output all characters for font simpleBlock in all colors`, () => {
 	const output = Spawn(
 		'node',
-		[ path.normalize(`${__dirname }/../../src/bin.js`), supportedCharacters, '-f', 'simpleBlock', '-c', 'red' ],
+		[ path.normalize(`${__dirname }/../../bin/index.js`), supportedCharacters, '-f', 'simpleBlock', '-c', 'red' ],
 		{
 			encoding : 'utf8',
 			env: { ...process.env },

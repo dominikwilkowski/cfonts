@@ -5,8 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const AddChar = CFonts.__test__.AddChar;
+const { AddChar } = require('../../src/AddChar.js');
 
 
 test(`AddChar - Add a single line letter without color`, () => {

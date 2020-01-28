@@ -5,8 +5,17 @@
  **************************************************************************************************************************************************************/
 
 
-const CFonts = require('../../src/lib.js');
-const Debugging = CFonts.__test__.Debugging;
+const { DEBUG, Debugging } = require('../../src/Debugging.js');
+
+
+test(`DEBUG.enabled - Should be defined as boolean`, () => {
+	expect( typeof DEBUG.enabled ).toEqual( 'boolean' );
+});
+
+
+test(`DEBUG.level - Should be defined as number`, () => {
+	expect( typeof DEBUG.level ).toEqual( 'number' );
+});
 
 
 test(`Debugging - Show headline message when debug is enabled`, () => {

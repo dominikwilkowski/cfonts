@@ -18,7 +18,7 @@
 
 
 // Dependencies
-const CFonts = require('../lib/index.js');
+const { CHARS: CFontsChars, FONTFACES: CFontsFontfaces } = require('../src/constants.js');
 const WinSize = require('window-size');
 const Readline = require('readline');
 const Chalk = require(`chalk`);
@@ -29,10 +29,10 @@ const Fs = require(`fs`);
 // global defaults
 const DEBUG = true;
 const DEBUGLEVEL = 2;
-const CHARS = CFonts.__test__.CHARS
+const CHARS = CFontsChars
 	.filter( font => font !== '|' ); // we don’t need the pipe in the char-set
-const FONTFACES = Object.keys( CFonts.__test__.FONTFACES )
-	.map( font => CFonts.__test__.FONTFACES[ font ] )
+const FONTFACES = Object.keys( CFontsFontfaces )
+	.map( font => CFontsFontfaces[ font ] )
 	.filter( font => font !== 'console' ); // console is a font but not a font-file
 
 
