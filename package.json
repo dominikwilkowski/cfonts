@@ -74,6 +74,9 @@
 			}
 		}
 	},
+	"browserslist": [
+		"node >= 0.12.15"
+	],
 	"keywords": [
 		"font",
 		"banner",
