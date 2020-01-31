@@ -45,7 +45,7 @@ test(`ParseArgs - Return defaults without arguments`, () => {
 		"debug-level": 1,
 		"font": "block",
 		"gradient": false,
-		"independentGradient": false,
+		"independent-gradient": false,
 		"help": false,
 		"letter-spacing": 1,
 		"line-height": 1,

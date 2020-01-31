@@ -25,7 +25,7 @@ const { Chalk } = require('./Chalk.js');
  */
 const DisplayHelp = () => {
 	console.log(
-		` ${ Render( 'cfonts', { align: 'left', colors: ['redBright','greenBright'] } ).string }` +
+		` ${ Render( 'cfonts', { align: 'left', gradient: ['red','green'] } ).string }` +
 		`This is a tool for sexy fonts in the console. Give your cli some love.\n\n` +
 		`Usage: cfonts "<value>" [option1] <input1> [option2] <input1>,<input2> [option3]\n` +
 		`Example: ${ Chalk.bold('$ cfonts "sexy font" -f chrome -a center -c red,green,gray') }\n\n` +

@@ -34,7 +34,9 @@ const Say = ( INPUT, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG.le
 
 	const write = Render( INPUT, SETTINGS, debug, debuglevel, size );
 
-	console.log( write.string ); // write out
+	if( write ) {
+		console.log( write.string ); // write out
+	}
 };
 
 

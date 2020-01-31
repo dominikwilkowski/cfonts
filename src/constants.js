@@ -178,9 +178,9 @@ const CLIOPTIONS = {
 		options: true,
 		default: false,
 	},
-	'--independentGradient': {
+	'--independent-gradient': {
 		description: 'Use to define if a gradient is applied independently for each line',
-		example: '--gradient red,blue --independentGradient',
+		example: '--gradient red,blue --independent-gradient',
 		short: '-i',
 		default: false,
 	},
