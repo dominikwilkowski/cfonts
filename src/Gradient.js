@@ -15,6 +15,12 @@
 
 'use strict';
 
+
+const { GetFirstCharacterPosition } = require('./GetFirstCharacterPosition.js');
+const { GetLongestLine } = require('./GetLongestLine.js');
+const { Debugging } = require('./Debugging.js');
+const { Color } = require('./Color.js');
+
 /**
  * Converts an RGB color value to HSV.
  *
@@ -74,64 +80,31 @@ function Rgb2hsv({ r, g, b }) {
  * @return  object.b  - The blue value
  */
 function Hsv2rgb( h, s, v ) {
-	h /= 1;
+	h /= 60;
 	s /= 100;
 	v /= 100;
+	const hi = Math.floor( h ) % 6;
 
-	let r = 0;
-	let g = 0;
-	let b = 0;
+	const f = h - Math.floor( h );
+	const p = 255 * v * ( 1 - s );
+	const q = 255 * v * ( 1 - ( s * f ) );
+	const t = 255 * v * ( 1 - ( s * ( 1 - f ) ) );
+	v *= 255;
 
-	if( s === 0 ) {
-		r = g = b = v;
+	switch( hi ) {
+		case 0:
+			return { r: v, g: t, b: p };
+		case 1:
+			return { r: q, g: v, b: p };
+		case 2:
+			return { r: p, g: v, b: t };
+		case 3:
+			return { r: p, g: q, b: v };
+		case 4:
+			return { r: t, g: p, b: v };
+		case 5:
+			return { r: v, g: p, b: q };
 	}
-	else {
-		let _h = h / 60;
-		let i = Math.floor( _h );
-		let f = _h - i;
-		let p = v * ( 1 - s );
-		let q = v * ( 1 - f * s );
-		let t = v * ( 1 - ( 1 - f ) * s );
-
-		switch( i ) {
-			case 0:
-				r = v;
-				g = t;
-				b = p;
-				break;
-			case 1:
-				r = q;
-				g = v;
-				b = p;
-				break;
-			case 2:
-				r = p;
-				g = v;
-				b = t;
-				break;
-			case 3:
-				r = p;
-				g = q;
-				b = v;
-				break;
-			case 4:
-				r = t;
-				g = p;
-				b = v;
-				break;
-			case 5:
-				r = v;
-				g = p;
-				b = q;
-				break;
-		}
-	}
-
-	return {
-		r: Math.round( r * 255 ),
-		g: Math.round( g * 255 ),
-		b: Math.round( b * 255 ),
-	};
 }
 
 /**
@@ -250,6 +223,10 @@ function HsvRad2hex( hRad, s, v ) {
  * @return {number}         - The number at step n
  */
 function GetLinear( pointA, pointB, n, steps ) {
+	if( steps === 0 ) {
+		return pointB;
+	}
+
 	return pointA + n * ( ( pointB - pointA ) / steps );
 }
 
@@ -266,6 +243,10 @@ function GetLinear( pointA, pointB, n, steps ) {
 function GetTheta( fromTheta, toTheta, n, steps ) {
 	const TAU = 2 * Math.PI;
 	let longDistance;
+
+	if( steps === 0 ) {
+		return toTheta;
+	}
 
 	if( fromTheta > toTheta ) {
 		if( fromTheta - toTheta < Math.PI ) {
@@ -306,7 +287,7 @@ function GetTheta( fromTheta, toTheta, n, steps ) {
  *
  * @return {array}             - An array of colors
  */
-function Gradient( fromColor, toColor, steps ) {
+function GetGradientColors( fromColor, toColor, steps ) {
 	const [ fromHRad, fromS, fromV ] = Hex2hsvRad( fromColor );
 	const [ toHRad, toS, toV ] = Hex2hsvRad( toColor );
 
@@ -324,6 +305,117 @@ function Gradient( fromColor, toColor, steps ) {
 }
 
 
+/**
+ * Take a bunch of lines and color them in the colors provided
+ *
+ * @param  {array}   lines                  - The lines to be colored
+ * @param  {array}   colors                 - The colors in an array
+ * @param  {integer} firstCharacterPosition - We may have to cut something off from the start when text is aligned center, right
+ *
+ * @return {array}                          - The lines in color
+ */
+function PaintLines( lines, colors, firstCharacterPosition ) {
+	Debugging.report(`Running PaintLines`, 1);
+
+	Debugging.report( colors, 2 );
+
+	const output = [];
+	const space = ' '.repeat( firstCharacterPosition );
+
+	return lines
+		.map( line => {
+			const coloredLine = line
+				.slice( firstCharacterPosition )
+				.split('')
+				.map( ( char, i ) => {
+					const { open, close } = Color( colors[ i ] );
+					return `${ open }${ char }${ close }`;
+				})
+				.join('');
+
+			return `${ space }${ coloredLine }`;
+		});
+}
+
+
+/**
+ * Make sure a color is hex
+ *
+ * @param  {string} color - The color
+ *
+ * @return {string}       - The hex color
+ */
+function Color2hex( color ) {
+	const colorMap = {
+		black: '#000000',
+		red: '#ff0000',
+		green: '#00ff00',
+		yellow: '#ffff00',
+		blue: '#0000ff',
+		magenta: '#ff00ff',
+		cyan: '#00ffff',
+		white: '#ffffff',
+		gray: '#808080',
+		grey: '#808080',
+	};
+
+	return colorMap[ color ] || color;
+}
+
+
+/**
+ * Paint finished output in a gradient
+ *
+ * @param {array}   options.output              - The output to be painted
+ * @param {array}   options.gradient            - An array of two colors for start and end of gradient
+ * @param {integer} options.lines               - How many lines the output contains
+ * @param {integer} options.lineHeight          - The line height between lines
+ * @param {integer} options.fontLines           - The line height (line breaks) of a single font line
+ * @param {boolean} options.independentGradient - A switch to calculate gradient per line or not
+ *
+ * @return {string}                             - The output array painted in ANSI colors and joint into a string
+ */
+function PaintGradient({ output, gradient, lines, lineHeight, fontLines, independentGradient }) {
+	Debugging.report(`Running PaintGradient`, 1);
+	const gradientStart = Color2hex( gradient[ 0 ] );
+	const gradientEnd = Color2hex( gradient[ 1 ] );
+	let newOutput = [];
+
+	Debugging.report(`Gradient start: ${ gradientStart } | Gradient end: ${ gradientEnd }`, 2);
+
+	let firstCharacterPosition;
+	let longestLine;
+
+	if( !independentGradient ) {
+		firstCharacterPosition = GetFirstCharacterPosition( output );
+		longestLine = GetLongestLine( output ).length;
+	}
+
+	for( let i = 0; i < lines; i++ ) {
+		const start = ( i * ( fontLines + lineHeight ) );
+		const end = fontLines + start;
+		const thisLine = output.slice( start, end );
+
+		if( independentGradient ) {
+			firstCharacterPosition = GetFirstCharacterPosition( thisLine );
+			longestLine = GetLongestLine( thisLine ).length;
+		}
+
+		const colorsNeeded = longestLine - firstCharacterPosition;
+		const linesInbetween = i === 0
+			? []
+			: Array( lineHeight ).fill('\n');
+
+		Debugging.report(`longestLine: ${ longestLine } | firstCharacterPosition: ${ firstCharacterPosition }`, 2);
+
+		const colors = GetGradientColors( gradientStart, gradientEnd, colorsNeeded );
+		newOutput = [ ...newOutput, ...linesInbetween, ...PaintLines( thisLine, colors, firstCharacterPosition ) ];
+	}
+
+	return newOutput.join(`\n`);
+}
+
+
 module.exports = exports = {
 	Rgb2hsv,
 	Hsv2rgb,
@@ -335,5 +427,8 @@ module.exports = exports = {
 	HsvRad2hex,
 	GetLinear,
 	GetTheta,
-	Gradient,
+	GetGradientColors,
+	PaintLines,
+	Color2hex,
+	PaintGradient,
 };

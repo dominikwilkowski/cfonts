@@ -20,6 +20,7 @@ const { Chalk } = require('./Chalk.js');
 const {
 	COLORS,
 	BGCOLORS,
+	GRADIENTCOLORS,
 	ALIGNMENT,
 	FONTFACES,
 	HEXTEST,
@@ -34,6 +35,7 @@ const {
  * @param  {array}  userColors     - The user specified colors
  * @param  {string} userBackground - The user specified background color
  * @param  {string} userAlign      - The user specified alignment option
+ * @param  {string} userGradient   - The user specified gradient option
  * @param  {object} fontfaces      - All allowed fontfaces
  * @param  {object} colors         - All allowed font colors
  * @param  {object} bgcolors       - All allowed background colors
@@ -55,6 +57,7 @@ const CheckInput = (
 	fontfaces = FONTFACES,
 	colors = COLORS,
 	bgcolors = BGCOLORS,
+	gradientcolors = GRADIENTCOLORS,
 	alignment = ALIGNMENT
 ) => {
 	let result = {
@@ -122,26 +125,24 @@ const CheckInput = (
 
 	// CHECKING GRADIENT
 	if( userGradient ) {
-		const gradientColors = userGradient.split(',');
-
-		if( gradientColors.length !== 2 ) {
+		if( userGradient.length !== 2 ) {
 			return {
 				message: `"${ Chalk.red( userGradient ) }" is not a valid gradient option.\n` +
-					`Please pass in at least two colors.`,
+					`Please pass in two colors.`,
 				pass: false,
 			};
 		}
 
 		// check validity of colors
-		gradientColors.forEach( color => {
+		userGradient.forEach( color => {
 			if(
-				Object.keys( colors ).indexOf( color.toLowerCase() ) === -1
+				Object.keys( gradientcolors ).indexOf( color.toLowerCase() ) === -1
 				&& !HEXTEST.test( color )
 			) {
 				result = {
 					message: `"${ Chalk.red( color ) }" is not a valid gradient color option.\n` +
 						`Please use a color from the supported stack or any valid hex color:\n${ Chalk.green(`${
-							Object.keys( colors ).map( color => colors[ color ] ).join(', ')
+							Object.keys( gradientcolors ).map( color => colors[ color ] ).join(', ')
 						}, "#3456ff", "#f80", etc...`) }`,
 					pass: false,
 				};

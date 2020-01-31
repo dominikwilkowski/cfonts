@@ -46,6 +46,7 @@ test(`Render - Render console string`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -69,6 +70,32 @@ test(`Render - Render console string with a color`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
+	});
+});
+
+
+test(`Render - Render console string with gradient will ignore color`, () => {
+	const test = Render( 'text', {
+		font: 'console',
+		colors: ['red'],
+		gradient: ['red','blue'],
+	}, false, 1, { width: 100, height: 10 });
+
+	expect( test.string ).toBe( '\n\n\u001b[38;2;255;0;0mt\u001b[39m\u001b[38;2;170;255;0me\u001b[39m\u001b[38;2;0;255;169mx\u001b[39m\u001b[38;2;0;0;255mt\u001b[39m\n\n' );
+	expect( test.array ).toEqual( ['text'] );
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'console',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 0,
+		lineHeight: 0,
+		space: true,
+		maxLength: 0,
+		gradient: ['red','blue'],
+		independentGradient: false,
 	});
 });
 
@@ -131,6 +158,7 @@ test(`Render - Render block font`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -168,6 +196,7 @@ test(`Render - Render letter spacing`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 
@@ -203,6 +232,7 @@ test(`Render - Render letter spacing`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -240,6 +270,7 @@ test(`Render - Center align block font`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -277,6 +308,7 @@ test(`Render - Right align block font`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -325,6 +357,7 @@ test(`Render - Break into new line on smaller viewports`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -373,6 +406,7 @@ test(`Render - Add line break`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -422,6 +456,7 @@ test(`Render - Add line height`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -457,6 +492,7 @@ test(`Render - Non supported characters are ignored`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -491,6 +527,7 @@ test(`Render - Remove space`, () => {
 		space: false,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -528,6 +565,7 @@ test(`Render - Add background color`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 

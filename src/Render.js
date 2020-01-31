@@ -18,6 +18,7 @@
 const { AddLetterSpacing } = require('./AddLetterSpacing.js');
 const { RenderConsole } = require('./RenderConsole.js');
 const { Debugging, DEBUG } = require('./Debugging.js');
+const { PaintGradient } = require('./Gradient.js');
 const { CharLength } = require('./CharLength.js');
 const { CheckInput } = require('./CheckInput.js');
 const { CleanInput } = require('./CleanInput.js');
@@ -70,6 +71,11 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		Log.error( _isGoodHuman.message );
 
 		return false;
+	}
+
+	// the gradient option supersedes the color options
+	if( OPTIONS.gradient ) {
+		OPTIONS.colors = [];
 	}
 
 
@@ -186,9 +192,20 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 
 	let write = output.join(`\n`);
 
-
 	if( FONTFACE.colors <= 1 ) {
 		write = Colorize( write, FONTFACE.colors, OPTIONS.colors );
+	}
+
+
+	if( OPTIONS.gradient ) {
+		write = PaintGradient({
+			output,
+			gradient: OPTIONS.gradient,
+			lines,
+			lineHeight: OPTIONS.lineHeight,
+			fontLines: FONTFACE.lines,
+			independentGradient: OPTIONS.independentGradient,
+		});
 	}
 
 

@@ -12,6 +12,7 @@
  *   CHARS
  *   COLORS
  *   BGCOLORS
+ *   GRADIENTCOLORS
  *   ALIGNMENT
  *   FONTFACES
  *   CLIOPTIONS
@@ -70,6 +71,18 @@ const BGCOLORS = {
 	magentabright: 'magentaBright',
 	cyanbright: 'cyanBright',
 	whitebright: 'whiteBright',
+};
+
+const GRADIENTCOLORS = {
+	transparent: 'transparent',
+	black: 'black',
+	red: 'red',
+	green: 'green',
+	yellow: 'yellow',
+	blue: 'blue',
+	magenta: 'magenta',
+	cyan: 'cyan',
+	white: 'white',
 };
 
 const ALIGNMENT = [
@@ -159,10 +172,16 @@ const CLIOPTIONS = {
 		default: 0,
 	},
 	'--gradient': {
-		description: 'Use to define a start and end color per option for the chosen font',
-		example: '--gradient red',
+		description: 'Use to define a start and end color of a gradient',
+		example: '--gradient red,blue',
 		short: '-g',
 		options: true,
+		default: false,
+	},
+	'--independentGradient': {
+		description: 'Use to define if a gradient is applied independently for each line',
+		example: '--gradient red,blue --independentGradient',
+		short: '-i',
 		default: false,
 	},
 	'--debug': {
@@ -189,6 +208,7 @@ module.exports = exports = {
 	CHARS,
 	COLORS,
 	BGCOLORS,
+	GRADIENTCOLORS,
 	ALIGNMENT,
 	FONTFACES,
 	CLIOPTIONS,

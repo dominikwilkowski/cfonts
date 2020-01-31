@@ -19,6 +19,7 @@ test(`GetOptions - Should return default options`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -47,6 +48,7 @@ test(`GetOptions - Should be able to handle casing`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -73,6 +75,7 @@ test(`GetOptions - Should be able to handle background and backgroundColor`, () 
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 });
 
@@ -88,6 +91,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ align: 'xxx' }) ).toEqual({
@@ -100,6 +104,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ colors: ['xxx'] }) ).toEqual({
@@ -112,6 +117,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ background: 'xxx' }) ).toEqual({
@@ -124,6 +130,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ backgroundColor: 'xxx' }) ).toEqual({
@@ -136,6 +143,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ letterSpacing: 555 }) ).toEqual({
@@ -148,6 +156,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ lineHeight: 555 }) ).toEqual({
@@ -160,6 +169,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ space: false }) ).toEqual({
@@ -172,6 +182,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: false,
 		maxLength: 0,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ maxLength: 555 }) ).toEqual({
@@ -184,6 +195,7 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		space: true,
 		maxLength: 555,
 		gradient: false,
+		independentGradient: false,
 	});
 
 	expect( GetOptions({ gradient: 'red,green' }) ).toEqual({
@@ -195,6 +207,33 @@ test(`GetOptions - Should merge options with defaults`, () => {
 		lineHeight: 1,
 		space: true,
 		maxLength: 0,
-		gradient: 'red,green',
+		gradient: ['red', 'green'],
+		independentGradient: false,
+	});
+
+	expect( GetOptions({ gradient: ['red','green'] }) ).toEqual({
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: ['red', 'green'],
+		independentGradient: false,
+	});
+
+	expect( GetOptions({ independentGradient: true }) ).toEqual({
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: true,
 	});
 });

@@ -9,6 +9,7 @@ const {
 	CHARS,
 	COLORS,
 	BGCOLORS,
+	GRADIENTCOLORS,
 	ALIGNMENT,
 	FONTFACES,
 	CLIOPTIONS,
@@ -28,6 +29,11 @@ test(`COLORS - Should have n number of colors defined`, () => {
 
 test(`BGCOLORS - Should have n number of colors defined`, () => {
 	expect( Object.keys( BGCOLORS ).length > 0 ).toEqual( true );
+});
+
+
+test(`GRADIENTCOLORS - Should have n number of colors defined`, () => {
+	expect( Object.keys( GRADIENTCOLORS ).length > 0 ).toEqual( true );
 });
 
 

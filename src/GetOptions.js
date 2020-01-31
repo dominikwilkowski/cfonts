@@ -44,7 +44,7 @@ const {
  * @return {object}                  - Our merged options
  */
 const GetOptions = (
-	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient },
+	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient },
 	allowedColors = COLORS,
 	allowedBG = BGCOLORS,
 	allowedFont = FONTFACES
@@ -73,7 +73,12 @@ const GetOptions = (
 		? space
 		: true,
 	maxLength: maxLength || 0,
-	gradient: gradient || false,
+	gradient: gradient
+		? Array.isArray( gradient )
+			? gradient
+			: gradient.split(',')
+		: false,
+	independentGradient: independentGradient || false,
 });
 
 
