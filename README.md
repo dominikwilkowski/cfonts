@@ -136,7 +136,8 @@ $ cfonts --version
 Type: `<string>`  
 Default value: `""`
 
-This is the "textinput" to be converted into a nice font
+This is the "text input" to be converted into a nice font.  
+The `|` character will be replaced with a line break.
 
 ```shell
 $ cfonts "Hello world"
@@ -199,7 +200,7 @@ Type: `<string list>`
 Default value: `['system']`
 
 With this setting you can set the colors for your font.
-Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk) or a hex color.  
+Use the below color strings built in by [chalk](https://github.com/chalk/chalk) or a hex color.  
 Provide colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
 If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
 The `system` color falls back to the system color of your terminal.
@@ -266,7 +267,7 @@ $ cfonts "text" --gradient red,"#f80"
 Type: `<boolen>`  
 Default value: `false`
 
-Set this option re-calculate the gradient colors for each new line.
+Set this option to re-calculate the gradient colors for each new line.
 
 ```shell
 $ cfonts "text|next line" --gradient red,"#f80" --independentGradient
@@ -279,7 +280,7 @@ $ cfonts "text|next line" --gradient red,"#f80" --independentGradient
 Type: `<string>`  
 Default value: `"transparent"`
 
-With this setting you can set the background colors for the output. Use the below color strings built in by [chalk](https://github.com/sindresorhus/chalk).
+With this setting you can set the background colors for the output. Use the below color strings built in by [chalk](https://github.com/chalk/chalk).
 Provide the background color from the below supported list, eg: 'white'
 
 - `transparent` _(default)_
@@ -350,7 +351,9 @@ $ cfonts "text" --spaceless
 Type: `<integer>`  
 Default value: `0`
 
-This option sets the maximum characters that will be printed on one line. 0 means no max width and the text will break at the edge of the terminal window.
+This option sets the maximum characters that will be printed on one line.  
+CFonts detects the size of your terminal but you can opt out and determine your own max width.  
+`0` means no max width and the text will break at the edge of the terminal window.
 
 ```shell
 $ cfonts "text" --max-length 15
