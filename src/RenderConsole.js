@@ -79,7 +79,7 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 			);
 		}
 		else {
-			output.push( line );
+			output.push( Colorize( line, 1, OPTIONS.colors ) );
 		}
 
 		output = AlignText( output, line.length, 1, OPTIONS.align, size );

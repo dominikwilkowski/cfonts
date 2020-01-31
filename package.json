@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.5.0",
+	"version": "2.5.1",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -27,7 +27,7 @@
 		}
 	],
 	"engines": {
-		"node": ">=0.12.15"
+		"node": ">=10"
 	},
 	"scripts": {
 		"prepublish": "yarn build && yarn test",
@@ -75,7 +75,7 @@
 		}
 	},
 	"browserslist": [
-		"node >= 0.12.15"
+		"node >= 10"
 	],
 	"keywords": [
 		"font",

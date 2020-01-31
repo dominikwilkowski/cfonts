@@ -366,14 +366,14 @@ function Color2hex( color ) {
 /**
  * Paint finished output in a gradient
  *
- * @param {array}   options.output              - The output to be painted
- * @param {array}   options.gradient            - An array of two colors for start and end of gradient
- * @param {integer} options.lines               - How many lines the output contains
- * @param {integer} options.lineHeight          - The line height between lines
- * @param {integer} options.fontLines           - The line height (line breaks) of a single font line
- * @param {boolean} options.independentGradient - A switch to calculate gradient per line or not
+ * @param  {array}   options.output              - The output to be painted
+ * @param  {array}   options.gradient            - An array of two colors for start and end of gradient
+ * @param  {integer} options.lines               - How many lines the output contains
+ * @param  {integer} options.lineHeight          - The line height between lines
+ * @param  {integer} options.fontLines           - The line height (line breaks) of a single font line
+ * @param  {boolean} options.independentGradient - A switch to calculate gradient per line or not
  *
- * @return {string}                             - The output array painted in ANSI colors and joint into a string
+ * @return {array}                               - The output array painted in ANSI colors
  */
 function PaintGradient({ output, gradient, lines, lineHeight, fontLines, independentGradient }) {
 	Debugging.report(`Running PaintGradient`, 1);
@@ -412,7 +412,7 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 		newOutput = [ ...newOutput, ...linesInbetween, ...PaintLines( thisLine, colors, firstCharacterPosition ) ];
 	}
 
-	return newOutput.join(`\n`);
+	return newOutput;
 }
 
 

@@ -267,7 +267,8 @@ test(`RenderConsole - Should output colored text`, () => {
 		lineHeight: 1,
 	}, { width: 100, height: 10 } );
 
-	expect( test.output ).toEqual( ['test'] );
+	expect( test.output ).toEqual( ['\u001b[38;2;255;0;0mtest\u001b[39m'] );
+	expect( test.lines ).toBe( 1 );
 });
 
 

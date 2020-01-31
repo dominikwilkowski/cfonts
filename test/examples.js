@@ -18,7 +18,8 @@ const Chalk = require('chalk');
 console.log(Chalk.yellow.bold('Global chalk instance not affected'));
 
 let prettyFont = CFonts.render('H', {
-	font: 'simple',
+	font: 'console',
+	colors: ['red'],
 });
 
 console.log(prettyFont.string);
@@ -35,6 +36,8 @@ CFonts.say('Hello world!', {
 	lineHeight: 1,
 	space: true,
 	maxLength: '0',
+	gradient: false,
+	independentGradient: false,
 });
 
 CFonts.say('Hello world!', {
@@ -53,6 +56,15 @@ world\nagain|!`, {
 	font: 'simple',
 	align: 'center',
 	colors: ['red'],
+});
+
+CFonts.say('Hi|world!', {
+	gradient: ['red','green'],
+});
+
+CFonts.say('Hi|world!', {
+	gradient: ['red','green'],
+	independentGradient: true,
 });
 
 

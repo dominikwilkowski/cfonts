@@ -237,12 +237,12 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		independentGradient: false,
 	});
 
-	expect( output1 ).toEqual(
-		'\u001b[38;2;255;0;0mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m'
-	);
+	expect( output1 ).toEqual([
+		'\u001b[38;2;255;0;0mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m',
+	]);
 
 	const output2 = PaintGradient({
 		output: [' x','xxx','xxx',' x'],
@@ -253,12 +253,12 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		independentGradient: false,
 	});
 
-	expect( output2 ).toEqual(
-		'\u001b[38;2;255;0;0m \u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0m \u001b[39m\u001b[38;2;0;255;0mx\u001b[39m'
-	);
+	expect( output2 ).toEqual([
+		'\u001b[38;2;255;0;0m \u001b[39m\u001b[38;2;0;255;0mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0m \u001b[39m\u001b[38;2;0;255;0mx\u001b[39m',
+	]);
 
 	const output3 = PaintGradient({
 		output: [' x','xxx','xxx',' x'],
@@ -269,10 +269,10 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		independentGradient: true,
 	});
 
-	expect( output3 ).toEqual(
-		' \u001b[38;2;0;0;255mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m\n' +
-		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m\n' +
-		' \u001b[38;2;0;0;255mx\u001b[39m'
-	);
+	expect( output3 ).toEqual([
+		' \u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		' \u001b[38;2;0;0;255mx\u001b[39m',
+	]);
 });
