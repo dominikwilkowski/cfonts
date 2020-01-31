@@ -46,6 +46,8 @@ CFonts.say('Hello|world!', {
 	lineHeight: 1,              // define the line height
 	space: true,                // define if the output text should have empty lines on top and on the bottom
 	maxLength: '0',             // define how many character can be on one line
+	gradient: false,            // define your two gradient colors
+	independentGradient: false, // define if you want to recalculate the gradient for each new line
 });
 ```
 
@@ -419,6 +421,7 @@ npm run test
 
 
 ## Release History
+* 2.5.1  -  fixed array output to include everything including colors
 * 2.5.0  -  added gradient option, separated code into files, added 100% unit testing coverage
 * 2.4.8  -  removed `ansi-styles` from direct dependencies
 * 2.4.7  -  fixed bug from adopting chalk v3 and hex colors

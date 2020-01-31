@@ -34,7 +34,7 @@ test(`Render - Render console string`, () => {
 	}, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe( '\n\ntext\n\n' );
-	expect( test.array ).toEqual( ['text'] );
+	expect( test.array ).toEqual( ['\n\ntext\n\n'] );
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
 		font: 'console',
@@ -58,7 +58,7 @@ test(`Render - Render console string with a color`, () => {
 	}, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe( '\n\n\u001b[38;2;255;0;0mtext\u001b[39m\n\n' );
-	expect( test.array ).toEqual( ['text'] );
+	expect( test.array ).toEqual( ['\n\n\u001b[38;2;255;0;0mtext\u001b[39m\n\n'] );
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
 		font: 'console',
@@ -83,7 +83,7 @@ test(`Render - Render console string with gradient will ignore color`, () => {
 	}, false, 1, { width: 100, height: 10 });
 
 	expect( test.string ).toBe( '\n\n\u001b[38;2;255;0;0mt\u001b[39m\u001b[38;2;170;255;0me\u001b[39m\u001b[38;2;0;255;169mx\u001b[39m\u001b[38;2;0;0;255mt\u001b[39m\n\n' );
-	expect( test.array ).toEqual( ['text'] );
+	expect( test.array ).toEqual( ['\n\n\u001b[38;2;255;0;0mt\u001b[39m\u001b[38;2;170;255;0me\u001b[39m\u001b[38;2;0;255;169mx\u001b[39m\u001b[38;2;0;0;255mt\u001b[39m\n\n'] );
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
 		font: 'console',
@@ -140,12 +140,12 @@ test(`Render - Render block font`, () => {
 		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		'\n\n ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
 		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
 		'    ██║    █████╗    ╚███╔╝     ██║    ',
 		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
 		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
-		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
@@ -178,12 +178,12 @@ test(`Render - Render letter spacing`, () => {
 		'     ╚═╝     ╚══════╝  ╚═╝  ╚═╝     ╚═╝     \n\n'
 	);
 	expect( test1.array ).toEqual([
-		'  ████████╗  ███████╗  ██╗  ██╗  ████████╗  ',
+		'\n\n  ████████╗  ███████╗  ██╗  ██╗  ████████╗  ',
 		'  ╚══██╔══╝  ██╔════╝  ╚██╗██╔╝  ╚══██╔══╝  ',
 		'     ██║     █████╗     ╚███╔╝      ██║     ',
 		'     ██║     ██╔══╝     ██╔██╗      ██║     ',
 		'     ██║     ███████╗  ██╔╝ ██╗     ██║     ',
-		'     ╚═╝     ╚══════╝  ╚═╝  ╚═╝     ╚═╝     ',
+		'     ╚═╝     ╚══════╝  ╚═╝  ╚═╝     ╚═╝     \n\n',
 	]);
 	expect( test1.lines ).toBe( 1 );
 	expect( test1.options ).toEqual({
@@ -214,12 +214,12 @@ test(`Render - Render letter spacing`, () => {
 		'             ╚═╝             ╚══════╝          ╚═╝  ╚═╝             ╚═╝             \n\n'
 	);
 	expect( test2.array ).toEqual([
-		'          ████████╗          ███████╗          ██╗  ██╗          ████████╗          ',
+		'\n\n          ████████╗          ███████╗          ██╗  ██╗          ████████╗          ',
 		'          ╚══██╔══╝          ██╔════╝          ╚██╗██╔╝          ╚══██╔══╝          ',
 		'             ██║             █████╗             ╚███╔╝              ██║             ',
 		'             ██║             ██╔══╝             ██╔██╗              ██║             ',
 		'             ██║             ███████╗          ██╔╝ ██╗             ██║             ',
-		'             ╚═╝             ╚══════╝          ╚═╝  ╚═╝             ╚═╝             ',
+		'             ╚═╝             ╚══════╝          ╚═╝  ╚═╝             ╚═╝             \n\n',
 	]);
 	expect( test2.lines ).toBe( 1 );
 	expect( test2.options ).toEqual({
@@ -252,12 +252,12 @@ test(`Render - Center align block font`, () => {
 		'         ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		'      ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		'\n\n      ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
 		'      ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
 		'         ██║    █████╗    ╚███╔╝     ██║    ',
 		'         ██║    ██╔══╝    ██╔██╗     ██║    ',
 		'         ██║    ███████╗ ██╔╝ ██╗    ██║    ',
-		'         ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+		'         ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
@@ -290,12 +290,12 @@ test(`Render - Right align block font`, () => {
 		'               ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		'            ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		'\n\n            ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
 		'            ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
 		'               ██║    █████╗    ╚███╔╝     ██║    ',
 		'               ██║    ██╔══╝    ██╔██╗     ██║    ',
 		'               ██║    ███████╗ ██╔╝ ██╗    ██║    ',
-		'               ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+		'               ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
@@ -332,7 +332,7 @@ test(`Render - Break into new line on smaller viewports`, () => {
 		' ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		' ████████╗ ███████╗ ',
+		'\n\n ████████╗ ███████╗ ',
 		' ╚══██╔══╝ ██╔════╝ ',
 		'    ██║    █████╗   ',
 		'    ██║    ██╔══╝   ',
@@ -344,7 +344,7 @@ test(`Render - Break into new line on smaller viewports`, () => {
 		'  ╚███╔╝     ██║    ',
 		'  ██╔██╗     ██║    ',
 		' ██╔╝ ██╗    ██║    ',
-		' ╚═╝  ╚═╝    ╚═╝    ',
+		' ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 2 );
 	expect( test.options ).toEqual({
@@ -381,7 +381,7 @@ test(`Render - Add line break`, () => {
 		' ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		' ████████╗ ███████╗ ',
+		'\n\n ████████╗ ███████╗ ',
 		' ╚══██╔══╝ ██╔════╝ ',
 		'    ██║    █████╗   ',
 		'    ██║    ██╔══╝   ',
@@ -393,7 +393,7 @@ test(`Render - Add line break`, () => {
 		'  ╚███╔╝     ██║    ',
 		'  ██╔██╗     ██║    ',
 		' ██╔╝ ██╗    ██║    ',
-		' ╚═╝  ╚═╝    ╚═╝    ',
+		' ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 2 );
 	expect( test.options ).toEqual({
@@ -430,7 +430,7 @@ test(`Render - Add line height`, () => {
 		' ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		' ████████╗ ███████╗ ',
+		'\n\n ████████╗ ███████╗ ',
 		' ╚══██╔══╝ ██╔════╝ ',
 		'    ██║    █████╗   ',
 		'    ██║    ██╔══╝   ',
@@ -443,7 +443,7 @@ test(`Render - Add line height`, () => {
 		'  ╚███╔╝     ██║    ',
 		'  ██╔██╗     ██║    ',
 		' ██╔╝ ██╗    ██║    ',
-		' ╚═╝  ╚═╝    ╚═╝    ',
+		' ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 2 );
 	expect( test.options ).toEqual({
@@ -474,12 +474,12 @@ test(`Render - Non supported characters are ignored`, () => {
 		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n'
 	);
 	expect( test.array ).toEqual([
-		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		'\n\n ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
 		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
 		'    ██║    █████╗    ╚███╔╝     ██║    ',
 		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
 		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
-		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n',
 	]);
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({
@@ -547,12 +547,12 @@ test(`Render - Add background color`, () => {
 		'\u001b[49m'
 	);
 	expect( test.array ).toEqual([
-		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		'\u001b[48;2;255;0;0m\n\n\n ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
 		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
 		'    ██║    █████╗    ╚███╔╝     ██║    ',
 		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
 		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
-		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n\u001b[49m',
 	]);
 	expect( test.lines ).toBe( 1 );
 	expect( test.options ).toEqual({

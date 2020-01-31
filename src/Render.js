@@ -190,15 +190,8 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align, size ); // alignment last line
 	}
 
-	let write = output.join(`\n`);
-
-	if( FONTFACE.colors <= 1 ) {
-		write = Colorize( write, FONTFACE.colors, OPTIONS.colors );
-	}
-
-
 	if( OPTIONS.gradient ) {
-		write = PaintGradient({
+		output = PaintGradient({
 			output,
 			gradient: OPTIONS.gradient,
 			lines,
@@ -208,18 +201,19 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		});
 	}
 
-
 	if( OPTIONS.space ) { // add space
-		write = `\n\n${ write }\n\n`;
+		output[ 0 ] = `\n\n${ output[ 0 ] }`;
+		output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n`;
 	}
-
 
 	if( OPTIONS.background !== 'transparent' ) {
 		const { open: openNew, close: closeNew } = Color( OPTIONS.background, true );
 
-		write = openNew + '\n' + write + closeNew; // result in one string with background
+		output[ 0 ] = `${ openNew }\n${ output[ 0 ] }`;
+		output[ output.length - 1 ] = `${ output[ output.length - 1 ] }${ closeNew }`;
 	}
 
+	let write = output.join(`\n`);
 
 	return {
 		string: write,
