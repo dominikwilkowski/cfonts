@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /***************************************************************************************************************************************************************
  *
  * cfonts
@@ -9,8 +8,26 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
+ * Chalk
+ *   We pass on the FORCE_COLOR env var to chalk so we can force it in ci
+ *
  **************************************************************************************************************************************************************/
 
 'use strict';
 
-require('../lib/index.js').Cli();
+const chalkOriginal = require(`chalk`);
+
+
+// We pass on the FORCE_COLOR env var to chalk so we can force it in ci
+const Chalk = new chalkOriginal.Instance({
+	...(
+		process.env.FORCE_COLOR
+			? { level: parseInt( process.env.FORCE_COLOR ) }
+			: null
+	)
+});
+
+
+module.exports = exports = {
+	Chalk,
+};

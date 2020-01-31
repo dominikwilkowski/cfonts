@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /***************************************************************************************************************************************************************
  *
  * cfonts
@@ -9,8 +8,28 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
+ * UpperCaseFirst
+ *   Upper case the first character of an input string
+ *
  **************************************************************************************************************************************************************/
 
 'use strict';
 
-require('../lib/index.js').Cli();
+
+/**
+ * Upper case the first character of an input string.
+ *
+ * @author https://github.com/blakeembrey/change-case/tree/master/packages/upper-case-first
+ *
+ * @param  {string} input - A string to be converted
+ *
+ * @return {string}       - A string with the first letter in upper case
+ */
+const UpperCaseFirst = input => typeof input === 'string'
+	? input.charAt(0).toUpperCase() + input.substr(1)
+	: input;
+
+
+module.exports = exports = {
+	UpperCaseFirst,
+};

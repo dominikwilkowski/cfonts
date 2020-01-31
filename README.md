@@ -116,6 +116,8 @@ This shows a list of all available options.
 $ cfonts --help
 ```
 
+![Help command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/help.png)
+
 
 #### -V, --version
 Type: `<command>`  
@@ -126,6 +128,8 @@ This shows the installed version.
 ```shell
 $ cfonts --version
 ```
+
+![Version command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/version.png)
 
 
 #### text
@@ -138,6 +142,8 @@ This is the "textinput" to be converted into a nice font
 $ cfonts "Hello world"
 ```
 
+![Text command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/text.png)
+
 
 #### -f, --font
 Type: `<string>`  
@@ -148,6 +154,8 @@ This is the font face you want to use. So far this plugin ships with with follow
 ```shell
 $ cfonts "text" -f "chrome"
 ```
+
+![Font command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/font.png)
 
 - `block`       [colors: 2] _(default)_
 	![block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/block.png)
@@ -182,6 +190,8 @@ You can align your text in the terminal with this option. Use the keywords below
 ```shell
 $ cfonts "text" -a "center"
 ```
+
+![Align command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/align.png)
 
 
 #### -c, --colors
@@ -218,6 +228,52 @@ The `system` color falls back to the system color of your terminal.
 $ cfonts "text" --colors white,"#f80"
 ```
 
+![Colors command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/colors.png)
+
+
+#### -g, --gradient
+Type: `<string list>`  
+Default value: `false`
+
+With this setting you can set a gradient over your output.  
+This setting supersedes the color open.  
+The gradient requires two colors, a start color and an end color from left to right.  
+CFonts will then generate a gradient through as many colors as it can find to make the output most impressive.  
+Provide two colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
+If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
+
+- `black`
+- `red`
+- `green`
+- `yellow`
+- `blue`
+- `magenta`
+- `cyan`
+- `white`
+- `gray`
+- `grey`
+- `#ff8800` _(any valid hex color)_
+- `#f80` _(short form is supported as well)_
+
+```shell
+$ cfonts "text" --gradient red,"#f80"
+```
+
+![Gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/gradient.png)
+
+
+#### -i, --independent-gradient
+Type: `<boolen>`  
+Default value: `false`
+
+Set this option re-calculate the gradient colors for each new line.
+
+```shell
+$ cfonts "text|next line" --gradient red,"#f80" --independentGradient
+```
+
+![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/independent-gradient.png)
+
 
 #### -b, --background
 Type: `<string>`  
@@ -248,6 +304,8 @@ Provide the background color from the below supported list, eg: 'white'
 $ cfonts "text" --background "Green"
 ```
 
+![Background command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/background.png)
+
 
 #### -l, --letter-spacing
 Type: `<integer>`  
@@ -258,6 +316,8 @@ Set this option to widen the space between characters.
 ```shell
 $ cfonts "text" --letter-spacing 2
 ```
+
+![Letter spacing command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/letter-spacing.png)
 
 
 #### -z, --line-height
@@ -270,6 +330,8 @@ Set this option to widen the space between lines.
 $ cfonts "text" --line-height 2
 ```
 
+![Line height command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/line-height.png)
+
 
 #### -s, --spaceless
 Type: `<boolean>`  
@@ -281,6 +343,8 @@ Set this option to false if you don't want the plugin to insert two empty lines 
 $ cfonts "text" --spaceless
 ```
 
+![Spaceless command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/spaceless.png)
+
 
 #### -m, --max-length
 Type: `<integer>`  
@@ -291,6 +355,8 @@ This option sets the maximum characters that will be printed on one line. 0 mean
 ```shell
 $ cfonts "text" --max-length 15
 ```
+
+![Max length command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/max-length.png)
 
 
 ## Consistency
@@ -350,6 +416,7 @@ npm run test
 
 
 ## Release History
+* 2.5.0  -  added gradient option, separated code into files, added 100% unit testing coverage
 * 2.4.8  -  removed `ansi-styles` from direct dependencies
 * 2.4.7  -  fixed bug from adopting chalk v3 and hex colors
 * 2.4.6  -  bumped dependencies, removed `change-case` dependency, added `UpperCaseFirst` with tests

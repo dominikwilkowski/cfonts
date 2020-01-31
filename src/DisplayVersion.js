@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /***************************************************************************************************************************************************************
  *
  * cfonts
@@ -9,8 +8,24 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
+ * DisplayVersion
+ *   Display the version of this package
+ *
  **************************************************************************************************************************************************************/
 
 'use strict';
 
-require('../lib/index.js').Cli();
+const { PACKAGE } = require('./constants.js');
+
+
+/**
+ * Display the version of this package
+ */
+const DisplayVersion = () => {
+	console.log( PACKAGE.version );
+};
+
+
+module.exports = exports = {
+	DisplayVersion,
+};

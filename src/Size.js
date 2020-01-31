@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /***************************************************************************************************************************************************************
  *
  * cfonts
@@ -9,8 +8,35 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
+ * Size
+ *   Abstraction for windows size
+ *
  **************************************************************************************************************************************************************/
 
 'use strict';
 
-require('../lib/index.js').Cli();
+const WinSize = require('window-size');
+
+
+/**
+ * Abstraction for windows size
+ *
+ * @type {object}
+ */
+const Size = {
+	width: WinSize
+		? WinSize.width > 0
+			? WinSize.width
+			: 80
+		: 80,
+	height: WinSize
+		? WinSize.height > 0
+			? WinSize.height
+			: 24
+		: 24,
+};
+
+
+module.exports = exports = {
+	Size,
+};

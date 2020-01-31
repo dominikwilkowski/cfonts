@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /***************************************************************************************************************************************************************
  *
  * cfonts
@@ -9,8 +8,24 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
+ * GetLongestLine
+ *   Return the longest line of an Array
+ *
  **************************************************************************************************************************************************************/
 
 'use strict';
 
-require('../lib/index.js').Cli();
+
+/**
+ * Return the longest line of an Array
+ *
+ * @param  {array} thisLine - An array of strings
+ *
+ * @return {string}         - The longest string from within the array
+ */
+const GetLongestLine = lines => lines.reduce( ( longestLine, line ) => ( line.length > longestLine.length && line.length !== 0 ? line : longestLine ), '' );
+
+
+module.exports = exports = {
+	GetLongestLine,
+};

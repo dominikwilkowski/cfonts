@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.4.8",
+	"version": "2.5.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -34,18 +34,18 @@
 		"test": "yarn build && yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
-		"test:unit": "FORCE_COLOR=3 jest --coverage",
-		"build": "yarn build:bin & yarn build:lib",
-		"build:bin": "mkdir -p bin && babel src/bin.js --out-file bin/index.js",
-		"build:lib": "mkdir -p lib && babel src/lib.js --out-file lib/index.js",
-		"watch": "yarn build && onchange 'src/**/*' -- yarn build",
+		"test:unit": "FORCE_COLOR=3 jest",
+		"build": "yarn build:lib && yarn build:bin",
+		"build:bin": "mkdir -p bin && mv lib/bin.js bin/index.js",
+		"build:lib": "mkdir -p lib && babel src --out-dir lib",
+		"watch": "yarn build:lib && onchange 'src/**/*' -- yarn build:lib",
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.7.7",
-		"@babel/core": "^7.7.7",
-		"@babel/preset-env": "^7.7.7",
-		"jest-cli": "^24.9.0",
+		"@babel/cli": "^7.8.4",
+		"@babel/core": "^7.8.4",
+		"@babel/preset-env": "^7.8.4",
+		"jest-cli": "^25.1.0",
 		"onchange": "^6.1.0"
 	},
 	"peerDependencies": {},
@@ -67,13 +67,16 @@
 		],
 		"coverageThreshold": {
 			"global": {
-				"branches": 90,
+				"branches": 95,
 				"functions": 100,
 				"lines": 95,
 				"statements": 95
 			}
 		}
 	},
+	"browserslist": [
+		"node >= 0.12.15"
+	],
 	"keywords": [
 		"font",
 		"banner",

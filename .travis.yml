@@ -1,3 +1,10 @@
 language: node_js
+
+os:
+  - linux
+  - osx
+
 node_js:
-  - "node"
+  - 10
+  - 12
+  - node
