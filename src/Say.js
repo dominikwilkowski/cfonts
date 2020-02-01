@@ -24,7 +24,13 @@ const { Size } = require('./Size.js');
 /**
  * Print to console
  *
- * @param same as render method
+ * @param  {string}  INPUT       - The string you want to write out
+ * @param  {object}  SETTINGS    - Settings object
+ * @param  {boolean} debug       - A flag to enable debug mode
+ * @param  {number}  debuglevel  - The debug level we want to show
+ * @param  {object}  size        - The size of the terminal as an object, default: Size
+ * @param  {number}  size.width  - The width of the terminal
+ * @param  {number}  size.height - The height of the terminal
  */
 const Say = ( INPUT, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG.level, size = Size ) => {
 	Debugging.report(`Running say`, 1);

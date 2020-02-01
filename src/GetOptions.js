@@ -25,7 +25,7 @@ const {
 /**
  * Merge user settings with default options
  *
- * @param  {SETTINGS} SETTINGS       - Some or all of the allowed settings
+ * @param  {SETTINGS}  SETTINGS      - Some or all of the allowed settings
  * @param  {array}     allowedColors - All allowed font colors
  * @param  {array}     allowedBG     - All allowed background colors
  * @param  {array}     allowedFont   - All allowed fontfaces
@@ -35,13 +35,13 @@ const {
  *   @param  {string}  align         - Text alignment, Default: 'left'
  *   @param  {array}   colors        - Colors for font, Default: []
  *   @param  {string}  background    - Chalk color string for background, Default 'Black'
- *   @param  {integer} letterSpacing - Space between letters, Default: set by selected font face
- *   @param  {integer} lineHeight    - Space between lines, Default: 1
+ *   @param  {number}  letterSpacing - Space between letters, Default: set by selected font face
+ *   @param  {number}  lineHeight    - Space between lines, Default: 1
  *   @param  {boolean} space         - Output space before and after output, Default: true
- *   @param  {integer} maxLength     - Maximum amount of characters per line, Default width of console window
- *   @param  {integer} gradient      - Gradient color pair, Default: false
+ *   @param  {number}  maxLength     - Maximum amount of characters per line, Default width of console window
+ *   @param  {number}  gradient      - Gradient color pair, Default: false
  *
- * @return {object}                  - Our merged options
+ * @return   {object}                - Our merged options
  */
 const GetOptions = (
 	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient },
