@@ -35,7 +35,7 @@ const {
  * @param  {array}  userColors     - The user specified colors
  * @param  {string} userBackground - The user specified background color
  * @param  {string} userAlign      - The user specified alignment option
- * @param  {string} userGradient   - The user specified gradient option
+ * @param  {array}  userGradient   - The user specified gradient option
  * @param  {object} fontfaces      - All allowed fontfaces
  * @param  {object} colors         - All allowed font colors
  * @param  {object} bgcolors       - All allowed background colors

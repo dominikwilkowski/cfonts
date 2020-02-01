@@ -35,18 +35,23 @@
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
 		"test:unit": "FORCE_COLOR=3 jest",
+		"test:types": "yarn types:clean && yarn types:declaration",
 		"build": "yarn build:lib && yarn build:bin",
 		"build:bin": "mkdir -p bin && mv lib/bin.js bin/index.js",
 		"build:lib": "mkdir -p lib && babel src --out-dir lib",
 		"watch": "yarn build:lib && onchange 'src/**/*' -- yarn build:lib",
+		"types:clean": "find lib/ -type f -name '*.d.ts' -exec rm {} +",
+		"types:declaration": "tsc -p declaration.tsconfig.json",
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.8.4",
 		"@babel/core": "^7.8.4",
 		"@babel/preset-env": "^7.8.4",
+		"@types/node": "latest",
 		"jest-cli": "^25.1.0",
-		"onchange": "^6.1.0"
+		"onchange": "^6.1.0",
+		"typescript": "^3.7.5"
 	},
 	"peerDependencies": {},
 	"dependencies": {
@@ -87,7 +92,7 @@
 		"pretty"
 	],
 	"files": [
-		"lib/*",
+		"lib/*.js",
 		"bin/*",
 		"fonts/*"
 	],

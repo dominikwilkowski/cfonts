@@ -26,6 +26,7 @@ const { Color } = require('./Color.js');
  *
  * @author https://github.com/Gavin-YYC/colorconvert
  *
+ * @param   {object} options   - Arguments
  * @param   {number} options.r - The red color value
  * @param   {number} options.g - The green color value
  * @param   {number} options.b - The blue color value
@@ -74,10 +75,12 @@ function Rgb2hsv({ r, g, b }) {
  * @param   {number}  s - The saturation
  * @param   {number}  v - The value
  *
- * @return  {object}    - The RGB representation
- * @return  {object}.r  - The red value
- * @return  {object}.g  - The green value
- * @return  {object}.b  - The blue value
+ * @typedef  {object} ReturnObject
+ *   @property {number}  r  - The red value
+ *   @property {number}  g  - The green value
+ *   @property {number}  b  - The blue value
+ *
+ * @return  {ReturnObject}  - The RGB representation
  */
 function Hsv2rgb( h, s, v ) {
 	h /= 60;
@@ -155,12 +158,9 @@ function Hex2rgb( hex ) {
 /**
  * Convert HSV coordinate to HSVrad (degree to radian)
  *
- * @param  {array}    - The HSV representation of a color
- * @param  {array}[0] - H
- * @param  {array}[1] - S
- * @param  {array}[2] - V
+ * @param  {array}  argument  - The HSV representation of a color
  *
- * @return {array}    - The HSVrad color
+ * @return {array}            - The HSVrad color
  */
 function Hsv2hsvRad([ h, s, v ]) {
 	return [ ( h * Math.PI ) / 180, s, v ];
@@ -169,10 +169,9 @@ function Hsv2hsvRad([ h, s, v ]) {
 /**
  * Convert HSVrad color to HSV (radian to degree)
  *
- * @param  {array}    - The HSVrad representation of a color
- * @param  {array}[0] - H in rad
- * @param  {array}[1] - S
- * @param  {array}[2] - V
+ * @param {number} hRad - H in rad
+ * @param {number} s    - S
+ * @param {number} v    - V
  *
  * @return {array}    - The HSV color
  */
@@ -366,6 +365,7 @@ function Color2hex( color ) {
 /**
  * Paint finished output in a gradient
  *
+ * @param  {object}  options                     - Arguments
  * @param  {array}   options.output              - The output to be painted
  * @param  {array}   options.gradient            - An array of two colors for start and end of gradient
  * @param  {number}  options.lines               - How many lines the output contains

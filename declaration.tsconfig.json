@@ -1,0 +1,17 @@
+{
+	"exclude": [
+		"./test/**/*.js"
+	],
+	"include": [
+		"./lib/*.js"
+	],
+	"compilerOptions": {
+		"lib": [ "ES6", "DOM" ],
+		"target": "es5",
+		"allowJs": true,
+		"checkJs": true,
+		"declaration": true,
+		"noEmit": false,
+		"emitDeclarationOnly": true,
+	}
+}

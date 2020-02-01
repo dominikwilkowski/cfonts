@@ -21,7 +21,7 @@
  *
  * @param  {array} lines - An array of strings
  *
- * @return {integer}     - The position of the first character
+ * @return {number}      - The position of the first character
  */
 function GetFirstCharacterPosition( lines ) {
 	const earliest = lines.reduce(

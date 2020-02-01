@@ -52,10 +52,10 @@ const AlignText = ( output, lineLength, characterLines, align, size = Size ) => 
 
 	if( space > 0 ) { // only add if there is something to add
 		let lines = output.length - characterLines; // last line is characterLines tall and is located at the bottom of the output array
-		space = ' '.repeat( space );
+		const spaces = ' '.repeat( space );
 
 		for( let i = lines; i < output.length; i++ ) { // iterate over last line (which can be several line breaks long)
-			output[ i ] = space + output[ i ];
+			output[ i ] = spaces + output[ i ];
 		}
 	}
 

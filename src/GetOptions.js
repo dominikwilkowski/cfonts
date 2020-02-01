@@ -25,23 +25,25 @@ const {
 /**
  * Merge user settings with default options
  *
- * @param  {SETTINGS}  SETTINGS      - Some or all of the allowed settings
- * @param  {array}     allowedColors - All allowed font colors
- * @param  {array}     allowedBG     - All allowed background colors
- * @param  {array}     allowedFont   - All allowed fontfaces
+ * @param  {SETTINGS}   SETTINGS                      - Some or all of the allowed settings
+ * @param  {object}     allowedColors                 - All allowed font colors
+ * @param  {object}     allowedBG                     - All allowed background colors
+ * @param  {object}     allowedFont                   - All allowed fontfaces
  *
  * @typedef  {object} SETTINGS
- *   @param  {string}  font          - Font face, Default 'block'
- *   @param  {string}  align         - Text alignment, Default: 'left'
- *   @param  {array}   colors        - Colors for font, Default: []
- *   @param  {string}  background    - Chalk color string for background, Default 'Black'
- *   @param  {number}  letterSpacing - Space between letters, Default: set by selected font face
- *   @param  {number}  lineHeight    - Space between lines, Default: 1
- *   @param  {boolean} space         - Output space before and after output, Default: true
- *   @param  {number}  maxLength     - Maximum amount of characters per line, Default width of console window
- *   @param  {number}  gradient      - Gradient color pair, Default: false
+ *   @property  {string}          font                - Font face, Default 'block'
+ *   @property  {string}          align               - Text alignment, Default: 'left'
+ *   @property  {array}           colors              - Colors for font, Default: []
+ *   @property  {string}          background          - Chalk color string for background, Default 'Black'
+ *   @property  {string}          backgroundColor     - Alias for background
+ *   @property  {number}          letterSpacing       - Space between letters, Default: set by selected font face
+ *   @property  {number}          lineHeight          - Space between lines, Default: 1
+ *   @property  {boolean}         space               - Output space before and after output, Default: true
+ *   @property  {number}          maxLength           - Maximum amount of characters per line, Default width of console window
+ *   @property  {(string|array)}  gradient            - Gradient color pair, Default: false
+ *   @property  {boolean}         independentGradient - A switch to calculate gradient per line or not
  *
- * @return   {object}                - Our merged options
+ * @return   {object}                                 - Our merged options
  */
 const GetOptions = (
 	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient },
@@ -63,12 +65,12 @@ const GetOptions = (
 		: background === undefined
 			? allowedBG[ backgroundColor.toLowerCase() ] || backgroundColor
 			: allowedBG[ background.toLowerCase() ] || background,
-	letterSpacing: typeof parseInt( letterSpacing ) === 'number' && letterSpacing > 0
-		? letterSpacing
+	letterSpacing: typeof letterSpacing !== 'undefined' && letterSpacing > 0
+		? parseInt( letterSpacing.toString() )
 		: 1,
 	lineHeight: lineHeight === undefined
 		? 1
-		: parseInt( lineHeight ),
+		: parseInt( lineHeight.toString() ),
 	space: typeof space === 'boolean'
 		? space
 		: true,
