@@ -35,7 +35,7 @@ const { Chalk } = require('./Chalk.js');
  */
 const Color = ( color, bg = false ) => {
 	// bail early if we use system color
-	if( color === 'system' || process.env.FORCE_COLOR == 0 ) {
+	if( color === 'system' || process.env.FORCE_COLOR == '0' ) {
 		return { open: '', close: '' };
 	}
 

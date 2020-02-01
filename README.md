@@ -266,7 +266,7 @@ $ cfonts "text" --gradient red,"#f80"
 
 
 #### -i, --independent-gradient
-Type: `<boolen>`  
+Type: `<boolean>`  
 Default value: `false`
 
 Set this option to re-calculate the gradient colors for each new line.

@@ -26,11 +26,12 @@ const { Color } = require('./Color.js');
  *
  * @author https://github.com/Gavin-YYC/colorconvert
  *
- * @param {integer} options.r - The red color value
- * @param {integer} options.g - The green color value
- * @param {integer} options.b - The blue color value
+ * @param   {object} options   - Arguments
+ * @param   {number} options.r - The red color value
+ * @param   {number} options.g - The green color value
+ * @param   {number} options.b - The blue color value
  *
- * @return  Array             - The HSV representation
+ * @return  {array}            - The HSV representation
  */
 function Rgb2hsv({ r, g, b }) {
 	r /= 255;
@@ -70,14 +71,16 @@ function Rgb2hsv({ r, g, b }) {
  *
  * @author https://github.com/Gavin-YYC/colorconvert
  *
- * @param {integer} h - The hue
- * @param {integer} s - The saturation
- * @param {integer} v - The value
+ * @param   {number}  h - The hue
+ * @param   {number}  s - The saturation
+ * @param   {number}  v - The value
  *
- * @return  object    - The RGB representation
- * @return  object.r  - The red value
- * @return  object.g  - The green value
- * @return  object.b  - The blue value
+ * @typedef  {object} ReturnObject
+ *   @property {number}  r  - The red value
+ *   @property {number}  g  - The green value
+ *   @property {number}  b  - The blue value
+ *
+ * @return  {ReturnObject}  - The RGB representation
  */
 function Hsv2rgb( h, s, v ) {
 	h /= 60;
@@ -110,11 +113,11 @@ function Hsv2rgb( h, s, v ) {
 /**
  * Converts RGB to HEX
  *
- * @param  {integer} r - The Red value
- * @param  {integer} g - The Green value
- * @param  {integer} b - The Blue value
+ * @param  {number} r - The Red value
+ * @param  {number} g - The Green value
+ * @param  {number} b - The Blue value
  *
- * @return {string}    - A HEX color
+ * @return {string}   - A HEX color
  */
 function Rgb2hex( r, g, b ) {
 	const val = ( ( b | g << 8 | r << 16) | 1 << 24 ).toString( 16 ).slice( 1 );
@@ -155,12 +158,9 @@ function Hex2rgb( hex ) {
 /**
  * Convert HSV coordinate to HSVrad (degree to radian)
  *
- * @param  {array}    - The HSV representation of a color
- * @param  {array}[0] - H
- * @param  {array}[1] - S
- * @param  {array}[2] - V
+ * @param  {array}  argument  - The HSV representation of a color
  *
- * @return {array}    - The HSVrad color
+ * @return {array}            - The HSVrad color
  */
 function Hsv2hsvRad([ h, s, v ]) {
 	return [ ( h * Math.PI ) / 180, s, v ];
@@ -169,10 +169,9 @@ function Hsv2hsvRad([ h, s, v ]) {
 /**
  * Convert HSVrad color to HSV (radian to degree)
  *
- * @param  {array}    - The HSVrad representation of a color
- * @param  {array}[0] - H in rad
- * @param  {array}[1] - S
- * @param  {array}[2] - V
+ * @param {number} hRad - H in rad
+ * @param {number} s    - S
+ * @param {number} v    - V
  *
  * @return {array}    - The HSV color
  */
@@ -198,11 +197,11 @@ function Hex2hsvRad( hex ) {
 /**
  * Convert HSVrad to HEX
  *
- * @param  {integer} hRad - The hue in rad
- * @param  {integer} s    - The saturation
- * @param  {integer} v    - The value
+ * @param  {number} hRad - The hue in rad
+ * @param  {number} s    - The saturation
+ * @param  {number} v    - The value
  *
- * @return {string}       - The HEX color
+ * @return {string}      - The HEX color
  */
 function HsvRad2hex( hRad, s, v ) {
 	const [ h ] = HsvRad2hsv( hRad, s, v );
@@ -217,8 +216,8 @@ function HsvRad2hex( hRad, s, v ) {
  *
  * @param  {number}  pointA - The number from which to start
  * @param  {number}  pointB - The number to go to
- * @param  {integer} n      - The current step
- * @param  {integer} steps  - The amount of steps
+ * @param  {number}  n      - The current step
+ * @param  {number}  steps  - The amount of steps
  *
  * @return {number}         - The number at step n
  */
@@ -235,8 +234,8 @@ function GetLinear( pointA, pointB, n, steps ) {
  *
  * @param  {number}  fromTheta - The radian from which to start
  * @param  {number}  toTheta   - The radian to go to
- * @param  {integer} n         - The current step
- * @param  {integer} steps     - The amount of steps
+ * @param  {number}  n         - The current step
+ * @param  {number}  steps     - The amount of steps
  *
  * @return {number}            - The radian at step n
  */
@@ -283,7 +282,7 @@ function GetTheta( fromTheta, toTheta, n, steps ) {
  *
  * @param  {string}  fromColor - The color from which to start
  * @param  {string}  toColor   - The color to go to
- * @param  {integer} steps     - The amount of colors of the gradient
+ * @param  {number}  steps     - The amount of colors of the gradient
  *
  * @return {array}             - An array of colors
  */
@@ -310,7 +309,7 @@ function GetGradientColors( fromColor, toColor, steps ) {
  *
  * @param  {array}   lines                  - The lines to be colored
  * @param  {array}   colors                 - The colors in an array
- * @param  {integer} firstCharacterPosition - We may have to cut something off from the start when text is aligned center, right
+ * @param  {number}  firstCharacterPosition - We may have to cut something off from the start when text is aligned center, right
  *
  * @return {array}                          - The lines in color
  */
@@ -366,11 +365,12 @@ function Color2hex( color ) {
 /**
  * Paint finished output in a gradient
  *
+ * @param  {object}  options                     - Arguments
  * @param  {array}   options.output              - The output to be painted
  * @param  {array}   options.gradient            - An array of two colors for start and end of gradient
- * @param  {integer} options.lines               - How many lines the output contains
- * @param  {integer} options.lineHeight          - The line height between lines
- * @param  {integer} options.fontLines           - The line height (line breaks) of a single font line
+ * @param  {number}  options.lines               - How many lines the output contains
+ * @param  {number}  options.lineHeight          - The line height between lines
+ * @param  {number}  options.fontLines           - The line height (line breaks) of a single font line
  * @param  {boolean} options.independentGradient - A switch to calculate gradient per line or not
  *
  * @return {array}                               - The output array painted in ANSI colors

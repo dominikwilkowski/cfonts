@@ -55,8 +55,10 @@ const Debugging = {
 	/**
 	 * Return a headline preferably at the beginning of your app
 	 *
-	 * @param  {string}  text  - The sting you want to log
-	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {string}  text       - The sting you want to log
+	 * @param  {number}  level      - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {boolean} debug      - Global debug mode on/off
+	 * @param  {number}  debuglevel - Global debug level
 	 */
 	headline: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
 		if( debug && level >= debuglevel ) {
@@ -69,8 +71,10 @@ const Debugging = {
 	/**
 	 * Return a message to report starting a process
 	 *
-	 * @param  {string}  text  - The sting you want to log
-	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {string}  text       - The sting you want to log
+	 * @param  {number}  level      - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {boolean} debug      - Global debug mode on/off
+	 * @param  {number}  debuglevel - Global debug level
 	 */
 	report: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
 		if( debug && level >= debuglevel ) {
@@ -83,8 +87,10 @@ const Debugging = {
 	/**
 	 * Return a message to report an error
 	 *
-	 * @param  {string}  text  - The sting you want to log
-	 * @param  {integer} level - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {string}  text       - The sting you want to log
+	 * @param  {number}  level      - The debug level. Show equal and greater levels. Default: 99
+	 * @param  {boolean} debug      - Global debug mode on/off
+	 * @param  {number}  debuglevel - Global debug level
 	 */
 	error: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
 		if( debug && level >= debuglevel ) {

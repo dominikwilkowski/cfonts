@@ -24,11 +24,11 @@ const { Colorize } = require('./Colorize.js');
  * Add letter spacing for the next character
  *
  * @param  {array}   output          - The output array the line shall be appended to
- * @param  {integer} fontLines       - The number of lines this font has per character
+ * @param  {number}  fontLines       - The number of lines this font has per character
  * @param  {array}   fontLetterspace - A space between the letters
- * @param  {integer} fontColors      - The amount of colors allowed for this font
+ * @param  {number}  fontColors      - The amount of colors allowed for this font
  * @param  {array}   colors          - The user defined colors
- * @param  {integer} letterSpacing   - The user defined letter spacing
+ * @param  {number}  letterSpacing   - The user defined letter spacing
  *
  * @return {array}                   - The output array with space
  */

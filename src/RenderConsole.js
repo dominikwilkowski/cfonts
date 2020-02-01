@@ -28,12 +28,12 @@ const { Size } = require('./Size.js');
  * @param  {string}  INPUT       - The string you want to write out
  * @param  {object}  OPTIONS     - All user options
  * @param  {object}  size        - The size of the terminal as an object, default: Size
- * @param  {integer} size.width  - The width of the terminal
- * @param  {integer} size.height - The height of the terminal
+ * @param  {number}  size.width  - The width of the terminal
+ * @param  {number}  size.height - The height of the terminal
  *
- * @typedef  {object} ReturnObject
+ * @typedef  {object}  ReturnObject
  *   @property {array}   output  - An array of each line of the output
- *   @property {integer} lines   - The count of line breaks
+ *   @property {number}  lines   - The count of line breaks
  *
  * @return {ReturnObject}        - An object with the output and the line breaks
  */

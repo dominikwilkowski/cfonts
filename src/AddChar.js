@@ -24,9 +24,9 @@ const { Colorize } = require('./Colorize.js');
  *
  * @param  {string}  CHAR       - The character to be added
  * @param  {array}   output     - The output array the line shall be appended to
- * @param  {integer} fontLines  - The number of lines this font has per character
+ * @param  {number}  fontLines  - The number of lines this font has per character
  * @param  {object}  fontChars  - An object with all character arrays
- * @param  {integer} fontColors - The amount of colors allowed for this font
+ * @param  {number}  fontColors - The amount of colors allowed for this font
  * @param  {object}  colors     - Our options
  *
  * @return {array}              - The output array with new line

@@ -19,9 +19,9 @@
 /**
  * Return the longest line of an Array
  *
- * @param  {array} thisLine - An array of strings
+ * @param  {array}  lines  - An array of strings
  *
- * @return {string}         - The longest string from within the array
+ * @return {string}        - The longest string from within the array
  */
 const GetLongestLine = lines => lines.reduce( ( longestLine, line ) => ( line.length > longestLine.length && line.length !== 0 ? line : longestLine ), '' );
 
