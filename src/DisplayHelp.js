@@ -24,16 +24,18 @@ const { Chalk } = require('./Chalk.js');
  * Display the help generated from our CLIOPTIONS
  */
 const DisplayHelp = () => {
+	const { string: headline } = Render('cfonts', {
+		align: 'left',
+		gradient: [ 'red','green' ],
+	});
+
 	console.log(
-		` ${ Render( 'cfonts', { align: 'left', gradient: ['red','green'] } ).string }` +
+		` ${ headline }` +
 		`This is a tool for sexy fonts in the console. Give your cli some love.\n\n` +
 		`Usage: cfonts "<value>" [option1] <input1> [option2] <input1>,<input2> [option3]\n` +
 		`Example: ${ Chalk.bold('$ cfonts "sexy font" -f chrome -a center -c red,green,gray') }\n\n` +
 		`Options:\n`
 	);
-
-	let command = [];
-	let largestSize = 0;
 
 	Object.keys( CLIOPTIONS ).forEach( option => {
 		console.log( Chalk.bold(`${ option }, ${ CLIOPTIONS[ option ].short }`) );
