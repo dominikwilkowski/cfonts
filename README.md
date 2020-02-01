@@ -421,6 +421,7 @@ npm run test
 
 
 ## Release History
+* 2.5.2  -  fixed jsDocs, added typescript type test
 * 2.5.1  -  fixed array output to include everything including colors
 * 2.5.0  -  added gradient option, separated code into files, added 100% unit testing coverage
 * 2.4.8  -  removed `ansi-styles` from direct dependencies
