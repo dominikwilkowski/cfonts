@@ -34,7 +34,7 @@
 		"test": "yarn build && yarn test:unit && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
-		"test:unit": "FORCE_COLOR=3 jest",
+		"test:unit": "npx cross-env FORCE_COLOR=3 jest",
 		"test:types": "yarn types:clean && yarn types:declaration",
 		"build": "yarn build:lib && yarn build:bin",
 		"build:bin": "npx mkdirp bin && mv lib/bin.js bin/index.js",
