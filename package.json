@@ -42,6 +42,7 @@
 		"watch": "yarn build:lib && onchange 'src/**/*' -- yarn build:lib",
 		"types:clean": "find lib/ -type f -name '*.d.ts' -exec rm {} +",
 		"types:declaration": "tsc -p declaration.tsconfig.json",
+		"coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {
@@ -49,6 +50,7 @@
 		"@babel/core": "^7.8.4",
 		"@babel/preset-env": "^7.8.4",
 		"@types/node": "latest",
+		"coveralls": "^3.0.9",
 		"jest-cli": "^25.1.0",
 		"onchange": "^6.1.0",
 		"typescript": "^3.7.5"

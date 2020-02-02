@@ -12,7 +12,10 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/example2.png" alt="api example"></p>
 <p align="center"><a href="https://nodei.co/npm/cfonts/"><img src="https://nodei.co/npm/cfonts.png?downloads=true" alt="npm status"></a></p>
-<p align="center"><a href="https://travis-ci.org/dominikwilkowski/cfonts"><img src="https://travis-ci.org/dominikwilkowski/cfonts.svg?branch=master" alt="build status"></a></p>
+<p align="center">
+	<a href="https://travis-ci.org/dominikwilkowski/cfonts"><img src="https://travis-ci.org/dominikwilkowski/cfonts.svg?branch=master" alt="build status"></a>
+	<a href='https://coveralls.io/github/dominikwilkowski/cfonts?branch=master'><img src='https://coveralls.io/repos/github/dominikwilkowski/cfonts/badge.svg?branch=master' alt='CFont Coverage Status' /></a>
+</p>
 
 <p align="center">This is a silly little command line tool for sexy fonts in the console. <strong>Give your cli some love.</strong></p>
 
