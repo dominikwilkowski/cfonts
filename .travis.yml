@@ -1,8 +1,8 @@
 language: node_js
 
 os:
-  - linux
   - osx
+  - linux
 
 node_js:
   - 10
@@ -13,4 +13,5 @@ jobs:
   include:
     - stage: Produce Coverage
       node_js: node
+      os: osx
       script: jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
