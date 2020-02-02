@@ -19,7 +19,7 @@
 
 // Dependencies
 const { CHARS: CFontsChars, FONTFACES: CFontsFontfaces } = require('../src/constants.js');
-const WinSize = require('window-size');
+const { Size } = require('../src/Size.js');
 const Readline = require('readline');
 const Chalk = require(`chalk`);
 const Path = require('path');
@@ -340,7 +340,7 @@ const Log = {
 	 * @param  {string} text - The name of the test
 	 */
 	headline: ( text ) => {
-		let space = Math.floor( ( WinSize.width - text.length - 6 ) / 2 );
+		let space = Math.floor( ( Size.width - text.length - 6 ) / 2 );
 		if( space < 0 ) {
 			space = 1;
 		}
