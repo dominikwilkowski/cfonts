@@ -55,6 +55,8 @@ test(`ParseArgs - Return defaults without arguments`, () => {
 		"version": false,
 	};
 
+	process.argv = ['node', 'script']; // we have to remove process.argv so args passed to our testing lib don't break our test
+
 	expect( ParseArgs( options, [ 'node', 'script' ] ) ).toEqual( result );
 	expect( ParseArgs( options, [] ) ).toEqual( result );
 	expect( ParseArgs( options ) ).toEqual( result );

@@ -41,6 +41,8 @@ test(`CLI - Calling Cli alone should output an error`, () => {
 	console.log = jest.fn();
 	console.error = jest.fn();
 
+	process.argv = ['node', 'script']; // we have to remove process.argv so args passed to our testing lib don't break our test
+
 	Cli();
 
 	expect( console.log.mock.calls.length ).toBe( 0 );
