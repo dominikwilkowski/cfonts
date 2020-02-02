@@ -11,8 +11,8 @@ node_js:
   - node
 
 jobs:
+  fast_finish: true
   include:
-    fast_finish: true
     - name: "Windows node 10 build"
       os: windows
       node_js: 10
