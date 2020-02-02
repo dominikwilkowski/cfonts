@@ -12,7 +12,47 @@ node_js:
 
 jobs:
   include:
+    fast_finish: true
+    - name: "Windows node 10 build"
+      os: windows
+      node_js: 10
+      cache: false     # windows cache uploads are slow
+      env: YARN_GPG=no # starts gpg-agent that never exits
+
+    - name: "Windows node 12 build"
+      os: windows
+      node_js: 12
+      cache: false     # windows cache uploads are slow
+      env: YARN_GPG=no # starts gpg-agent that never exits
+
+    - name: "Windows node latest build"
+      os: windows
+      node_js: node
+      cache: false     # windows cache uploads are slow
+      env: YARN_GPG=no # starts gpg-agent that never exits
+
     - stage: Produce Coverage
       node_js: node
       os: osx
       script: jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell -command 'Set-MpPreference -DisableRealtimeMonitoring $true'                                                           ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export NODEPATH=$(where.exe node.exe)                                                                                             ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export PROJECTDIR=$(pwd)                                                                                                          ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export YARNCACHE=$(yarn cache dir)                                                                                                ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export TEMPDIR=$LOCALAPPDATA\\Temp                                                                                                ; fi
+
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Add-MpPreference -ExclusionProcess ${NODEPATH}                                                                         ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Add-MpPreference -ExclusionPath ${YARNCACHE}                                                                           ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Add-MpPreference -ExclusionPath ${PROJECTDIR}                                                                          ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Add-MpPreference -ExclusionPath ${TEMPDIR}                                                                             ; fi
+
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then echo "DisableArchiveScanning..."                                                                                                  ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Start-Process -PassThru -Wait PowerShell -ArgumentList "'-Command Set-MpPreference -DisableArchiveScanning \$true'"    ; fi
+
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then echo "DisableBehaviorMonitoring..."                                                                                               ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Start-Process -PassThru -Wait PowerShell -ArgumentList "'-Command Set-MpPreference -DisableBehaviorMonitoring \$true'" ; fi
+
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then echo "DisableRealtimeMonitoring..."                                                                                               ; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then powershell Start-Process -PassThru -Wait PowerShell -ArgumentList "'-Command Set-MpPreference -DisableRealtimeMonitoring \$true'" ; fi
