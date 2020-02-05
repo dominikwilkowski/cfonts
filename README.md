@@ -158,7 +158,7 @@ Default value: `"block"`
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
 ```shell
-$ cfonts "text" -f "chrome"
+$ cfonts "text" --font "chrome"
 ```
 
 ![Font command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/font.png)
@@ -194,7 +194,7 @@ You can align your text in the terminal with this option. Use the keywords below
 - `right`
 
 ```shell
-$ cfonts "text" -a "center"
+$ cfonts "text" --align "center"
 ```
 
 ![Align command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/align.png)

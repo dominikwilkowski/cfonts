@@ -129,7 +129,7 @@ function Rgb2hex( r, g, b ) {
  *
  * @param  {string} hex - The HEX color
  *
- * @return {object}     - An object with RGB values
+ * @return {array}      - An object with RGB values
  */
 function Hex2rgb( hex ) {
 	hex = hex.replace(/^#/, '');
