@@ -42,11 +42,12 @@ const {
  *   @property  {number}          maxLength           - Maximum amount of characters per line, Default width of console window
  *   @property  {(string|array)}  gradient            - Gradient color pair, Default: false
  *   @property  {boolean}         independentGradient - A switch to calculate gradient per line or not
+ *   @property  {boolean}         transitionGradient  - A switch for transition gradients
  *
  * @return   {object}                                 - Our merged options
  */
 const GetOptions = (
-	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient },
+	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient, transitionGradient },
 	allowedColors = COLORS,
 	allowedBG = BGCOLORS,
 	allowedFont = FONTFACES
@@ -81,6 +82,7 @@ const GetOptions = (
 			: gradient.split(',')
 		: false,
 	independentGradient: independentGradient || false,
+	transitionGradient: transitionGradient || false,
 });
 
 

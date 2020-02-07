@@ -30,22 +30,23 @@ const {
 /**
  * Check input for human errors
  *
- * @param  {string} INPUT          - The string you want to write out
- * @param  {string} userFont       - The user specified font
- * @param  {array}  userColors     - The user specified colors
- * @param  {string} userBackground - The user specified background color
- * @param  {string} userAlign      - The user specified alignment option
- * @param  {array}  userGradient   - The user specified gradient option
- * @param  {object} fontfaces      - All allowed fontfaces
- * @param  {object} colors         - All allowed font colors
- * @param  {object} bgcolors       - All allowed background colors
- * @param  {array}  alignment      - All allowed alignments
+ * @param  {string}  INPUT                  - The string you want to write out
+ * @param  {string}  userFont               - The user specified font
+ * @param  {array}   userColors             - The user specified colors
+ * @param  {string}  userBackground         - The user specified background color
+ * @param  {string}  userAlign              - The user specified alignment option
+ * @param  {array}   userGradient           - The user specified gradient option
+ * @param  {boolean} userTransitionGradient - The user specified gradient transition option
+ * @param  {object}  fontfaces              - All allowed fontfaces
+ * @param  {object}  colors                 - All allowed font colors
+ * @param  {object}  bgcolors               - All allowed background colors
+ * @param  {array}   alignment              - All allowed alignments
  *
  * @typedef  {object} ReturnObject
- *   @property {boolean} pass      - Whether the input is valid
- *   @property {string}  message   - Possible error messages
+ *   @property {boolean} pass               - Whether the input is valid
+ *   @property {string}  message            - Possible error messages
  *
- * @return {ReturnObject}          - An object with error messages and a pass key
+ * @return {ReturnObject}                   - An object with error messages and a pass key
  */
 const CheckInput = (
 	INPUT,
@@ -54,6 +55,7 @@ const CheckInput = (
 	userBackground,
 	userAlign,
 	userGradient,
+	userTransitionGradient,
 	fontfaces = FONTFACES,
 	colors = COLORS,
 	bgcolors = BGCOLORS,
@@ -125,7 +127,15 @@ const CheckInput = (
 
 	// CHECKING GRADIENT
 	if( userGradient ) {
-		if( userGradient.length !== 2 ) {
+		if( userGradient.length < 2 ) {
+			return {
+				message: `"${ Chalk.red( userGradient ) }" is not a valid gradient option.\n` +
+					`Please pass in${ userTransitionGradient ? ' at least' : '' } two colors.`,
+				pass: false,
+			};
+		}
+
+		if( userGradient.length !== 2 && !userTransitionGradient ) {
 			return {
 				message: `"${ Chalk.red( userGradient ) }" is not a valid gradient option.\n` +
 					`Please pass in two colors.`,

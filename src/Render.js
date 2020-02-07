@@ -66,7 +66,7 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 	let lines = 0;     // for counting each line
 	let FONTFACE = {}; // scoping the fontface object higher for fonts with just one color
 
-	const _isGoodHuman = CheckInput( INPUT, OPTIONS.font, OPTIONS.colors, OPTIONS.background, OPTIONS.align, OPTIONS.gradient );
+	const _isGoodHuman = CheckInput( INPUT, OPTIONS.font, OPTIONS.colors, OPTIONS.background, OPTIONS.align, OPTIONS.gradient, OPTIONS.transitionGradient );
 	if( !_isGoodHuman.pass ) {
 		Log.error( _isGoodHuman.message );
 
@@ -198,6 +198,7 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 			lineHeight: OPTIONS.lineHeight,
 			fontLines: FONTFACE.lines,
 			independentGradient: OPTIONS.independentGradient,
+			transitionGradient: OPTIONS.transitionGradient,
 		});
 	}
 

@@ -82,6 +82,7 @@ const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 		maxLength: args['max-length'],
 		gradient: args.gradient,
 		independentGradient: args['independent-gradient'],
+		transitionGradient: args['transition-gradient'],
 	}, args.debug, args.debugLevel );
 };
 

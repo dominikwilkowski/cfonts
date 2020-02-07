@@ -285,6 +285,7 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		lineHeight: 0,
 		fontLines: 1,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 
 	expect( output1 ).toEqual([
@@ -301,6 +302,7 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		lineHeight: 0,
 		fontLines: 1,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 
 	expect( output2 ).toEqual([
@@ -317,6 +319,7 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		lineHeight: 0,
 		fontLines: 1,
 		independentGradient: true,
+		transitionGradient: false,
 	});
 
 	expect( output3 ).toEqual([

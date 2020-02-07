@@ -423,6 +423,7 @@ function TransitionBetweenHex( fromHex, toHex, steps ) {
 function Transition( colors, steps ) {
 	const gaps = GetGaps( colors, steps );
 	let hexColors = [];
+	colors = colors.map( color => Color2hex( color ) );
 
 	if( steps <= 1 ) {
 		return [ colors[ colors.length - 1 ] ];
@@ -455,16 +456,20 @@ function Transition( colors, steps ) {
  * @param  {number}  options.lineHeight          - The line height between lines
  * @param  {number}  options.fontLines           - The line height (line breaks) of a single font line
  * @param  {boolean} options.independentGradient - A switch to calculate gradient per line or not
+ * @param  {boolean} options.transitionGradient  - A switch for transition gradients
  *
  * @return {array}                               - The output array painted in ANSI colors
  */
-function PaintGradient({ output, gradient, lines, lineHeight, fontLines, independentGradient }) {
+function PaintGradient({ output, gradient, lines, lineHeight, fontLines, independentGradient, transitionGradient }) {
 	Debugging.report(`Running PaintGradient`, 1);
-	const gradientStart = Color2hex( gradient[ 0 ] );
-	const gradientEnd = Color2hex( gradient[ 1 ] );
 	let newOutput = [];
 
-	Debugging.report(`Gradient start: ${ gradientStart } | Gradient end: ${ gradientEnd }`, 2);
+	if( transitionGradient ) {
+		Debugging.report(`Gradient transition with colors: ${ JSON.stringify( gradient ) }`, 2);
+	}
+	else {
+		Debugging.report(`Gradient start: ${ gradient[ 0 ] } | Gradient end: ${ gradient[ 1 ] }`, 2);
+	}
 
 	let firstCharacterPosition;
 	let longestLine;
@@ -491,7 +496,10 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 
 		Debugging.report(`longestLine: ${ longestLine } | firstCharacterPosition: ${ firstCharacterPosition }`, 2);
 
-		const colors = GetGradientColors( gradientStart, gradientEnd, colorsNeeded );
+		const colors = transitionGradient
+			? Transition( gradient, colorsNeeded )
+			: GetGradientColors( Color2hex( gradient[ 0 ] ), Color2hex( gradient[ 1 ] ), colorsNeeded );
+
 		newOutput = [ ...newOutput, ...linesInbetween, ...PaintLines( thisLine, colors, firstCharacterPosition ) ];
 	}
 

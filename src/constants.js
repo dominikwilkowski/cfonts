@@ -180,9 +180,15 @@ const CLIOPTIONS = {
 		default: false,
 	},
 	'--independent-gradient': {
-		description: 'Use to define if a gradient is applied independently for each line',
+		description: 'Use to define that a gradient is applied independently for each line',
 		example: '--gradient red,blue --independent-gradient',
 		short: '-i',
+		default: false,
+	},
+	'--transition-gradient': {
+		description: 'Use to define that a gradient is a transition between the colors',
+		example: '--gradient red,blue,green --transition-gradient',
+		short: '-t',
 		default: false,
 	},
 	'--debug': {
