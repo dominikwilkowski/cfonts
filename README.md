@@ -158,7 +158,7 @@ Default value: `"block"`
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
 ```shell
-$ cfonts "text" -f "chrome"
+$ cfonts "text" --font "chrome"
 ```
 
 ![Font command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/font.png)
@@ -194,7 +194,7 @@ You can align your text in the terminal with this option. Use the keywords below
 - `right`
 
 ```shell
-$ cfonts "text" -a "center"
+$ cfonts "text" --align "center"
 ```
 
 ![Align command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/align.png)
@@ -244,6 +244,7 @@ Default value: `false`
 With this setting you can set a gradient over your output.  
 This setting supersedes the color open.  
 The gradient requires two colors, a start color and an end color from left to right.  
+_(If you want to set your own colors for the gradient, use the [transition](#-t---transition-gradient) option.)_  
 CFonts will then generate a gradient through as many colors as it can find to make the output most impressive.  
 Provide two colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
 If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
@@ -272,13 +273,30 @@ $ cfonts "text" --gradient red,"#f80"
 Type: `<boolean>`  
 Default value: `false`
 
-Set this option to re-calculate the gradient colors for each new line.
+Set this option to re-calculate the gradient colors for each new line.  
+Only works in combination with the [gradient](#-g---gradient) option.
 
 ```shell
 $ cfonts "text|next line" --gradient red,"#f80" --independentGradient
 ```
 
 ![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/independent-gradient.png)
+
+
+#### -t, --transition-gradient
+Type: `<boolean>`  
+Default value: `false`
+
+Set this option to generate your own gradients.
+Each color set in the gradient option will then be transitioned to directly.
+This option allows you to specify more than just two colors for your gradient.  
+Only works in combination with the [gradient](#-g---gradient) option.
+
+```shell
+$ cfonts "text" --gradient red,"#f80",green,blue --transition-gradient
+```
+
+![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/transition-gradient.png)
 
 
 #### -b, --background
@@ -377,7 +395,8 @@ FORCE_COLOR=3 cfonts "hello world" -c "#0088ff"
 ```
 
 ## Contributing
-To build the repo install dependencies via:
+To build the repo install dependencies via:  
+_(Since we ship a `yarn.lock` file please use [`yarn`](https://yarnpkg.com/) for development.)_
 
 ```shell
 yarn
@@ -386,23 +405,46 @@ yarn
 and run the watch to continuously transpile the code.
 
 ```shell
-npm run watch
+yarn watch
 ```
 
 Please look at the coding style and work with it, not against it ;)
 
 
-## Test
-The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/master/test/unit) and a
-[test suite](https://github.com/dominikwilkowski/cfonts/blob/master/test/fonttest.js) for font files.
+## Tests
+This package is tested on the below platform and node combinations as part of our [CI](https://github.com/dominikwilkowski/cfonts/tree/master/.travis.yml).
 
-Run the unit tests via:
+| Platform | Node   |
+|----------|--------|
+| Linux    | v10    |
+| Linux    | v12    |
+| Linux    | latest |
+| OSX      | v10    |
+| OSX      | v12    |
+| OSX      | latest |
+| Windows  | v10    |
+| Windows  | v12    |
+| Windows  | latest |
+
+### Unit tests
+The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/master/test/unit) that aim to cover 100% of the code base.
+For more details about the code coverage check out [coveralls](https://coveralls.io/github/dominikwilkowski/cfonts?branch=master).
 
 ```shell
 npm run test:unit
 ```
 
-Run the font test suite via:
+### Type tests
+Since the code base uses [JSDocs](https://jsdoc.app/) we use [typescript](https://www.typescriptlang.org/) to test the inferred types from those comments.
+Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our
+[test](https://github.com/dominikwilkowski/cfonts/blob/master/package.json#L38).
+
+```shell
+npm run test:types
+```
+
+### Font file test
+There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/master/test/fonttest.js) for font files.
 
 ```shell
 npm run test:fonts
@@ -416,7 +458,8 @@ This tool checks:
 	- consistent width
 	- consistent lines
 
-Or run all tests via:
+### All tests
+Run all tests via:
 
 ```shell
 npm run test
@@ -424,6 +467,7 @@ npm run test
 
 
 ## Release History
+* 2.6.0  -  added transition gradients and sets
 * 2.5.2  -  fixed jsDocs, added typescript type test
 * 2.5.1  -  fixed array output to include everything including colors
 * 2.5.0  -  added gradient option, separated code into files, added 100% unit testing coverage

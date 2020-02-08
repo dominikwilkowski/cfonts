@@ -47,6 +47,7 @@ test(`Render - Render console string`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -71,6 +72,7 @@ test(`Render - Render console string with a color`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -96,6 +98,7 @@ test(`Render - Render console string with gradient will ignore color`, () => {
 		maxLength: 0,
 		gradient: ['red','blue'],
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -159,6 +162,7 @@ test(`Render - Render block font`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -197,6 +201,7 @@ test(`Render - Render letter spacing`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 
 
@@ -233,6 +238,7 @@ test(`Render - Render letter spacing`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -271,6 +277,7 @@ test(`Render - Center align block font`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -309,6 +316,7 @@ test(`Render - Right align block font`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -358,6 +366,7 @@ test(`Render - Break into new line on smaller viewports`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -407,6 +416,7 @@ test(`Render - Add line break`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -457,6 +467,7 @@ test(`Render - Add line height`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -493,6 +504,7 @@ test(`Render - Non supported characters are ignored`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -528,6 +540,7 @@ test(`Render - Remove space`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 
@@ -566,6 +579,7 @@ test(`Render - Add background color`, () => {
 		maxLength: 0,
 		gradient: false,
 		independentGradient: false,
+		transitionGradient: false,
 	});
 });
 

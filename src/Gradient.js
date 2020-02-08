@@ -18,6 +18,7 @@
 
 const { GetFirstCharacterPosition } = require('./GetFirstCharacterPosition.js');
 const { GetLongestLine } = require('./GetLongestLine.js');
+const { GRADIENTS } = require('./constants.js');
 const { Debugging } = require('./Debugging.js');
 const { Color } = require('./Color.js');
 
@@ -129,7 +130,7 @@ function Rgb2hex( r, g, b ) {
  *
  * @param  {string} hex - The HEX color
  *
- * @return {object}     - An object with RGB values
+ * @return {array}      - An object with RGB values
  */
 function Hex2rgb( hex ) {
 	hex = hex.replace(/^#/, '');
@@ -363,6 +364,96 @@ function Color2hex( color ) {
 
 
 /**
+ * Calculate the gaps between an array of points
+ *
+ * @param  {array}  points - An array of points, it's not important what's in the array for this function
+ * @param  {number} steps  - The amount of steps we have to distribute between the above points
+ *
+ * @return {array}         - An array of steps per gap
+ */
+function GetGaps( points, steps ) {
+	// steps per gap
+	const gapSteps = Math.floor( ( steps - points.length ) / ( points.length - 1 ) );
+	// steps left over to be distributed
+	const rest = steps - ( points.length + gapSteps * ( points.length - 1 ) );
+	// the gaps array has one less items than our points (cause it's gaps between each of the points)
+	const gaps = Array( points.length - 1 ).fill( gapSteps );
+
+	// let's fill in the rest from the right
+	for( let i = 0; i < rest; i++ ) {
+		gaps[ gaps.length - 1 - i ] ++;
+	}
+
+	return gaps;
+}
+
+/**
+ * Generate colors between two given colors
+ *
+ * @param  {string} fromHex - The color we start from in hex
+ * @param  {string} toHex   - The color we end up at in hex
+ * @param  {number} steps   - How many colors should be returned
+ *
+ * @return {array}          - An array for colors
+ */
+function TransitionBetweenHex( fromHex, toHex, steps ) {
+	const fromRgb = Hex2rgb( fromHex );
+	const toRgb = Hex2rgb( toHex );
+	const hexColors = [];
+	steps ++;
+
+	for( let n = 1; n < steps; n++ ) {
+		const red = GetLinear( fromRgb[ 0 ], toRgb[ 0 ], n, steps );
+		const green = GetLinear( fromRgb[ 1 ], toRgb[ 1 ], n, steps );
+		const blue = GetLinear( fromRgb[ 2 ], toRgb[ 2 ], n, steps );
+
+		hexColors.push( Rgb2hex( red, green, blue ) );
+	}
+
+	return hexColors;
+}
+
+/**
+ * Generate n colors between x colors
+ *
+ * @param  {array}  colors    - An array of colors in hex
+ * @param  {number} steps     - The amount of colors to generate
+ * @param  {object} gradients - An object of pre-packaged gradient colors
+ *
+ * @return {array}            - An array of colors
+ */
+function Transition( colors, steps, gradients = GRADIENTS ) {
+	let hexColors = [];
+	if( colors.length === 1 ) {
+		colors = gradients[ colors[ 0 ].toLowerCase() ];
+	}
+	else {
+		colors = colors.map( color => Color2hex( color ) );
+	}
+	const gaps = GetGaps( colors, steps );
+
+	if( steps <= 1 ) {
+		return [ colors[ colors.length - 1 ] ];
+	}
+
+	for( let i = 0; i < colors.length; i++ ) {
+		const gap = gaps[ i - 1 ];
+
+		if( colors[ i - 1 ] ) {
+			const gapColors = TransitionBetweenHex( colors[ i - 1 ], colors[ i ], gap );
+			hexColors = [ ...hexColors, ...gapColors ];
+		}
+
+		if( gap !== -1 ) {
+			hexColors.push( colors[ i ] );
+		}
+	}
+
+	return hexColors;
+}
+
+
+/**
  * Paint finished output in a gradient
  *
  * @param  {object}  options                     - Arguments
@@ -372,16 +463,20 @@ function Color2hex( color ) {
  * @param  {number}  options.lineHeight          - The line height between lines
  * @param  {number}  options.fontLines           - The line height (line breaks) of a single font line
  * @param  {boolean} options.independentGradient - A switch to calculate gradient per line or not
+ * @param  {boolean} options.transitionGradient  - A switch for transition gradients
  *
  * @return {array}                               - The output array painted in ANSI colors
  */
-function PaintGradient({ output, gradient, lines, lineHeight, fontLines, independentGradient }) {
+function PaintGradient({ output, gradient, lines, lineHeight, fontLines, independentGradient, transitionGradient }) {
 	Debugging.report(`Running PaintGradient`, 1);
-	const gradientStart = Color2hex( gradient[ 0 ] );
-	const gradientEnd = Color2hex( gradient[ 1 ] );
 	let newOutput = [];
 
-	Debugging.report(`Gradient start: ${ gradientStart } | Gradient end: ${ gradientEnd }`, 2);
+	if( transitionGradient ) {
+		Debugging.report(`Gradient transition with colors: ${ JSON.stringify( gradient ) }`, 2);
+	}
+	else {
+		Debugging.report(`Gradient start: ${ gradient[ 0 ] } | Gradient end: ${ gradient[ 1 ] }`, 2);
+	}
 
 	let firstCharacterPosition;
 	let longestLine;
@@ -408,7 +503,10 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 
 		Debugging.report(`longestLine: ${ longestLine } | firstCharacterPosition: ${ firstCharacterPosition }`, 2);
 
-		const colors = GetGradientColors( gradientStart, gradientEnd, colorsNeeded );
+		const colors = transitionGradient
+			? Transition( gradient, colorsNeeded )
+			: GetGradientColors( Color2hex( gradient[ 0 ] ), Color2hex( gradient[ 1 ] ), colorsNeeded );
+
 		newOutput = [ ...newOutput, ...linesInbetween, ...PaintLines( thisLine, colors, firstCharacterPosition ) ];
 	}
 
@@ -430,5 +528,8 @@ module.exports = exports = {
 	GetGradientColors,
 	PaintLines,
 	Color2hex,
+	GetGaps,
+	TransitionBetweenHex,
+	Transition,
 	PaintGradient,
 };
