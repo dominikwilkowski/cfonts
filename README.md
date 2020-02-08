@@ -244,6 +244,7 @@ Default value: `false`
 With this setting you can set a gradient over your output.  
 This setting supersedes the color open.  
 The gradient requires two colors, a start color and an end color from left to right.  
+_(If you want to set your own colors for the gradient, use the [transition](#-t---transition-gradient) option.)_  
 CFonts will then generate a gradient through as many colors as it can find to make the output most impressive.  
 Provide two colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
 If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
@@ -272,13 +273,30 @@ $ cfonts "text" --gradient red,"#f80"
 Type: `<boolean>`  
 Default value: `false`
 
-Set this option to re-calculate the gradient colors for each new line.
+Set this option to re-calculate the gradient colors for each new line.  
+Only works in combination with the [gradient](#-g---gradient) option.
 
 ```shell
 $ cfonts "text|next line" --gradient red,"#f80" --independentGradient
 ```
 
 ![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/independent-gradient.png)
+
+
+#### -t, --transition-gradient
+Type: `<boolean>`  
+Default value: `false`
+
+Set this option to generate your own gradients.
+Each color set in the gradient option will then be transitioned to directly.
+This option allows you to specify more than just two colors for your gradient.  
+Only works in combination with the [gradient](#-g---gradient) option.
+
+```shell
+$ cfonts "text" --gradient red,"#f80",green,blue --transition-gradient
+```
+
+![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/transition-gradient.png)
 
 
 #### -b, --background
@@ -424,6 +442,7 @@ npm run test
 
 
 ## Release History
+* 2.6.0  -  added transition gradients and sets
 * 2.5.2  -  fixed jsDocs, added typescript type test
 * 2.5.1  -  fixed array output to include everything including colors
 * 2.5.0  -  added gradient option, separated code into files, added 100% unit testing coverage

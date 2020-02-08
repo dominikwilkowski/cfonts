@@ -18,6 +18,7 @@
 
 const { GetFirstCharacterPosition } = require('./GetFirstCharacterPosition.js');
 const { GetLongestLine } = require('./GetLongestLine.js');
+const { GRADIENTS } = require('./constants.js');
 const { Debugging } = require('./Debugging.js');
 const { Color } = require('./Color.js');
 
@@ -415,15 +416,21 @@ function TransitionBetweenHex( fromHex, toHex, steps ) {
 /**
  * Generate n colors between x colors
  *
- * @param  {array}  colors - An array of colors in hex
- * @param  {number} steps  - The amount of colors to generate
+ * @param  {array}  colors    - An array of colors in hex
+ * @param  {number} steps     - The amount of colors to generate
+ * @param  {object} gradients - An object of pre-packaged gradient colors
  *
- * @return {array}         - An array of colors
+ * @return {array}            - An array of colors
  */
-function Transition( colors, steps ) {
-	const gaps = GetGaps( colors, steps );
+function Transition( colors, steps, gradients = GRADIENTS ) {
 	let hexColors = [];
-	colors = colors.map( color => Color2hex( color ) );
+	if( colors.length === 1 ) {
+		colors = gradients[ colors[ 0 ].toLowerCase() ];
+	}
+	else {
+		colors = colors.map( color => Color2hex( color ) );
+	}
+	const gaps = GetGaps( colors, steps );
 
 	if( steps <= 1 ) {
 		return [ colors[ colors.length - 1 ] ];

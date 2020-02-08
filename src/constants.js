@@ -86,6 +86,24 @@ const GRADIENTCOLORS = {
 	white: 'white',
 };
 
+const GRADIENTS = {
+	lgbt: [ '#750787', '#004dff', '#008026', '#ffed00', '#ff8c00', '#e40303' ],
+	lgbtq: [ '#750787', '#004dff', '#008026', '#ffed00', '#ff8c00', '#e40303' ],
+	pride: [ '#750787', '#004dff', '#008026', '#ffed00', '#ff8c00', '#e40303' ],
+	agender: [ '#000000', '#b9b9b9', '#ffffff', '#b8f483', '#ffffff', '#b9b9b9', '#000000' ],
+	aromantic: [ '#3da542', '#a7d379', '#ffffff', '#a9a9a9', '#000000' ],
+	asexual: [ '#000000', '#a3a3a3', '#ffffff', '#800080' ],
+	bisexual: [ '#d60270', '#d60270', '#9b4f96', '#0038a8', '#0038a8' ],
+	genderfluid: [ '#ff75a2', '#ffffff', '#be18d6', '#000000', '#333ebd' ],
+	genderqueer: [ '#b57edc', '#ffffff', '#4a8123' ],
+	intersex: [ '#ffd800', '#ffd800', '#7902aa', '#ffd800', '#ffd800' ],
+	lesbian: [ '#d52d00', '#ff9a56', '#ffffff', '#d362a4', '#a30262' ],
+	nonbinary: [ '#fcf434', '#ffffff', '#9c5cd4', '#2c2c2c' ],
+	pansexual: [ '#ff218c', '#ffd800', '#21b1ff' ],
+	polysexual: [ '#f61cb9', '#07d569', '#1c92f6' ],
+	transgender: [ '#5bcefa', '#f5a9b8', '#ffffff', '#f5a9b8', '#5bcefa' ],
+};
+
 const ALIGNMENT = [
 	'left',
 	'center',
@@ -216,6 +234,7 @@ module.exports = exports = {
 	COLORS,
 	BGCOLORS,
 	GRADIENTCOLORS,
+	GRADIENTS,
 	ALIGNMENT,
 	FONTFACES,
 	CLIOPTIONS,

@@ -10,6 +10,7 @@ const {
 	COLORS,
 	BGCOLORS,
 	GRADIENTCOLORS,
+	GRADIENTS,
 	ALIGNMENT,
 	FONTFACES,
 	CLIOPTIONS,
@@ -34,6 +35,11 @@ test(`BGCOLORS - Should have n number of colors defined`, () => {
 
 test(`GRADIENTCOLORS - Should have n number of colors defined`, () => {
 	expect( Object.keys( GRADIENTCOLORS ).length > 0 ).toEqual( true );
+});
+
+
+test(`GRADIENTS - Should have n number of colors defined`, () => {
+	expect( Object.keys( GRADIENTS ).length > 0 ).toEqual( true );
 });
 
 

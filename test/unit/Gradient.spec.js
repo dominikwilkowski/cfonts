@@ -263,7 +263,7 @@ test(`Gradient - Transition - Should return colors between multiple`, () => {
 	expect( Transition( ['#ff0000', '#00ff00', '#0000ff'], 2 ) ).toEqual( [ '#ff0000', '#0000ff' ] );
 	expect( Transition( ['#ff0000', '#00ff00', '#0000ff'], 3 ) ).toEqual( [ '#ff0000', '#00ff00', '#0000ff' ] );
 	expect( Transition( ['#ff0000', '#00ff00', '#0000ff'], 4 ) ).toEqual( [ '#ff0000', '#00ff00', '#007f7f', '#0000ff' ] );
-	expect( Transition( ['#ff0000', '#00ff00', '#0000ff'], 10 ) ).toEqual( [
+	expect( Transition( ['#ff0000', '#00ff00', '#0000ff'], 10 ) ).toEqual([
 		'#ff0000',
 		'#bf3f00',
 		'#7f7f00',
@@ -274,7 +274,10 @@ test(`Gradient - Transition - Should return colors between multiple`, () => {
 		'#006699',
 		'#0033cc',
 		'#0000ff',
-	] );
+	]);
+
+	expect( Transition( ['set2'], 2, { set2: [ '#ff0000', '#0000ff' ] } ) ).toEqual( [ '#ff0000', '#0000ff' ] );
+	expect( Transition( ['set2'], 4, { set2: [ '#ff0000', '#0000ff' ] } ) ).toEqual( [ '#ff0000', '#aa0055', '#5500aa', '#0000ff' ] );
 });
 
 test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
@@ -327,5 +330,41 @@ test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
 		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
 		' \u001b[38;2;0;0;255mx\u001b[39m',
+	]);
+});
+
+test(`Gradient - PaintGradient - Should paint multi-line output for transitions`, () => {
+	const output1 = PaintGradient({
+		output: ['x','xxx','xxx','x'],
+		gradient: ['red','blue'],
+		lines: 4,
+		lineHeight: 0,
+		fontLines: 1,
+		independentGradient: false,
+		transitionGradient: true,
+	});
+
+	expect( output1 ).toEqual([
+		'\u001b[38;2;255;0;0mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;127;0;127mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;127;0;127mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m',
+	]);
+
+	const output2 = PaintGradient({
+		output: [' x','xxxxxxxx','xxx','x'],
+		gradient: ['pride'],
+		lines: 4,
+		lineHeight: 0,
+		fontLines: 1,
+		independentGradient: false,
+		transitionGradient: true,
+	});
+
+	expect( output2 ).toEqual([
+		'\u001b[38;2;117;7;135m \u001b[39m\u001b[38;2;0;77;255mx\u001b[39m',
+		'\u001b[38;2;117;7;135mx\u001b[39m\u001b[38;2;0;77;255mx\u001b[39m\u001b[38;2;0;128;38mx\u001b[39m\u001b[38;2;255;237;0mx\u001b[39m\u001b[38;2;255;188;0mx\u001b[39m\u001b[38;2;255;140;0mx\u001b[39m\u001b[38;2;241;71;1mx\u001b[39m\u001b[38;2;228;3;3mx\u001b[39m',
+		'\u001b[38;2;117;7;135mx\u001b[39m\u001b[38;2;0;77;255mx\u001b[39m\u001b[38;2;0;128;38mx\u001b[39m',
+		'\u001b[38;2;117;7;135mx\u001b[39m',
 	]);
 });
