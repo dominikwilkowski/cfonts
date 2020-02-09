@@ -8,8 +8,23 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
- * Gradient
- *   Generate the most colorful delta between two colors
+ * Rgb2hsv              - Converts an RGB color value to HSV
+ * Hsv2rgb              - Converts an HSV color value to RGB
+ * Rgb2hex              - Converts RGB to HEX
+ * Hex2rgb              - Convert HEX to RGB
+ * Hsv2hsvRad           - Convert HSV coordinate to HSVrad (degree to radian)
+ * HsvRad2hsv           - Convert HSVrad color to HSV (radian to degree)
+ * Hex2hsvRad           - Convert HEX to HSVrad
+ * HsvRad2hex           - Convert HSVrad to HEX
+ * GetLinear            - Interpolate a linear path from a number to another number
+ * GetTheta             - Interpolate a radial path from a number to another number
+ * GetGradientColors    - Generate the most colorful delta between two colors
+ * PaintLines           - Take a bunch of lines and color them in the colors provided
+ * Color2hex            - Make sure a color is hex
+ * GetGaps              - Calculate the gaps between an array of points
+ * TransitionBetweenHex - Generate colors between two given colors
+ * Transition           - Generate n colors between x colors
+ * PaintGradient        - Paint finished output in a gradient
  *
  **************************************************************************************************************************************************************/
 
@@ -23,7 +38,7 @@ const { Debugging } = require('./Debugging.js');
 const { Color } = require('./Color.js');
 
 /**
- * Converts an RGB color value to HSV.
+ * Converts an RGB color value to HSV
  *
  * @author https://github.com/Gavin-YYC/colorconvert
  *
@@ -68,7 +83,7 @@ function Rgb2hsv({ r, g, b }) {
 }
 
 /**
- * Converts an HSV color value to RGB.
+ * Converts an HSV color value to RGB
  *
  * @author https://github.com/Gavin-YYC/colorconvert
  *
@@ -499,7 +514,7 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 		const colorsNeeded = longestLine - firstCharacterPosition;
 		const linesInbetween = i === 0
 			? []
-			: Array( lineHeight ).fill('\n');
+			: Array( lineHeight ).fill('');
 
 		Debugging.report(`longestLine: ${ longestLine } | firstCharacterPosition: ${ firstCharacterPosition }`, 2);
 

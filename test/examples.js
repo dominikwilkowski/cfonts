@@ -67,6 +67,26 @@ CFonts.say('Hi|world!', {
 	independentGradient: true,
 });
 
+CFonts.say('Hi|world!', {
+	gradient: ['red','green'],
+	transitionGradient: true,
+});
+
+CFonts.say('Hi|world!', {
+	gradient: ['red','green'],
+	independentGradient: true,
+	transitionGradient: true,
+});
+
+CFonts.say('KeystoneJS', {
+	font: 'chrome',
+	colors: ['cyan', 'yellow', '#ffa500'],
+	letterSpacing: 1,
+	lineHeight: 1,
+	space: true,
+	maxLength: '0',
+});
+
 
 // for issue #13
 Array.prototype.foo = () => { return 0; };

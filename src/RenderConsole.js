@@ -38,12 +38,12 @@ const { Size } = require('./Size.js');
  * @return {ReturnObject}        - An object with the output and the line breaks
  */
 const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
+	const width = OPTIONS.maxLength < size.width && OPTIONS.maxLength !== 0
+		? OPTIONS.maxLength
+		: size.width;
+	let lines = 0;
 	let output = [];
 	let i = 0;
-
-	// the defaults need to cramp a little so console doesn't look silly
-	OPTIONS.letterSpacing = OPTIONS.letterSpacing <= 1 ? 0 : OPTIONS.letterSpacing - 1;
-	OPTIONS.lineHeight = OPTIONS.lineHeight <= 1 ? 0 : OPTIONS.lineHeight - 1;
 
 	let space = '';
 	if( OPTIONS.letterSpacing > 0 ) {
@@ -51,12 +51,11 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 	}
 
 	// we have to add our letter spacing first
-	let outputLines = INPUT
+	const outputLines = INPUT
 		.replace( /(?:\r\n|\r|\n)/g, '|' )
 		.split( '|' )
 		.map( line =>
 			line
-				.trim()
 				.split('')
 				.join( space )
 	);
@@ -65,9 +64,9 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 	while( i < outputLines.length ) {
 		let line = outputLines[ i ];
 
-		if( line.length > size.width ) {
-			outputLines[ i ] = line.slice( 0, size.width ).trim();
-			outputLines.splice( i + 1, 0, line.slice( size.width ).trim() );
+		if( line.length > width ) {
+			outputLines[ i ] = line.slice( 0, width );
+			outputLines.splice( i + 1, 0, line.slice( width ) );
 			line = outputLines[ i ];
 		}
 
@@ -83,14 +82,17 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 		}
 
 		output = AlignText( output, line.length, 1, OPTIONS.align, size );
-		output = AddLine( output, 0, [''], OPTIONS.lineHeight );
+		if( i !== outputLines.length - 1 ) {
+			output = [ ...output, ...Array( OPTIONS.lineHeight ).fill('') ];
+		}
 
+		lines++;
 		i++;
 	}
 
 	return {
 		output,
-		lines: output.length,
+		lines,
 	};
 };
 

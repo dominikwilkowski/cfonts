@@ -168,14 +168,14 @@ const CLIOPTIONS = {
 		example: '--letter-spacing 2',
 		short: '-l',
 		options: true,
-		default: 1,
+		default: undefined,
 	},
 	'--line-height': {
 		description: 'Use to define your line height',
 		example: '--line-height 5',
 		short: '-z',
 		options: true,
-		default: 1,
+		default: undefined,
 	},
 	'--spaceless': {
 		description: 'Use to disable the padding around your output',
