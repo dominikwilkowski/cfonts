@@ -467,6 +467,7 @@ npm run test
 
 
 ## Release History
+* 2.6.1  -  fixed console `maxLength`, `gradient` and `lineHeight`, added more end-to-end tests
 * 2.6.0  -  added transition gradients and sets
 * 2.5.2  -  fixed jsDocs, added typescript type test
 * 2.5.1  -  fixed array output to include everything including colors

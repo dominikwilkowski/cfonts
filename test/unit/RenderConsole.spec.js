@@ -13,8 +13,8 @@ test(`RenderConsole - Should output default text`, () => {
 	const test = RenderConsole( 'test', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
 	expect( test.output ).toEqual( ['test'] );
@@ -26,8 +26,8 @@ test(`RenderConsole - Should work with default Size`, () => {
 	const test = RenderConsole( 'x', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	});
 
 	expect( test.output ).toEqual( ['x'] );
@@ -39,8 +39,8 @@ test(`RenderConsole - Should output multi-line text`, () => {
 	const test = RenderConsole( 'test|test', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
 	expect( test.output ).toEqual( ['test', 'test'] );
@@ -52,11 +52,11 @@ test(`RenderConsole - Should output long text`, () => {
 	const test = RenderConsole( 'this is a very long line to test multi lines', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 10, height: 10 } );
 
-	expect( test.output ).toEqual( ['this is a', 'very long', 'line to te', 'st multi l', 'ines'] );
+	expect( test.output ).toEqual( ['this is a ', 'very long ', 'line to te', 'st multi l', 'ines'] );
 	expect( test.lines ).toEqual( 5 );
 });
 
@@ -65,8 +65,8 @@ test(`RenderConsole - Should center align text`, () => {
 	const test = RenderConsole( 'center', {
 		align: 'center',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 10, height: 10 } );
 
 	expect( test.output ).toEqual( ['  center'] );
@@ -78,8 +78,8 @@ test(`RenderConsole - Should right align text`, () => {
 	const test = RenderConsole( 'right', {
 		align: 'right',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 10, height: 10 } );
 
 	expect( test.output ).toEqual( ['     right'] );
@@ -92,30 +92,30 @@ test(`RenderConsole - Should insert letter spacing`, () => {
 		align: 'left',
 		colors: [],
 		letterSpacing: 2,
-		lineHeight: 1,
+		lineHeight: 0,
 	}, { width: 10, height: 10 } );
 
-	expect( test1.output ).toEqual( ['t e x t'] );
+	expect( test1.output ).toEqual( ['t  e  x  t'] );
 	expect( test1.lines ).toEqual( 1 );
 
 	const test2 = RenderConsole( 'text', {
 		align: 'left',
 		colors: [],
 		letterSpacing: 3,
-		lineHeight: 1,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
-	expect( test2.output ).toEqual( ['t  e  x  t'] );
+	expect( test2.output ).toEqual( ['t   e   x   t'] );
 	expect( test2.lines ).toEqual( 1 );
 
 	const test3 = RenderConsole( 'text', {
 		align: 'left',
 		colors: [],
 		letterSpacing: 10,
-		lineHeight: 1,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
-	expect( test3.output ).toEqual( ['t         e         x         t'] );
+	expect( test3.output ).toEqual( ['t          e          x          t'] );
 	expect( test3.lines ).toEqual( 1 );
 });
 
@@ -125,30 +125,30 @@ test(`RenderConsole - Should insert letter spacing with multi lines`, () => {
 		align: 'left',
 		colors: [],
 		letterSpacing: 2,
-		lineHeight: 1,
+		lineHeight: 0,
 	}, { width: 10, height: 10 } );
 
-	expect( test1.output ).toEqual( ['t e x t', 't e x t'] );
+	expect( test1.output ).toEqual( ['t  e  x  t', 't  e  x  t'] );
 	expect( test1.lines ).toEqual( 2 );
 
 	const test2 = RenderConsole( 'text|text', {
 		align: 'left',
 		colors: [],
 		letterSpacing: 3,
-		lineHeight: 1,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
-	expect( test2.output ).toEqual( ['t  e  x  t', 't  e  x  t'] );
+	expect( test2.output ).toEqual( ['t   e   x   t', 't   e   x   t'] );
 	expect( test2.lines ).toEqual( 2 );
 
 	const test3 = RenderConsole( 'text|text', {
 		align: 'left',
 		colors: [],
 		letterSpacing: 10,
-		lineHeight: 1,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
-	expect( test3.output ).toEqual( ['t         e         x         t', 't         e         x         t'] );
+	expect( test3.output ).toEqual( ['t          e          x          t', 't          e          x          t'] );
 	expect( test3.lines ).toEqual( 2 );
 });
 
@@ -157,32 +157,32 @@ test(`RenderConsole - Should insert line height`, () => {
 	const test1 = RenderConsole( 'text', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
-		lineHeight: 2,
+		letterSpacing: 0,
+		lineHeight: 1,
 	}, { width: 100, height: 10 } );
 
-	expect( test1.output ).toEqual( ['text', ''] );
-	expect( test1.lines ).toEqual( 2 );
+	expect( test1.output ).toEqual( ['text'] );
+	expect( test1.lines ).toEqual( 1 );
 
-	const test2 = RenderConsole( 'text', {
+	const test2 = RenderConsole( 'text|text', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 3,
 	}, { width: 100, height: 10 } );
 
-	expect( test2.output ).toEqual( ['text', '', ''] );
-	expect( test2.lines ).toEqual( 3 );
+	expect( test2.output ).toEqual( ['text', '', '', '','text'] );
+	expect( test2.lines ).toEqual( 2 );
 
-	const test3 = RenderConsole( 'text', {
+	const test3 = RenderConsole( 'text|text', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 10,
 	}, { width: 100, height: 10 } );
 
-	expect( test3.output ).toEqual( ['text', '', '', '', '', '', '', '', '', ''] );
-	expect( test3.lines ).toEqual( 10 );
+	expect( test3.output ).toEqual( ['text', '', '', '', '', '', '', '', '', '', '', 'text'] );
+	expect( test3.lines ).toEqual( 2 );
 });
 
 
@@ -190,36 +190,38 @@ test(`RenderConsole - Should insert line height between lines`, () => {
 	const test1 = RenderConsole( 'text|text|text', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 2,
 	}, { width: 100, height: 10 } );
 
-	expect( test1.output ).toEqual( ['text', '', 'text', '', 'text', ''] );
-	expect( test1.lines ).toEqual( 6 );
+	expect( test1.output ).toEqual( ['text', '', '', 'text', '', '', 'text'] );
+	expect( test1.lines ).toEqual( 3 );
 
 	const test2 = RenderConsole( 'text|text|text', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 3,
 	}, { width: 100, height: 10 } );
 
-	expect( test2.output ).toEqual( ['text', '', '', 'text', '', '', 'text', '', ''] );
-	expect( test2.lines ).toEqual( 9 );
+	expect( test2.output ).toEqual( ['text', '', '', '', 'text', '', '', '', 'text'] );
+	expect( test2.lines ).toEqual( 3 );
 
 	const test3 = RenderConsole( 'text|text|text', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 10,
 	}, { width: 100, height: 10 } );
 
 	expect( test3.output ).toEqual([
-		'text', '', '', '', '', '', '', '', '', '',
-		'text', '', '', '', '', '', '', '', '', '',
-		'text', '', '', '', '', '', '', '', '', '',
+		'text',
+		'', '', '', '', '', '', '', '', '', '',
+		'text',
+		'', '', '', '', '', '', '', '', '', '',
+		'text',
 	]);
-	expect( test3.lines ).toEqual( 30 );
+	expect( test3.lines ).toEqual( 3 );
 });
 
 
@@ -227,35 +229,36 @@ test(`RenderConsole - Should insert line height for long lines`, () => {
 	const test1 = RenderConsole( 'this is a long line', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 2,
 	}, { width: 10, height: 10 } );
 
-	expect( test1.output ).toEqual( ['this is a', '', 'long line', ''] );
-	expect( test1.lines ).toEqual( 4 );
+	expect( test1.output ).toEqual( ['this is a ', '', '', 'long line'] );
+	expect( test1.lines ).toEqual( 2 );
 
 	const test2 = RenderConsole( 'this is a long line', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 3,
 	}, { width: 10, height: 10 } );
 
-	expect( test2.output ).toEqual( ['this is a', '', '', 'long line', '', ''] );
-	expect( test2.lines ).toEqual( 6 );
+	expect( test2.output ).toEqual( ['this is a ', '', '', '', 'long line'] );
+	expect( test2.lines ).toEqual( 2 );
 
 	const test3 = RenderConsole( 'this is a long line', {
 		align: 'left',
 		colors: [],
-		letterSpacing: 1,
+		letterSpacing: 0,
 		lineHeight: 10,
 	}, { width: 10, height: 10 } );
 
 	expect( test3.output ).toEqual([
-		'this is a', '', '', '', '', '', '', '', '', '',
-		'long line', '', '', '', '', '', '', '', '', '',
+		'this is a ',
+		'', '', '', '', '', '', '', '', '', '',
+		'long line',
 	]);
-	expect( test3.lines ).toEqual( 20 );
+	expect( test3.lines ).toEqual( 2 );
 });
 
 
@@ -263,8 +266,8 @@ test(`RenderConsole - Should output colored text`, () => {
 	const test = RenderConsole( 'test', {
 		align: 'left',
 		colors: ['red'],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
 	expect( test.output ).toEqual( ['\u001b[38;2;255;0;0mtest\u001b[39m'] );
@@ -276,11 +279,39 @@ test(`RenderConsole - Should output candy colored text`, () => {
 	const test = RenderConsole( 'test', {
 		align: 'left',
 		colors: ['candy'],
-		letterSpacing: 1,
-		lineHeight: 1,
+		letterSpacing: 0,
+		lineHeight: 0,
 	}, { width: 100, height: 10 } );
 
 	expect( StripColor( test.output[ 0 ] ) ).toEqual( 'test' );
 	expect( require('util').inspect( test.output[ 0 ] ).length > 'test'.length ).toEqual( true );
 	expect( test.lines ).toEqual( 1 );
+});
+
+
+test(`RenderConsole - Should respect small window size`, () => {
+	const test = RenderConsole( 'testing long test', {
+		align: 'left',
+		colors: [],
+		letterSpacing: 0,
+		lineHeight: 0,
+		maxLength: 8,
+	}, { width: 7, height: 10 } );
+
+	expect( test.output ).toEqual([ 'testing', ' long t', 'est' ]);
+	expect( test.lines ).toEqual( 3 );
+});
+
+
+test(`RenderConsole - Should respect small maxLength over window size`, () => {
+	const test = RenderConsole( 'testing long test', {
+		align: 'left',
+		colors: [],
+		letterSpacing: 0,
+		lineHeight: 0,
+		maxLength: 5,
+	}, { width: 7, height: 10 } );
+
+	expect( test.output ).toEqual([ 'testi', 'ng lo', 'ng te', 'st' ]);
+	expect( test.lines ).toEqual( 4 );
 });

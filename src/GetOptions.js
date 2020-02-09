@@ -47,12 +47,12 @@ const {
  * @return   {object}                                 - Our merged options
  */
 const GetOptions = (
-	{ font, align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient, transitionGradient },
+	{ font = '', align, colors, background, backgroundColor, letterSpacing, lineHeight, space, maxLength, gradient, independentGradient, transitionGradient },
 	allowedColors = COLORS,
 	allowedBG = BGCOLORS,
 	allowedFont = FONTFACES
 ) => ({
-	font: font === undefined
+	font: font === ''
 		? 'block'
 		: allowedFont[ font.toLowerCase() ] || font,
 	align: align === undefined
@@ -66,11 +66,13 @@ const GetOptions = (
 		: background === undefined
 			? allowedBG[ backgroundColor.toLowerCase() ] || backgroundColor
 			: allowedBG[ background.toLowerCase() ] || background,
-	letterSpacing: typeof letterSpacing !== 'undefined' && letterSpacing > 0
+	letterSpacing: typeof letterSpacing !== 'undefined'
 		? parseInt( letterSpacing.toString() )
-		: 1,
+		: 0,
 	lineHeight: lineHeight === undefined
-		? 1
+		? font.toLowerCase() === 'console'
+			? 0
+			: 1
 		: parseInt( lineHeight.toString() ),
 	space: typeof space === 'boolean'
 		? space
