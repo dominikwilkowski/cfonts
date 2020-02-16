@@ -1,6 +1,6 @@
 {
 	"name": "simple3d",
-	"version": "0.0.3",
+	"version": "0.1.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"colors": 1,
 	"lines": 7,
@@ -517,6 +517,15 @@
 			"     ",
 			"     ",
 			"     "
+		],
+		"\"": [
+			"  _   _  ",
+			"/\\ \\/\\ \\ ",
+			"\\ \\/\\ \\/ ",
+			" \\/  \\/  ",
+			"         ",
+			"         ",
+			"         "
 		],
 		" ": [
 			"       ",

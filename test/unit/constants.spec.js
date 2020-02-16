@@ -18,8 +18,8 @@ const {
 } = require('../../src/constants.js');
 
 
-test(`CHARS - Should have 56 characters defined`, () => {
-	expect( CHARS.length ).toEqual( 57 );
+test(`CHARS - Should have 58 characters defined`, () => {
+	expect( CHARS.length ).toEqual( 58 );
 });
 
 

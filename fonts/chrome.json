@@ -1,6 +1,6 @@
 {
 	"name": "chrome",
-	"version": "0.0.2",
+	"version": "0.1.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"colors": 3,
 	"lines": 3,
@@ -289,6 +289,11 @@
 			"<c1>╗</c1>",
 			"<c1> </c1>",
 			"<c3> </c3>"
+		],
+		"\"": [
+			"<c1>╗╗</c1>",
+			"<c1>  </c1>",
+			"<c3>  </c3>"
 		],
 		" ": [
 			"    ",

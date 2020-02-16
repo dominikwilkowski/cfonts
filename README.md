@@ -90,21 +90,21 @@ $ cfonts --help
 
 |     |     |     |     |             |
 |-----|-----|-----|-----|-------------|
-| `A` | `O` | `2` | `2` | `=`         |
-| `B` | `P` | `3` | `3` | `@`         |
-| `C` | `Q` | `4` | `4` | `#`         |
-| `D` | `R` | `5` | `5` | `$`         |
-| `E` | `S` | `6` | `6` | `%`         |
-| `F` | `T` | `7` | `7` | `&`         |
-| `G` | `U` | `8` | `8` | `(`         |
-| `H` | `V` | `9` | `9` | `)`         |
-| `I` | `W` | `!` | `!` | `/`         |
-| `J` | `X` | `?` | `?` | `:`         |
-| `K` | `Y` | `.` | `.` | `;`         |
-| `L` | `Z` | `+` | `+` | `,`         |
-| `M` | `0` | `-` | `-` | `'`         |
-| `N` | `1` | `_` | `_` | ` ` (space) |
-
+| `A` | `P` | `4` | `5` | `%`         |
+| `B` | `Q` | `5` | `6` | `&`         |
+| `C` | `R` | `6` | `7` | `(`         |
+| `D` | `S` | `7` | `8` | `)`         |
+| `E` | `T` | `8` | `9` | `/`         |
+| `F` | `U` | `9` | `!` | `:`         |
+| `G` | `V` | `!` | `?` | `;`         |
+| `H` | `W` | `?` | `.` | `,`         |
+| `I` | `X` | `.` | `+` | `'`         |
+| `J` | `Y` | `+` | `-` | `"`         |
+| `K` | `Z` | `-` | `_` | ` ` (space) |
+| `L` | `0` | `_` | `=` | |
+| `M` | `1` | `2` | `@` | |
+| `N` | `2` | `3` | `#` | |
+| `O` | `3` | `4` | `$` | |
 
 _The `|` character will be replaced with a line break_
 
@@ -165,6 +165,12 @@ $ cfonts "text" --font "chrome"
 
 - `block`       [colors: 2] _(default)_
 	![block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/block.png)
+- `slick`       [colors: 2]
+	![slick font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/slick.png)
+- `grid`        [colors: 2]
+	![grid font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/grid.png)
+- `pallet`      [colors: 2]
+	![pallet font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/pallet.png)
 - `shade`       [colors: 2]
 	![shade font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/shade.png)
 - `chrome`      [colors: 3]
@@ -467,6 +473,7 @@ npm run test
 
 
 ## Release History
+* 2.7.0  -  added font `slick`, `grid` and `pallet`, added double quote to all fonts
 * 2.6.1  -  fixed console `maxLength`, `gradient` and `lineHeight`, added more end-to-end tests
 * 2.6.0  -  added transition gradients and sets
 * 2.5.2  -  fixed jsDocs, added typescript type test
