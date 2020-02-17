@@ -46,7 +46,10 @@ const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 		`    letterSpacing: ${ args['letter-spacing'] },\n` +
 		`    lineHeight: ${ args['line-height'] },\n` +
 		`    space: ${ !args.spaceless },\n` +
-		`    maxLength: ${ args['max-length'] }\n` +
+		`    maxLength: ${ args['max-length'] },\n` +
+		`    gradient: ${ args.gradient },\n` +
+		`    independentGradient: ${ args['independent-gradient'] },\n` +
+		`    transitionGradient: ${ args['transition-gradient'] },\n` +
 		`  }, ${ args.debug }, ${ args.debugLevel } );`,
 		3,
 		args.debug,
