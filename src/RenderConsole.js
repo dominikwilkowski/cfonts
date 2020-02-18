@@ -81,7 +81,9 @@ const RenderConsole = ( INPUT, OPTIONS, size = Size ) => {
 			output.push( Colorize( line, 1, OPTIONS.colors ) );
 		}
 
-		output = AlignText( output, line.length, 1, OPTIONS.align, size );
+		if( OPTIONS.env !== 'browser' ) {
+			output = AlignText( output, line.length, 1, OPTIONS.align, size );
+		}
 		if( i !== outputLines.length - 1 ) {
 			output = [ ...output, ...Array( OPTIONS.lineHeight ).fill('') ];
 		}

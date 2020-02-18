@@ -24,6 +24,7 @@ beforeEach(() => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	};
 	Options.set = DEFAULTS;
 });
@@ -64,6 +65,7 @@ test(`Render - Render console string`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -89,6 +91,7 @@ test(`Render - Render console string with a color`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -115,6 +118,7 @@ test(`Render - Render console string with gradient will ignore color`, () => {
 		gradient: ['red','blue'],
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -179,6 +183,7 @@ test(`Render - Render block font`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -218,6 +223,7 @@ test(`Render - Render letter spacing`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 
 
@@ -255,6 +261,7 @@ test(`Render - Render letter spacing`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -294,6 +301,7 @@ test(`Render - Center align block font`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -333,6 +341,7 @@ test(`Render - Right align block font`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -383,6 +392,134 @@ test(`Render - Break into new line on smaller viewports`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
+	});
+});
+
+
+test(`Render - Fallback to huge viewport in browser environments`, () => {
+	const test = Render( 'text', { env: 'browser' }, false, 1, { width: 20, height: 10 });
+
+	expect( test.string ).toBe(
+		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:transparent">\n\n' +
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ <br>' +
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ <br>' +
+		'    ██║    █████╗    ╚███╔╝     ██║    <br>' +
+		'    ██║    ██╔══╝    ██╔██╗     ██║    <br>' +
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    <br>' +
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n</div>'
+	);
+	expect( test.array ).toEqual([
+		'\n\n ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
+		'    ██║    █████╗    ╚███╔╝     ██║    ',
+		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n',
+	]);
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'browser',
+	});
+});
+
+
+test(`Render - Respect maxLength over viewport in browser env`, () => {
+	const test = Render( 'text', { maxLength: 20, env: 'browser' }, false, 1, { width: 100, height: 10 });
+
+	expect( test.string ).toBe(
+		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:transparent">\n\n' +
+		' ████████╗ ███████╗ <br>' +
+		' ╚══██╔══╝ ██╔════╝ <br>' +
+		'    ██║    █████╗   <br>' +
+		'    ██║    ██╔══╝   <br>' +
+		'    ██║    ███████╗ <br>' +
+		'    ╚═╝    ╚══════╝ <br><br>' +
+		' ██╗  ██╗ ████████╗ <br>' +
+		' ╚██╗██╔╝ ╚══██╔══╝ <br>' +
+		'  ╚███╔╝     ██║    <br>' +
+		'  ██╔██╗     ██║    <br>' +
+		' ██╔╝ ██╗    ██║    <br>' +
+		' ╚═╝  ╚═╝    ╚═╝    \n\n</div>'
+	);
+	expect( test.array ).toEqual([
+		'\n\n ████████╗ ███████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ',
+		'    ██║    █████╗   ',
+		'    ██║    ██╔══╝   ',
+		'    ██║    ███████╗ ',
+		'    ╚═╝    ╚══════╝ ',
+		'',
+		' ██╗  ██╗ ████████╗ ',
+		' ╚██╗██╔╝ ╚══██╔══╝ ',
+		'  ╚███╔╝     ██║    ',
+		'  ██╔██╗     ██║    ',
+		' ██╔╝ ██╗    ██║    ',
+		' ╚═╝  ╚═╝    ╚═╝    \n\n',
+	]);
+	expect( test.lines ).toBe( 2 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 20,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'browser',
+	});
+});
+
+
+test(`Render - Add background color in browser environments`, () => {
+	const test = Render( 'text', { background: 'black', env: 'browser' }, false, 1, { width: 100, height: 100 });
+
+	expect( test.string ).toBe(
+		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:#000">\n\n' +
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ <br>' +
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ <br>' +
+		'    ██║    █████╗    ╚███╔╝     ██║    <br>' +
+		'    ██║    ██╔══╝    ██╔██╗     ██║    <br>' +
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    <br>' +
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n</div>'
+	);
+	expect( test.array ).toEqual([
+		'\n\n ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
+		'    ██║    █████╗    ╚███╔╝     ██║    ',
+		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n',
+	]);
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'black',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'browser',
 	});
 });
 
@@ -433,6 +570,7 @@ test(`Render - Add line break`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -484,6 +622,7 @@ test(`Render - Add line height`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -521,6 +660,7 @@ test(`Render - Non supported characters are ignored`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -557,6 +697,7 @@ test(`Render - Remove space`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 
@@ -596,6 +737,7 @@ test(`Render - Add background color`, () => {
 		gradient: false,
 		independentGradient: false,
 		transitionGradient: false,
+		env: 'node',
 	});
 });
 

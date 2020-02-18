@@ -64,6 +64,7 @@
 		"lodash": ">=4.17.11"
 	},
 	"jest": {
+		"displayName": "CFonts",
 		"testEnvironment": "node",
 		"testRegex": "\\.spec.js$",
 		"collectCoverageFrom": [

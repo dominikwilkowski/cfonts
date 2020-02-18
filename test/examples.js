@@ -13,8 +13,10 @@
 'use strict';
 
 const CFonts = require('../lib/index.js');
+const path = require('path');
+const fs = require('fs');
 
-let prettyFont = CFonts.render('H', {
+const prettyFont = CFonts.render('H', {
 	font: 'console',
 	colors: ['red'],
 });
@@ -83,6 +85,62 @@ CFonts.say('KeystoneJS', {
 	space: true,
 	maxLength: '0',
 });
+
+const prettyFont2 = CFonts.render('New|Line|with a really long last line to see how page wrapping works', {
+	font: 'slick',
+	gradient: ['cyan', 'red'],
+	background: 'black',
+	space: false,
+	maxLength: 100,
+	env: 'browser',
+});
+
+const prettyFont3 = CFonts.render('New|Line|with a really long last line to see how page wrapping works', {
+	font: 'grid',
+	colors: ['cyan', 'gray'],
+	background: 'black',
+	align: 'center',
+	env: 'browser',
+});
+
+const prettyFont4 = CFonts.render('New|Line|with a really long last line to see how page wrapping works', {
+	font: 'pallet',
+	gradient: ['red', 'red'],
+	maxLength: 50,
+	env: 'browser',
+});
+
+const prettyFont5 = CFonts.render('New|Line|with a really long last line to see how page wrapping works', {
+	font: 'console',
+	colors: ['white'],
+	background: 'cyan',
+	align: 'right',
+	env: 'browser',
+});
+
+const html = `
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>CFonts browser test</title>
+</head>
+<body style="background:#f1f1f1">
+<h1>CFonts browser test</h1>
+<h2>Font one</h2>
+${ prettyFont2.string }
+<h2>Font two</h2>
+${ prettyFont3.string }
+<h2>Font three</h2>
+${ prettyFont4.string }
+<h2>Font four</h2>
+${ prettyFont5.string }
+</body>
+</html>
+`;
+
+const check = fs.writeFileSync( path.normalize(`${ __dirname }/test.html`), html, { encoding: 'utf8' } );
 
 
 // for issue #13

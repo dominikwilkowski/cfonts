@@ -212,6 +212,13 @@ const CLIOPTIONS = {
 		short: '-t',
 		default: false,
 	},
+	'--env': {
+		description: 'Use to define what environment you run CFonts in.',
+		example: `--env ${ Chalk.green('"node", "browser"') }`,
+		short: '-e',
+		options: true,
+		default: 'node',
+	},
 	'--debug': {
 		description: 'Use to enable debug mode',
 		example: '--debug',

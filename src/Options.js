@@ -28,18 +28,25 @@ const {
  * @type {Object}
  */
 const Options = {
-	store: {
-		font: 'block',
-		align: 'left',
-		colors: [],
-		background: 'transparent',
-		letterSpacing: 1,
-		lineHeight: 1,
-		space: true,
-		maxLength: 0,
-		gradient: false,
-		independentGradient: false,
-		transitionGradient: false,
+	store: {},
+
+	reset() {
+		const defaults = {
+			font: 'block',
+			align: 'left',
+			colors: [],
+			background: 'transparent',
+			letterSpacing: 1,
+			lineHeight: 1,
+			space: true,
+			maxLength: 0,
+			gradient: false,
+			independentGradient: false,
+			transitionGradient: false,
+			env: 'node',
+		};
+
+		this.store = { ...defaults }; // cloning
 	},
 
 	/**
@@ -67,6 +74,7 @@ const Options = {
 	 * @param  {(string|array|boolean)}  options.gradient            - Gradient color pair, Default: false
 	 * @param  {boolean}                 options.independentGradient - A switch to calculate gradient per line or not
 	 * @param  {boolean}                 options.transitionGradient  - A switch for transition gradients
+	 * @param  {string}                  options.env                 - The environment we run cfonts in
 	 * @param  {object}                  options.allowedColors       - All allowed font colors
 	 * @param  {object}                  options.allowedBG           - All allowed background colors
 	 * @param  {object}                  options.allowedFont         - All allowed fontfaces
@@ -84,6 +92,7 @@ const Options = {
 		gradient,
 		independentGradient,
 		transitionGradient,
+		env,
 		allowedColors = COLORS,
 		allowedBG = BGCOLORS,
 		allowedFont = FONTFACES,
@@ -140,6 +149,10 @@ const Options = {
 		this.store.transitionGradient = transitionGradient !== undefined
 			? transitionGradient
 			: this.store.transitionGradient;
+
+		this.store.env = env !== undefined
+			? env
+			: this.store.env;
 	},
 };
 

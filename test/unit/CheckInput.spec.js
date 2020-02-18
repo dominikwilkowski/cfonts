@@ -19,12 +19,12 @@ test(`CheckInput - Should pass with correct input`, () => {
 		'set3': ['color1', 'color2'],
 	};
 
-	expect( CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font2', ['color2', 'candy'], 'bgcolor2', 'center', false, false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['color3'], 'bgcolor3', 'right', ['#ff8800','color3'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', ['color1','#ff8800'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['color1'], 'bgcolor2', 'right', ['color1','#ff8800', 'color1', 'color2', 'color3'], true, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['color1'], 'bgcolor2', 'right', ['set1'], true, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font2', ['color2', 'candy'], 'bgcolor2', 'center', false, false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['color3'], 'bgcolor3', 'right', ['#ff8800','color3'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', ['color1','#ff8800'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['color1'], 'bgcolor2', 'right', ['color1','#ff8800', 'color1', 'color2', 'color3'], true, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['color1'], 'bgcolor2', 'right', ['set1'], true, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
 });
 
 
@@ -39,11 +39,11 @@ test(`CheckInput - Should be able to work out casing automatically`, () => {
 		'set3': ['color1', 'color2'],
 	};
 
-	expect( CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font2', ['color2', 'candy'], 'bgcolor2', 'center', false, false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['color3'], 'bgcolor3', 'right', ['#ff8800','color3'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', ['color1','#ff8800'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
-	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', ['sEt2'], true, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font2', ['color2', 'candy'], 'bgcolor2', 'center', false, false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['color3'], 'bgcolor3', 'right', ['#ff8800','color3'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', ['color1','#ff8800'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
+	expect( CheckInput( 'INPUT', 'font3', ['candy'], 'bgcolor3', 'right', ['sEt2'], true, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT ).pass ).toEqual( true );
 });
 
 
@@ -58,51 +58,55 @@ test(`CheckInput - Should fail with wrong input`, () => {
 		'set3': ['color1', 'color2'],
 	};
 
-	const fail = CheckInput( undefined, 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail = CheckInput( undefined, 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail.pass ).toEqual( false );
 	expect( fail.message.length > 0 ).toEqual( true );
 
-	const fail0 = CheckInput( '', 'font1', ['color1'], 'bgcolor1', 'left', false, false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail0 = CheckInput( '', 'font1', ['color1'], 'bgcolor1', 'left', false, false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail0.pass ).toEqual( false );
 	expect( fail0.message.length > 0 ).toEqual( true );
 
-	const fail1 = CheckInput( 'INPUT', 'notfound', ['color1'], 'bgcolor1', 'left', ['#ff8800','color3'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail1 = CheckInput( 'INPUT', 'notfound', ['color1'], 'bgcolor1', 'left', ['#ff8800','color3'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail1.pass ).toEqual( false );
 	expect( fail1.message.length > 0 ).toEqual( true );
 
-	const fail2 = CheckInput( 'INPUT', 'font1', ['notfound'], 'bgcolor1', 'left', ['color1','#ff8800'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail2 = CheckInput( 'INPUT', 'font1', ['notfound'], 'bgcolor1', 'left', ['color1','#ff8800'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail2.pass ).toEqual( false );
 	expect( fail2.message.length > 0 ).toEqual( true );
 
-	const fail3 = CheckInput( 'INPUT', 'font1', ['color1'], 'notfound', 'left', false, false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail3 = CheckInput( 'INPUT', 'font1', ['color1'], 'notfound', 'left', false, false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail3.pass ).toEqual( false );
 	expect( fail3.message.length > 0 ).toEqual( true );
 
-	const fail4 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'notfound', false, false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail4 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'notfound', false, false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail4.pass ).toEqual( false );
 	expect( fail4.message.length > 0 ).toEqual( true );
 
-	const fail5 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail5 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail5.pass ).toEqual( false );
 	expect( fail5.message.length > 0 ).toEqual( true );
 
-	const fail6 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['notfound','color1'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail6 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['notfound','color1'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail6.pass ).toEqual( false );
 	expect( fail6.message.length > 0 ).toEqual( true );
 
-	const fail7 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color2','#egz'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail7 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color2','#egz'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail7.pass ).toEqual( false );
 	expect( fail7.message.length > 0 ).toEqual( true );
 
-	const fail8 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2','color3'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail8 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2','color3'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail8.pass ).toEqual( false );
 	expect( fail8.message.length > 0 ).toEqual( true );
 
-	const fail9 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1'], true, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail9 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1'], true, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail9.pass ).toEqual( false );
 	expect( fail9.message.length > 0 ).toEqual( true );
 
-	const fail10 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['set2'], false, FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	const fail10 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['set2'], false, 'node', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
 	expect( fail10.pass ).toEqual( false );
 	expect( fail10.message.length > 0 ).toEqual( true );
+
+	const fail11 = CheckInput( 'INPUT', 'font1', ['color1'], 'bgcolor1', 'left', ['color1','color2'], false, 'shnode', FONTFACES, COLORS, BGCOLORS, COLORS, GRADIENTS, ALIGNMENT );
+	expect( fail11.pass ).toEqual( false );
+	expect( fail11.message.length > 0 ).toEqual( true );
 });
