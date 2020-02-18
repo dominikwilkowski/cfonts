@@ -22,11 +22,11 @@ const { PaintGradient } = require('./Gradient.js');
 const { CharLength } = require('./CharLength.js');
 const { CheckInput } = require('./CheckInput.js');
 const { CleanInput } = require('./CleanInput.js');
-const { GetOptions } = require('./GetOptions.js');
 const { AlignText } = require('./AlignText.js');
 const { Colorize } = require('./Colorize.js');
 const { AddLine } = require('./AddLine.js');
 const { AddChar } = require('./AddChar.js');
+const { Options } = require('./Options.js');
 const { GetFont } = require('./GetFont.js');
 const { CHARS } = require('./constants.js');
 const { Color } = require('./Color.js');
@@ -60,7 +60,8 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 	DEBUG.level = debuglevel;
 
 	const INPUT = CleanInput( input, CHARS );
-	const OPTIONS = GetOptions( SETTINGS );
+	Options.set = SETTINGS;
+	const OPTIONS = Options.get;
 
 	let output = [];   // for output where each line is an output line
 	let lines = 0;     // for counting each line

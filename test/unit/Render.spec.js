@@ -5,11 +5,27 @@
  **************************************************************************************************************************************************************/
 
 
+const { Options } = require('../../src/Options.js');
 const { Render } = require('../../src/Render.js');
 
 
 beforeEach(() => {
 	jest.resetModules();
+
+	const DEFAULTS = {
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+	};
+	Options.set = DEFAULTS;
 });
 
 
