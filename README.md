@@ -169,6 +169,8 @@ $ cfonts "text" --font "chrome"
 	![block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/block.png)
 - `slick`       [colors: 2]
 	![slick font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/slick.png)
+- `tiny`        [colors: 1]
+	![tiny font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/tiny.png)
 - `grid`        [colors: 2]
 	![grid font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/grid.png)
 - `pallet`      [colors: 2]
