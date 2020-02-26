@@ -510,7 +510,7 @@ npm run test
 
 
 ## Release History
-* 2.7.8  -  added environment support, added font `tiny`
+* 2.8.0  -  added environment support, added font `tiny`
 * 2.7.0  -  added font `slick`, `grid` and `pallet`, added double quote to all fonts
 * 2.6.1  -  fixed console `maxLength`, `gradient` and `lineHeight`, added more end-to-end tests
 * 2.6.0  -  added transition gradients and sets
