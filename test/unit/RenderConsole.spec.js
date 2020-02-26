@@ -5,8 +5,8 @@
  **************************************************************************************************************************************************************/
 
 
-const StripColor = require('./_common.js').StripColor;
 const { RenderConsole } = require('../../src/RenderConsole.js');
+const StripColor = require('./_common.js').StripColor;
 
 
 test(`RenderConsole - Should output default text`, () => {
@@ -70,6 +70,20 @@ test(`RenderConsole - Should center align text`, () => {
 	}, { width: 10, height: 10 } );
 
 	expect( test.output ).toEqual( ['  center'] );
+	expect( test.lines ).toEqual( 1 );
+});
+
+
+test(`RenderConsole - Should not center align text when in browser environment`, () => {
+	const test = RenderConsole( 'center', {
+		align: 'center',
+		colors: [],
+		letterSpacing: 0,
+		lineHeight: 0,
+		env: 'browser',
+	}, { width: 10, height: 10 } );
+
+	expect( test.output ).toEqual( ['center'] );
 	expect( test.lines ).toEqual( 1 );
 });
 

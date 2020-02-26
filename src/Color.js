@@ -18,6 +18,7 @@
 const { UpperCaseFirst } = require('./UpperCaseFirst.js');
 const { Debugging } = require('./Debugging.js');
 const { HEXTEST } = require('./constants.js');
+const { Options } = require('./Options.js');
 const { Chalk } = require('./Chalk.js');
 
 
@@ -39,35 +40,76 @@ const Color = ( color, bg = false ) => {
 		return { open: '', close: '' };
 	}
 
-	// bail if this is a chalk defined color
-	if( color.includes('Bright') ) {
-		if( bg ) {
-			color = `bg${ UpperCaseFirst( color ) }`;
+	const OPTIONS = Options.get;
+
+	if( OPTIONS.env === 'node' ) {
+
+		// bail if this is a chalk defined color
+		if( color.includes('Bright') ) {
+			if( bg ) {
+				color = `bg${ UpperCaseFirst( color ) }`;
+			}
+
+			return {
+				open: Chalk[ color ]._styler.open,
+				close: Chalk[ color ]._styler.close,
+			};
+		}
+
+		const kind = HEXTEST.test( color )
+			? 'hex'
+			: `${ bg ? 'bgK' : 'k' }eyword`;
+
+		let styles;
+		try {
+			styles = Chalk[ kind ]( color )._styler;
+		}
+		catch( error ) {
+			Debugging.error(`The color ${ Chalk.yellow( color ) } could not be found. Sorry about this.`);
+			return { open: '', close: '' };
 		}
 
 		return {
-			open: Chalk[ color ]._styler.open,
-			close: Chalk[ color ]._styler.close,
+			open: styles.open,
+			close: styles.close,
 		};
 	}
+	else {
+		const COLORS = {
+			black: '#000',
+			red: '#ea3223',
+			green: '#377d22',
+			yellow: '#fffd54',
+			blue: '#0020f5',
+			magenta: '#ea3df7',
+			cyan: '#74fbfd',
+			white: '#fff',
+			gray: '#808080',
+			redbright: '#ee776d',
+			greenbright: '#8cf57b',
+			yellowbright: '#fffb7f',
+			bluebright: '#6974f6',
+			magentabright: '#ee82f8',
+			cyanbright: '#8dfafd',
+			whitebright: '#fff',
+		};
 
-	const kind = HEXTEST.test( color )
-		? 'hex'
-		: `${ bg ? 'bgK' : 'k' }eyword`;
+		if( !HEXTEST.test( color ) ) {
+			color = COLORS[ color.toLowerCase() ];
+		}
 
-	let styles;
-	try {
-		styles = Chalk[ kind ]( color )._styler;
+		if( bg ) {
+			return {
+				open: color,
+				close: '',
+			};
+		}
+
+		return {
+			open: `<span style="color:${ color }">`,
+			close: '</span>',
+		}
 	}
-	catch( error ) {
-		Debugging.error(`The color ${ Chalk.yellow( color ) } could not be found. Sorry about this.`);
-		return { open: '', close: '' };
-	}
-
-	return {
-		open: styles.open,
-		close: styles.close,
-	};
 };
 
 

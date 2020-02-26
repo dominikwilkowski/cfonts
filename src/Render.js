@@ -22,11 +22,11 @@ const { PaintGradient } = require('./Gradient.js');
 const { CharLength } = require('./CharLength.js');
 const { CheckInput } = require('./CheckInput.js');
 const { CleanInput } = require('./CleanInput.js');
-const { GetOptions } = require('./GetOptions.js');
 const { AlignText } = require('./AlignText.js');
 const { Colorize } = require('./Colorize.js');
 const { AddLine } = require('./AddLine.js');
 const { AddChar } = require('./AddChar.js');
+const { Options } = require('./Options.js');
 const { GetFont } = require('./GetFont.js');
 const { CHARS } = require('./constants.js');
 const { Color } = require('./Color.js');
@@ -60,13 +60,15 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 	DEBUG.level = debuglevel;
 
 	const INPUT = CleanInput( input, CHARS );
-	const OPTIONS = GetOptions( SETTINGS );
+	Options.reset();
+	Options.set = SETTINGS;
+	const OPTIONS = Options.get;
 
 	let output = [];   // for output where each line is an output line
 	let lines = 0;     // for counting each line
 	let FONTFACE = {}; // scoping the fontface object higher for fonts with just one color
 
-	const _isGoodHuman = CheckInput( INPUT, OPTIONS.font, OPTIONS.colors, OPTIONS.background, OPTIONS.align, OPTIONS.gradient, OPTIONS.transitionGradient );
+	const _isGoodHuman = CheckInput( INPUT, OPTIONS.font, OPTIONS.colors, OPTIONS.background, OPTIONS.align, OPTIONS.gradient, OPTIONS.transitionGradient, OPTIONS.env );
 	if( !_isGoodHuman.pass ) {
 		Log.error( _isGoodHuman.message );
 
@@ -88,6 +90,12 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		}
 
 		Debugging.report( outOption, 3 );
+	}
+
+
+	if( OPTIONS.env === 'browser' ) {
+		size = { ...size }; // we clone so we don't make changes to this object across multiple instances
+		size.width = OPTIONS.maxLength === 0 ? 999999999999 : OPTIONS.maxLength;
 	}
 
 
@@ -161,7 +169,9 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 					`Size.width: ${ size.width } `, 2
 				);
 
-				output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align, size ); // calculate alignment based on lineLength
+				if( OPTIONS.env === 'node' ) {
+					output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align, size ); // calculate alignment based on lineLength
+				}
 
 				lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
 				lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
@@ -187,7 +197,9 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 			}
 		}
 
-		output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align, size ); // alignment last line
+		if( OPTIONS.env === 'node' ) {
+			output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align, size ); // alignment last line
+		}
 	}
 
 	if( OPTIONS.gradient ) {
@@ -207,14 +219,22 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n`;
 	}
 
-	if( OPTIONS.background !== 'transparent' ) {
+	if( OPTIONS.background !== 'transparent' && OPTIONS.env === 'node' ) {
 		const { open: openNew, close: closeNew } = Color( OPTIONS.background, true );
 
 		output[ 0 ] = `${ openNew }\n${ output[ 0 ] }`;
 		output[ output.length - 1 ] = `${ output[ output.length - 1 ] }${ closeNew }`;
 	}
 
-	let write = output.join(`\n`);
+	let write = output.join( OPTIONS.env === 'node' ? `\n` : '<br>' );
+
+	if( OPTIONS.env === 'browser' ) {
+		const { open: bgColor } = Color( OPTIONS.background, true );
+
+		write = `<div style="font-family:monospace;white-space:pre;text-align:${ OPTIONS.align };max-width:100%;overflow:scroll;background:${ bgColor ? bgColor : 'transparent' }">` +
+		`${ write }` +
+		`</div>`;
+	}
 
 	return {
 		string: write,

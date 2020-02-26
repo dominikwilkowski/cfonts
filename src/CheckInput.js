@@ -38,6 +38,7 @@ const {
  * @param  {string}  userAlign              - The user specified alignment option
  * @param  {array}   userGradient           - The user specified gradient option
  * @param  {boolean} userTransitionGradient - The user specified gradient transition option
+ * @param  {string}  userEnv                - The user specified environment
  * @param  {object}  fontfaces              - All allowed fontfaces
  * @param  {object}  colors                 - All allowed font colors
  * @param  {object}  bgcolors               - All allowed background colors
@@ -59,6 +60,7 @@ const CheckInput = (
 	userAlign,
 	userGradient,
 	userTransitionGradient,
+	userEnv,
 	fontfaces = FONTFACES,
 	colors = COLORS,
 	bgcolors = BGCOLORS,
@@ -171,6 +173,15 @@ const CheckInput = (
 				}
 			});
 		}
+	}
+
+	// CHECKING ENVIRONMENT
+	if( userEnv !== 'node' && userEnv !== 'browser' ) {
+		return {
+			message: `"${ Chalk.red( userEnv ) }" is not a valid environment option.\n` +
+				`Please use onlythe supported options:\n${ Chalk.green('node | browser') }`,
+			pass: false,
+		};
 	}
 
 	return result;

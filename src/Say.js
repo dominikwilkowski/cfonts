@@ -17,7 +17,6 @@
 
 const { Debugging, DEBUG } = require('./Debugging.js');
 const { Render } = require('./Render.js');
-const { Chalk } = require('./Chalk.js');
 const { Size } = require('./Size.js');
 
 

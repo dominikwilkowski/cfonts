@@ -123,6 +123,7 @@ const FONTFACES = {
 	slick: 'slick',
 	grid: 'grid',
 	pallet: 'pallet',
+	tiny: 'tiny',
 };
 
 const CLIOPTIONS = {
@@ -211,6 +212,13 @@ const CLIOPTIONS = {
 		example: '--gradient red,blue,green --transition-gradient',
 		short: '-t',
 		default: false,
+	},
+	'--env': {
+		description: 'Use to define what environment you run CFonts in.',
+		example: `--env ${ Chalk.green('"node", "browser"') }`,
+		short: '-e',
+		options: true,
+		default: 'node',
 	},
 	'--debug': {
 		description: 'Use to enable debug mode',

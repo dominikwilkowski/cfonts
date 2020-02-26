@@ -6,9 +6,28 @@
 
 
 const { CLIOPTIONS } = require('../../src/constants.js');
+const { Options } = require('../../src/Options.js');
 const { Cli } = require('../../src/index.js');
 const PKG = require('../../package.json');
 
+
+beforeEach(() => {
+	const DEFAULTS = {
+		font: 'block',
+		align: 'left',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+	};
+
+	Options.set = DEFAULTS;
+});
 
 const options = {
 	'--1': {
@@ -256,13 +275,15 @@ test(`CLI - Should log the right two dots with max-length set`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\n\n     \n' +
+		'\n\n' +
+		'     \n' +
 		'     \n' +
 		'     \n' +
 		'     \n' +
 		' ██╗ \n' +
 		' ╚═╝ \n' +
-		'\n     \n' +
+		'\n' +
+		'     \n' +
 		'     \n' +
 		'     \n' +
 		'     \n' +

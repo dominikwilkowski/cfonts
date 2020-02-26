@@ -51,6 +51,8 @@ CFonts.say('Hello|world!', {
 	maxLength: '0',             // define how many character can be on one line
 	gradient: false,            // define your two gradient colors
 	independentGradient: false, // define if you want to recalculate the gradient for each new line
+	transitionGradient: false,  // define if this is a transition between colors directly
+	env: 'node'                 // define the environment CFonts is being executed in
 });
 ```
 
@@ -283,7 +285,7 @@ Set this option to re-calculate the gradient colors for each new line.
 Only works in combination with the [gradient](#-g---gradient) option.
 
 ```shell
-$ cfonts "text|next line" --gradient red,"#f80" --independentGradient
+$ cfonts "text|next line" --gradient red,"#f80" --independent-gradient
 ```
 
 ![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/independent-gradient.png)
@@ -391,6 +393,39 @@ $ cfonts "text" --max-length 15
 ![Max length command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/max-length.png)
 
 
+#### -e, --env
+Type: `<string>`  
+Default value: `node`
+
+This option let's you use CFonts to generate HTML instead of ANSI code.  
+Note that `max-length` won't be automatically detected anymore and you will have to supply it if you want the text to wrap.
+Best used in a node script.
+
+```js
+const CFonts = require('cfonts');
+const path = require('path');
+const fs = require('fs');
+
+const output = CFonts.render('My text', {
+	colors: ['white'],
+	gradient: ['cyan', 'red'],
+	background: 'black',
+	space: false,
+	env: 'browser',
+});
+
+fs.writeFileSync(
+	path.normalize(`${ __dirname }/test.html`),
+	output.string,
+	{
+		encoding: 'utf8',
+	}
+);
+```
+
+![Max length command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/master/img/env.png)
+
+
 ## Consistency
 [Chalk](https://github.com/chalk/chalk) detects what colors are supported on your platform.
 It sets a [level of support](https://github.com/chalk/chalk#256-and-truecolor-color-support) automatically.
@@ -473,6 +508,7 @@ npm run test
 
 
 ## Release History
+* 2.7.8  -  added environment support, added font `tiny`
 * 2.7.0  -  added font `slick`, `grid` and `pallet`, added double quote to all fonts
 * 2.6.1  -  fixed console `maxLength`, `gradient` and `lineHeight`, added more end-to-end tests
 * 2.6.0  -  added transition gradients and sets

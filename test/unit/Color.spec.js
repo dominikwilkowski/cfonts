@@ -5,6 +5,7 @@
  **************************************************************************************************************************************************************/
 
 
+const { Options } = require('../../src/Options.js');
 const { Color } = require('../../src/Color.js');
 
 
@@ -123,4 +124,43 @@ test(`Color - Return empty object when FORCE_COLOR env var is set to 0`, () => {
 	expect( Color( 'redBright' ) ).toEqual( output );
 	expect( Color( 'yellow', true ) ).toEqual( output );
 	process.env.FORCE_COLOR = 3;
+});
+
+
+test(`Color - Return named colors for browser environment`, () => {
+	Options.reset();
+	Options.set = { env: 'browser' };
+
+	const output = {
+		open: '<span style="color:#ea3223">',
+		close: '</span>',
+	};
+
+	expect( Color( 'red' ) ).toEqual( output );
+});
+
+
+test(`Color - Return hex colors for browser environment`, () => {
+	Options.reset();
+	Options.set = { env: 'browser' };
+
+	const output = {
+		open: '<span style="color:#ff0000">',
+		close: '</span>',
+	};
+
+	expect( Color( '#ff0000' ) ).toEqual( output );
+});
+
+
+test(`Color - Return background colors for browser environment`, () => {
+	Options.reset();
+	Options.set = { env: 'browser' };
+
+	const output = {
+		open: '#ea3223',
+		close: '',
+	};
+
+	expect( Color( 'red', true ) ).toEqual( output );
 });
