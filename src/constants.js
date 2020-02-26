@@ -123,6 +123,7 @@ const FONTFACES = {
 	slick: 'slick',
 	grid: 'grid',
 	pallet: 'pallet',
+	tiny: 'tiny',
 };
 
 const CLIOPTIONS = {
