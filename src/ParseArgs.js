@@ -71,7 +71,7 @@ const ParseArgs = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 		else {
 			Debugging.report( `The cli argument ${ args[ index ] } was not found and ignored`, 2 );
 		}
-	};
+	}
 
 	return parsedArgs;
 };

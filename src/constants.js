@@ -24,7 +24,6 @@
 'use strict';
 
 const { Chalk } = require('./Chalk.js');
-const path = require('path');
 
 
 // global defaults
@@ -235,7 +234,7 @@ const CLIOPTIONS = {
 	},
 };
 
-const PACKAGE = require(path.normalize(`${ __dirname }/../package.json`));
+const PACKAGE = require('../package.json');
 
 const HEXTEST = RegExp('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$');
 

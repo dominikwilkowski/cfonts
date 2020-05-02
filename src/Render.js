@@ -23,7 +23,6 @@ const { CharLength } = require('./CharLength.js');
 const { CheckInput } = require('./CheckInput.js');
 const { CleanInput } = require('./CleanInput.js');
 const { AlignText } = require('./AlignText.js');
-const { Colorize } = require('./Colorize.js');
 const { AddLine } = require('./AddLine.js');
 const { AddChar } = require('./AddChar.js');
 const { Options } = require('./Options.js');

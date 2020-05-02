@@ -77,7 +77,7 @@ function Rgb2hsv({ r, g, b }) {
 	}
 	else { // if( max === b ) {
 		h = 60 * ( ( r - g ) / diff ) + 240;
-	};
+	}
 
 	return [ h, ( s * 100 ), ( v * 100 ) ];
 }
@@ -334,7 +334,6 @@ function PaintLines( lines, colors, firstCharacterPosition ) {
 
 	Debugging.report( colors, 2 );
 
-	const output = [];
 	const space = ' '.repeat( firstCharacterPosition );
 
 	return lines

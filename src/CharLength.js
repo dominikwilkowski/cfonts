@@ -38,7 +38,7 @@ const CharLength = ( character, fontLines, letterSpacing ) => {
 		if( char.length > charWidth ) {
 			charWidth = char.length; // assign only largest
 		}
-	};
+	}
 
 	if( charWidth === 0 && letterSpacing > 0 ) {
 		Debugging.report( `CharLength: Adding space to letter spacing`, 1 );

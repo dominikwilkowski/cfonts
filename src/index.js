@@ -15,7 +15,6 @@
 
 'use strict';
 
-const { AddLetterSpacing } = require('./AddLetterSpacing.js');
 const { DisplayVersion } = require('./DisplayVersion.js');
 const { DisplayHelp } = require('./DisplayHelp.js');
 const { CLIOPTIONS } = require('./constants.js');
