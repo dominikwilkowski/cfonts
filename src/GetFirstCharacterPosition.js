@@ -30,7 +30,7 @@ function GetFirstCharacterPosition( lines ) {
 	);
 
 	return ( earliest.length - earliest.trimStart().length );
-};
+}
 
 
 module.exports = exports = {

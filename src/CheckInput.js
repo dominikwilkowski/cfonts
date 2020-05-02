@@ -15,7 +15,6 @@
 
 'use strict';
 
-const { Debugging } = require('./Debugging.js');
 const { Chalk } = require('./Chalk.js');
 const {
 	COLORS,

@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.8.1",
+	"version": "2.8.2",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -31,33 +31,35 @@
 	},
 	"scripts": {
 		"prepublish": "yarn build && yarn test",
-		"test": "yarn build && yarn test:unit && yarn test:fonts",
+		"test": "yarn build && yarn test:unit && yarn test:lint && yarn test:types && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
 		"test:unit": "npx cross-env FORCE_COLOR=3 jest",
-		"test:types": "yarn types:clean && yarn types:declaration",
+		"test:types": "yarn types:clean && yarn types:declaration && yarn types:clean",
+		"test:lint": "eslint src/",
 		"build": "yarn build:lib && yarn build:bin",
 		"build:bin": "npx mkdirp bin && mv lib/bin.js bin/index.js",
 		"build:lib": "npx mkdirp lib && babel src --out-dir lib",
 		"watch": "yarn build:lib && onchange 'src/**/*' -- yarn build:lib",
 		"types:clean": "find lib/ -type f -name '*.d.ts' -exec rm {} +",
-		"types:declaration": "tsc -p declaration.tsconfig.json",
+		"types:declaration": "tsc -p declaration.tsconfig.json --resolveJsonModule",
 		"coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.8.4",
-		"@babel/core": "^7.8.7",
-		"@babel/preset-env": "^7.8.7",
+		"@babel/core": "^7.9.6",
+		"@babel/preset-env": "^7.9.6",
 		"@types/node": "latest",
-		"coveralls": "^3.0.9",
-		"jest-cli": "^25.1.0",
-		"onchange": "^6.1.0",
+		"coveralls": "^3.1.0",
+		"eslint": "^6.8.0",
+		"jest-cli": "^25.5.3",
+		"onchange": "^7.0.2",
 		"typescript": "^3.8.3"
 	},
 	"peerDependencies": {},
 	"dependencies": {
-		"chalk": "^3.0.0",
+		"chalk": "^4.0.0",
 		"window-size": "^1.1.1"
 	},
 	"resolutions": {
@@ -80,6 +82,31 @@
 				"lines": 95,
 				"statements": 95
 			}
+		}
+	},
+	"eslintConfig": {
+		"env": {
+			"node": true,
+			"commonjs": true,
+			"es6": true
+		},
+		"extends": "eslint:recommended",
+		"globals": {
+			"Atomics": "readonly",
+			"SharedArrayBuffer": "readonly"
+		},
+		"parserOptions": {
+			"ecmaVersion": 2018
+		},
+		"rules": {
+			"no-async-promise-executor": "off",
+			"no-console": "off",
+			"no-unused-vars": [
+				"error",
+				{
+					"argsIgnorePattern": "_"
+				}
+			]
 		}
 	},
 	"browserslist": [

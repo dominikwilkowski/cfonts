@@ -510,6 +510,7 @@ npm run test
 
 
 ## Release History
+* 2.8.2  -  bumped dependencies, added linting, fixed #22 (again)
 * 2.8.1  -  bumped dependencies
 * 2.8.0  -  added environment support, added font `tiny`
 * 2.7.0  -  added font `slick`, `grid` and `pallet`, added double quote to all fonts
