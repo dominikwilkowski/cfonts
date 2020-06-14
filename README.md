@@ -510,6 +510,7 @@ npm run test
 
 
 ## Release History
+* 2.8.4  -  fixed block double quote
 * 2.8.3  -  bumped dependencies
 * 2.8.2  -  bumped dependencies, added linting, fixed #22 (again)
 * 2.8.1  -  bumped dependencies
