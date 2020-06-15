@@ -4,7 +4,7 @@
  *
  * Testing the API side of things.
  *
- * @license     https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE  GNU GPLv2
+ * @license     https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE  GNU GPLv2
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *

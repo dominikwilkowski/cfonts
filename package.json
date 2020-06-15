@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.8.4",
+	"version": "2.8.5",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -23,7 +23,7 @@
 	"licenses": [
 		{
 			"type": "GPL-2.0",
-			"url": "https://github.com/dominikwilkowski/cfonts/blob/master/LICENSE"
+			"url": "https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE"
 		}
 	],
 	"engines": {
