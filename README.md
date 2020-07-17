@@ -510,6 +510,7 @@ npm run test
 
 
 ## Release History
+* 2.8.6  -  bumped dependencies
 * 2.8.5  -  renamed branches
 * 2.8.4  -  fixed block double quote
 * 2.8.3  -  bumped dependencies

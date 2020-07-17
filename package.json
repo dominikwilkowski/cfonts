@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy fonts for the console",
-	"version": "2.8.5",
+	"version": "2.8.6",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -47,15 +47,15 @@
 		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.10.1",
-		"@babel/core": "^7.10.2",
-		"@babel/preset-env": "^7.10.2",
+		"@babel/cli": "^7.10.5",
+		"@babel/core": "^7.10.5",
+		"@babel/preset-env": "^7.10.4",
 		"@types/node": "latest",
 		"coveralls": "^3.1.0",
-		"eslint": "^7.2.0",
-		"jest-cli": "^26.0.1",
+		"eslint": "^7.4.0",
+		"jest-cli": "^26.1.0",
 		"onchange": "^7.0.2",
-		"typescript": "^3.9.5"
+		"typescript": "^3.9.7"
 	},
 	"peerDependencies": {},
 	"dependencies": {
