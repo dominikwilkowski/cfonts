@@ -130,5 +130,6 @@
 	"bin": {
 		"cfonts": "./bin/index.js"
 	},
+	"typings": "./cfonts.d.ts",
 	"license": "GPL-2.0"
 }

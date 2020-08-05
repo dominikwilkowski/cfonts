@@ -369,7 +369,7 @@ $ cfonts "text" --line-height 2
 
 #### -s, --spaceless
 Type: `<boolean>`  
-Default value: `true`
+Default value: `false`
 
 Set this option to false if you don't want the plugin to insert two empty lines on top and on the bottom of the output.
 

@@ -1,4 +1,4 @@
 *.sublime-project
 *.sublime-workspace
 img/
-*.d.ts
+lib/*.d.ts
