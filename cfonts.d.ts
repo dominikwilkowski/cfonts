@@ -89,7 +89,7 @@ export interface Options {
 	 * your two gradient colors
 	 * @default false (disabled)
 	 */
-	gradient: [string, string] | false;
+	gradient: string[] | false;
 	/**
 	 * if you want to recalculate the gradient for each new line
 	 * @default false
