@@ -126,7 +126,7 @@ const Options = {
 				? 0
 				: this.store.lineHeight;
 
-		this.store.space = typeof space === 'boolean' || space === "bottom" || space ==="top"
+		this.store.space = typeof space === 'boolean' || space === 'bottom' || space === 'top'
 			? space
 			: this.store.space;
 
