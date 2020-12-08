@@ -203,7 +203,7 @@ You can align your text in the terminal with this option. Use the keywords below
 - `center`
 - `right`
 - `top` _(Will be ignored if used with the spaceless option)_
-- `bottom` _(Will be ignored if used with the spaceless option)
+- `bottom` _(Will be ignored if used with the spaceless option)_
 
 ```shell
 $ cfonts "text" --align "center"
