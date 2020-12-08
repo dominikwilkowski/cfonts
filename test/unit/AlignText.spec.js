@@ -28,3 +28,11 @@ test(`AlignText - Should do nothing on left alignment`, () => {
 test(`AlignText - Should do nothing when using Size default value`, () => {
 	expect( AlignText( ['x'], 1, 1, 'left' ) ).toEqual( ['x'] );
 });
+
+
+test(`AlignText - Should do nothing when align top or bottom`, () => {
+	expect( AlignText( ['x'], 1, 1, 'top', { width: 21 } ) ).toEqual( ['x'] );
+	expect( AlignText( ['x'], 1, 1, 'top', { width: 1 } ) ).toEqual( ['x'] );
+	expect( AlignText( ['x'], 1, 1, 'bottom', { width: 21 } ) ).toEqual( ['x'] );
+	expect( AlignText( ['x'], 1, 1, 'bottom', { width: 1 } ) ).toEqual( ['x'] );
+});

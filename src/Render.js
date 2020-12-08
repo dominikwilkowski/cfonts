@@ -214,8 +214,16 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 	}
 
 	if( OPTIONS.space ) { // add space
-		output[ 0 ] = `\n\n${ output[ 0 ] }`;
-		output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n`;
+		if( OPTIONS.align === 'top' ) {
+			output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n\n\n`;
+		}
+		else if( OPTIONS.align === 'bottom' ) {
+			output[ 0 ] = `\n\n\n\n${ output[ 0 ] }`;
+		}
+		else {
+			output[ 0 ] = `\n\n${ output[ 0 ] }`;
+			output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n`;
+		}
 	}
 
 	if( OPTIONS.background !== 'transparent' && OPTIONS.env === 'node' ) {
