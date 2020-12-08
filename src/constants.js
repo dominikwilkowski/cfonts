@@ -107,6 +107,8 @@ const ALIGNMENT = [
 	'left',
 	'center',
 	'right',
+	'top',
+	'bottom',
 ];
 
 const FONTFACES = {

@@ -214,10 +214,14 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 	}
 
 	if( OPTIONS.space ) { // add space
-		if( OPTIONS.space === 'top' || OPTIONS.space === true ) {
-			output[ 0 ] = `\n\n${ output[ 0 ] }`;
+		if( OPTIONS.align === 'top' ) {
+			output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n\n\n`;
 		}
-		if( OPTIONS.SPACE === 'bottom' || OPTIONS.space === true ) {
+		else if( OPTIONS.align === 'bottom' ) {
+			output[ 0 ] = `\n\n\n\n${ output[ 0 ] }`;
+		}
+		else {
+			output[ 0 ] = `\n\n${ output[ 0 ] }`;
 			output[ output.length - 1 ] = `${ output[ output.length - 1 ] }\n\n`;
 		}
 	}

@@ -69,7 +69,7 @@ const Options = {
 	 * @param  {string}                  options.backgroundColor     - Alias for background
 	 * @param  {number}                  options.letterSpacing       - Space between letters, Default: set by selected font face
 	 * @param  {number}                  options.lineHeight          - Space between lines, Default: 1
-	 * @param  {(boolean|'top'|'bottom')}options.space               - Output space before and after output, Default: true
+	 * @param  {boolean}                 options.space               - Output space before and after output, Default: true
 	 * @param  {number}                  options.maxLength           - Maximum amount of characters per line, Default width of console window
 	 * @param  {(string|array|boolean)}  options.gradient            - Gradient color pair, Default: false
 	 * @param  {boolean}                 options.independentGradient - A switch to calculate gradient per line or not
@@ -126,7 +126,7 @@ const Options = {
 				? 0
 				: this.store.lineHeight;
 
-		this.store.space = typeof space === 'boolean' || space === 'bottom' || space === 'top'
+		this.store.space = typeof space === 'boolean'
 			? space
 			: this.store.space;
 

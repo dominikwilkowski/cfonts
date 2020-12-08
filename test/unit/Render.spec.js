@@ -346,6 +346,165 @@ test(`Render - Right align block font`, () => {
 });
 
 
+test(`Render - Top align block font`, () => {
+	const test = Render( 'text', {
+		align: 'top',
+	}, false, 1, { width: 50, height: 10 });
+
+	expect( test.string ).toBe(
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ \n' +
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ \n' +
+		'    ██║    █████╗    ╚███╔╝     ██║    \n' +
+		'    ██║    ██╔══╝    ██╔██╗     ██║    \n' +
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    \n' +
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n\n\n'
+	);
+	expect( test.array ).toEqual([
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
+		'    ██║    █████╗    ╚███╔╝     ██║    ',
+		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    \n\n\n\n',
+	]);
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'top',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'node',
+	});
+});
+
+
+test(`Render - Bottom align block font`, () => {
+	const test = Render( 'text', {
+		align: 'bottom',
+	}, false, 1, { width: 50, height: 10 });
+
+	expect( test.string ).toBe(
+		'\n\n\n\n' +
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ \n' +
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ \n' +
+		'    ██║    █████╗    ╚███╔╝     ██║    \n' +
+		'    ██║    ██╔══╝    ██╔██╗     ██║    \n' +
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    \n' +
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    '
+	);
+	expect( test.array ).toEqual([
+		'\n\n\n\n ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
+		'    ██║    █████╗    ╚███╔╝     ██║    ',
+		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+	]);
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'bottom',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: true,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'node',
+	});
+});
+
+
+test(`Render - Ignore alignment top when combining it with space option`, () => {
+	const test = Render( 'text', {
+		space: false,
+		align: 'top',
+	}, false, 1, { width: 100, height: 10 } );
+
+	expect( test.string ).toBe(
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ \n' +
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ \n' +
+		'    ██║    █████╗    ╚███╔╝     ██║    \n' +
+		'    ██║    ██╔══╝    ██╔██╗     ██║    \n' +
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    \n' +
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    '
+	);
+	expect( test.array ).toEqual([
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
+		'    ██║    █████╗    ╚███╔╝     ██║    ',
+		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+	]);
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'top',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: false,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'node',
+	});
+});
+
+
+test(`Render - Ignore alignment bottom when combining it with space option`, () => {
+	const test = Render( 'text', {
+		space: false,
+		align: 'bottom',
+	}, false, 1, { width: 100, height: 10 } );
+
+	expect( test.string ).toBe(
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ \n' +
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ \n' +
+		'    ██║    █████╗    ╚███╔╝     ██║    \n' +
+		'    ██║    ██╔══╝    ██╔██╗     ██║    \n' +
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    \n' +
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    '
+	);
+	expect( test.array ).toEqual([
+		' ████████╗ ███████╗ ██╗  ██╗ ████████╗ ',
+		' ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝ ',
+		'    ██║    █████╗    ╚███╔╝     ██║    ',
+		'    ██║    ██╔══╝    ██╔██╗     ██║    ',
+		'    ██║    ███████╗ ██╔╝ ██╗    ██║    ',
+		'    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝    ',
+	]);
+	expect( test.lines ).toBe( 1 );
+	expect( test.options ).toEqual({
+		font: 'block',
+		align: 'bottom',
+		colors: [],
+		background: 'transparent',
+		letterSpacing: 1,
+		lineHeight: 1,
+		space: false,
+		maxLength: 0,
+		gradient: false,
+		independentGradient: false,
+		transitionGradient: false,
+		env: 'node',
+	});
+});
+
+
 test(`Render - Break into new line on smaller viewports`, () => {
 	const test = Render( 'text', {}, false, 1, { width: 20, height: 10 });
 
