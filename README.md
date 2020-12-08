@@ -202,6 +202,8 @@ You can align your text in the terminal with this option. Use the keywords below
 - `left` _(default)_
 - `center`
 - `right`
+- `top` _(Will be ignored if used with the spaceless option)_
+- `bottom` _(Will be ignored if used with the spaceless option)
 
 ```shell
 $ cfonts "text" --align "center"
@@ -510,6 +512,7 @@ npm run test
 
 
 ## Release History
+* 2.9.0  -  added `top` and `bottom` align options
 * 2.8.6  -  bumped dependencies
 * 2.8.5  -  renamed branches
 * 2.8.4  -  fixed block double quote
