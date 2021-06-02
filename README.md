@@ -512,6 +512,7 @@ npm run test
 
 
 ## Release History
+* 2.9.3  -  bumped dependencies
 * 2.9.2  -  bumped dependencies
 * 2.9.1  -  bumped dependencies
 * 2.9.0  -  added `top` and `bottom` align options
