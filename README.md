@@ -371,7 +371,7 @@ $ cfonts "text" --line-height 2
 
 #### -s, --spaceless
 Type: `<boolean>`  
-Default value: `true`
+Default value: `false`
 
 Set this option to false if you don't want the plugin to insert two empty lines on top and on the bottom of the output.
 
@@ -512,6 +512,7 @@ npm run test
 
 
 ## Release History
+* 2.10.0 -  bumped dependencies, added typescript definitions into npm bundle
 * 2.9.3  -  bumped dependencies
 * 2.9.2  -  bumped dependencies
 * 2.9.1  -  bumped dependencies
