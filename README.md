@@ -401,7 +401,7 @@ $ cfonts "text" --max-length 15
 Type: `<string>`  
 Default value: `node`
 
-This option let's you use CFonts to generate HTML instead of ANSI code.  
+This option lets you use CFonts to generate HTML instead of ANSI code.  
 Note that `max-length` won't be automatically detected anymore and you will have to supply it if you want the text to wrap.
 Best used in a node script.
 
