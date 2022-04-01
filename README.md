@@ -512,6 +512,7 @@ npm run test
 
 
 ## Release History
+* 2.10.1 -  bumped dependencies
 * 2.10.0 -  bumped dependencies, added typescript definitions into npm bundle
 * 2.9.3  -  bumped dependencies
 * 2.9.2  -  bumped dependencies
