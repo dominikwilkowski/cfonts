@@ -1,0 +1,14 @@
+[package]
+name = "cfonts-rust"
+version = "1.0.0"
+edition = "2021"
+authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
+license = "GPL-3.0"
+description = "Sexy fonts for the console"
+readme = "../README.md"
+homepage = "https://github.com/dominikwilkowski/cfonts"
+repository = "https://github.com/dominikwilkowski/cfonts"
+keywords = ["font", "banner", "logo", "CLI", "console", "ascii", "pretty", "ANSI"]
+categories = ["command-line-interface", "command-line-utilities", "graphics"]
+
+[dependencies]
