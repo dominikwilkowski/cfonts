@@ -16,3 +16,4 @@ lib/
 package-lock.json
 .coveralls.yml
 nodejs/fonts
+rust/target

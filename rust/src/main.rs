@@ -1,142 +1,42 @@
+use std::collections::HashMap;
 use std::env::args;
 
-#[derive(Debug, PartialEq)]
-enum Fonts {
-	FontConsole,
-	FontBlock,
-	FontSimpleBlock,
-	FontSimple,
-	Font3d,
-	FontSimple3d,
-	FontChrome,
-	FontHuge,
-	FontShade,
-	FontSlick,
-	FontGrid,
-	FontPallet,
-	FontTiny,
-}
+pub mod config;
 
-#[derive(Debug, PartialEq)]
-enum Colors {
-	System,
-	Black,
-	Red,
-	Green,
-	Yellow,
-	Blue,
-	Magenta,
-	Cyan,
-	White,
-	Gray,
-	RedBright,
-	GreenBright,
-	YellowBright,
-	BlueBright,
-	MagentaBright,
-	CyanBright,
-	WhiteBright,
-}
+use config::{Options, CliOption, CLIOPTIONS};
 
-#[derive(Debug, PartialEq)]
-enum BgColors {
-	Transparent,
-	Black,
-	Red,
-	Green,
-	Yellow,
-	Blue,
-	Magenta,
-	Cyan,
-	White,
-	BlackBright,
-	RedBright,
-	GreenBright,
-	YellowBright,
-	BlueBright,
-	MagentaBright,
-	CyanBright,
-	WhiteBright,
-}
+fn parse_args(args: &Vec<String>) -> Options {
+	let mut options = Options::default();
 
-#[derive(Debug, PartialEq)]
-enum Env {
-	Node,
-	Browser,
-}
+	// create a lookup table for our CLIOPTIONS
+	let mut options_lookup: HashMap<String, CliOption> = HashMap::new();
 
-#[derive(Debug, PartialEq)]
-pub struct Options {
-	font: String,
-	align: String,
-	colors: Vec<Colors>,
-	background: BgColors,
-	letter_spacing: u8,
-	line_height: u8,
-	space: bool,
-	max_length: u16,
-	gradient: bool,
-	independent_gradient: bool,
-	transition_gradient: bool,
-	env: Env,
-}
-
-impl Options {
-	fn default() -> Self {
-		Options {
-			font: String::from("block"),
-			align: String::from("left"),
-			colors: vec![Colors::System],
-			background: BgColors::Transparent,
-			letter_spacing: 1,
-			line_height: 1,
-			space: true,
-			max_length: 0,
-			gradient: false,
-			independent_gradient: false,
-			transition_gradient: false,
-			env: Env::Node,
-		}
+	for option in CLIOPTIONS {
+		options_lookup.insert(option.name.clone().to_string(), option.clone());
+		options_lookup.insert(option.shortcut.clone().to_string(), option);
 	}
+
+	println!("{:#?}", options_lookup);
+
+	options
 }
 
-struct CliOptions<'a> {
-	name: &'a str,
-	shortcut: &'a str,
-	description: &'a str,
-	example: &'a str,
-	default: bool,
+fn print_type_of<T>(_: &T) {
+	println!("{}", std::any::type_name::<T>())
 }
-
-const CLIOPTIONS: [CliOptions; 2] = [
-	CliOptions {
-		name: "version",
-		shortcut: "v",
-		description: "Use to display the version of cfonts",
-		example: "--version",
-		default: false,
-	},
-	CliOptions {
-		name: "help",
-		shortcut: "h",
-		description: "Use to display this help",
-		example: "--help",
-		default: false,
-	},
-];
-
-// fn parseArgs() =>  {
-// 	//
-// }
 
 fn main() {
+	// For API later:
+	//
 	// let defaults = Options::default();
-	let defaults = Options {
-		font: String::from("notblock"),
-		..Options::default()
-	};
+	// let defaults = Options {
+	// 	font: String::from("notblock"),
+	// 	..Options::default()
+	// };
 
-	let thing: Vec<String> = args().collect();
-	println!("{:?}", thing);
-	println!("Hello, world! {:#?}", defaults);
+	let cli_args: Vec<String> = args().collect();
+
+	parse_args(&cli_args);
+
+	println!("Hello, world!");
 }
