@@ -3,7 +3,7 @@ use std::env::args;
 
 pub mod config;
 
-use config::{Options, CliOption, CLIOPTIONS};
+use config::{CliOption, Options, CLIOPTIONS};
 
 fn parse_args(args: &Vec<String>) -> Options {
 	let mut options = Options::default();
@@ -16,7 +16,22 @@ fn parse_args(args: &Vec<String>) -> Options {
 		options_lookup.insert(option.shortcut.clone().to_string(), option);
 	}
 
-	println!("{:#?}", options_lookup);
+	// our text to be converted
+	options.text = args[1].clone();
+
+	// we iterate over all arguments and match them with our lookup table
+	for i in 2..args.len() {
+		match options_lookup.get(&args[i]) {
+			Some(this_flag) => {
+				println!("!!!{:?}", this_flag);
+			}
+			None => { /* (TODO: debug message) We ignore flags we don't recognize */ }
+		};
+
+		println!("{:?}", args[i]);
+	}
+
+	// println!("{:#?}", options_lookup);
 
 	options
 }
@@ -34,9 +49,8 @@ fn main() {
 	// 	..Options::default()
 	// };
 
-	let cli_args: Vec<String> = args().collect();
-
-	parse_args(&cli_args);
+	let options = parse_args(&args().collect());
+	println!("{:#?}", options);
 
 	println!("Hello, world!");
 }

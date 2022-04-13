@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Fonts {
 	FontConsole,
 	FontBlock,
@@ -15,7 +15,7 @@ pub enum Fonts {
 	FontTiny,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Colors {
 	System,
 	Black,
@@ -36,7 +36,7 @@ pub enum Colors {
 	WhiteBright,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BgColors {
 	Transparent,
 	Black,
@@ -57,30 +57,30 @@ pub enum BgColors {
 	WhiteBright,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Env {
 	Node,
 	Browser,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Options {
-	text: String,
-	font: String,
-	align: String,
-	colors: Vec<Colors>,
-	background: BgColors,
-	letter_spacing: u8,
-	line_height: u8,
-	spaceless: bool,
-	max_length: u16,
-	gradient: bool,
-	independent_gradient: bool,
-	transition_gradient: bool,
-	env: Env,
-	version: bool,
-	debug: bool,
-	debug_level: u8,
+	pub text: String,
+	pub font: String,
+	pub align: String,
+	pub colors: Vec<Colors>,
+	pub background: BgColors,
+	pub letter_spacing: u8,
+	pub line_height: u8,
+	pub spaceless: bool,
+	pub max_length: u16,
+	pub gradient: bool,
+	pub independent_gradient: bool,
+	pub transition_gradient: bool,
+	pub env: Env,
+	pub version: bool,
+	pub debug: bool,
+	pub debug_level: u8,
 }
 
 impl Options {
@@ -112,17 +112,15 @@ pub struct CliOption<'a> {
 	pub shortcut: &'a str,
 	pub description: &'a str,
 	pub example: &'a str,
-	pub default: &'a str,
 	pub options: bool,
 }
 
-pub const CLIOPTIONS: [CliOption; 15] = [
+pub const CLIOPTIONS: [CliOption; 16] = [
 	CliOption {
 		name: "--version",
 		shortcut: "-v",
 		description: "Use to display the version of cfonts",
 		example: "--version",
-		default: "",
 		options: false,
 	},
 	CliOption {
@@ -130,7 +128,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-h",
 		description: "Use to display this help",
 		example: "--help",
-		default: "",
 		options: false,
 	},
 	CliOption {
@@ -138,7 +135,13 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-f",
 		description: "Use to define the font face",
 		example: "--font block (...)",
-		default: "block",
+		options: true,
+	},
+	CliOption {
+		name: "--colors",
+		shortcut: "-c",
+		description: "Use to define the font color",
+		example: "--colors red,blue (...)",
 		options: true,
 	},
 	CliOption {
@@ -146,7 +149,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-b",
 		description: "Use to define background color",
 		example: "--background blue (...)",
-		default: "transparent",
 		options: true,
 	},
 	CliOption {
@@ -154,7 +156,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-a",
 		description: "Use to align your text output",
 		example: "--align center (...)",
-		default: "left",
 		options: true,
 	},
 	CliOption {
@@ -162,7 +163,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-l",
 		description: "Use to define your letter spacing",
 		example: "--letter-spacing 2",
-		default: "0",
 		options: true,
 	},
 	CliOption {
@@ -170,7 +170,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-z",
 		description: "Use to define your line height",
 		example: "--line-height 5",
-		default: "0",
 		options: true,
 	},
 	CliOption {
@@ -178,7 +177,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-s",
 		description: "Use to disable the padding around your output",
 		example: "--spaceless",
-		default: "",
 		options: false,
 	},
 	CliOption {
@@ -186,7 +184,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-m",
 		description: "Use to define the amount of maximum characters per line",
 		example: "--max-length 10",
-		default: "0",
 		options: true,
 	},
 	CliOption {
@@ -194,7 +191,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-g",
 		description: "Use to define a start and end color of a gradient",
 		example: "--gradient red,blue",
-		default: "",
 		options: true,
 	},
 	CliOption {
@@ -202,7 +198,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-i",
 		description: "Use to define that a gradient is applied independently for each line",
 		example: "--gradient red,blue --independent-gradient",
-		default: "",
 		options: false,
 	},
 	CliOption {
@@ -210,7 +205,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-t",
 		description: "Use to define that a gradient is a transition between the colors",
 		example: "--gradient red,blue,green --transition-gradient",
-		default: "",
 		options: false,
 	},
 	CliOption {
@@ -218,7 +212,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-e",
 		description: "Use to define what environment you run CFonts in.",
 		example: "--env browser (...)",
-		default: "node",
 		options: true,
 	},
 	CliOption {
@@ -226,7 +219,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-d",
 		description: "Use to enable debug mode",
 		example: "--debug",
-		default: "",
 		options: false,
 	},
 	CliOption {
@@ -234,7 +226,6 @@ pub const CLIOPTIONS: [CliOption; 15] = [
 		shortcut: "-x",
 		description: "Use to define the debug level. The higher, the less debug infos",
 		example: "--debug-level 2",
-		default: "1",
 		options: true,
 	},
 ];
