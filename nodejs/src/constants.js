@@ -197,7 +197,7 @@ const CLIOPTIONS = {
 	},
 	'--gradient': {
 		description: 'Use to define a start and end color of a gradient',
-		example: '--gradient red,blue',
+		example: '--gradient red,blue,green',
 		short: '-g',
 		options: true,
 		default: false,

@@ -1,4 +1,9 @@
-#[derive(Debug, Clone, PartialEq)]
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+use crate::helpers::lowercase_first_letter;
+
+#[derive(EnumIter, Debug, Clone)]
 pub enum Fonts {
 	FontConsole,
 	FontBlock,
@@ -15,7 +20,20 @@ pub enum Fonts {
 	FontTiny,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+// implementing a list method so we can communicate in plain text what is supported
+impl Fonts {
+	pub fn list() -> String {
+		let mut list = vec![];
+		for font in Fonts::iter() {
+			let mut name = format!("{:?}", font);
+			name = name.strip_prefix("Font").unwrap().to_string();
+			list.push(lowercase_first_letter(&name))
+		}
+		list.join(", ")
+	}
+}
+
+#[derive(Debug, Clone)]
 pub enum Colors {
 	System,
 	Black,
@@ -36,7 +54,7 @@ pub enum Colors {
 	WhiteBright,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum BgColors {
 	Transparent,
 	Black,
@@ -57,24 +75,33 @@ pub enum BgColors {
 	WhiteBright,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Env {
 	Node,
 	Browser,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
+pub enum Align {
+	Left,
+	Center,
+	Right,
+	Top,
+	Bottom,
+}
+
+#[derive(Debug, Clone)]
 pub struct Options {
 	pub text: String,
-	pub font: String,
-	pub align: String,
+	pub font: Fonts,
+	pub align: Align,
 	pub colors: Vec<Colors>,
 	pub background: BgColors,
 	pub letter_spacing: u8,
 	pub line_height: u8,
 	pub spaceless: bool,
 	pub max_length: u16,
-	pub gradient: bool,
+	pub gradient: Vec<Colors>,
 	pub independent_gradient: bool,
 	pub transition_gradient: bool,
 	pub env: Env,
@@ -87,15 +114,15 @@ impl Options {
 	pub fn default() -> Self {
 		Options {
 			text: String::from(""),
-			font: String::from("block"),
-			align: String::from("left"),
+			font: Fonts::FontBlock,
+			align: Align::Left,
 			colors: vec![Colors::System],
 			background: BgColors::Transparent,
 			letter_spacing: 1,
 			line_height: 1,
 			spaceless: false,
 			max_length: 0,
-			gradient: false,
+			gradient: vec![Colors::System],
 			independent_gradient: false,
 			transition_gradient: false,
 			env: Env::Node,
@@ -105,127 +132,155 @@ impl Options {
 		}
 	}
 }
+#[derive(Debug, Clone)]
+pub enum OptionType {
+	Text,
+	Font,
+	Align,
+	Colors,
+	Color,
+	Number,
+	Bool,
+	Env,
+}
 
 #[derive(Debug, Clone)]
 pub struct CliOption<'a> {
+	pub key: &'a str,
 	pub name: &'a str,
 	pub shortcut: &'a str,
 	pub description: &'a str,
 	pub example: &'a str,
-	pub options: bool,
+	pub kind: OptionType,
 }
 
 pub const CLIOPTIONS: [CliOption; 16] = [
 	CliOption {
+		key: "version",
 		name: "--version",
 		shortcut: "-v",
 		description: "Use to display the version of cfonts",
 		example: "--version",
-		options: false,
+		kind: OptionType::Bool,
 	},
 	CliOption {
+		key: "help",
 		name: "--help",
 		shortcut: "-h",
 		description: "Use to display this help",
 		example: "--help",
-		options: false,
+		kind: OptionType::Bool,
 	},
 	CliOption {
+		key: "font",
 		name: "--font",
 		shortcut: "-f",
 		description: "Use to define the font face",
 		example: "--font block (...)",
-		options: true,
+		kind: OptionType::Font,
 	},
 	CliOption {
+		key: "colors",
 		name: "--colors",
 		shortcut: "-c",
 		description: "Use to define the font color",
 		example: "--colors red,blue (...)",
-		options: true,
+		kind: OptionType::Colors,
 	},
 	CliOption {
+		key: "background",
 		name: "--background",
 		shortcut: "-b",
 		description: "Use to define background color",
 		example: "--background blue (...)",
-		options: true,
+		kind: OptionType::Color,
 	},
 	CliOption {
+		key: "align",
 		name: "--align",
 		shortcut: "-a",
 		description: "Use to align your text output",
 		example: "--align center (...)",
-		options: true,
+		kind: OptionType::Align,
 	},
 	CliOption {
+		key: "letter_spacing",
 		name: "--letter-spacing",
 		shortcut: "-l",
 		description: "Use to define your letter spacing",
 		example: "--letter-spacing 2",
-		options: true,
+		kind: OptionType::Number,
 	},
 	CliOption {
+		key: "line_height",
 		name: "--line-height",
 		shortcut: "-z",
 		description: "Use to define your line height",
 		example: "--line-height 5",
-		options: true,
+		kind: OptionType::Number,
 	},
 	CliOption {
+		key: "spaceless",
 		name: "--spaceless",
 		shortcut: "-s",
 		description: "Use to disable the padding around your output",
 		example: "--spaceless",
-		options: false,
+		kind: OptionType::Bool,
 	},
 	CliOption {
+		key: "max_length",
 		name: "--max-length",
 		shortcut: "-m",
 		description: "Use to define the amount of maximum characters per line",
 		example: "--max-length 10",
-		options: true,
+		kind: OptionType::Number,
 	},
 	CliOption {
+		key: "gradient",
 		name: "--gradient",
 		shortcut: "-g",
 		description: "Use to define a start and end color of a gradient",
-		example: "--gradient red,blue",
-		options: true,
+		example: "--gradient red,blue,green",
+		kind: OptionType::Colors,
 	},
 	CliOption {
+		key: "independent_gradient",
 		name: "--independent-gradient",
 		shortcut: "-i",
 		description: "Use to define that a gradient is applied independently for each line",
 		example: "--gradient red,blue --independent-gradient",
-		options: false,
+		kind: OptionType::Bool,
 	},
 	CliOption {
+		key: "transition_gradient",
 		name: "--transition-gradient",
 		shortcut: "-t",
 		description: "Use to define that a gradient is a transition between the colors",
 		example: "--gradient red,blue,green --transition-gradient",
-		options: false,
+		kind: OptionType::Bool,
 	},
 	CliOption {
+		key: "env",
 		name: "--env",
 		shortcut: "-e",
 		description: "Use to define what environment you run CFonts in.",
 		example: "--env browser (...)",
-		options: true,
+		kind: OptionType::Env,
 	},
 	CliOption {
+		key: "debug",
 		name: "--debug",
 		shortcut: "-d",
 		description: "Use to enable debug mode",
 		example: "--debug",
-		options: false,
+		kind: OptionType::Bool,
 	},
 	CliOption {
+		key: "debug_level",
 		name: "--debug-level",
 		shortcut: "-x",
 		description: "Use to define the debug level. The higher, the less debug infos",
 		example: "--debug-level 2",
-		options: true,
+		kind: OptionType::Number,
 	},
 ];

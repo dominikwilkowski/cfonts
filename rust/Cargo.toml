@@ -12,3 +12,6 @@ keywords = ["font", "banner", "logo", "CLI", "console", "ascii", "pretty", "ANSI
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 
 [dependencies]
+exitcode = "1.1.2"
+strum = "0.24"
+strum_macros = "0.24"
