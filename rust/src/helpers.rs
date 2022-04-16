@@ -1,4 +1,17 @@
-pub fn lowercase_first_letter(s: &str) -> String {
+pub fn print_type_of<T>(_: &T) -> String {
+	format!("{}", std::any::type_name::<T>())
+}
+
+#[test]
+fn print_type_of_works() {
+	assert_eq!(print_type_of(&String::from("test")), "alloc::string::String");
+	assert_eq!(print_type_of(&5), "i32");
+	assert_eq!(print_type_of(&(5 as u8)), "u8");
+	assert_eq!(print_type_of(&[1]), "[i32; 1]");
+	assert_eq!(print_type_of(&vec![""]), "alloc::vec::Vec<&str>");
+}
+
+pub fn first_letter_to_lowercase(s: &str) -> String {
 	let mut c = s.chars();
 	match c.next() {
 		None => String::new(),
@@ -7,11 +20,11 @@ pub fn lowercase_first_letter(s: &str) -> String {
 }
 
 #[test]
-fn lowercase_first_letter_works() {
-	assert_eq!(lowercase_first_letter("test"), "test");
-	assert_eq!(lowercase_first_letter("TEST"), "tEST");
-	assert_eq!(lowercase_first_letter("Test"), "test");
-	assert_eq!(lowercase_first_letter("!not a latter"), "!not a latter");
-	assert_eq!(lowercase_first_letter("1234"), "1234");
-	assert_eq!(lowercase_first_letter(""), "");
+fn first_letter_to_lowercase_works() {
+	assert_eq!(first_letter_to_lowercase("test"), "test");
+	assert_eq!(first_letter_to_lowercase("TEST"), "tEST");
+	assert_eq!(first_letter_to_lowercase("Test"), "test");
+	assert_eq!(first_letter_to_lowercase("!not a letter"), "!not a letter");
+	assert_eq!(first_letter_to_lowercase("1234"), "1234");
+	assert_eq!(first_letter_to_lowercase(""), "");
 }

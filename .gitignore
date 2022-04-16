@@ -1,6 +1,5 @@
 coverage
 .DS_Store
-*.sublime-project
 *.sublime-workspace
 codekit-config.json
 *.codekit

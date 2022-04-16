@@ -1,7 +1,7 @@
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::helpers::lowercase_first_letter;
+use crate::helpers::first_letter_to_lowercase;
 
 #[derive(EnumIter, Debug, Clone)]
 pub enum Fonts {
@@ -20,20 +20,7 @@ pub enum Fonts {
 	FontTiny,
 }
 
-// implementing a list method so we can communicate in plain text what is supported
-impl Fonts {
-	pub fn list() -> String {
-		let mut list = vec![];
-		for font in Fonts::iter() {
-			let mut name = format!("{:?}", font);
-			name = name.strip_prefix("Font").unwrap().to_string();
-			list.push(lowercase_first_letter(&name))
-		}
-		list.join(", ")
-	}
-}
-
-#[derive(Debug, Clone)]
+#[derive(EnumIter, Debug, Clone)]
 pub enum Colors {
 	System,
 	Black,
@@ -54,7 +41,7 @@ pub enum Colors {
 	WhiteBright,
 }
 
-#[derive(Debug, Clone)]
+#[derive(EnumIter, Debug, Clone)]
 pub enum BgColors {
 	Transparent,
 	Black,
@@ -75,19 +62,76 @@ pub enum BgColors {
 	WhiteBright,
 }
 
-#[derive(Debug, Clone)]
+#[derive(EnumIter, Debug, Clone)]
 pub enum Env {
 	Node,
 	Browser,
 }
 
-#[derive(Debug, Clone)]
+#[derive(EnumIter, Debug, Clone)]
 pub enum Align {
 	Left,
 	Center,
 	Right,
 	Top,
 	Bottom,
+}
+
+// implementing a list method for each enum so we can communicate in plain text what is supported
+impl Fonts {
+	pub fn list() -> String {
+		let mut list = vec![];
+		for font in Fonts::iter() {
+			let mut name = format!("{:?}", font);
+			name = name.strip_prefix("Font").unwrap().to_string();
+			list.push(first_letter_to_lowercase(&name));
+		}
+		list.join(", ")
+	}
+}
+
+impl Colors {
+	pub fn list() -> String {
+		let mut list = vec![];
+		for font in Colors::iter() {
+			let name = format!("{:?}", font);
+			list.push(first_letter_to_lowercase(&name))
+		}
+		list.join(", ")
+	}
+}
+
+impl BgColors {
+	pub fn list() -> String {
+		let mut list = vec![];
+		for font in BgColors::iter() {
+			let name = format!("{:?}", font);
+			list.push(first_letter_to_lowercase(&name));
+		}
+		list.join(", ")
+	}
+}
+
+impl Env {
+	pub fn list() -> String {
+		let mut list = vec![];
+		for font in Env::iter() {
+			let name = format!("{:?}", font);
+			list.push(name.to_lowercase());
+		}
+		list.join(", ")
+	}
+}
+
+impl Align {
+	pub fn list() -> String {
+		let mut list = vec![];
+		for font in Align::iter() {
+			let name = format!("{:?}", font);
+			list.push(name.to_lowercase());
+		}
+		list.join(", ")
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -176,7 +220,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		name: "--font",
 		shortcut: "-f",
 		description: "Use to define the font face",
-		example: "--font block (...)",
+		example: "--font block (TODO)",
 		kind: OptionType::Font,
 	},
 	CliOption {
@@ -184,7 +228,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		name: "--colors",
 		shortcut: "-c",
 		description: "Use to define the font color",
-		example: "--colors red,blue (...)",
+		example: "--colors red,blue (TODO)",
 		kind: OptionType::Colors,
 	},
 	CliOption {
@@ -192,7 +236,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		name: "--background",
 		shortcut: "-b",
 		description: "Use to define background color",
-		example: "--background blue (...)",
+		example: "--background blue (TODO)",
 		kind: OptionType::Color,
 	},
 	CliOption {
@@ -200,7 +244,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		name: "--align",
 		shortcut: "-a",
 		description: "Use to align your text output",
-		example: "--align center (...)",
+		example: "--align center (TODO)",
 		kind: OptionType::Align,
 	},
 	CliOption {
@@ -264,7 +308,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		name: "--env",
 		shortcut: "-e",
 		description: "Use to define what environment you run CFonts in.",
-		example: "--env browser (...)",
+		example: "--env browser (TODO)",
 		kind: OptionType::Env,
 	},
 	CliOption {

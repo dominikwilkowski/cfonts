@@ -6,7 +6,7 @@ use std::env::args;
 pub mod config;
 pub mod helpers;
 
-use config::{CliOption, Fonts, OptionType, Options, CLIOPTIONS};
+use config::{Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
 
 fn parse_args(args: &Vec<String>) -> Options {
 	let mut options = Options::default();
@@ -51,7 +51,24 @@ fn parse_args(args: &Vec<String>) -> Options {
 							}
 						};
 					}
-					OptionType::Align => {}
+					OptionType::Align => {
+						i += 1;
+						options.align = match args[i].to_lowercase().as_str() {
+							"left" => Align::Left,
+							"center" => Align::Center,
+							"right" => Align::Right,
+							"top" => Align::Top,
+							"bottom" => Align::Bottom,
+							unknown => {
+								println!(
+									"This alignment option is not supported: {:?}\nAllowed options are: {:?}",
+									unknown,
+									Align::list()
+								);
+								std::process::exit(exitcode::USAGE);
+							}
+						};
+					}
 					OptionType::Colors => {}
 					OptionType::Color => {}
 					OptionType::Number => {}
@@ -69,13 +86,7 @@ fn parse_args(args: &Vec<String>) -> Options {
 		};
 	}
 
-	// println!("{:#?}", options_lookup);
-
 	options
-}
-
-fn print_type_of<T>(_: &T) {
-	println!("{}", std::any::type_name::<T>())
 }
 
 fn main() {
