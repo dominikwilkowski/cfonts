@@ -141,8 +141,8 @@ pub struct Options {
 	pub align: Align,
 	pub colors: Vec<Colors>,
 	pub background: BgColors,
-	pub letter_spacing: u8,
-	pub line_height: u8,
+	pub letter_spacing: u16,
+	pub line_height: u16,
 	pub spaceless: bool,
 	pub max_length: u16,
 	pub gradient: Vec<Colors>,
@@ -151,7 +151,7 @@ pub struct Options {
 	pub env: Env,
 	pub version: bool,
 	pub debug: bool,
-	pub debug_level: u8,
+	pub debug_level: u16,
 }
 
 impl Options {

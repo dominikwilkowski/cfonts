@@ -30,12 +30,22 @@ fn parse_args(args: Vec<String>) -> Options {
 		// before we see if this flag exists in our lookup we see if boolean flags have been stacked here
 		if my_args[i].starts_with("-") && !my_args[i].starts_with("--") && my_args[i].len() > 2 {
 			// we know that this is a stack of boolean flags
-			let this_flag = my_args[i].clone();
+			let mut this_flag = my_args[i].clone();
+			let mut middle_flags = Vec::new();
+
 			// unwrap is guarded by if clause it's contained in
 			for flag in this_flag.strip_prefix("-").unwrap().chars() {
-				my_args.push(format!("-{}", flag));
-				args_length += 1;
+				let flag_name = format!("-{}", flag);
+				match options_lookup.get(&flag_name) {
+					Some(_) => {
+						middle_flags.push(flag_name);
+					}
+					None => {}
+				}
 			}
+
+			my_args.splice(i..i + 1, middle_flags.iter().cloned());
+			args_length = my_args.len();
 		}
 
 		match options_lookup.get(&my_args[i]) {
@@ -45,6 +55,10 @@ fn parse_args(args: Vec<String>) -> Options {
 					OptionType::Text => { /* Only Text type is on argvs[1] */ }
 					OptionType::Font => {
 						i += 1;
+						if i >= args_length {
+							println!("Missing value for option: {}", this_flag.name);
+							std::process::exit(exitcode::USAGE);
+						}
 						options.font = match my_args[i].to_lowercase().as_str() {
 							"console" => Fonts::FontConsole,
 							"block" => Fonts::FontBlock,
@@ -67,6 +81,10 @@ fn parse_args(args: Vec<String>) -> Options {
 					}
 					OptionType::Align => {
 						i += 1;
+						if i >= args_length {
+							println!("Missing value for option: {}", this_flag.name);
+							std::process::exit(exitcode::USAGE);
+						}
 						options.align = match my_args[i].to_lowercase().as_str() {
 							"left" => Align::Left,
 							"center" => Align::Center,
@@ -85,7 +103,39 @@ fn parse_args(args: Vec<String>) -> Options {
 					}
 					OptionType::Colors => {}
 					OptionType::Color => {}
-					OptionType::Number => {}
+					OptionType::Number => {
+						i += 1;
+						if i >= args_length {
+							println!("Missing value for option: {}", this_flag.name);
+							std::process::exit(exitcode::USAGE);
+						}
+						let number = match my_args[i].parse::<u16>() {
+							Ok(n) => n,
+							Err(_) => {
+								println!(
+									"Could not read argument for option: {}. Needs to be a positive number but found instead: \"{}\"",
+									this_flag.name, my_args[i]
+								);
+								std::process::exit(exitcode::USAGE);
+							}
+						};
+
+						match this_flag.key {
+							"letter_spacing" => {
+								options.letter_spacing = number;
+							}
+							"line_height" => {
+								options.line_height = number;
+							}
+							"max_length" => {
+								options.max_length = number;
+							}
+							"debug_level" => {
+								options.debug_level = number;
+							}
+							_ => {}
+						}
+					}
 					OptionType::Bool => match this_flag.key {
 						"spaceless" => {
 							options.spaceless = true;
@@ -106,12 +156,6 @@ fn parse_args(args: Vec<String>) -> Options {
 					},
 					OptionType::Env => {}
 				}
-				// if this_flag.getter.len() > 0 {
-				// 	println!("getter {:?}", this_flag);
-				// 	// i += 1;
-				// 	// let value = this_flag.get(&my_args[i]);
-				// 	// println!("value {:?}", value);
-				// }
 			}
 			None => { /* (TODO: debug message) We ignore flags we don't recognize */ }
 		};
