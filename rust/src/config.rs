@@ -3,7 +3,7 @@ use strum_macros::EnumIter;
 
 use crate::helpers::first_letter_to_lowercase;
 
-#[derive(EnumIter, Debug, Clone)]
+#[derive(EnumIter, Debug, Clone, PartialEq)]
 pub enum Fonts {
 	FontConsole,
 	FontBlock,
@@ -20,7 +20,7 @@ pub enum Fonts {
 	FontTiny,
 }
 
-#[derive(EnumIter, Debug, Clone)]
+#[derive(EnumIter, Debug, Clone, PartialEq)]
 pub enum Colors {
 	System,
 	Black,
@@ -41,7 +41,7 @@ pub enum Colors {
 	WhiteBright,
 }
 
-#[derive(EnumIter, Debug, Clone)]
+#[derive(EnumIter, Debug, Clone, PartialEq)]
 pub enum BgColors {
 	Transparent,
 	Black,
@@ -62,13 +62,13 @@ pub enum BgColors {
 	WhiteBright,
 }
 
-#[derive(EnumIter, Debug, Clone)]
+#[derive(EnumIter, Debug, Clone, PartialEq)]
 pub enum Env {
 	Node,
 	Browser,
 }
 
-#[derive(EnumIter, Debug, Clone)]
+#[derive(EnumIter, Debug, Clone, PartialEq)]
 pub enum Align {
 	Left,
 	Center,
@@ -134,7 +134,7 @@ impl Align {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Options {
 	pub text: String,
 	pub font: Fonts,
@@ -149,6 +149,7 @@ pub struct Options {
 	pub independent_gradient: bool,
 	pub transition_gradient: bool,
 	pub env: Env,
+	pub help: bool,
 	pub version: bool,
 	pub debug: bool,
 	pub debug_level: u16,
@@ -170,13 +171,14 @@ impl Options {
 			independent_gradient: false,
 			transition_gradient: false,
 			env: Env::Node,
+			help: false,
 			version: false,
 			debug: false,
 			debug_level: 1,
 		}
 	}
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OptionType {
 	Text,
 	Font,
@@ -188,7 +190,7 @@ pub enum OptionType {
 	Env,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CliOption<'a> {
 	pub key: &'a str,
 	pub name: &'a str,

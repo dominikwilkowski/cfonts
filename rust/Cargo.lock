@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "cfonts-rust"
+name = "cfonts"
 version = "1.0.0"
 dependencies = [
  "exitcode",
