@@ -14,8 +14,8 @@ fn print_type_of_works() {
 pub fn first_letter_to_lowercase(s: &str) -> String {
 	let mut c = s.chars();
 	match c.next() {
-		None => String::new(),
 		Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
+		None => String::new(),
 	}
 }
 

@@ -17,7 +17,7 @@ fn main() {
 	// 	..Options::default()
 	// };
 
-	let options = parse_args(args().collect());
+	let options = parse_args(args().collect::<Vec<String>>());
 	println!("{:#?}", options);
 
 	println!("Hello, world!");
