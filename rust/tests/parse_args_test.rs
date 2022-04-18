@@ -819,3 +819,117 @@ fn parse_args_colors() {
 		options
 	);
 }
+
+#[test]
+fn parse_args_all_together() {
+	let mut options = Options::default();
+	options.text = "long text|with new line".to_string();
+	options.font = Fonts::FontSimple3d;
+	options.align = Align::Center;
+	options.colors = vec![Colors::Blue, Colors::White];
+	options.background = BgColors::CyanBright;
+	options.letter_spacing = 9;
+	options.line_height = 2;
+	options.spaceless = true;
+	options.max_length = 100;
+	options.gradient = vec![Colors::YellowBright];
+	options.independent_gradient = true;
+	options.transition_gradient = true;
+	options.env = Env::Browser;
+	options.help = true;
+	options.version = true;
+	options.debug = true;
+	options.debug_level = 3;
+
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"long text|with new line".to_string(),
+			"-f".to_string(),
+			"simple3d".to_string(),
+			"-a".to_string(),
+			"center".to_string(),
+			"-c".to_string(),
+			"blue,white".to_string(),
+			"-b".to_string(),
+			"cyanBright".to_string(),
+			"-l".to_string(),
+			"9".to_string(),
+			"-z".to_string(),
+			"2".to_string(),
+			"-s".to_string(),
+			"-m".to_string(),
+			"100".to_string(),
+			"-g".to_string(),
+			"yellowbright".to_string(),
+			"-i".to_string(),
+			"-t".to_string(),
+			"-e".to_string(),
+			"browser".to_string(),
+			"-h".to_string(),
+			"-v".to_string(),
+			"-d".to_string(),
+			"-x".to_string(),
+			"3".to_string(),
+		]),
+		options
+	);
+
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"long text|with new line".to_string(),
+			"-f".to_string(),
+			"simple3d".to_string(),
+			"-a".to_string(),
+			"center".to_string(),
+			"-c".to_string(),
+			"blue,white".to_string(),
+			"-b".to_string(),
+			"cyanBright".to_string(),
+			"-l".to_string(),
+			"9".to_string(),
+			"-z".to_string(),
+			"2".to_string(),
+			"-sithvd".to_string(),
+			"-m".to_string(),
+			"100".to_string(),
+			"-g".to_string(),
+			"yellowbright".to_string(),
+			"-e".to_string(),
+			"browser".to_string(),
+			"-x".to_string(),
+			"3".to_string(),
+		]),
+		options
+	);
+
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"long text|with new line".to_string(),
+			"--font".to_string(),
+			"simple3d".to_string(),
+			"--align".to_string(),
+			"center".to_string(),
+			"--colors".to_string(),
+			"blue,white".to_string(),
+			"--background".to_string(),
+			"cyanBright".to_string(),
+			"--letter-spacing".to_string(),
+			"9".to_string(),
+			"--line-height".to_string(),
+			"2".to_string(),
+			"-sithvd".to_string(),
+			"--max-length".to_string(),
+			"100".to_string(),
+			"--gradient".to_string(),
+			"yellowbright".to_string(),
+			"--env".to_string(),
+			"browser".to_string(),
+			"--debug-level".to_string(),
+			"3".to_string(),
+		]),
+		options
+	);
+}
