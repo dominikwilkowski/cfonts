@@ -1,6 +1,6 @@
 extern crate cfonts;
 
-use cfonts::config::{Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
+use cfonts::config::{Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options};
 use cfonts::parse_args::parse_args;
 
 #[test]
@@ -257,6 +257,93 @@ fn parse_args_font() {
 			"my text".to_string(),
 			"-f".to_string(),
 			"Tiny".to_string()
+		]),
+		options
+	);
+}
+
+#[test]
+fn parse_args_align() {
+	let mut options = Options::default();
+	options.text = String::from("my text");
+	options.align = Align::Center;
+
+	// casing
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"center".to_string()
+		]),
+		options
+	);
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"--align".to_string(),
+			"CENTER".to_string()
+		]),
+		options
+	);
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"cEnTeR".to_string()
+		]),
+		options
+	);
+
+	options.align = Align::Left;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"left".to_string()
+		]),
+		options
+	);
+	options.align = Align::Center;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"center".to_string()
+		]),
+		options
+	);
+	options.align = Align::Right;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"right".to_string()
+		]),
+		options
+	);
+	options.align = Align::Top;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"top".to_string()
+		]),
+		options
+	);
+	options.align = Align::Bottom;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-a".to_string(),
+			"bottom".to_string()
 		]),
 		options
 	);
