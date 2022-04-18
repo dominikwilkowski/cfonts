@@ -115,6 +115,7 @@ pub fn parse_args(args: Vec<String>) -> Options {
 								"cyan" => Colors::Cyan,
 								"white" => Colors::White,
 								"gray" => Colors::Gray,
+								"grey" => Colors::Gray,
 								"redbright" => Colors::RedBright,
 								"greenbright" => Colors::GreenBright,
 								"yellowbright" => Colors::YellowBright,
