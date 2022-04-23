@@ -39,7 +39,7 @@ pub enum Colors {
 	MagentaBright,
 	CyanBright,
 	WhiteBright,
-	Hex(String),
+	Rgb([u8; 3]),
 }
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]
@@ -53,7 +53,7 @@ pub enum BgColors {
 	Magenta,
 	Cyan,
 	White,
-	BlackBright,
+	Gray,
 	RedBright,
 	GreenBright,
 	YellowBright,
@@ -61,6 +61,7 @@ pub enum BgColors {
 	MagentaBright,
 	CyanBright,
 	WhiteBright,
+	Rgb([u8; 3]),
 }
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]
@@ -96,7 +97,7 @@ impl Colors {
 		let mut list = vec![];
 		for font in Colors::iter() {
 			let name = format!("{:?}", font);
-			if name.starts_with("Hex") {
+			if name.starts_with("Rgb") {
 				list.push("Any hex color starting with #, e.g.: #ff8800 or #f80".to_string());
 			} else {
 				list.push(first_letter_to_lowercase(&name));
@@ -111,7 +112,11 @@ impl BgColors {
 		let mut list = vec![];
 		for font in BgColors::iter() {
 			let name = format!("{:?}", font);
-			list.push(first_letter_to_lowercase(&name));
+			if name.starts_with("Rgb") {
+				list.push("Any hex color starting with #, e.g.: #ff8800 or #f80".to_string());
+			} else {
+				list.push(first_letter_to_lowercase(&name));
+			}
 		}
 		list.join(", ")
 	}

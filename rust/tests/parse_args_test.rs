@@ -521,13 +521,22 @@ fn parse_args_bgcolors() {
 		]),
 		options
 	);
-	options.background = BgColors::BlackBright;
+	options.background = BgColors::Gray;
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"blackbright".to_string()
+			"gray".to_string()
+		]),
+		options
+	);
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-b".to_string(),
+			"grey".to_string()
 		]),
 		options
 	);
