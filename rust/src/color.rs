@@ -24,6 +24,7 @@ pub fn get_foreground_color(color: Colors) -> (String, String) {
 		Colors::Rgb(rgb) => format!("\x1b[38;2;{};{};{}m", rgb[0], rgb[1], rgb[2]),
 	};
 
+	// we use the same "reset code" for all foreground colors and it's to set the color (only) back to system color
 	(start, String::from("\x1b[39m"))
 }
 
@@ -49,6 +50,7 @@ pub fn get_background_color(color: BgColors) -> (String, String) {
 		BgColors::Rgb(rgb) => format!("\x1b[48;2;{};{};{}m", rgb[0], rgb[1], rgb[2]),
 	};
 
+	// reset only background to system color
 	(start, String::from("\x1b[49m"))
 }
 

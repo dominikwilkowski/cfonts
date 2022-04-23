@@ -66,8 +66,8 @@ pub fn parse_args(args: Vec<String>) -> Options {
 	options.text = my_args[1].clone();
 
 	let mut args_length = my_args.len();
-	let mut i = 2;
-	// we iterate over all arguments and match them with our lookup table
+	let mut i = 2; // we skip the first two arguments as the first is path to binary and the second we already take care of above
+							 // we iterate over all arguments and match them with our lookup table
 	while i < args_length {
 		// before we see if this flag exists in our lookup we see if boolean flags have been stacked here
 		if my_args[i].starts_with('-') && !my_args[i].starts_with("--") && my_args[i].len() > 2 {
