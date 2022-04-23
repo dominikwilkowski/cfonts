@@ -16,3 +16,6 @@ exitcode = "1.1.2"
 strum = "0.24"
 strum_macros = "0.24"
 enable-ansi-support = "0.1"
+
+[dev-dependencies]
+temp-env = "0.2.0"

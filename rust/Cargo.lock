@@ -10,6 +10,7 @@ dependencies = [
  "exitcode",
  "strum",
  "strum_macros",
+ "temp-env",
 ]
 
 [[package]]
@@ -32,6 +33,12 @@ name = "heck"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
+
+[[package]]
+name = "once_cell"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87f3e037eac156d1775da914196f0f37741a274155e34a0b7e427c35d2a2ecb9"
 
 [[package]]
 name = "proc-macro2"
@@ -85,6 +92,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "temp-env"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45107136c2ddf8c4b87453c02294fd0adf41751796e81e8ba3f7fd951977ab57"
+dependencies = [
+ "once_cell",
 ]
 
 [[package]]
