@@ -39,6 +39,7 @@ pub enum Colors {
 	MagentaBright,
 	CyanBright,
 	WhiteBright,
+	Hex(String),
 }
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]
@@ -95,7 +96,11 @@ impl Colors {
 		let mut list = vec![];
 		for font in Colors::iter() {
 			let name = format!("{:?}", font);
-			list.push(first_letter_to_lowercase(&name))
+			if name.starts_with("Hex") {
+				list.push("Any hex color starting with #, e.g.: #ff8800 or #f80".to_string());
+			} else {
+				list.push(first_letter_to_lowercase(&name));
+			}
 		}
 		list.join(", ")
 	}

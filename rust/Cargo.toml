@@ -15,3 +15,4 @@ categories = ["command-line-interface", "command-line-utilities", "graphics"]
 exitcode = "1.1.2"
 strum = "0.24"
 strum_macros = "0.24"
+enable-ansi-support = "0.1"

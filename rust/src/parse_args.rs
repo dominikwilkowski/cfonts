@@ -43,7 +43,6 @@ pub fn parse_args(args: Vec<String>) -> Options {
 
 		match options_lookup.get(&my_args[i]) {
 			Some(this_flag) => {
-				println!("found {:?}", this_flag.kind);
 				match this_flag.kind {
 					OptionType::Text => { /* Only Text type is on argvs[1] */ }
 					OptionType::Font => {
@@ -124,6 +123,9 @@ pub fn parse_args(args: Vec<String>) -> Options {
 								"cyanbright" => Colors::CyanBright,
 								"whitebright" => Colors::WhiteBright,
 								unknown => {
+									if unknown.starts_with('#') && unknown.len() > 3 && unknown.len() < 8 {
+										return Colors::Hex(unknown.to_string());
+									}
 									println!("The color \"{}\" is not supported.\nAllowed options are: {:?}", unknown, Colors::list());
 									std::process::exit(exitcode::USAGE);
 								}
