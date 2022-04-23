@@ -396,19 +396,155 @@ fn parse_args_env() {
 	);
 }
 
+macro_rules! bg_color_test {
+	($($color:path, $flag1:literal, $flag2:literal, $flag3:literal),*$(,)?) => {
+		let mut options = Options::default();
+		options.text = String::from("my text");
+
+		$(
+			options.background = $color;
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"-b".to_string(),
+					$flag1.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"-b".to_string(),
+					$flag2.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"-b".to_string(),
+					$flag3.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"--background".to_string(),
+					$flag1.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"--background".to_string(),
+					$flag2.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"--background".to_string(),
+					$flag3.to_string()
+				]),
+				options
+			);
+		)*
+	}
+}
+
 #[test]
 fn parse_args_bgcolors() {
 	let mut options = Options::default();
 	options.text = String::from("my text");
 	options.background = BgColors::Red;
 
-	// casing
+	bg_color_test!(
+		BgColors::Transparent,
+		"transparent",
+		"tRaNsPaReNt",
+		"TRANSPARENT",
+		BgColors::Black,
+		"black",
+		"bLaCk",
+		"BLACK",
+		BgColors::Red,
+		"red",
+		"rEd",
+		"RED",
+		BgColors::Green,
+		"green",
+		"gReEn",
+		"GREEN",
+		BgColors::Yellow,
+		"yellow",
+		"yElLOw",
+		"YELLOW",
+		BgColors::Blue,
+		"blue",
+		"bLuE",
+		"BLUE",
+		BgColors::Magenta,
+		"magenta",
+		"mAgEnTa",
+		"MAGENTA",
+		BgColors::Cyan,
+		"cyan",
+		"cYaN",
+		"CYAN",
+		BgColors::White,
+		"white",
+		"wHiTe",
+		"WHITE",
+		BgColors::Gray,
+		"gray",
+		"gRaY",
+		"GRAY",
+		BgColors::RedBright,
+		"redbright",
+		"rEdBrIgHt",
+		"REDBRIGHT",
+		BgColors::GreenBright,
+		"greenbright",
+		"gReEnBrIgHt",
+		"GREENBRIGHT",
+		BgColors::YellowBright,
+		"yellowbright",
+		"yElLoWbRiGhT",
+		"YELLOWBRIGHT",
+		BgColors::BlueBright,
+		"bluebright",
+		"bLuEbRiGhT",
+		"BLUEBRIGHT",
+		BgColors::MagentaBright,
+		"magentabright",
+		"mAgEnTaBrIgHt",
+		"MAGENTABRIGHT",
+		BgColors::CyanBright,
+		"cyanbright",
+		"cYaNbRiGhT",
+		"CYANBRIGHT",
+		BgColors::WhiteBright,
+		"whitebright",
+		"wHiTeBrIgHt",
+		"WHITEBRIGHT",
+	);
+
+	options.background = BgColors::Rgb([0, 0, 0]);
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"red".to_string()
+			"#000".to_string()
 		]),
 		options
 	);
@@ -417,7 +553,7 @@ fn parse_args_bgcolors() {
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"--background".to_string(),
-			"RED".to_string()
+			"#000".to_string()
 		]),
 		options
 	);
@@ -426,108 +562,27 @@ fn parse_args_bgcolors() {
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"rEd".to_string()
+			"#000000".to_string()
 		]),
 		options
 	);
 
-	options.background = BgColors::Transparent;
+	options.background = BgColors::Rgb([136, 136, 136]);
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"transparent".to_string()
+			"#888".to_string()
 		]),
 		options
 	);
-	options.background = BgColors::Black;
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
-			"-b".to_string(),
-			"black".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Red;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"red".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Green;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"green".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Yellow;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"yellow".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Blue;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"blue".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Magenta;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"magenta".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Cyan;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"cyan".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::White;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"white".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Gray;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"gray".to_string()
+			"--background".to_string(),
+			"#888".to_string()
 		]),
 		options
 	);
@@ -536,105 +591,298 @@ fn parse_args_bgcolors() {
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"grey".to_string()
+			"#888888".to_string()
 		]),
 		options
 	);
-	options.background = BgColors::RedBright;
+
+	options.background = BgColors::Rgb([255, 255, 255]);
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"redbright".to_string()
+			"#fff".to_string()
 		]),
 		options
 	);
-	options.background = BgColors::GreenBright;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"--background".to_string(),
+			"#fff".to_string()
+		]),
+		options
+	);
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"greenbright".to_string()
+			"#ffffff".to_string()
 		]),
 		options
 	);
-	options.background = BgColors::YellowBright;
+
+	options.background = BgColors::Rgb([255, 255, 255]);
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"yellowbright".to_string()
+			"#xxx".to_string()
 		]),
 		options
 	);
-	options.background = BgColors::BlueBright;
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"--background".to_string(),
+			"#xXx".to_string()
+		]),
+		options
+	);
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-b".to_string(),
-			"bluebright".to_string()
+			"#xXXXXx".to_string()
 		]),
 		options
 	);
-	options.background = BgColors::MagentaBright;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"magentabright".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::CyanBright;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"cyanbright".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::WhiteBright;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"whitebright".to_string()
-		]),
-		options
-	);
-	options.background = BgColors::Red;
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-b".to_string(),
-			"red".to_string()
-		]),
-		options
-	);
+}
+
+macro_rules! color_test {
+	($($color:expr, $flag1:literal, $flag2:literal, $flag3:literal),*$(,)?) => {
+		let mut options = Options::default();
+		options.text = String::from("my text");
+
+		$(
+			options.colors = $color;
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"-c".to_string(),
+					$flag1.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"-c".to_string(),
+					$flag2.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"-c".to_string(),
+					$flag3.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"--colors".to_string(),
+					$flag1.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"--colors".to_string(),
+					$flag2.to_string()
+				]),
+				options
+			);
+			assert_eq!(
+				parse_args(vec![
+					"path/to/bin".to_string(),
+					"my text".to_string(),
+					"--colors".to_string(),
+					$flag3.to_string()
+				]),
+				options
+			);
+		)*
+	}
 }
 
 #[test]
 fn parse_args_colors() {
 	let mut options = Options::default();
 	options.text = String::from("my text");
-	options.colors = vec![Colors::Cyan, Colors::Red];
 
-	// casing
+	color_test!(
+		vec![Colors::System],
+		"system",
+		"sYsTeM",
+		"SYSTEM",
+		vec![Colors::Black],
+		"black",
+		"bLaCk",
+		"BLACK",
+		vec![Colors::Red],
+		"red",
+		"rEd",
+		"RED",
+		vec![Colors::Green],
+		"green",
+		"gReEn",
+		"GREEN",
+		vec![Colors::Yellow],
+		"yellow",
+		"yElLOw",
+		"YELLOW",
+		vec![Colors::Blue],
+		"blue",
+		"bLuE",
+		"BLUE",
+		vec![Colors::Magenta],
+		"magenta",
+		"mAgEnTa",
+		"MAGENTA",
+		vec![Colors::Cyan],
+		"cyan",
+		"cYaN",
+		"CYAN",
+		vec![Colors::White],
+		"white",
+		"wHiTe",
+		"WHITE",
+		vec![Colors::Gray],
+		"gray",
+		"gRaY",
+		"GRAY",
+		vec![Colors::RedBright],
+		"redbright",
+		"rEdBrIgHt",
+		"REDBRIGHT",
+		vec![Colors::GreenBright],
+		"greenbright",
+		"gReEnBrIgHt",
+		"GREENBRIGHT",
+		vec![Colors::YellowBright],
+		"yellowbright",
+		"yElLoWbRiGhT",
+		"YELLOWBRIGHT",
+		vec![Colors::BlueBright],
+		"bluebright",
+		"bLuEbRiGhT",
+		"BLUEBRIGHT",
+		vec![Colors::MagentaBright],
+		"magentabright",
+		"mAgEnTaBrIgHt",
+		"MAGENTABRIGHT",
+		vec![Colors::CyanBright],
+		"cyanbright",
+		"cYaNbRiGhT",
+		"CYANBRIGHT",
+		vec![Colors::WhiteBright],
+		"whitebright",
+		"wHiTeBrIgHt",
+		"WHITEBRIGHT",
+	);
+
+	color_test!(
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::System],
+		"blue,#888,system",
+		"bLuE,#888888,sYsTeM",
+		"BLUE,#888,SYSTEM",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Black],
+		"blue,#888,black",
+		"bLuE,#888888,bLaCk",
+		"BLUE,#888,BLACK",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Red],
+		"blue,#888,red",
+		"bLuE,#888888,rEd",
+		"BLUE,#888,RED",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Green],
+		"blue,#888,green",
+		"bLuE,#888888,gReEn",
+		"BLUE,#888,GREEN",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Yellow],
+		"blue,#888,yellow",
+		"bLuE,#888888,yElLOw",
+		"BLUE,#888,YELLOW",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Blue],
+		"blue,#888,blue",
+		"bLuE,#888888,bLuE",
+		"BLUE,#888,BLUE",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Magenta],
+		"blue,#888,magenta",
+		"bLuE,#888888,mAgEnTa",
+		"BLUE,#888,MAGENTA",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Cyan],
+		"blue,#888,cyan",
+		"bLuE,#888888,cYaN",
+		"BLUE,#888,CYAN",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::White],
+		"blue,#888,white",
+		"bLuE,#888888,wHiTe",
+		"BLUE,#888,WHITE",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::Gray],
+		"blue,#888,gray",
+		"bLuE,#888888,gRaY",
+		"BLUE,#888,GRAY",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::RedBright],
+		"blue,#888,redbright",
+		"bLuE,#888888,rEdBrIgHt",
+		"BLUE,#888,REDBRIGHT",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::GreenBright],
+		"blue,#888,greenbright",
+		"bLuE,#888888,gReEnBrIgHt",
+		"BLUE,#888,GREENBRIGHT",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::YellowBright],
+		"blue,#888,yellowbright",
+		"bLuE,#888888,yElLoWbRiGhT",
+		"BLUE,#888,YELLOWBRIGHT",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::BlueBright],
+		"blue,#888,bluebright",
+		"bLuE,#888888,bLuEbRiGhT",
+		"BLUE,#888,BLUEBRIGHT",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::MagentaBright],
+		"blue,#888,magentabright",
+		"bLuE,#888888,mAgEnTaBrIgHt",
+		"BLUE,#888,MAGENTABRIGHT",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::CyanBright],
+		"blue,#888,cyanbright",
+		"bLuE,#888888,cYaNbRiGhT",
+		"BLUE,#888,CYANBRIGHT",
+		vec![Colors::Blue, Colors::Rgb([136, 136, 136]), Colors::WhiteBright],
+		"blue,#888,whitebright",
+		"bLuE,#888888,wHiTeBrIgHt",
+		"BLUE,#888,WHITEBRIGHT",
+	);
+
+	options.colors = vec![Colors::Rgb([0, 0, 0])];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"cyan,red".to_string()
+			"#000".to_string()
+		]),
+		options
+	);
+	assert_eq!(
+		parse_args(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-c".to_string(),
+			"#000000".to_string()
 		]),
 		options
 	);
@@ -643,187 +891,94 @@ fn parse_args_colors() {
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"--colors".to_string(),
-			"CYAN,RED".to_string()
-		]),
-		options
-	);
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"cYaN,rEd".to_string()
+			"#000".to_string()
 		]),
 		options
 	);
 
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::System];
+	options.colors = vec![Colors::Rgb([136, 136, 136])];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"grey,red,system".to_string()
+			"#888".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Black];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"grey,red,black".to_string()
+			"#888888".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Red];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,red".to_string()
+			"--colors".to_string(),
+			"#888".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Green];
+
+	options.colors = vec![Colors::Rgb([255, 255, 255])];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"grey,red,green".to_string()
+			"#fff".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Yellow];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"grey,red,yellow".to_string()
+			"#ffffff".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Blue];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,blue".to_string()
+			"--colors".to_string(),
+			"#fff".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Magenta];
+
+	options.colors = vec![Colors::Rgb([255, 255, 255])];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"grey,red,magenta".to_string()
+			"#xxx".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Cyan];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
 			"-c".to_string(),
-			"grey,red,cyan".to_string()
+			"#xXXXXx".to_string()
 		]),
 		options
 	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::White];
 	assert_eq!(
 		parse_args(vec![
 			"path/to/bin".to_string(),
 			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,white".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::Gray];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,gray".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::RedBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,redbright".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::GreenBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,greenbright".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::YellowBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,yellowbright".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::BlueBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,bluebright".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::MagentaBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,magentabright".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::CyanBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,cyanbright".to_string()
-		]),
-		options
-	);
-	options.colors = vec![Colors::Gray, Colors::Red, Colors::WhiteBright];
-	assert_eq!(
-		parse_args(vec![
-			"path/to/bin".to_string(),
-			"my text".to_string(),
-			"-c".to_string(),
-			"grey,red,whitebright".to_string()
+			"--colors".to_string(),
+			"#XXX".to_string()
 		]),
 		options
 	);
