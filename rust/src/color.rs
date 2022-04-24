@@ -3,6 +3,10 @@ use std::env;
 use crate::config::{BgColors, Colors};
 
 pub fn get_foreground_color(color: Colors) -> (String, String) {
+	if env::var("NO_COLOR").is_ok() {
+		return (String::from(""), String::from(""));
+	}
+
 	let start = match color {
 		Colors::System => String::from("\x1b[39m"),
 		Colors::Black => String::from("\x1b[30m"),
@@ -29,6 +33,10 @@ pub fn get_foreground_color(color: Colors) -> (String, String) {
 }
 
 pub fn get_background_color(color: BgColors) -> (String, String) {
+	if env::var("NO_COLOR").is_ok() {
+		return (String::from(""), String::from(""));
+	}
+
 	let start = match color {
 		BgColors::Transparent => String::from("\x1b[49m"),
 		BgColors::Black => String::from("\x1b[40m"),
@@ -180,6 +188,46 @@ mod tests {
 			assert_eq!(bg_color("test", BgColors::Rgb([0, 0, 0])), String::from("test"));
 			assert_eq!(bg_color("test", BgColors::Rgb([100, 100, 100])), String::from("test"));
 			assert_eq!(bg_color("test", BgColors::Rgb([255, 255, 255])), String::from("test"));
+		});
+	}
+
+	#[test]
+	fn get_foreground_color_works_without_en() {
+		temp_env::with_var_unset("NO_COLOR", || {
+			assert_eq!(get_foreground_color(Colors::System), (String::from("\x1b[39m"), String::from("\x1b[39m")));
+			assert_eq!(get_foreground_color(Colors::Red), (String::from("\x1b[31m"), String::from("\x1b[39m")));
+			assert_eq!(get_foreground_color(Colors::Green), (String::from("\x1b[32m"), String::from("\x1b[39m")));
+			assert_eq!(get_foreground_color(Colors::Blue), (String::from("\x1b[34m"), String::from("\x1b[39m")));
+		});
+	}
+
+	#[test]
+	fn get_foreground_color_works_with_en() {
+		temp_env::with_var("NO_COLOR", Some(""), || {
+			assert_eq!(get_foreground_color(Colors::System), (String::from(""), String::from("")));
+			assert_eq!(get_foreground_color(Colors::Red), (String::from(""), String::from("")));
+			assert_eq!(get_foreground_color(Colors::Green), (String::from(""), String::from("")));
+			assert_eq!(get_foreground_color(Colors::Blue), (String::from(""), String::from("")));
+		});
+	}
+
+	#[test]
+	fn get_background_color_works_without_en() {
+		temp_env::with_var_unset("NO_COLOR", || {
+			assert_eq!(get_background_color(BgColors::Transparent), (String::from("\x1b[49m"), String::from("\x1b[49m")));
+			assert_eq!(get_background_color(BgColors::Red), (String::from("\x1b[41m"), String::from("\x1b[49m")));
+			assert_eq!(get_background_color(BgColors::Green), (String::from("\x1b[42m"), String::from("\x1b[49m")));
+			assert_eq!(get_background_color(BgColors::Blue), (String::from("\x1b[44m"), String::from("\x1b[49m")));
+		});
+	}
+
+	#[test]
+	fn get_background_color_works_with_en() {
+		temp_env::with_var("NO_COLOR", Some(""), || {
+			assert_eq!(get_background_color(BgColors::Transparent), (String::from(""), String::from("")));
+			assert_eq!(get_background_color(BgColors::Red), (String::from(""), String::from("")));
+			assert_eq!(get_background_color(BgColors::Green), (String::from(""), String::from("")));
+			assert_eq!(get_background_color(BgColors::Blue), (String::from(""), String::from("")));
 		});
 	}
 }
