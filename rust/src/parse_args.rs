@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::config::{Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
+use crate::debug::{d, Dt};
 
 fn convert_hex_to_rgb(hex: &str) -> [u8; 3] {
 	let mut rgb = [0_u8, 0_u8, 0_u8];
@@ -300,8 +301,9 @@ pub fn parse_args(args: Vec<String>) -> Options {
 				}
 			}
 			None => {
-				println!("TODO debug message");
-				/* (TODO: debug message) We ignore flags we don't recognize */
+				/* We ignore flags we don't recognize */
+				d(&format!("CLI flag \"{}\" was ignored", my_args[i]), 1, Dt::Log, &options, &mut std::io::stdout());
+				// note this will only debug print flags after the encounter the debug flag
 			}
 		};
 
