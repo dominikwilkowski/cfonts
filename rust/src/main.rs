@@ -31,7 +31,7 @@ fn main() {
 	}
 
 	if options.help {
-		// show help
+		println!("{}", cli::help(&options));
 		return;
 	}
 

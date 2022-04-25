@@ -237,7 +237,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		shortcut: "-f",
 		fallback_shortcut: "",
 		description: "Use to define the font face",
-		example: "--font block (TODO)",
+		example: "--font block",
 		kind: OptionType::Font,
 	},
 	CliOption {
@@ -246,7 +246,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		shortcut: "-c",
 		fallback_shortcut: "",
 		description: "Use to define the font color",
-		example: "--colors red,blue (TODO)",
+		example: "--colors red,blue",
 		kind: OptionType::Colors,
 	},
 	CliOption {
@@ -255,7 +255,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		shortcut: "-b",
 		fallback_shortcut: "",
 		description: "Use to define background color",
-		example: "--background blue (TODO)",
+		example: "--background blue",
 		kind: OptionType::Color,
 	},
 	CliOption {
@@ -264,7 +264,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		shortcut: "-a",
 		fallback_shortcut: "",
 		description: "Use to align your text output",
-		example: "--align center (TODO)",
+		example: "--align center",
 		kind: OptionType::Align,
 	},
 	CliOption {
@@ -336,7 +336,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		shortcut: "-e",
 		fallback_shortcut: "",
 		description: "Use to define what environment you run CFonts in.",
-		example: "--env browser (TODO)",
+		example: "--env browser",
 		kind: OptionType::Env,
 	},
 	CliOption {
