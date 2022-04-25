@@ -36,7 +36,10 @@ pub fn get(options: &Options) -> Font {
 		Fonts::FontGrid => "../fonts/grid.json",
 		Fonts::FontPallet => "../fonts/pallet.json",
 		Fonts::FontTiny => "../fonts/tiny.json",
-		Fonts::FontConsole => "", // we should not get to this point of the program, console font needs to be take care of before
+		Fonts::FontConsole => {
+			// we should not get to this point of the program, console font needs to be take care of before
+			panic!("The function font::get() does get all fonts with the exception of the console font");
+		}
 	};
 	d(&format!("font::get() read font file at \"{}\"", filename), 2, Dt::Log, options, &mut std::io::stdout());
 

@@ -49,7 +49,7 @@ fn convert_hex_to_rgb_works() {
 	assert_eq!(convert_hex_to_rgb("#xxxxxx"), [255, 255, 255]);
 }
 
-pub fn parse_args(args: Vec<String>) -> Options {
+pub fn parse(args: Vec<String>) -> Options {
 	let mut my_args = args;
 	let mut options = Options::default();
 

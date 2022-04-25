@@ -1,7 +1,7 @@
 extern crate cfonts;
 
+use cfonts::args;
 use cfonts::config::{Align, BgColors, Colors, Env, Fonts, Options};
-use cfonts::parse_args::parse_args;
 
 #[cfg(test)]
 mod tests {
@@ -15,7 +15,7 @@ mod tests {
 			$(
 				options.$kind = $color;
 				assert_eq!(
-					parse_args(vec![
+					args::parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_short.to_string(),
@@ -24,7 +24,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					parse_args(vec![
+					args::parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_short.to_string(),
@@ -33,7 +33,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					parse_args(vec![
+					args::parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_short.to_string(),
@@ -42,7 +42,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					parse_args(vec![
+					args::parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_long.to_string(),
@@ -51,7 +51,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					parse_args(vec![
+					args::parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_long.to_string(),
@@ -60,7 +60,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					parse_args(vec![
+					args::parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_long.to_string(),
@@ -73,20 +73,20 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_args_default_options() {
+	fn args_parse_default_options() {
 		let options = Options::default();
-		assert_eq!(parse_args(vec!["path/to/bin".to_string(), "".to_string()]), options);
+		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "".to_string()]), options);
 	}
 
 	#[test]
-	fn parse_args_text() {
+	fn args_parse_text() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
-		assert_eq!(parse_args(vec!["path/to/bin".to_string(), "my text".to_string()]), options);
+		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string()]), options);
 	}
 
 	#[test]
-	fn parse_args_boolean_flags() {
+	fn args_parse_boolean_flags() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 		options.version = true;
@@ -99,7 +99,7 @@ mod tests {
 
 		// long flags
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--version".to_string(),
@@ -114,7 +114,7 @@ mod tests {
 
 		// short flags
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-v".to_string(),
@@ -128,11 +128,11 @@ mod tests {
 		);
 
 		// stacked flags
-		assert_eq!(parse_args(vec!["path/to/bin".to_string(), "my text".to_string(), "-vhsitd".to_string(),]), options);
+		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-vhsitd".to_string(),]), options);
 	}
 
 	#[test]
-	fn parse_args_selective_boolean_flags() {
+	fn args_parse_selective_boolean_flags() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 		options.help = true;
@@ -140,7 +140,7 @@ mod tests {
 
 		// long flags
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--help".to_string(),
@@ -151,7 +151,7 @@ mod tests {
 
 		// short flags
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-h".to_string(),
@@ -161,18 +161,18 @@ mod tests {
 		);
 
 		// stacked flags
-		assert_eq!(parse_args(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]), options);
+		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]), options);
 	}
 
 	#[test]
-	fn parse_args_font() {
+	fn args_parse_font() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 		options.font = Fonts::FontTiny;
 
 		// casing
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -181,7 +181,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--font".to_string(),
@@ -190,7 +190,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -201,7 +201,7 @@ mod tests {
 
 		options.font = Fonts::FontConsole;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -211,7 +211,7 @@ mod tests {
 		);
 		options.font = Fonts::FontBlock;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -221,7 +221,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSimpleBlock;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -231,7 +231,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSimple;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -241,7 +241,7 @@ mod tests {
 		);
 		options.font = Fonts::Font3d;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -251,7 +251,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSimple3d;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -261,7 +261,7 @@ mod tests {
 		);
 		options.font = Fonts::FontChrome;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -271,7 +271,7 @@ mod tests {
 		);
 		options.font = Fonts::FontHuge;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -281,7 +281,7 @@ mod tests {
 		);
 		options.font = Fonts::FontShade;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -291,7 +291,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSlick;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -301,7 +301,7 @@ mod tests {
 		);
 		options.font = Fonts::FontGrid;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -311,7 +311,7 @@ mod tests {
 		);
 		options.font = Fonts::FontPallet;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -321,7 +321,7 @@ mod tests {
 		);
 		options.font = Fonts::FontTiny;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -332,14 +332,14 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_args_align() {
+	fn args_parse_align() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 		options.align = Align::Center;
 
 		// casing
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -348,7 +348,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--align".to_string(),
@@ -357,7 +357,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -368,7 +368,7 @@ mod tests {
 
 		options.align = Align::Left;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -378,7 +378,7 @@ mod tests {
 		);
 		options.align = Align::Center;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -388,7 +388,7 @@ mod tests {
 		);
 		options.align = Align::Right;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -398,7 +398,7 @@ mod tests {
 		);
 		options.align = Align::Top;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -408,7 +408,7 @@ mod tests {
 		);
 		options.align = Align::Bottom;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -419,14 +419,14 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_args_env() {
+	fn args_parse_env() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 		options.env = Env::Browser;
 
 		// casing
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-e".to_string(),
@@ -435,7 +435,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--env".to_string(),
@@ -444,7 +444,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-e".to_string(),
@@ -455,7 +455,7 @@ mod tests {
 
 		options.env = Env::Node;
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-e".to_string(),
@@ -466,7 +466,7 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_args_bgcolors() {
+	fn args_parse_bgcolors() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 		options.background = BgColors::Red;
@@ -595,7 +595,7 @@ mod tests {
 
 		options.background = BgColors::Rgb([0, 0, 0]);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -604,7 +604,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -613,7 +613,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -624,7 +624,7 @@ mod tests {
 
 		options.background = BgColors::Rgb([136, 136, 136]);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -633,7 +633,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -642,7 +642,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -653,7 +653,7 @@ mod tests {
 
 		options.background = BgColors::Rgb([255, 255, 255]);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -662,7 +662,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -671,7 +671,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -682,7 +682,7 @@ mod tests {
 
 		options.background = BgColors::Rgb([255, 255, 255]);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -691,7 +691,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -700,7 +700,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -711,7 +711,7 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_args_colors() {
+	fn args_parse_colors() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
 
@@ -961,7 +961,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb([0, 0, 0])];
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -970,7 +970,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -979,7 +979,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -990,7 +990,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb([136, 136, 136])];
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -999,7 +999,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1008,7 +1008,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1019,7 +1019,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb([255, 255, 255])];
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1028,7 +1028,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1037,7 +1037,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1048,7 +1048,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb([255, 255, 255])];
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1057,7 +1057,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1066,7 +1066,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1077,7 +1077,7 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_args_all_together() {
+	fn args_parse_all_together() {
 		let mut options = Options::default();
 		options.text = "long text|with new line".to_string();
 		options.font = Fonts::FontSimple3d;
@@ -1098,7 +1098,7 @@ mod tests {
 		options.debug_level = 3;
 
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"long text|with new line".to_string(),
 				"-f".to_string(),
@@ -1132,7 +1132,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"long text|with new line".to_string(),
 				"-f".to_string(),
@@ -1161,7 +1161,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			parse_args(vec![
+			args::parse(vec![
 				"path/to/bin".to_string(),
 				"long text|with new line".to_string(),
 				"--font".to_string(),
