@@ -24,18 +24,18 @@ pub struct Font {
 pub fn get(options: &Options) -> Font {
 	d("font::get()", 1, Dt::Head, options, &mut std::io::stdout());
 	let filename = match options.font {
-		Fonts::FontBlock => "../fonts/block.json",
-		Fonts::FontSimpleBlock => "../fonts/simpleBlock.json",
-		Fonts::FontSimple => "../fonts/simple.json",
-		Fonts::Font3d => "../fonts/3d.json",
-		Fonts::FontSimple3d => "../fonts/simple3d.json",
-		Fonts::FontChrome => "../fonts/chrome.json",
-		Fonts::FontHuge => "../fonts/huge.json",
-		Fonts::FontShade => "../fonts/shade.json",
-		Fonts::FontSlick => "../fonts/slick.json",
-		Fonts::FontGrid => "../fonts/grid.json",
-		Fonts::FontPallet => "../fonts/pallet.json",
-		Fonts::FontTiny => "../fonts/tiny.json",
+		Fonts::FontBlock => "./fonts/block.json",
+		Fonts::FontSimpleBlock => "./fonts/simpleBlock.json",
+		Fonts::FontSimple => "./fonts/simple.json",
+		Fonts::Font3d => "./fonts/3d.json",
+		Fonts::FontSimple3d => "./fonts/simple3d.json",
+		Fonts::FontChrome => "./fonts/chrome.json",
+		Fonts::FontHuge => "./fonts/huge.json",
+		Fonts::FontShade => "./fonts/shade.json",
+		Fonts::FontSlick => "./fonts/slick.json",
+		Fonts::FontGrid => "./fonts/grid.json",
+		Fonts::FontPallet => "./fonts/pallet.json",
+		Fonts::FontTiny => "./fonts/tiny.json",
 		Fonts::FontConsole => {
 			// we should not get to this point of the program, console font needs to be take care of before
 			panic!("The function font::get() does get all fonts with the exception of the console font");

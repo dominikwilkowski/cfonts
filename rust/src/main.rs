@@ -3,6 +3,7 @@ extern crate exitcode;
 use std::env::args;
 
 pub mod args;
+pub mod cli;
 pub mod color;
 pub mod config;
 pub mod debug;
@@ -25,7 +26,7 @@ fn main() {
 	);
 
 	if options.version {
-		// show version
+		println!("{}", cli::version(&options));
 		return;
 	}
 

@@ -1,6 +1,7 @@
 extern crate exitcode;
 
 pub mod args;
+pub mod cli;
 pub mod color;
 pub mod config;
 pub mod debug;

@@ -10,6 +10,7 @@ homepage = "https://github.com/dominikwilkowski/cfonts"
 repository = "https://github.com/dominikwilkowski/cfonts"
 keywords = ["font", "banner", "logo", "CLI", "console", "ascii", "pretty", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
+include = ["/fonts"]
 
 [dependencies]
 exitcode = "1.1.2"
