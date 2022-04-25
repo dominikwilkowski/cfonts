@@ -60,7 +60,11 @@ pub fn parse(args: Vec<String>) -> Options {
 		let name = option.name.to_string();
 		let shortcut = option.shortcut.to_string();
 		options_lookup.insert(name, option.clone());
-		options_lookup.insert(shortcut, option);
+		options_lookup.insert(shortcut, option.clone());
+		if !option.fallback_shortcut.is_empty() {
+			let shortcut = option.fallback_shortcut.to_string();
+			options_lookup.insert(shortcut, option);
+		}
 	}
 
 	// our text to be converted

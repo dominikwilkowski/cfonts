@@ -1,7 +1,7 @@
 extern crate cfonts;
 
+use cfonts::color::{bg_color, color, get_background_color, get_foreground_color};
 use cfonts::config::{BgColors, Colors};
-use cfonts::color::{get_foreground_color, get_background_color, color, bg_color};
 
 #[cfg(test)]
 mod tests {

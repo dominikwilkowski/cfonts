@@ -132,6 +132,24 @@ mod tests {
 	}
 
 	#[test]
+	fn args_parse_fallback_shortcut() {
+		let mut options = Options::default();
+		options.text = String::from("my text");
+		options.version = true;
+
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"--version".to_string()
+			]),
+			options
+		);
+		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-v".to_string()]), options);
+		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-V".to_string()]), options);
+	}
+
+	#[test]
 	fn args_parse_selective_boolean_flags() {
 		let mut options = Options::default();
 		options.text = String::from("my text");

@@ -24,6 +24,16 @@ fn main() {
 		&mut std::io::stdout(),
 	);
 
+	if options.version {
+		// show version
+		return;
+	}
+
+	if options.help {
+		// show help
+		return;
+	}
+
 	let render_options = render(&options);
 	println!("{}", render_options.text);
 }

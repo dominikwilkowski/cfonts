@@ -8,8 +8,8 @@ pub mod font;
 pub mod helpers;
 pub mod render;
 
-use render::render;
 use debug::{d, Dt};
+use render::render;
 
 pub fn say(options: config::Options) {
 	d("say()", 1, Dt::Head, &options, &mut std::io::stdout());
