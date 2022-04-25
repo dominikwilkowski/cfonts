@@ -1,3 +1,4 @@
+extern crate strum;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
