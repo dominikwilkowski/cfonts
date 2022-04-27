@@ -102,7 +102,14 @@ pub fn hsv2rgb(hsv: Hsv, options: &Options) -> Rgb {
 	result
 }
 
-// pub fn rgb2hex(rgb: Rgb, options: &Options) -> &str {}
+pub fn rgb2hex(rgb: Rgb, options: &Options) -> String {
+	d("gradient::rgb2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	let (r, g, b) = rgb.get_value();
+	let result = format!("#{:0>2x}{:0>2x}{:0>2x}", r as u8, g as u8, b as u8);
+
+	d(&format!("gradient::rgb2hex() {:?} -> {:?}", rgb, result), 3, Dt::Log, options, &mut std::io::stdout());
+	result
+}
 
 pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	d("gradient::hex2rgb()", 3, Dt::Head, options, &mut std::io::stdout());

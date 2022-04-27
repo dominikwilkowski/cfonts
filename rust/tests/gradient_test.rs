@@ -1,7 +1,7 @@
 extern crate cfonts;
 
 use cfonts::config::Options;
-use cfonts::gradient::{hex2rgb, hsv2rgb, hsv2rsv, rgb2hsv, rsv2hsv, Hsv, Rgb, Rsv};
+use cfonts::gradient::{hex2rgb, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hsv, Hsv, Rgb, Rsv};
 
 #[cfg(test)]
 mod tests {
@@ -107,6 +107,18 @@ mod tests {
 			hsv2rgb(Hsv::Val(300.0, 80.0, 39.21568627450981), &options),
 			Rgb::Val(100.00000000000001, 20.0, 100.00000000000001)
 		);
+	}
+
+	#[test]
+	fn rgb2hex_works() {
+		let options = Options::default();
+		assert_eq!(rgb2hex(Rgb::Val(0.0, 0.0, 0.0), &options), "#000000");
+		assert_eq!(rgb2hex(Rgb::Val(255.0, 255.0, 255.0), &options), "#ffffff");
+		assert_eq!(rgb2hex(Rgb::Val(0.0, 255.0, 255.0), &options), "#00ffff");
+		assert_eq!(rgb2hex(Rgb::Val(255.0, 0.0, 255.0), &options), "#ff00ff");
+		assert_eq!(rgb2hex(Rgb::Val(255.0, 255.0, 0.0), &options), "#ffff00");
+		assert_eq!(rgb2hex(Rgb::Val(127.0, 127.0, 127.0), &options), "#7f7f7f");
+		assert_eq!(rgb2hex(Rgb::Val(255.0, 136.0, 0.0), &options), "#ff8800");
 	}
 
 	#[test]
