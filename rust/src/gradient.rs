@@ -63,29 +63,10 @@ pub fn rgb2hsv(rgb: Rgb, options: &Options) -> Hsv {
 pub fn hsv2rgb(hsv: Hsv, options: &Options) -> Rgb {
 	d("gradient::hsv2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
 
-	enum Level {
-		One,
-		Two,
-		Three,
-		Four,
-		Five,
-		Six,
-	}
-
 	let (h_input, s_input, v_input) = hsv.get_value();
 	let hue = h_input / 60.0;
 	let saturation = s_input / 100.0;
 	let mut val = v_input / 100.0;
-	let hi = match (hue.floor() % 6.0) as u8 {
-		0 => Level::One,
-		1 => Level::Two,
-		2 => Level::Three,
-		3 => Level::Four,
-		4 => Level::Five,
-		5 => Level::Six,
-		// due to the modulo operation we would never get anything above 5
-		_ => Level::Six,
-	};
 
 	let f = hue - hue.floor();
 	let p = 255.0 * val * (1.0 - saturation);
@@ -93,13 +74,15 @@ pub fn hsv2rgb(hsv: Hsv, options: &Options) -> Rgb {
 	let t = 255.0 * val * (1.0 - (saturation * (1.0 - f)));
 	val *= 255.0;
 
-	let result = match hi {
-		Level::One => Rgb::Val(val, t, p),
-		Level::Two => Rgb::Val(q, val, p),
-		Level::Three => Rgb::Val(p, val, t),
-		Level::Four => Rgb::Val(p, q, val),
-		Level::Five => Rgb::Val(t, p, val),
-		Level::Six => Rgb::Val(val, p, q),
+	let result = match (hue.floor() % 6.0) as u8 {
+		0 => Rgb::Val(val, t, p),
+		1 => Rgb::Val(q, val, p),
+		2 => Rgb::Val(p, val, t),
+		3 => Rgb::Val(p, q, val),
+		4 => Rgb::Val(t, p, val),
+		5 => Rgb::Val(val, p, q),
+		// due to the modulo operation we would never get anything above 5
+		_ => Rgb::Val(0.0, 0.0, 0.0),
 	};
 
 	d(&format!("gradient::hsv2rgb() {:?} -> {:?}", hsv, result), 3, Dt::Log, options, &mut std::io::stdout());
