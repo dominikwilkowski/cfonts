@@ -1,7 +1,7 @@
 extern crate cfonts;
 
 use cfonts::config::Options;
-use cfonts::gradient::{hsv2rgb, rgb2hsv, Hsv, Rgb};
+use cfonts::gradient::{hex2rgb, hsv2rgb, hsv2rsv, rgb2hsv, rsv2hsv, Hsv, Rgb, Rsv};
 
 #[cfg(test)]
 mod tests {
@@ -107,5 +107,36 @@ mod tests {
 			hsv2rgb(Hsv::Val(300.0, 80.0, 39.21568627450981), &options),
 			Rgb::Val(100.00000000000001, 20.0, 100.00000000000001)
 		);
+	}
+
+	#[test]
+	fn hex2rgb_works() {
+		let options = Options::default();
+		assert_eq!(hex2rgb("#000000", &options), Rgb::Val(0.0, 0.0, 0.0));
+		assert_eq!(hex2rgb("#ffffff", &options), Rgb::Val(255.0, 255.0, 255.0));
+		assert_eq!(hex2rgb("#00ffff", &options), Rgb::Val(0.0, 255.0, 255.0));
+		assert_eq!(hex2rgb("#ff00ff", &options), Rgb::Val(255.0, 0.0, 255.0));
+		assert_eq!(hex2rgb("#ffff00", &options), Rgb::Val(255.0, 255.0, 0.0));
+		assert_eq!(hex2rgb("#ffffffff", &options), Rgb::Val(255.0, 255.0, 255.0));
+		assert_eq!(hex2rgb("#fff", &options), Rgb::Val(255.0, 255.0, 255.0));
+		assert_eq!(hex2rgb("#ffff", &options), Rgb::Val(255.0, 255.0, 255.0));
+		assert_eq!(hex2rgb("#7f7f7f", &options), Rgb::Val(127.0, 127.0, 127.0));
+		assert_eq!(hex2rgb("#ff8800", &options), Rgb::Val(255.0, 136.0, 0.0));
+	}
+
+	#[test]
+	fn hsv2rsv_works() {
+		let options = Options::default();
+		assert_eq!(hsv2rsv(Hsv::Val(0.0, 0.0, 0.0), &options), Rsv::Val(0.0, 0.0, 0.0));
+		assert_eq!(hsv2rsv(Hsv::Val(360.0, 0.0, 0.0), &options), Rsv::Val(6.283185307179586, 0.0, 0.0));
+		assert_eq!(hsv2rsv(Hsv::Val(180.0, 0.0, 0.0), &options), Rsv::Val(3.141592653589793, 0.0, 0.0));
+	}
+
+	#[test]
+	fn rsv2hsv_works() {
+		let options = Options::default();
+		assert_eq!(rsv2hsv(Rsv::Val(0.0, 0.0, 0.0), &options), Hsv::Val(0.0, 0.0, 0.0));
+		assert_eq!(rsv2hsv(Rsv::Val(6.283185307179586, 0.0, 0.0), &options), Hsv::Val(360.0, 0.0, 0.0));
+		assert_eq!(rsv2hsv(Rsv::Val(3.141592653589793, 0.0, 0.0), &options), Hsv::Val(180.0, 0.0, 0.0));
 	}
 }
