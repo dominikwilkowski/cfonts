@@ -82,7 +82,7 @@ pub fn hsv2rgb(hsv: Hsv, options: &Options) -> Rgb {
 		4 => Rgb::Val(t, p, val),
 		5 => Rgb::Val(val, p, q),
 		// due to the modulo operation we would never get anything above 5
-		_ => Rgb::Val(0.0, 0.0, 0.0),
+		_ => unreachable!(),
 	};
 
 	d(&format!("gradient::hsv2rgb() {:?} -> {:?}", hsv, result), 3, Dt::Log, options, &mut std::io::stdout());
