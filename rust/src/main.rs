@@ -8,6 +8,7 @@ pub mod color;
 pub mod config;
 pub mod debug;
 pub mod font;
+pub mod gradient;
 pub mod helpers;
 pub mod render;
 
