@@ -2,7 +2,7 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	get_linear, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	get_linear, get_theta, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -182,13 +182,64 @@ mod tests {
 	#[test]
 	fn get_linear_works() {
 		let options = Options::default();
-		assert_eq!(get_linear(0, 5, 0, 5, &options), 0);
-		assert_eq!(get_linear(0, 5, 1, 5, &options), 1);
-		assert_eq!(get_linear(0, 5, 2, 5, &options), 2);
-		assert_eq!(get_linear(0, 5, 3, 5, &options), 3);
-		assert_eq!(get_linear(0, 5, 4, 5, &options), 4);
-		assert_eq!(get_linear(0, 5, 5, 5, &options), 5);
 
-		assert_eq!(get_linear(0, 5, 0, 0, &options), 5);
+		let point_a = 0.0;
+		let point_b = 5.0;
+		let steps = 5;
+		assert_eq!(get_linear(point_a, point_b, 0, steps, &options), point_a);
+		assert_eq!(get_linear(point_a, point_b, 1, steps, &options), 1.0);
+		assert_eq!(get_linear(point_a, point_b, 2, steps, &options), 2.0);
+		assert_eq!(get_linear(point_a, point_b, 3, steps, &options), 3.0);
+		assert_eq!(get_linear(point_a, point_b, 4, steps, &options), 4.0);
+		assert_eq!(get_linear(point_a, point_b, 5, steps, &options), point_b);
+
+		let point_a = 0.0;
+		let point_b = 5.0;
+		let steps = 0;
+		assert_eq!(get_linear(point_a, point_b, 0, steps, &options), 5.0);
+	}
+
+	#[test]
+	fn get_theta_works() {
+		let options = Options::default();
+
+		let point_a = 0.0;
+		let point_b = 5.0;
+		let steps = 5;
+		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
+		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 1.0);
+		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 2.0);
+		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), 3.0);
+		assert_eq!(get_theta(point_a, point_b, 4, steps, &options), 4.0);
+		assert_eq!(get_theta(point_a, point_b, 5, steps, &options), point_b);
+
+		let point_a = 2.0;
+		let point_b = 3.0;
+		let steps = 3;
+		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
+		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 0.238938230940138);
+		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 4.761061769059863);
+		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+
+		let point_a = 3.0;
+		let point_b = 2.0;
+		let steps = 3;
+		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
+		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 4.761061769059862);
+		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 0.23893823094013733);
+		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+
+		let point_a = 5.0;
+		let point_b = 1.0;
+		let steps = 3;
+		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
+		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 3.666666666666667);
+		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 2.3333333333333335);
+		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+
+		let point_a = 0.0;
+		let point_b = 5.0;
+		let steps = 0;
+		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_b);
 	}
 }

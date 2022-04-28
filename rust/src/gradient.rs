@@ -190,14 +190,55 @@ pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 	result
 }
 
-pub fn get_linear(point_a: usize, point_b: usize, this_step: usize, steps: usize, options: &Options) -> usize {
+pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
 	d("gradient::get_linear()", 3, Dt::Head, options, &mut std::io::stdout());
 	if steps == 0 {
 		d(&format!("gradient::get_linear() -> {:?}", point_b), 3, Dt::Log, options, &mut std::io::stdout());
 		return point_b;
 	}
 
-	let result = point_a + this_step * ((point_b - point_a) / steps);
+	let result = point_a + this_step as f64 * ((point_b - point_a) / steps as f64);
 	d(&format!("gradient::get_linear() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
+
+pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
+	d("gradient::get_theta()", 3, Dt::Head, options, &mut std::io::stdout());
+	let long_distance;
+
+	if steps == 0 {
+		d(&format!("gradient::get_theta() -> {:?}", point_b), 3, Dt::Log, options, &mut std::io::stdout());
+		return point_b;
+	}
+
+	if point_a > point_b {
+		if point_a - point_b < std::f64::consts::PI {
+			long_distance = std::f64::consts::TAU - (point_a - point_b);
+		} else {
+			long_distance = point_b - point_a;
+		}
+	} else if point_b - point_a < std::f64::consts::PI {
+		long_distance = (point_b - point_a) - std::f64::consts::TAU;
+	} else {
+		long_distance = -1.0 * (point_a - point_b);
+	}
+
+	let mut result = point_a + (this_step as f64 * (long_distance / steps as f64));
+
+	if result < 0.0 {
+		result += std::f64::consts::TAU;
+	}
+
+	if result > std::f64::consts::TAU {
+		result -= std::f64::consts::TAU;
+	}
+
+	d(&format!("gradient::get_theta() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	result
+}
+
+// pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options) -> Vec<&str> {
+// 	d("gradient::get_gradient_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+
+// 	d(&format!("gradient::get_gradient_colors() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+// }
