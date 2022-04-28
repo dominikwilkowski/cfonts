@@ -189,3 +189,15 @@ pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 	d(&format!("gradient::rsv2hex() {:?} -> {:?}", rsv, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
+
+pub fn get_linear(point_a: usize, point_b: usize, this_step: usize, steps: usize, options: &Options) -> usize {
+	d("gradient::get_linear()", 3, Dt::Head, options, &mut std::io::stdout());
+	if steps == 0 {
+		d(&format!("gradient::get_linear() -> {:?}", point_b), 3, Dt::Log, options, &mut std::io::stdout());
+		return point_b;
+	}
+
+	let result = point_a + this_step * ((point_b - point_a) / steps);
+	d(&format!("gradient::get_linear() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	result
+}

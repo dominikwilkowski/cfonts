@@ -1,7 +1,9 @@
 extern crate cfonts;
 
 use cfonts::config::Options;
-use cfonts::gradient::{hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv};
+use cfonts::gradient::{
+	get_linear, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+};
 
 #[cfg(test)]
 mod tests {
@@ -175,5 +177,18 @@ mod tests {
 		assert_eq!(rsv2hex(&Rsv::Val(3.141592653589793, 100.0, 100.0), &options), "#00ffff".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(5.235987755982989, 100.0, 100.0), &options), "#ff00ff".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(1.0471975511965976, 100.0, 100.0), &options), "#ffff00".to_string());
+	}
+
+	#[test]
+	fn get_linear_works() {
+		let options = Options::default();
+		assert_eq!(get_linear(0, 5, 0, 5, &options), 0);
+		assert_eq!(get_linear(0, 5, 1, 5, &options), 1);
+		assert_eq!(get_linear(0, 5, 2, 5, &options), 2);
+		assert_eq!(get_linear(0, 5, 3, 5, &options), 3);
+		assert_eq!(get_linear(0, 5, 4, 5, &options), 4);
+		assert_eq!(get_linear(0, 5, 5, 5, &options), 5);
+
+		assert_eq!(get_linear(0, 5, 0, 0, &options), 5);
 	}
 }
