@@ -25,7 +25,10 @@ pub fn get_foreground_color(color: Colors) -> (String, String) {
 		Colors::MagentaBright => String::from("\x1b[95m"),
 		Colors::CyanBright => String::from("\x1b[96m"),
 		Colors::WhiteBright => String::from("\x1b[97m"),
-		Colors::Rgb(rgb) => format!("\x1b[38;2;{};{};{}m", rgb[0], rgb[1], rgb[2]),
+		Colors::Rgb(rgb) => {
+			let (r, g, b) = rgb.get_value();
+			format!("\x1b[38;2;{};{};{}m", r, g, b)
+		}
 	};
 
 	// we use the same "reset code" for all foreground colors and it's to set the color (only) back to system color
@@ -55,7 +58,10 @@ pub fn get_background_color(color: BgColors) -> (String, String) {
 		BgColors::MagentaBright => String::from("\x1b[105m"),
 		BgColors::CyanBright => String::from("\x1b[106m"),
 		BgColors::WhiteBright => String::from("\x1b[107m"),
-		BgColors::Rgb(rgb) => format!("\x1b[48;2;{};{};{}m", rgb[0], rgb[1], rgb[2]),
+		BgColors::Rgb(rgb) => {
+			let (r, g, b) = rgb.get_value();
+			format!("\x1b[48;2;{};{};{}m", r, g, b)
+		}
 	};
 
 	// reset only background to system color

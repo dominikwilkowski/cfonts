@@ -3,39 +3,45 @@ use std::f64;
 use crate::config::Options;
 use crate::debug::{d, Dt};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Rgb {
 	Val(f64, f64, f64),
 }
 
+impl Default for Rgb {
+	fn default() -> Self {
+		Rgb::Val(0.0, 0.0, 0.0)
+	}
+}
+
 impl Rgb {
-	fn get_value(&self) -> (f64, f64, f64) {
+	pub fn get_value(&self) -> (f64, f64, f64) {
 		match self {
 			Rgb::Val(r, g, b) => (*r, *g, *b),
 		}
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Hsv {
 	Val(f64, f64, f64),
 }
 
 impl Hsv {
-	fn get_value(&self) -> (f64, f64, f64) {
+	pub fn get_value(&self) -> (f64, f64, f64) {
 		match self {
 			Hsv::Val(h, s, v) => (*h, *s, *v),
 		}
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Rsv {
 	Val(f64, f64, f64),
 }
 
 impl Rsv {
-	fn get_value(&self) -> (f64, f64, f64) {
+	pub fn get_value(&self) -> (f64, f64, f64) {
 		match self {
 			Rsv::Val(h, s, v) => (*h, *s, *v),
 		}
@@ -144,9 +150,9 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 		}
 	};
 
-	let r = u8::from_str_radix(&full_hex[0..2], 16).unwrap();
-	let g = u8::from_str_radix(&full_hex[2..4], 16).unwrap();
-	let b = u8::from_str_radix(&full_hex[4..6], 16).unwrap();
+	let r = u8::from_str_radix(&full_hex[0..2], 16).unwrap_or(0);
+	let g = u8::from_str_radix(&full_hex[2..4], 16).unwrap_or(0);
+	let b = u8::from_str_radix(&full_hex[4..6], 16).unwrap_or(0);
 	let result = Rgb::Val(r.into(), g.into(), b.into());
 
 	d(&format!("gradient::hex2rgb() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());

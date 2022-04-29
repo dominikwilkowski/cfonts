@@ -2,6 +2,7 @@ extern crate cfonts;
 
 use cfonts::color::{bg_color, color, get_background_color, get_foreground_color};
 use cfonts::config::{BgColors, Colors};
+use cfonts::gradient::Rgb;
 
 #[cfg(test)]
 mod tests {
@@ -29,9 +30,15 @@ mod tests {
 			assert_eq!(color("test", Colors::CyanBright), String::from("\x1b[96mtest\x1b[39m"));
 			assert_eq!(color("test", Colors::WhiteBright), String::from("\x1b[97mtest\x1b[39m"));
 
-			assert_eq!(color("test", Colors::Rgb([0, 0, 0])), String::from("\x1b[38;2;0;0;0mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Rgb([100, 100, 100])), String::from("\x1b[38;2;100;100;100mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Rgb([255, 255, 255])), String::from("\x1b[38;2;255;255;255mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))), String::from("\x1b[38;2;0;0;0mtest\x1b[39m"));
+			assert_eq!(
+				color("test", Colors::Rgb(Rgb::Val(100.0, 100.0, 100.0))),
+				String::from("\x1b[38;2;100;100;100mtest\x1b[39m")
+			);
+			assert_eq!(
+				color("test", Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0))),
+				String::from("\x1b[38;2;255;255;255mtest\x1b[39m")
+			);
 		});
 	}
 
@@ -55,9 +62,9 @@ mod tests {
 			assert_eq!(color("test", Colors::MagentaBright), String::from("test"));
 			assert_eq!(color("test", Colors::CyanBright), String::from("test"));
 			assert_eq!(color("test", Colors::WhiteBright), String::from("test"));
-			assert_eq!(color("test", Colors::Rgb([0, 0, 0])), String::from("test"));
-			assert_eq!(color("test", Colors::Rgb([100, 100, 100])), String::from("test"));
-			assert_eq!(color("test", Colors::Rgb([255, 255, 255])), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(100.0, 100.0, 100.0))), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0))), String::from("test"));
 		});
 	}
 
@@ -82,9 +89,18 @@ mod tests {
 			assert_eq!(bg_color("test", BgColors::CyanBright), String::from("\x1b[106mtest\x1b[49m"));
 			assert_eq!(bg_color("test", BgColors::WhiteBright), String::from("\x1b[107mtest\x1b[49m"));
 
-			assert_eq!(bg_color("test", BgColors::Rgb([0, 0, 0])), String::from("\x1b[48;2;0;0;0mtest\x1b[49m"));
-			assert_eq!(bg_color("test", BgColors::Rgb([100, 100, 100])), String::from("\x1b[48;2;100;100;100mtest\x1b[49m"));
-			assert_eq!(bg_color("test", BgColors::Rgb([255, 255, 255])), String::from("\x1b[48;2;255;255;255mtest\x1b[49m"));
+			assert_eq!(
+				bg_color("test", BgColors::Rgb(Rgb::Val(0.0, 0.0, 0.0))),
+				String::from("\x1b[48;2;0;0;0mtest\x1b[49m")
+			);
+			assert_eq!(
+				bg_color("test", BgColors::Rgb(Rgb::Val(100.0, 100.0, 100.0))),
+				String::from("\x1b[48;2;100;100;100mtest\x1b[49m")
+			);
+			assert_eq!(
+				bg_color("test", BgColors::Rgb(Rgb::Val(255.0, 255.0, 255.0))),
+				String::from("\x1b[48;2;255;255;255mtest\x1b[49m")
+			);
 		});
 	}
 
@@ -108,9 +124,9 @@ mod tests {
 			assert_eq!(bg_color("test", BgColors::MagentaBright), String::from("test"));
 			assert_eq!(bg_color("test", BgColors::CyanBright), String::from("test"));
 			assert_eq!(bg_color("test", BgColors::WhiteBright), String::from("test"));
-			assert_eq!(bg_color("test", BgColors::Rgb([0, 0, 0])), String::from("test"));
-			assert_eq!(bg_color("test", BgColors::Rgb([100, 100, 100])), String::from("test"));
-			assert_eq!(bg_color("test", BgColors::Rgb([255, 255, 255])), String::from("test"));
+			assert_eq!(bg_color("test", BgColors::Rgb(Rgb::Val(0.0, 0.0, 0.0))), String::from("test"));
+			assert_eq!(bg_color("test", BgColors::Rgb(Rgb::Val(100.0, 100.0, 100.0))), String::from("test"));
+			assert_eq!(bg_color("test", BgColors::Rgb(Rgb::Val(255.0, 255.0, 255.0))), String::from("test"));
 		});
 	}
 

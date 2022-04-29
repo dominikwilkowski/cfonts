@@ -2,6 +2,7 @@ extern crate strum;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
+use crate::gradient::Rgb;
 use crate::helpers::first_letter_to_lowercase;
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]
@@ -40,7 +41,7 @@ pub enum Colors {
 	MagentaBright,
 	CyanBright,
 	WhiteBright,
-	Rgb([u8; 3]),
+	Rgb(Rgb),
 }
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]
@@ -62,7 +63,7 @@ pub enum BgColors {
 	MagentaBright,
 	CyanBright,
 	WhiteBright,
-	Rgb([u8; 3]),
+	Rgb(Rgb),
 }
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]

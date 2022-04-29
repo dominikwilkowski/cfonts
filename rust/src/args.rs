@@ -2,52 +2,7 @@ use std::collections::HashMap;
 
 use crate::config::{Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
 use crate::debug::{d, Dt};
-
-fn convert_hex_to_rgb(hex: &str) -> [u8; 3] {
-	let mut rgb = [0_u8, 0_u8, 0_u8];
-	let clean_hex = hex.strip_prefix('#').unwrap();
-
-	match clean_hex.len() {
-		3 => {
-			let r = format!("{r}{r}", r = &clean_hex[0..1]);
-			rgb[0] = i64::from_str_radix(&r, 16).unwrap_or(255) as u8;
-
-			let g = format!("{g}{g}", g = &clean_hex[1..2]);
-			rgb[1] = i64::from_str_radix(&g, 16).unwrap_or(255) as u8;
-
-			let b = format!("{b}{b}", b = &clean_hex[2..3]);
-			rgb[2] = i64::from_str_radix(&b, 16).unwrap_or(255) as u8;
-		}
-		6 => {
-			rgb[0] = i64::from_str_radix(&clean_hex[0..2], 16).unwrap_or(255) as u8;
-
-			rgb[1] = i64::from_str_radix(&clean_hex[2..4], 16).unwrap_or(255) as u8;
-
-			rgb[2] = i64::from_str_radix(&clean_hex[4..6], 16).unwrap_or(255) as u8;
-		}
-		_ => {}
-	};
-
-	rgb
-}
-
-#[test]
-fn convert_hex_to_rgb_works() {
-	assert_eq!(convert_hex_to_rgb("#f80"), [255, 136, 0]);
-	assert_eq!(convert_hex_to_rgb("#ff8800"), [255, 136, 0]);
-
-	assert_eq!(convert_hex_to_rgb("#fff"), [255, 255, 255]);
-	assert_eq!(convert_hex_to_rgb("#ffffff"), [255, 255, 255]);
-
-	assert_eq!(convert_hex_to_rgb("#000"), [0, 0, 0]);
-	assert_eq!(convert_hex_to_rgb("#000000"), [0, 0, 0]);
-
-	assert_eq!(convert_hex_to_rgb("#08f"), [0, 136, 255]);
-	assert_eq!(convert_hex_to_rgb("#0088ff"), [0, 136, 255]);
-
-	assert_eq!(convert_hex_to_rgb("#xxx"), [255, 255, 255]);
-	assert_eq!(convert_hex_to_rgb("#xxxxxx"), [255, 255, 255]);
-}
+use crate::gradient::hex2rgb;
 
 pub fn parse(args: Vec<String>) -> Options {
 	let mut my_args = args;
@@ -175,7 +130,7 @@ pub fn parse(args: Vec<String>) -> Options {
 								"whitebright" => Colors::WhiteBright,
 								unknown => {
 									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
-										Colors::Rgb(convert_hex_to_rgb(unknown))
+										Colors::Rgb(hex2rgb(unknown, &options))
 									} else {
 										println!("The color \"{}\" is not supported.\nAllowed options are: {:?}", unknown, Colors::list());
 										std::process::exit(exitcode::USAGE);
@@ -221,7 +176,7 @@ pub fn parse(args: Vec<String>) -> Options {
 							"whitebright" => BgColors::WhiteBright,
 							unknown => {
 								if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
-									BgColors::Rgb(convert_hex_to_rgb(unknown))
+									BgColors::Rgb(hex2rgb(unknown, &options))
 								} else {
 									println!(
 										"The background color \"{}\" is not supported.\nAllowed options are: {:?}",
