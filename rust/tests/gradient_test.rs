@@ -2,7 +2,8 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	get_linear, get_theta, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	get_gradient_colors, get_linear, get_theta, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv,
+	Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -241,5 +242,16 @@ mod tests {
 		let point_b = 5.0;
 		let steps = 0;
 		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_b);
+	}
+
+	#[test]
+	fn get_gradient_colors_works() {
+		let options = Options::default();
+		assert_eq!(
+			get_gradient_colors("#ff8800", "#8899dd", 10, &options),
+			vec![
+				"#ff8800", "#fbe211", "#c0f721", "#7bf331", "#44ef41", "#50ec86", "#5fe8c0", "#6ddbe4", "#7ab4e0", "#8799dd",
+			]
+		);
 	}
 }

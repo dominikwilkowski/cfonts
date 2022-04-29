@@ -237,8 +237,21 @@ pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, opt
 	result
 }
 
-// pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options) -> Vec<&str> {
-// 	d("gradient::get_gradient_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options) -> Vec<String> {
+	d("gradient::get_gradient_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+	let (from_r, from_s, from_v) = hex2rsv(from, options).get_value();
+	let (to_r, to_s, to_v) = hex2rsv(to, options).get_value();
 
-// 	d(&format!("gradient::get_gradient_colors() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
-// }
+	let mut colors = Vec::new();
+
+	for n in 0..steps {
+		let r = get_theta(from_r, to_r, n, steps - 1, options);
+		let s = get_linear(from_s, to_s, n, steps - 1, options);
+		let v = get_linear(from_v, to_v, n, steps - 1, options);
+
+		colors.push(rsv2hex(&Rsv::Val(r, s, v), options));
+	}
+
+	d(&format!("gradient::get_gradient_colors() -> {:?}", colors), 3, Dt::Log, options, &mut std::io::stdout());
+	colors
+}
