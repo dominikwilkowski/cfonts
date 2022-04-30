@@ -2,8 +2,8 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	get_gradient_colors, get_linear, get_theta, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv,
-	Hsv, Rgb, Rsv,
+	get_gradient_colors, get_linear, get_theta, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, paint_lines, rgb2hex, rgb2hsv,
+	rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -251,6 +251,30 @@ mod tests {
 			get_gradient_colors("#ff8800", "#8899dd", 10, &options),
 			vec![
 				"#ff8800", "#fbe211", "#c0f721", "#7bf331", "#44ef41", "#50ec86", "#5fe8c0", "#6ddbe4", "#7ab4e0", "#8799dd",
+			]
+		);
+	}
+
+	#[test]
+	fn paint_lines_works() {
+		let options = Options::default();
+		let lines = vec!["XXX".to_string(), "XXX".to_string()];
+		let colors = vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
+
+		assert_eq!(
+			paint_lines(&lines, &colors, 0, &options),
+			vec![
+				"\x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
+				"\x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
+			]
+		);
+
+		let lines = vec!["     XXX".to_string(), "     XXX".to_string()];
+		assert_eq!(
+			paint_lines(&lines, &colors, 5, &options),
+			vec![
+				"     \x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
+				"     \x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
 			]
 		);
 	}

@@ -1,6 +1,7 @@
 use std::f64;
 
-use crate::config::Options;
+use crate::color::color;
+use crate::config::{Colors, Options};
 use crate::debug::{d, Dt};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -260,4 +261,31 @@ pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options
 
 	d(&format!("gradient::get_gradient_colors() -> {:?}", colors), 3, Dt::Log, options, &mut std::io::stdout());
 	colors
+}
+
+pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, options: &Options) -> Vec<String> {
+	d("gradient::paint_lines()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("gradient::paint_lines()\nlines:{:#?}\ncolors:{:#?}\nfirst_char_pos:{}", lines, colors, first_char_pos),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	let space = " ".repeat(first_char_pos);
+	let mut colored_lines: Vec<String> = Vec::new();
+
+	for (l, line) in lines.iter().enumerate() {
+		let mut i = 0;
+		colored_lines.push(String::from(&space));
+		line.split_at(first_char_pos).1.chars().for_each(|c| {
+			let this_color = hex2rgb(&colors[i], options);
+			colored_lines[l] += &color(&c.to_string(), Colors::Rgb(this_color));
+			i += 1;
+		});
+	}
+
+	d(&format!("gradient::paint_lines() -> {:?}", colored_lines), 3, Dt::Log, options, &mut std::io::stdout());
+	colored_lines
 }
