@@ -2,8 +2,8 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	get_gradient_colors, get_linear, get_theta, get_transition_steps, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, paint_lines,
-	rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	color_name2hex, get_gradient_colors, get_linear, get_theta, get_transition_steps, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv,
+	paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -277,6 +277,13 @@ mod tests {
 				"     \x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
 			]
 		);
+	}
+
+	#[test]
+	fn color_name2hex_works() {
+		let options = Options::default();
+		assert_eq!(color_name2hex("red", &options), "#ff0000".to_string());
+		assert_eq!(color_name2hex("#0ff000", &options), "#0ff000".to_string());
 	}
 
 	#[test]

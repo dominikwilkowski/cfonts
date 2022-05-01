@@ -290,6 +290,26 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 	colored_lines
 }
 
+pub fn color_name2hex(color: &str, options: &Options) -> String {
+	d("gradient::color_name2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::color_name2hex() color:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+	let result = match color.to_lowercase().as_str() {
+		"black" => String::from("#000000"),
+		"red" => String::from("#ff0000"),
+		"green" => String::from("#00ff00"),
+		"blue" => String::from("#0000ff"),
+		"magenta" => String::from("#ff00ff"),
+		"cyan" => String::from("#00ffff"),
+		"white" => String::from("#ffffff"),
+		"gray" => String::from("#808080"),
+		"grey" => String::from("#808080"),
+		unknown => String::from(unknown),
+	};
+
+	d(&format!("gradient::color_name2hex() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	result
+}
+
 pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) -> Vec<i8> {
 	d("gradient::get_transition_steps()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
