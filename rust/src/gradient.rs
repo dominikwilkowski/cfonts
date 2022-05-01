@@ -289,3 +289,29 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 	d(&format!("gradient::paint_lines() -> {:?}", colored_lines), 3, Dt::Log, options, &mut std::io::stdout());
 	colored_lines
 }
+
+pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) -> Vec<i8> {
+	d("gradient::get_transition_steps()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("gradient::get_transition_steps()\ncolors:{:#?}\nsteps:{}", colors, steps),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	// steps per color transition
+	let transition_steps = ((steps as f64 - colors.len() as f64) / (colors.len() as f64 - 1.0)).floor() as i8;
+	// steps left over to be distributed
+	let rest = (steps as i8 - (colors.len() as i8 + transition_steps * (colors.len() as i8 - 1))) as usize;
+	// the gaps array has one less items than our points (cause it's gaps between each of the points)
+	let mut gaps = vec![transition_steps as i8; colors.len() - 1];
+	let len = gaps.len();
+
+	for i in 0..rest {
+		gaps[len - 1 - i] += 1;
+	}
+
+	d(&format!("gradient::get_transition_steps() -> {:?}", gaps), 3, Dt::Log, options, &mut std::io::stdout());
+	gaps
+}

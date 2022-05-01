@@ -2,8 +2,8 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	get_gradient_colors, get_linear, get_theta, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, paint_lines, rgb2hex, rgb2hsv,
-	rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	get_gradient_colors, get_linear, get_theta, get_transition_steps, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, paint_lines,
+	rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -277,5 +277,27 @@ mod tests {
 				"     \x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
 			]
 		);
+	}
+
+	#[test]
+	fn get_transition_steps_works() {
+		let options = Options::default();
+
+		let result = get_transition_steps(&vec!["color1".to_string()], 1, &options);
+		assert_eq!(result.len(), 0);
+
+		let colors = vec!["color1".to_string(), "color2".to_string()];
+		assert_eq!(get_transition_steps(&colors, 1, &options), vec![-1]);
+		assert_eq!(get_transition_steps(&colors, 2, &options), vec![0]);
+		assert_eq!(get_transition_steps(&colors, 3, &options), vec![1]);
+		assert_eq!(get_transition_steps(&colors, 4, &options), vec![2]);
+		assert_eq!(get_transition_steps(&colors, 5, &options), vec![3]);
+
+		let colors = vec!["color1".to_string(), "color2".to_string(), "color3".to_string()];
+		assert_eq!(get_transition_steps(&colors, 1, &options), vec![-1, -1]);
+		assert_eq!(get_transition_steps(&colors, 2, &options), vec![-1, 0]);
+		assert_eq!(get_transition_steps(&colors, 3, &options), vec![0, 0]);
+		assert_eq!(get_transition_steps(&colors, 4, &options), vec![0, 1]);
+		assert_eq!(get_transition_steps(&colors, 5, &options), vec![1, 1]);
 	}
 }
