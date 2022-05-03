@@ -263,6 +263,25 @@ pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options
 	colors
 }
 
+pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options) -> Vec<String> {
+	d("gradient::get_transition_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+	let (from_r, from_g, from_b) = hex2rgb(from, options).get_value();
+	let (to_r, to_g, to_b) = hex2rgb(to, options).get_value();
+
+	let mut colors = Vec::new();
+
+	for n in 1..=steps {
+		let r = get_linear(from_r, to_r, n as usize, (steps + 1) as usize, options);
+		let g = get_linear(from_g, to_g, n as usize, (steps + 1) as usize, options);
+		let b = get_linear(from_b, to_b, n as usize, (steps + 1) as usize, options);
+
+		colors.push(rgb2hex(&Rgb::Val(r, g, b), options));
+	}
+
+	d(&format!("gradient::get_transition_colors() -> {:?}", colors), 3, Dt::Log, options, &mut std::io::stdout());
+	colors
+}
+
 pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, options: &Options) -> Vec<String> {
 	d("gradient::paint_lines()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(

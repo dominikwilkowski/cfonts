@@ -2,8 +2,8 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	color_name2hex, get_gradient_colors, get_linear, get_theta, get_transition_steps, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv,
-	paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	color_name2hex, get_gradient_colors, get_linear, get_theta, get_transition_colors, get_transition_steps, hex2rgb,
+	hex2rsv, hsv2rgb, hsv2rsv, paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -252,6 +252,19 @@ mod tests {
 			vec![
 				"#ff8800", "#fbe211", "#c0f721", "#7bf331", "#44ef41", "#50ec86", "#5fe8c0", "#6ddbe4", "#7ab4e0", "#8799dd",
 			]
+		);
+	}
+
+	#[test]
+	fn get_transition_colors_works() {
+		let options = Options::default();
+		assert_eq!(get_transition_colors("#ff0000", "#0000ff", -1, &options).len(), 0);
+		assert_eq!(get_transition_colors("#ff0000", "#0000ff", 0, &options).len(), 0);
+		assert_eq!(get_transition_colors("#ff0000", "#0000ff", 1, &options), vec!["#7f007f"]);
+		assert_eq!(get_transition_colors("#ff0000", "#0000ff", 2, &options), vec!["#aa0055", "#5500aa"]);
+		assert_eq!(
+			get_transition_colors("#ff0000", "#0000ff", 5, &options),
+			vec!["#d4002a", "#aa0055", "#7f007f", "#5500aa", "#2a00d4"]
 		);
 	}
 
