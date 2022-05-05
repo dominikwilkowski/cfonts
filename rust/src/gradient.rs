@@ -1,7 +1,11 @@
 use std::f64;
 
 use crate::color::color;
-use crate::config::{Colors, Options};
+use crate::config::{
+	Colors, Options, GRADIENTS_AGENDER, GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL, GRADIENTS_BISEXUAL,
+	GRADIENTS_GENDERFLUID, GRADIENTS_GENDERQUEER, GRADIENTS_INTERSEX, GRADIENTS_LESBIAN, GRADIENTS_NONBINARY,
+	GRADIENTS_PANSEXUAL, GRADIENTS_POLYSEXUAL, GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
+};
 use crate::debug::{d, Dt};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,6 +55,8 @@ impl Rsv {
 
 pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 	d("gradient::rgb2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::rgb2hsv()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
+
 	let (r_input, g_input, b_input) = rgb.get_value();
 	let red = r_input / 255.0;
 	let green = g_input / 255.0;
@@ -82,6 +88,7 @@ pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 
 pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 	d("gradient::hsv2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::hsv2rgb()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (h_input, s_input, v_input) = hsv.get_value();
 	let hue = h_input / 60.0;
@@ -111,6 +118,8 @@ pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 
 pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
 	d("gradient::rgb2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::rgb2hex()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
+
 	let (r, g, b) = rgb.get_value();
 	let result = format!("#{:0>2x}{:0>2x}{:0>2x}", r as u8, g as u8, b as u8);
 
@@ -120,6 +129,7 @@ pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
 
 pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	d("gradient::hex2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::hex2rgb()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let clean_hex = hex.strip_prefix('#').unwrap();
 	let full_hex = match clean_hex.len() {
@@ -162,6 +172,7 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 
 pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
 	d("gradient::hsv2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::hsv2rsv()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (h, s, v) = hsv.get_value();
 	let r = (h * std::f64::consts::PI) / 180.0;
@@ -172,6 +183,7 @@ pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
 
 pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
 	d("gradient::rsv2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::rsv2hsv()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, s, v) = rsv.get_value();
 	let precision = 1000000000000.0;
@@ -183,6 +195,8 @@ pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
 
 pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
 	d("gradient::hex2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::hex2rsv()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+
 	let result = hsv2rsv(&rgb2hsv(&hex2rgb(hex, options), options), options);
 
 	d(&format!("gradient::hex2rsv() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
@@ -191,6 +205,8 @@ pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
 
 pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 	d("gradient::rsv2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::rsv2hex()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
+
 	let result = rgb2hex(&hsv2rgb(&rsv2hsv(rsv, options), options), options);
 
 	d(&format!("gradient::rsv2hex() {:?} -> {:?}", rsv, result), 3, Dt::Log, options, &mut std::io::stdout());
@@ -199,6 +215,17 @@ pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 
 pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
 	d("gradient::get_linear()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!(
+			"gradient::get_linear()\npoint_a:{:?}\npoint_b:{:?}\nthis_step:{:?}\nsteps:{:?}",
+			point_a, point_b, this_step, steps
+		),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
 	if steps == 0 {
 		d(&format!("gradient::get_linear() -> {:?}", point_b), 3, Dt::Log, options, &mut std::io::stdout());
 		return point_b;
@@ -211,6 +238,17 @@ pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, op
 
 pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
 	d("gradient::get_theta()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!(
+			"gradient::get_theta()\npoint_a:{:?}\npoint_b:{:?}\nthis_step:{:?}\nsteps:{:?}",
+			point_a, point_b, this_step, steps
+		),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
 	let long_distance;
 
 	if steps == 0 {
@@ -246,6 +284,14 @@ pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, opt
 
 pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options) -> Vec<String> {
 	d("gradient::get_gradient_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("gradient::get_gradient_colors()\nfrom:{:?}\nto:{:?}\nsteps:{:?}", from, to, steps),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
 	let (from_r, from_s, from_v) = hex2rsv(from, options).get_value();
 	let (to_r, to_s, to_v) = hex2rsv(to, options).get_value();
 
@@ -265,6 +311,14 @@ pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options
 
 pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options) -> Vec<String> {
 	d("gradient::get_transition_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("gradient::get_transition_colors()\nfrom:{:?}\nto:{:?}\nsteps:{:?}", from, to, steps),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
 	let (from_r, from_g, from_b) = hex2rgb(from, options).get_value();
 	let (to_r, to_g, to_b) = hex2rgb(to, options).get_value();
 
@@ -309,9 +363,10 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 	colored_lines
 }
 
-pub fn color_name2hex(color: &str, options: &Options) -> String {
-	d("gradient::color_name2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::color_name2hex() color:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+pub fn color2hex(color: &str, options: &Options) -> String {
+	d("gradient::color2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("gradient::color2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+
 	let result = match color.to_lowercase().as_str() {
 		"black" => String::from("#000000"),
 		"red" => String::from("#ff0000"),
@@ -325,7 +380,7 @@ pub fn color_name2hex(color: &str, options: &Options) -> String {
 		unknown => String::from(unknown),
 	};
 
-	d(&format!("gradient::color_name2hex() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::color2hex() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -353,4 +408,62 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 
 	d(&format!("gradient::get_transition_steps() -> {:?}", gaps), 3, Dt::Log, options, &mut std::io::stdout());
 	gaps
+}
+
+pub fn transition(input_colors: &[String], steps: usize, options: &Options) -> Vec<String> {
+	d("gradient::transition()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("gradient::transition()\ninput_colors:{:#?}\nsteps:{}", input_colors, steps),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	let colors: Vec<String> = if input_colors.len() == 1 {
+		match input_colors[0].to_lowercase().as_str() {
+			"lgbt" | "lgbtq" | "lgbtqa" | "pride" => GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect(),
+			"agender" => GRADIENTS_AGENDER.iter().map(|color| String::from(*color)).collect(),
+			"aromantic" => GRADIENTS_AROMANTIC.iter().map(|color| String::from(*color)).collect(),
+			"asexual" => GRADIENTS_ASEXUAL.iter().map(|color| String::from(*color)).collect(),
+			"bisexual" | "bi" => GRADIENTS_BISEXUAL.iter().map(|color| String::from(*color)).collect(),
+			"genderfluid" => GRADIENTS_GENDERFLUID.iter().map(|color| String::from(*color)).collect(),
+			"genderqueer" => GRADIENTS_GENDERQUEER.iter().map(|color| String::from(*color)).collect(),
+			"intersex" => GRADIENTS_INTERSEX.iter().map(|color| String::from(*color)).collect(),
+			"lesbian" => GRADIENTS_LESBIAN.iter().map(|color| String::from(*color)).collect(),
+			"nonbinary" => GRADIENTS_NONBINARY.iter().map(|color| String::from(*color)).collect(),
+			"pansexual" | "pan" => GRADIENTS_PANSEXUAL.iter().map(|color| String::from(*color)).collect(),
+			"polysexual" | "poly" => GRADIENTS_POLYSEXUAL.iter().map(|color| String::from(*color)).collect(),
+			"transgender" | "trans" => GRADIENTS_TRANSGENDER.iter().map(|color| String::from(*color)).collect(),
+			_ => panic!("Input sanitizing failed, \"{}\" is not a valid gradient name", input_colors[0]),
+		}
+	} else {
+		input_colors.iter().map(|color| color2hex(color, options)).collect::<Vec<String>>()
+	};
+
+	if steps <= 1 {
+		return colors[colors.len() - 1..colors.len()].to_vec();
+	}
+
+	let transition_steps = get_transition_steps(&colors, steps, options);
+	let mut result = Vec::new();
+
+	for (i, color) in colors.iter().enumerate() {
+		if i > 0 {
+			let index = i - 1;
+			let step = transition_steps[index];
+
+			let transition_colors = get_transition_colors(&colors[index], color, step, options);
+			result.extend(transition_colors);
+
+			if step != -1 {
+				result.push(color.to_string());
+			}
+		} else {
+			result.push(color.to_string());
+		}
+	}
+
+	d(&format!("gradient::transition() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	result
 }

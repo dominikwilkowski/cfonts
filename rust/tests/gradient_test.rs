@@ -1,9 +1,13 @@
 extern crate cfonts;
 
-use cfonts::config::Options;
+use cfonts::config::{
+	Options, GRADIENTS_AGENDER, GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL, GRADIENTS_BISEXUAL, GRADIENTS_GENDERFLUID,
+	GRADIENTS_GENDERQUEER, GRADIENTS_INTERSEX, GRADIENTS_LESBIAN, GRADIENTS_NONBINARY, GRADIENTS_PANSEXUAL,
+	GRADIENTS_POLYSEXUAL, GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
+};
 use cfonts::gradient::{
-	color_name2hex, get_gradient_colors, get_linear, get_theta, get_transition_colors, get_transition_steps, hex2rgb,
-	hex2rsv, hsv2rgb, hsv2rsv, paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	color2hex, get_gradient_colors, get_linear, get_theta, get_transition_colors, get_transition_steps, hex2rgb, hex2rsv,
+	hsv2rgb, hsv2rsv, paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, transition, Hsv, Rgb, Rsv,
 };
 
 #[cfg(test)]
@@ -293,10 +297,10 @@ mod tests {
 	}
 
 	#[test]
-	fn color_name2hex_works() {
+	fn color2hex_works() {
 		let options = Options::default();
-		assert_eq!(color_name2hex("red", &options), "#ff0000".to_string());
-		assert_eq!(color_name2hex("#0ff000", &options), "#0ff000".to_string());
+		assert_eq!(color2hex("red", &options), "#ff0000".to_string());
+		assert_eq!(color2hex("#0ff000", &options), "#0ff000".to_string());
 	}
 
 	#[test]
@@ -319,5 +323,84 @@ mod tests {
 		assert_eq!(get_transition_steps(&colors, 3, &options), vec![0, 0]);
 		assert_eq!(get_transition_steps(&colors, 4, &options), vec![0, 1]);
 		assert_eq!(get_transition_steps(&colors, 5, &options), vec![1, 1]);
+	}
+
+	#[test]
+	fn transition_works() {
+		let options = Options::default();
+		let colors = vec!["#ff0000".to_string(), "#0000ff".to_string()];
+		assert_eq!(transition(&colors, 1, &options), vec!["#0000ff".to_string()]);
+		assert_eq!(transition(&colors, 2, &options), vec!["#ff0000".to_string(), "#0000ff".to_string()]);
+		assert_eq!(
+			transition(&colors, 3, &options),
+			vec!["#ff0000".to_string(), "#7f007f".to_string(), "#0000ff".to_string()]
+		);
+		assert_eq!(
+			transition(&colors, 4, &options),
+			vec![
+				"#ff0000".to_string(),
+				"#aa0055".to_string(),
+				"#5500aa".to_string(),
+				"#0000ff".to_string()
+			]
+		);
+
+		let colors = vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
+		assert_eq!(transition(&colors, 1, &options), vec!["#0000ff".to_string()]);
+		assert_eq!(transition(&colors, 2, &options), vec!["#ff0000".to_string(), "#0000ff".to_string()]);
+		assert_eq!(
+			transition(&colors, 3, &options),
+			vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()]
+		);
+		assert_eq!(
+			transition(&colors, 4, &options),
+			vec![
+				"#ff0000".to_string(),
+				"#00ff00".to_string(),
+				"#007f7f".to_string(),
+				"#0000ff".to_string(),
+			]
+		);
+		assert_eq!(
+			transition(&colors, 10, &options),
+			vec![
+				"#ff0000".to_string(),
+				"#bf3f00".to_string(),
+				"#7f7f00".to_string(),
+				"#3fbf00".to_string(),
+				"#00ff00".to_string(),
+				"#00cc33".to_string(),
+				"#009966".to_string(),
+				"#006699".to_string(),
+				"#0033cc".to_string(),
+				"#0000ff".to_string(),
+			]
+		);
+
+		assert_eq!(transition(&vec!["lgbt".to_string()], GRADIENTS_PRIDE.len(), &options), GRADIENTS_PRIDE);
+		assert_eq!(transition(&vec!["trAns".to_string()], GRADIENTS_TRANSGENDER.len(), &options), GRADIENTS_TRANSGENDER);
+
+		assert_eq!(transition(&vec!["PrIdE".to_string()], GRADIENTS_PRIDE.len(), &options), GRADIENTS_PRIDE);
+		assert_eq!(transition(&vec!["AgEnDeR".to_string()], GRADIENTS_AGENDER.len(), &options), GRADIENTS_AGENDER);
+		assert_eq!(transition(&vec!["ArOmAnTiC".to_string()], GRADIENTS_AROMANTIC.len(), &options), GRADIENTS_AROMANTIC);
+		assert_eq!(transition(&vec!["AsExUaL".to_string()], GRADIENTS_ASEXUAL.len(), &options), GRADIENTS_ASEXUAL);
+		assert_eq!(transition(&vec!["BiSeXuAl".to_string()], GRADIENTS_BISEXUAL.len(), &options), GRADIENTS_BISEXUAL);
+		assert_eq!(
+			transition(&vec!["GeNdErFlUID".to_string()], GRADIENTS_GENDERFLUID.len(), &options),
+			GRADIENTS_GENDERFLUID
+		);
+		assert_eq!(
+			transition(&vec!["GeNdErQuEER".to_string()], GRADIENTS_GENDERQUEER.len(), &options),
+			GRADIENTS_GENDERQUEER
+		);
+		assert_eq!(transition(&vec!["InTeRsEx".to_string()], GRADIENTS_INTERSEX.len(), &options), GRADIENTS_INTERSEX);
+		assert_eq!(transition(&vec!["LeSbIaN".to_string()], GRADIENTS_LESBIAN.len(), &options), GRADIENTS_LESBIAN);
+		assert_eq!(transition(&vec!["NoNbInArY".to_string()], GRADIENTS_NONBINARY.len(), &options), GRADIENTS_NONBINARY);
+		assert_eq!(transition(&vec!["PaNsExUaL".to_string()], GRADIENTS_PANSEXUAL.len(), &options), GRADIENTS_PANSEXUAL);
+		assert_eq!(transition(&vec!["PoLySeXuAL".to_string()], GRADIENTS_POLYSEXUAL.len(), &options), GRADIENTS_POLYSEXUAL);
+		assert_eq!(
+			transition(&vec!["TrAnSgEnDER".to_string()], GRADIENTS_TRANSGENDER.len(), &options),
+			GRADIENTS_TRANSGENDER
+		);
 	}
 }

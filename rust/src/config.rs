@@ -146,6 +146,23 @@ impl Align {
 	}
 }
 
+// presets for transitions
+pub const GRADIENTS_PRIDE: [&str; 6] = ["#750787", "#004dff", "#008026", "#ffed00", "#ff8c00", "#e40303"];
+pub const GRADIENTS_AGENDER: [&str; 7] = [
+	"#000000", "#b9b9b9", "#ffffff", "#b8f483", "#ffffff", "#b9b9b9", "#000000",
+];
+pub const GRADIENTS_AROMANTIC: [&str; 5] = ["#3da542", "#a7d379", "#ffffff", "#a9a9a9", "#000000"];
+pub const GRADIENTS_ASEXUAL: [&str; 4] = ["#000000", "#a3a3a3", "#ffffff", "#800080"];
+pub const GRADIENTS_BISEXUAL: [&str; 5] = ["#d60270", "#d60270", "#9b4f96", "#0038a8", "#0038a8"];
+pub const GRADIENTS_GENDERFLUID: [&str; 5] = ["#ff75a2", "#ffffff", "#be18d6", "#000000", "#333ebd"];
+pub const GRADIENTS_GENDERQUEER: [&str; 3] = ["#b57edc", "#ffffff", "#4a8123"];
+pub const GRADIENTS_INTERSEX: [&str; 5] = ["#ffd800", "#ffd800", "#7902aa", "#ffd800", "#ffd800"];
+pub const GRADIENTS_LESBIAN: [&str; 5] = ["#d52d00", "#ff9a56", "#ffffff", "#d362a4", "#a30262"];
+pub const GRADIENTS_NONBINARY: [&str; 4] = ["#fcf434", "#ffffff", "#9c5cd4", "#2c2c2c"];
+pub const GRADIENTS_PANSEXUAL: [&str; 3] = ["#ff218c", "#ffd800", "#21b1ff"];
+pub const GRADIENTS_POLYSEXUAL: [&str; 3] = ["#f61cb9", "#07d569", "#1c92f6"];
+pub const GRADIENTS_TRANSGENDER: [&str; 5] = ["#5bcefa", "#f5a9b8", "#ffffff", "#f5a9b8", "#5bcefa"];
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Options {
 	pub text: String,
