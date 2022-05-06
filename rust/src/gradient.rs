@@ -1,11 +1,7 @@
 use std::f64;
 
 use crate::color::color;
-use crate::config::{
-	Colors, Options, GRADIENTS_AGENDER, GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL, GRADIENTS_BISEXUAL,
-	GRADIENTS_GENDERFLUID, GRADIENTS_GENDERQUEER, GRADIENTS_INTERSEX, GRADIENTS_LESBIAN, GRADIENTS_NONBINARY,
-	GRADIENTS_PANSEXUAL, GRADIENTS_POLYSEXUAL, GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
-};
+use crate::config::{Colors, Options};
 use crate::debug::{d, Dt};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -363,27 +359,6 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 	colored_lines
 }
 
-pub fn color2hex(color: &str, options: &Options) -> String {
-	d("gradient::color2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::color2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
-
-	let result = match color.to_lowercase().as_str() {
-		"black" => String::from("#000000"),
-		"red" => String::from("#ff0000"),
-		"green" => String::from("#00ff00"),
-		"blue" => String::from("#0000ff"),
-		"magenta" => String::from("#ff00ff"),
-		"cyan" => String::from("#00ffff"),
-		"white" => String::from("#ffffff"),
-		"gray" => String::from("#808080"),
-		"grey" => String::from("#808080"),
-		unknown => String::from(unknown),
-	};
-
-	d(&format!("gradient::color2hex() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
-	result
-}
-
 pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) -> Vec<i8> {
 	d("gradient::get_transition_steps()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -410,42 +385,21 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 	gaps
 }
 
-pub fn transition(input_colors: &[String], steps: usize, options: &Options) -> Vec<String> {
+pub fn transition(colors: &[String], steps: usize, options: &Options) -> Vec<String> {
 	d("gradient::transition()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
-		&format!("gradient::transition()\ninput_colors:{:#?}\nsteps:{}", input_colors, steps),
+		&format!("gradient::transition()\ncolors:{:#?}\nsteps:{}", colors, steps),
 		3,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
 	);
 
-	let colors: Vec<String> = if input_colors.len() == 1 {
-		match input_colors[0].to_lowercase().as_str() {
-			"lgbt" | "lgbtq" | "lgbtqa" | "pride" => GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect(),
-			"agender" => GRADIENTS_AGENDER.iter().map(|color| String::from(*color)).collect(),
-			"aromantic" => GRADIENTS_AROMANTIC.iter().map(|color| String::from(*color)).collect(),
-			"asexual" => GRADIENTS_ASEXUAL.iter().map(|color| String::from(*color)).collect(),
-			"bisexual" | "bi" => GRADIENTS_BISEXUAL.iter().map(|color| String::from(*color)).collect(),
-			"genderfluid" => GRADIENTS_GENDERFLUID.iter().map(|color| String::from(*color)).collect(),
-			"genderqueer" => GRADIENTS_GENDERQUEER.iter().map(|color| String::from(*color)).collect(),
-			"intersex" => GRADIENTS_INTERSEX.iter().map(|color| String::from(*color)).collect(),
-			"lesbian" => GRADIENTS_LESBIAN.iter().map(|color| String::from(*color)).collect(),
-			"nonbinary" => GRADIENTS_NONBINARY.iter().map(|color| String::from(*color)).collect(),
-			"pansexual" | "pan" => GRADIENTS_PANSEXUAL.iter().map(|color| String::from(*color)).collect(),
-			"polysexual" | "poly" => GRADIENTS_POLYSEXUAL.iter().map(|color| String::from(*color)).collect(),
-			"transgender" | "trans" => GRADIENTS_TRANSGENDER.iter().map(|color| String::from(*color)).collect(),
-			_ => panic!("Input sanitizing failed, \"{}\" is not a valid gradient name", input_colors[0]),
-		}
-	} else {
-		input_colors.iter().map(|color| color2hex(color, options)).collect::<Vec<String>>()
-	};
-
 	if steps <= 1 {
 		return colors[colors.len() - 1..colors.len()].to_vec();
 	}
 
-	let transition_steps = get_transition_steps(&colors, steps, options);
+	let transition_steps = get_transition_steps(colors, steps, options);
 	let mut result = Vec::new();
 
 	for (i, color) in colors.iter().enumerate() {
