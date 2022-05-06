@@ -190,19 +190,58 @@ pub fn parse(args: Vec<String>) -> Options {
 							std::process::exit(exitcode::USAGE);
 						}
 						let expanded_args = match my_args[i].to_lowercase().as_str() {
-							"lgbt" | "lgbtq" | "lgbtqa" | "pride" => GRADIENTS_PRIDE.join(","),
-							"agender" => GRADIENTS_AGENDER.join(","),
-							"aromantic" => GRADIENTS_AROMANTIC.join(","),
-							"asexual" => GRADIENTS_ASEXUAL.join(","),
-							"bisexual" | "bi" => GRADIENTS_BISEXUAL.join(","),
-							"genderfluid" => GRADIENTS_GENDERFLUID.join(","),
-							"genderqueer" => GRADIENTS_GENDERQUEER.join(","),
-							"intersex" => GRADIENTS_INTERSEX.join(","),
-							"lesbian" => GRADIENTS_LESBIAN.join(","),
-							"nonbinary" => GRADIENTS_NONBINARY.join(","),
-							"pansexual" | "pan" => GRADIENTS_PANSEXUAL.join(","),
-							"polysexual" | "poly" => GRADIENTS_POLYSEXUAL.join(","),
-							"transgender" | "trans" => GRADIENTS_TRANSGENDER.join(","),
+							"lgbt" | "lgbtq" | "lgbtqa" | "pride" => {
+								options.transition_gradient = true;
+								GRADIENTS_PRIDE.join(",")
+							}
+							"agender" => {
+								options.transition_gradient = true;
+								GRADIENTS_AGENDER.join(",")
+							}
+							"aromantic" => {
+								options.transition_gradient = true;
+								GRADIENTS_AROMANTIC.join(",")
+							}
+							"asexual" => {
+								options.transition_gradient = true;
+								GRADIENTS_ASEXUAL.join(",")
+							}
+							"bisexual" | "bi" => {
+								options.transition_gradient = true;
+								GRADIENTS_BISEXUAL.join(",")
+							}
+							"genderfluid" => {
+								options.transition_gradient = true;
+								GRADIENTS_GENDERFLUID.join(",")
+							}
+							"genderqueer" => {
+								options.transition_gradient = true;
+								GRADIENTS_GENDERQUEER.join(",")
+							}
+							"intersex" => {
+								options.transition_gradient = true;
+								GRADIENTS_INTERSEX.join(",")
+							}
+							"lesbian" => {
+								options.transition_gradient = true;
+								GRADIENTS_LESBIAN.join(",")
+							}
+							"nonbinary" => {
+								options.transition_gradient = true;
+								GRADIENTS_NONBINARY.join(",")
+							}
+							"pansexual" | "pan" => {
+								options.transition_gradient = true;
+								GRADIENTS_PANSEXUAL.join(",")
+							}
+							"polysexual" | "poly" => {
+								options.transition_gradient = true;
+								GRADIENTS_POLYSEXUAL.join(",")
+							}
+							"transgender" | "trans" => {
+								options.transition_gradient = true;
+								GRADIENTS_TRANSGENDER.join(",")
+							}
 							unknown => unknown.to_string(),
 						};
 
@@ -228,6 +267,23 @@ pub fn parse(args: Vec<String>) -> Options {
 								}
 							})
 							.collect::<Vec<String>>();
+
+						let transition_options = options_lookup.get("-t").unwrap();
+						let is_transition = my_args.contains(&transition_options.name.to_string())
+							|| my_args.contains(&transition_options.shortcut.to_string())
+							|| options.transition_gradient;
+						if is_transition && options.gradient.len() < 2 {
+							println!(
+								"You must specify at least two colors for transition gradients. You specified only \"{}\"",
+								options.gradient.len()
+							);
+							std::process::exit(exitcode::USAGE);
+						}
+
+						if !is_transition && options.gradient.len() != 2 {
+							println!("You must specify two colors for a gradient. You specified \"{}\"", options.gradient.len());
+							std::process::exit(exitcode::USAGE);
+						}
 					}
 					OptionType::Number => {
 						i += 1;

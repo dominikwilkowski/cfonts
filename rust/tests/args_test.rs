@@ -1135,197 +1135,295 @@ mod tests {
 	fn args_parse_gradient() {
 		color_test!(
 			gradient,
-			vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#ff0000".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"red,green,blue",
-			"rEd,gReEn,bLuE",
-			"RED,GREEN,BLUE",
+			"red,green",
+			"rEd,gReEn",
+			"RED,GREEN",
 			gradient,
-			vec!["#000000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#00ff00".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"black,green,blue",
-			"bLaCk,gReEn,bLuE",
-			"BLACK,GREEN,BLUE",
+			"green,green",
+			"gReEn,gReEn",
+			"GREEN,GREEN",
 			gradient,
-			vec!["#ff00ff".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#0000ff".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"magenta,green,blue",
-			"mAgEnTa,gReEn,bLuE",
-			"MAGENTA,GREEN,BLUE",
+			"blue,green",
+			"bLuE,gReEn",
+			"BLUE,GREEN",
 			gradient,
-			vec!["#00ffff".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#000000".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"cyan,green,blue",
-			"cYaN,GReEn,bLuE",
-			"CYAN,GREEN,BLUE",
+			"black,green",
+			"bLaCk,gReEn",
+			"BLACK,GREEN",
 			gradient,
-			vec!["#ffffff".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#ff00ff".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"white,green,blue",
-			"wHiTe,gReEn,bLuE",
-			"WHITE,GREEN,BLUE",
+			"magenta,green",
+			"mAgEnTa,gReEn",
+			"MAGENTA,GREEN",
 			gradient,
-			vec!["#808080".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#00ffff".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"gray,green,blue",
-			"gRaY,GReEn,bLuE",
-			"GRAY,GREEN,BLUE",
+			"cyan,green",
+			"cYaN,GReEn",
+			"CYAN,GREEN",
 			gradient,
-			vec!["#808080".to_string(), "#00ff00".to_string(), "#0000ff".to_string()],
+			vec!["#ffffff".to_string(), "#00ff00".to_string()],
 			"-g",
 			"--gradient",
-			"grey,green,blue",
-			"gReY,GReEn,bLuE",
-			"GREY,GREEN,BLUE",
+			"white,green",
+			"wHiTe,gReEn",
+			"WHITE,GREEN",
+			gradient,
+			vec!["#808080".to_string(), "#00ff00".to_string()],
+			"-g",
+			"--gradient",
+			"gray,green",
+			"gRaY,GReEn",
+			"GRAY,GREEN",
+			gradient,
+			vec!["#808080".to_string(), "#00ff00".to_string()],
+			"-g",
+			"--gradient",
+			"grey,green",
+			"gReY,GReEn",
+			"GREY,GREEN",
 		);
 
-		color_test!(
-			gradient,
-			GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"lgbt",
-			"lGbT",
-			"LGBT",
-			gradient,
-			GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"lgbtq",
-			"lGbTq",
-			"LGBTQ",
-			gradient,
-			GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"lgbtqa",
-			"lGbTqA",
-			"LGBTQA",
-			gradient,
-			GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"pride",
-			"pRiDe",
-			"PRIDE",
-			gradient,
-			GRADIENTS_AGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"agender",
-			"AgEnDeR",
-			"AGENDER",
-			gradient,
-			GRADIENTS_AROMANTIC.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"aromantic",
-			"ArOmAnTiC",
-			"AROMANTIC",
-			gradient,
-			GRADIENTS_ASEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"asexual",
-			"AsExUaL",
-			"ASEXUAL",
-			gradient,
-			GRADIENTS_BISEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"bisexual",
-			"BiSeXuAl",
-			"BISEXUAL",
-			gradient,
-			GRADIENTS_BISEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"bi",
-			"Bi",
-			"BI",
-			gradient,
-			GRADIENTS_GENDERFLUID.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"genderfluid",
-			"GeNdErFlUiD",
-			"GENDERFLUID",
-			gradient,
-			GRADIENTS_GENDERQUEER.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"genderqueer",
-			"GeNdErQuEeR",
-			"GENDERQUEER",
-			gradient,
-			GRADIENTS_INTERSEX.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"intersex",
-			"InTeRsEX",
-			"INTERSEX",
-			gradient,
-			GRADIENTS_LESBIAN.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"lesbian",
-			"LeSbIaN",
-			"LESBIAN",
-			gradient,
-			GRADIENTS_NONBINARY.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"nonbinary",
-			"NoNbInArY",
-			"NONBINARY",
-			gradient,
-			GRADIENTS_PANSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"pansexual",
-			"PaNsExUaL",
-			"PANSEXUAL",
-			gradient,
-			GRADIENTS_PANSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"pan",
-			"PaN",
-			"PAN",
-			gradient,
-			GRADIENTS_POLYSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"polysexual",
-			"PoLySeXuAl",
-			"POLYSEXUAL",
-			gradient,
-			GRADIENTS_POLYSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"poly",
-			"PoLy",
-			"POLY",
-			gradient,
-			GRADIENTS_TRANSGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"transgender",
-			"TrAnSgEnDeR",
-			"TRANSGENDER",
-			gradient,
-			GRADIENTS_TRANSGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>(),
-			"-g",
-			"--gradient",
-			"trans",
-			"TrAnS",
-			"TRANS",
+		let mut options = Options::default();
+		options.text = String::from("my text");
+		options.transition_gradient = true;
+		options.gradient = GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"lgbt".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"lGbT".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"LGBT".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"lgbtq".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"lgbtqa".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"pride".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_AGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"agender".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_AROMANTIC.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"aromantic".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_ASEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"asexual".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_BISEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"bisexual".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"bi".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_GENDERFLUID.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"genderfluid".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_GENDERQUEER.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"genderqueer".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_INTERSEX.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"intersex".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_LESBIAN.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"lesbian".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_NONBINARY.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"nonbinary".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_PANSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"pansexual".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"pan".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_POLYSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"polysexual".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"poly".to_string()
+			]),
+			options
+		);
+
+		options.gradient = GRADIENTS_TRANSGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"transgender".to_string()
+			]),
+			options
+		);
+		assert_eq!(
+			args::parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"trans".to_string()
+			]),
+			options
 		);
 	}
 
