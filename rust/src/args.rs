@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
-use crate::config::{Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
+use crate::config::{
+	Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS, GRADIENTS_AGENDER,
+	GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL, GRADIENTS_BISEXUAL, GRADIENTS_GENDERFLUID, GRADIENTS_GENDERQUEER,
+	GRADIENTS_INTERSEX, GRADIENTS_LESBIAN, GRADIENTS_NONBINARY, GRADIENTS_PANSEXUAL, GRADIENTS_POLYSEXUAL,
+	GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
+};
 use crate::debug::{d, Dt};
 use crate::gradient::hex2rgb;
 
@@ -105,7 +110,7 @@ pub fn parse(args: Vec<String>) -> Options {
 							println!("Missing value for option: {}", this_flag.name);
 							std::process::exit(exitcode::USAGE);
 						}
-						let colors = my_args[i]
+						options.colors = my_args[i]
 							.to_lowercase()
 							.as_str()
 							.split(',')
@@ -138,16 +143,6 @@ pub fn parse(args: Vec<String>) -> Options {
 								}
 							})
 							.collect::<Vec<Colors>>();
-
-						match this_flag.key {
-							"colors" => {
-								options.colors = colors;
-							}
-							"gradient" => {
-								options.gradient = colors;
-							}
-							_ => {}
-						}
 					}
 					OptionType::Color => {
 						i += 1;
@@ -187,6 +182,51 @@ pub fn parse(args: Vec<String>) -> Options {
 								}
 							}
 						};
+					}
+					OptionType::Gradient => {
+						i += 1;
+						if i >= args_length {
+							println!("Missing value for option: {}", this_flag.name);
+							std::process::exit(exitcode::USAGE);
+						}
+						let expanded_args = match my_args[i].to_lowercase().as_str() {
+							"lgbt" | "lgbtq" | "lgbtqa" | "pride" => GRADIENTS_PRIDE.join(","),
+							"agender" => GRADIENTS_AGENDER.join(","),
+							"aromantic" => GRADIENTS_AROMANTIC.join(","),
+							"asexual" => GRADIENTS_ASEXUAL.join(","),
+							"bisexual" | "bi" => GRADIENTS_BISEXUAL.join(","),
+							"genderfluid" => GRADIENTS_GENDERFLUID.join(","),
+							"genderqueer" => GRADIENTS_GENDERQUEER.join(","),
+							"intersex" => GRADIENTS_INTERSEX.join(","),
+							"lesbian" => GRADIENTS_LESBIAN.join(","),
+							"nonbinary" => GRADIENTS_NONBINARY.join(","),
+							"pansexual" | "pan" => GRADIENTS_PANSEXUAL.join(","),
+							"polysexual" | "poly" => GRADIENTS_POLYSEXUAL.join(","),
+							"transgender" | "trans" => GRADIENTS_TRANSGENDER.join(","),
+							unknown => unknown.to_string(),
+						};
+
+						options.gradient = expanded_args
+							.split(',')
+							.map(|color| match color {
+								"black" => String::from("#000000"),
+								"red" => String::from("#ff0000"),
+								"green" => String::from("#00ff00"),
+								"blue" => String::from("#0000ff"),
+								"magenta" => String::from("#ff00ff"),
+								"cyan" => String::from("#00ffff"),
+								"white" => String::from("#ffffff"),
+								"gray" | "grey" => String::from("#808080"),
+								unknown => {
+									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
+										String::from(unknown)
+									} else {
+										println!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", unknown);
+										std::process::exit(exitcode::USAGE);
+									}
+								}
+							})
+							.collect::<Vec<String>>();
 					}
 					OptionType::Number => {
 						i += 1;
