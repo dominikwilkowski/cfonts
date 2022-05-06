@@ -385,7 +385,7 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 	gaps
 }
 
-pub fn transition(colors: &[String], steps: usize, options: &Options) -> Vec<String> {
+pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: &Options) -> Vec<String> {
 	d("gradient::transition()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("gradient::transition()\ncolors:{:#?}\nsteps:{}", colors, steps),

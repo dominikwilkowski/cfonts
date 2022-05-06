@@ -2,8 +2,9 @@ extern crate cfonts;
 
 use cfonts::config::Options;
 use cfonts::gradient::{
-	get_gradient_colors, get_linear, get_theta, get_transition_colors, get_transition_steps, hex2rgb, hex2rsv, hsv2rgb,
-	hsv2rsv, paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, transition, Hsv, Rgb, Rsv,
+	get_gradient_colors, get_linear, get_multiple_transition_colors, get_theta, get_transition_colors,
+	get_transition_steps, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, paint_lines, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb,
+	Rsv,
 };
 
 #[cfg(test)]
@@ -315,17 +316,20 @@ mod tests {
 	}
 
 	#[test]
-	fn transition_works() {
+	fn get_multiple_transition_colors_works() {
 		let options = Options::default();
 		let colors = vec!["#ff0000".to_string(), "#0000ff".to_string()];
-		assert_eq!(transition(&colors, 1, &options), vec!["#0000ff".to_string()]);
-		assert_eq!(transition(&colors, 2, &options), vec!["#ff0000".to_string(), "#0000ff".to_string()]);
+		assert_eq!(get_multiple_transition_colors(&colors, 1, &options), vec!["#0000ff".to_string()]);
 		assert_eq!(
-			transition(&colors, 3, &options),
+			get_multiple_transition_colors(&colors, 2, &options),
+			vec!["#ff0000".to_string(), "#0000ff".to_string()]
+		);
+		assert_eq!(
+			get_multiple_transition_colors(&colors, 3, &options),
 			vec!["#ff0000".to_string(), "#7f007f".to_string(), "#0000ff".to_string()]
 		);
 		assert_eq!(
-			transition(&colors, 4, &options),
+			get_multiple_transition_colors(&colors, 4, &options),
 			vec![
 				"#ff0000".to_string(),
 				"#aa0055".to_string(),
@@ -335,14 +339,17 @@ mod tests {
 		);
 
 		let colors = vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
-		assert_eq!(transition(&colors, 1, &options), vec!["#0000ff".to_string()]);
-		assert_eq!(transition(&colors, 2, &options), vec!["#ff0000".to_string(), "#0000ff".to_string()]);
+		assert_eq!(get_multiple_transition_colors(&colors, 1, &options), vec!["#0000ff".to_string()]);
 		assert_eq!(
-			transition(&colors, 3, &options),
+			get_multiple_transition_colors(&colors, 2, &options),
+			vec!["#ff0000".to_string(), "#0000ff".to_string()]
+		);
+		assert_eq!(
+			get_multiple_transition_colors(&colors, 3, &options),
 			vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()]
 		);
 		assert_eq!(
-			transition(&colors, 4, &options),
+			get_multiple_transition_colors(&colors, 4, &options),
 			vec![
 				"#ff0000".to_string(),
 				"#00ff00".to_string(),
@@ -351,7 +358,7 @@ mod tests {
 			]
 		);
 		assert_eq!(
-			transition(&colors, 10, &options),
+			get_multiple_transition_colors(&colors, 10, &options),
 			vec![
 				"#ff0000".to_string(),
 				"#bf3f00".to_string(),
