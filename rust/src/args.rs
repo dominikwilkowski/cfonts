@@ -7,7 +7,7 @@ use crate::config::{
 	GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
 };
 use crate::debug::{d, Dt};
-use crate::gradient::hex2rgb;
+use crate::gradient::{hex2rgb, rgb2hex};
 
 pub fn parse(args: Vec<String>) -> Options {
 	let mut my_args = args;
@@ -219,7 +219,8 @@ pub fn parse(args: Vec<String>) -> Options {
 								"gray" | "grey" => String::from("#808080"),
 								unknown => {
 									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
-										String::from(unknown)
+										// parsing hex round trip to make sure it's in a good format
+										rgb2hex(&hex2rgb(unknown, &options), &options)
 									} else {
 										println!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", unknown);
 										std::process::exit(exitcode::USAGE);
