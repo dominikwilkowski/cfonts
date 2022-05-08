@@ -43,7 +43,7 @@ const FONTFACES = Object.keys( CFontsFontfaces )
  * @param  {array} CHARS     - All characters that should be included
  */
 const FontTest = ( FONTFACES, CHARS ) => {
-	Debugging.report(`Running fonts`, 1);
+	Debugging.report(`Running FontTest`, 1);
 
 	let font = '';
 	let fontFile = '';
@@ -66,12 +66,16 @@ const FontTest = ( FONTFACES, CHARS ) => {
 		}
 
 		Attributes( FONTFACE );
+		Letterspace_size( FONTFACE );
 		Chars( FONTFACE, CHARS );
 		Width( FONTFACE, CHARS );
 		Lines( FONTFACE, CHARS );
 	}
 
 	console.log(`\n`);
+	if( Log.errors > 0 ) {
+		process.exit(1);
+	}
 };
 
 
@@ -81,7 +85,7 @@ const FontTest = ( FONTFACES, CHARS ) => {
  * @param  {object} FONTFACE - The font object for this font
  */
 const Attributes = ( FONTFACE ) => {
-	Debugging.report(`Running attributes`, 1);
+	Debugging.report(`Running Attributes`, 1);
 	Log.check(`Checking font attributes of "${ FONTFACE.name }"`);
 	let fails = [];
 
@@ -113,6 +117,10 @@ const Attributes = ( FONTFACE ) => {
 		fails.push(`letterspace`);
 	}
 
+	if( FONTFACE.letterspace_size === undefined ) {
+		fails.push(`letterspace_size`);
+	}
+
 	if( FONTFACE.chars === undefined ) {
 		fails.push(`chars`);
 	}
@@ -125,6 +133,33 @@ const Attributes = ( FONTFACE ) => {
 	}
 };
 
+/**
+ * Test the font to include all characters
+ *
+ * @param  {object} FONTFACE - The font object for this font
+ * @param  {array}  CHARS    - All characters that should be included
+ */
+const Letterspace_size = ( FONTFACE ) => {
+	Debugging.report(`Running Letterspace_size`, 1);
+	Log.check(`Checking letterspace_size in "${ FONTFACE.name }"`);
+
+	let width = 0;
+	FONTFACE.letterspace.forEach( item => {
+		let char = item.replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
+
+		if( width < char.length ) {
+			width = char.length;
+		}
+	});
+
+	if( FONTFACE.letterspace_size !== width) {
+		Log.suberror(`Font has wrong letterspace_size attribute. Is: "${ FONTFACE.letterspace_size }" but should be "${ width }" in font: "${ FONTFACE.name }"`);
+	}
+	else {
+		Log.subdone(`All CORRECT!`);
+	}
+};
+
 
 /**
  * Test the font to include all characters
@@ -133,7 +168,7 @@ const Attributes = ( FONTFACE ) => {
  * @param  {array}  CHARS    - All characters that should be included
  */
 const Chars = ( FONTFACE, CHARS ) => {
-	Debugging.report(`Running chars`, 1);
+	Debugging.report(`Running Chars`, 1);
 	Log.check(`Checking all characters in "${ FONTFACE.name }"`);
 	let fails = [];
 
@@ -161,7 +196,7 @@ const Chars = ( FONTFACE, CHARS ) => {
  * @param  {array}  CHARS    - All characters that should be included
  */
 const Lines = ( FONTFACE, CHARS ) => {
-	Debugging.report(`Running lines`, 1);
+	Debugging.report(`Running Lines`, 1);
 	Log.check(`Checking all character lines in "${ FONTFACE.name }"`);
 	let fails = [];
 
@@ -200,7 +235,7 @@ const Lines = ( FONTFACE, CHARS ) => {
  * @param  {array}  CHARS    - All characters that should be included
  */
 const Width = ( FONTFACE, CHARS ) => {
-	Debugging.report(`Running width`, 1);
+	Debugging.report(`Running Width`, 1);
 	Log.check(`Checking all character widths in "${ FONTFACE.name }"`);
 	let fails = [];
 
@@ -334,6 +369,8 @@ const Debugging = {
  * @type {Object}
  */
 const Log = {
+	errors: 0,
+
 	/**
 	 * Start a test category
 	 *
@@ -380,6 +417,8 @@ const Log = {
 	 * @param  {string} text - Error message
 	 */
 	suberror: ( text ) => {
+		Log.errors ++;
+
 		let prefix = ` ${ Chalk.bold.black('FAIL') } `;
 		text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${ ' '.repeat( prefix.length ) }`);
 
