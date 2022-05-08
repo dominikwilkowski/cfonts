@@ -9,7 +9,7 @@ use crate::config::{
 };
 use crate::debug::{d, Dt};
 
-pub fn parse(args: Vec<String>) -> Options {
+pub fn parse(args: Vec<String>) -> Result<Options, String> {
 	let mut my_args = args;
 	let mut options = Options::default();
 
@@ -59,8 +59,7 @@ pub fn parse(args: Vec<String>) -> Options {
 					OptionType::Font => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						options.font = match my_args[i].to_lowercase().as_str() {
 							"console" => Fonts::FontConsole,
@@ -77,16 +76,18 @@ pub fn parse(args: Vec<String>) -> Options {
 							"pallet" => Fonts::FontPallet,
 							"tiny" => Fonts::FontTiny,
 							unknown => {
-								println!("The font \"{}\" is not supported.\nAllowed options are: {:?}", unknown, Fonts::list());
-								std::process::exit(exitcode::USAGE);
+								return Err(format!(
+									"The font \"{}\" is not supported.\nAllowed options are: {:?}",
+									unknown,
+									Fonts::list()
+								));
 							}
 						};
 					}
 					OptionType::Align => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						options.align = match my_args[i].to_lowercase().as_str() {
 							"left" => Align::Left,
@@ -95,60 +96,60 @@ pub fn parse(args: Vec<String>) -> Options {
 							"top" => Align::Top,
 							"bottom" => Align::Bottom,
 							unknown => {
-								println!(
+								return Err(format!(
 									"The alignment option \"{}\" is not supported.\nAllowed options are: {:?}",
 									unknown,
 									Align::list()
-								);
-								std::process::exit(exitcode::USAGE);
+								));
 							}
 						};
 					}
 					OptionType::Colors => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						options.colors = my_args[i]
 							.to_lowercase()
 							.as_str()
 							.split(',')
 							.map(|color| match color {
-								"system" => Colors::System,
-								"black" => Colors::Black,
-								"red" => Colors::Red,
-								"green" => Colors::Green,
-								"yellow" => Colors::Yellow,
-								"blue" => Colors::Blue,
-								"magenta" => Colors::Magenta,
-								"cyan" => Colors::Cyan,
-								"white" => Colors::White,
-								"gray" => Colors::Gray,
-								"grey" => Colors::Gray,
-								"redbright" => Colors::RedBright,
-								"greenbright" => Colors::GreenBright,
-								"yellowbright" => Colors::YellowBright,
-								"bluebright" => Colors::BlueBright,
-								"magentabright" => Colors::MagentaBright,
-								"cyanbright" => Colors::CyanBright,
-								"whitebright" => Colors::WhiteBright,
+								"system" => Ok(Colors::System),
+								"black" => Ok(Colors::Black),
+								"red" => Ok(Colors::Red),
+								"green" => Ok(Colors::Green),
+								"yellow" => Ok(Colors::Yellow),
+								"blue" => Ok(Colors::Blue),
+								"magenta" => Ok(Colors::Magenta),
+								"cyan" => Ok(Colors::Cyan),
+								"white" => Ok(Colors::White),
+								"gray" => Ok(Colors::Gray),
+								"grey" => Ok(Colors::Gray),
+								"redbright" => Ok(Colors::RedBright),
+								"greenbright" => Ok(Colors::GreenBright),
+								"yellowbright" => Ok(Colors::YellowBright),
+								"bluebright" => Ok(Colors::BlueBright),
+								"magentabright" => Ok(Colors::MagentaBright),
+								"cyanbright" => Ok(Colors::CyanBright),
+								"whitebright" => Ok(Colors::WhiteBright),
 								unknown => {
 									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
-										Colors::Rgb(hex2rgb(unknown, &options))
+										Ok(Colors::Rgb(hex2rgb(unknown, &options)))
 									} else {
-										println!("The color \"{}\" is not supported.\nAllowed options are: {:?}", unknown, Colors::list());
-										std::process::exit(exitcode::USAGE);
+										Err(format!(
+											"The color \"{}\" is not supported.\nAllowed options are: {:?}",
+											unknown,
+											Colors::list()
+										))
 									}
 								}
 							})
-							.collect::<Vec<Colors>>();
+							.collect::<Result<Vec<Colors>, String>>()?;
 					}
 					OptionType::Color => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						options.background = match my_args[i].to_lowercase().as_str() {
 							"transparent" => BgColors::Transparent,
@@ -173,12 +174,11 @@ pub fn parse(args: Vec<String>) -> Options {
 								if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
 									BgColors::Rgb(hex2rgb(unknown, &options))
 								} else {
-									println!(
+									return Err(format!(
 										"The background color \"{}\" is not supported.\nAllowed options are: {:?}",
 										unknown,
 										BgColors::list()
-									);
-									std::process::exit(exitcode::USAGE);
+									));
 								}
 							}
 						};
@@ -186,8 +186,7 @@ pub fn parse(args: Vec<String>) -> Options {
 					OptionType::Gradient => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						let expanded_args = match my_args[i].to_lowercase().as_str() {
 							"lgbt" | "lgbtq" | "lgbtqa" | "pride" => {
@@ -248,57 +247,54 @@ pub fn parse(args: Vec<String>) -> Options {
 						options.gradient = expanded_args
 							.split(',')
 							.map(|color| match color {
-								"black" => String::from("#000000"),
-								"red" => String::from("#ff0000"),
-								"green" => String::from("#00ff00"),
-								"blue" => String::from("#0000ff"),
-								"magenta" => String::from("#ff00ff"),
-								"cyan" => String::from("#00ffff"),
-								"white" => String::from("#ffffff"),
-								"gray" | "grey" => String::from("#808080"),
+								"black" => Ok(String::from("#000000")),
+								"red" => Ok(String::from("#ff0000")),
+								"green" => Ok(String::from("#00ff00")),
+								"blue" => Ok(String::from("#0000ff")),
+								"magenta" => Ok(String::from("#ff00ff")),
+								"cyan" => Ok(String::from("#00ffff")),
+								"white" => Ok(String::from("#ffffff")),
+								"gray" | "grey" => Ok(String::from("#808080")),
 								unknown => {
 									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
 										// parsing hex round trip to make sure it's in a good format
-										rgb2hex(&hex2rgb(unknown, &options), &options)
+										Ok(rgb2hex(&hex2rgb(unknown, &options), &options))
 									} else {
-										println!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", unknown);
-										std::process::exit(exitcode::USAGE);
+										Err(format!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", unknown))
 									}
 								}
-							})
-							.collect::<Vec<String>>();
+							}).collect::<Result<Vec<String>,String>>()?;
 
 						let transition_options = options_lookup.get("-t").unwrap();
 						let is_transition = my_args.contains(&transition_options.name.to_string())
 							|| my_args.contains(&transition_options.shortcut.to_string())
 							|| options.transition_gradient;
 						if is_transition && options.gradient.len() < 2 {
-							println!(
+							return Err(format!(
 								"You must specify at least two colors for transition gradients. You specified only \"{}\"",
 								options.gradient.len()
-							);
-							std::process::exit(exitcode::USAGE);
+							));
 						}
 
 						if !is_transition && options.gradient.len() != 2 {
-							println!("You must specify two colors for a gradient. You specified \"{}\"", options.gradient.len());
-							std::process::exit(exitcode::USAGE);
+							return Err(format!(
+								"You must specify two colors for a gradient. You specified \"{}\"",
+								options.gradient.len()
+							));
 						}
 					}
 					OptionType::Number => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						let number = match my_args[i].parse::<u16>() {
 							Ok(n) => n,
 							Err(_) => {
-								println!(
+								return Err(format!(
 									"Could not read argument for option: {}. Needs to be a positive number but found instead: \"{}\"",
 									this_flag.name, my_args[i]
-								);
-								std::process::exit(exitcode::USAGE);
+								));
 							}
 						};
 
@@ -342,15 +338,17 @@ pub fn parse(args: Vec<String>) -> Options {
 					OptionType::Env => {
 						i += 1;
 						if i >= args_length {
-							println!("Missing value for option: {}", this_flag.name);
-							std::process::exit(exitcode::USAGE);
+							return Err(format!("Missing value for option: {}", this_flag.name));
 						}
 						options.env = match my_args[i].to_lowercase().as_str() {
 							"node" | "cli" => Env::Cli,
 							"browser" => Env::Browser,
 							unknown => {
-								println!("The env option \"{}\" is not supported.\nAllowed options are: {:?}", unknown, Env::list());
-								std::process::exit(exitcode::USAGE);
+								return Err(format!(
+									"The env option \"{}\" is not supported.\nAllowed options are: {:?}",
+									unknown,
+									Env::list()
+								));
 							}
 						};
 					}
@@ -367,5 +365,5 @@ pub fn parse(args: Vec<String>) -> Options {
 		i += 1;
 	}
 
-	options
+	Ok(options)
 }

@@ -16,7 +16,14 @@ use debug::{d, Dt};
 use render::render;
 
 fn main() {
-	let options = args::parse(args().collect::<Vec<String>>());
+	let options = match args::parse(args().collect::<Vec<String>>()) {
+		Ok(options) => options,
+		Err(msg) => {
+			println!("{}", msg);
+			std::process::exit(exitcode::USAGE);
+		}
+	};
+
 	d("main()", 1, Dt::Head, &options, &mut std::io::stdout());
 	d(
 		&format!("main() CLI args parsed from\n{:#?}\nto:\n{:#?}", args().collect::<Vec<String>>(), options),

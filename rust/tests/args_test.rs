@@ -25,7 +25,7 @@ mod args {
 						"my text".to_string(),
 						$flag_short.to_string(),
 						$flag_val1.to_string()
-					]),
+					]).unwrap(),
 					options
 				);
 				assert_eq!(
@@ -34,7 +34,7 @@ mod args {
 						"my text".to_string(),
 						$flag_short.to_string(),
 						$flag_val2.to_string()
-					]),
+					]).unwrap(),
 					options
 				);
 				assert_eq!(
@@ -43,7 +43,7 @@ mod args {
 						"my text".to_string(),
 						$flag_short.to_string(),
 						$flag_val3.to_string()
-					]),
+					]).unwrap(),
 					options
 				);
 				assert_eq!(
@@ -52,7 +52,7 @@ mod args {
 						"my text".to_string(),
 						$flag_long.to_string(),
 						$flag_val1.to_string()
-					]),
+					]).unwrap(),
 					options
 				);
 				assert_eq!(
@@ -61,7 +61,7 @@ mod args {
 						"my text".to_string(),
 						$flag_long.to_string(),
 						$flag_val2.to_string()
-					]),
+					]).unwrap(),
 					options
 				);
 				assert_eq!(
@@ -70,7 +70,7 @@ mod args {
 						"my text".to_string(),
 						$flag_long.to_string(),
 						$flag_val3.to_string()
-					]),
+					]).unwrap(),
 					options
 				);
 			)*
@@ -80,14 +80,14 @@ mod args {
 	#[test]
 	fn args_parse_default_options() {
 		let options = Options::default();
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "".to_string()]).unwrap(), options);
 	}
 
 	#[test]
 	fn args_parse_text() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string()]).unwrap(), options);
 	}
 
 	#[test]
@@ -113,7 +113,8 @@ mod args {
 				"--independent-gradient".to_string(),
 				"--transition-gradient".to_string(),
 				"--debug".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -128,12 +129,13 @@ mod args {
 				"-i".to_string(),
 				"-t".to_string(),
 				"-d".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
 		// stacked flags
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-vhsitd".to_string(),]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-vhsitd".to_string(),]).unwrap(), options);
 	}
 
 	#[test]
@@ -147,11 +149,12 @@ mod args {
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--version".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-v".to_string()]), options);
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-V".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-v".to_string()]).unwrap(), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-V".to_string()]).unwrap(), options);
 	}
 
 	#[test]
@@ -168,7 +171,8 @@ mod args {
 				"my text".to_string(),
 				"--help".to_string(),
 				"--debug".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -179,12 +183,13 @@ mod args {
 				"my text".to_string(),
 				"-h".to_string(),
 				"-d".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
 		// stacked flags
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]).unwrap(), options);
 	}
 
 	#[test]
@@ -200,7 +205,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"tiny".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -209,7 +215,8 @@ mod args {
 				"my text".to_string(),
 				"--font".to_string(),
 				"TINY".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -218,7 +225,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"tInY".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -229,7 +237,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Console".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontBlock;
@@ -239,7 +248,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Block".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontSimpleBlock;
@@ -249,7 +259,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"SimpleBlock".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontSimple;
@@ -259,7 +270,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Simple".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::Font3d;
@@ -269,7 +281,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"3d".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontSimple3d;
@@ -279,7 +292,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Simple3d".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontChrome;
@@ -289,7 +303,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Chrome".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontHuge;
@@ -299,7 +314,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Huge".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontShade;
@@ -309,7 +325,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Shade".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontSlick;
@@ -319,7 +336,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Slick".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontGrid;
@@ -329,7 +347,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Grid".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontPallet;
@@ -339,7 +358,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Pallet".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.font = Fonts::FontTiny;
@@ -349,7 +369,8 @@ mod args {
 				"my text".to_string(),
 				"-f".to_string(),
 				"Tiny".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
@@ -367,7 +388,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"center".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -376,7 +398,8 @@ mod args {
 				"my text".to_string(),
 				"--align".to_string(),
 				"CENTER".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -385,7 +408,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"cEnTeR".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -396,7 +420,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"left".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.align = Align::Center;
@@ -406,7 +431,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"center".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.align = Align::Right;
@@ -416,7 +442,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"right".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.align = Align::Top;
@@ -426,7 +453,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"top".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		options.align = Align::Bottom;
@@ -436,7 +464,8 @@ mod args {
 				"my text".to_string(),
 				"-a".to_string(),
 				"bottom".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
@@ -454,7 +483,8 @@ mod args {
 				"my text".to_string(),
 				"-e".to_string(),
 				"browser".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -463,7 +493,8 @@ mod args {
 				"my text".to_string(),
 				"--env".to_string(),
 				"BROWSER".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -472,7 +503,8 @@ mod args {
 				"my text".to_string(),
 				"-e".to_string(),
 				"bRoWsEr".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -483,7 +515,8 @@ mod args {
 				"my text".to_string(),
 				"-e".to_string(),
 				"node".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
@@ -623,7 +656,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#000".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -632,7 +666,8 @@ mod args {
 				"my text".to_string(),
 				"--background".to_string(),
 				"#000".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -641,7 +676,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#000000".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -652,7 +688,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#888".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -661,7 +698,8 @@ mod args {
 				"my text".to_string(),
 				"--background".to_string(),
 				"#888".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -670,7 +708,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#888888".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -681,7 +720,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#fff".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -690,7 +730,8 @@ mod args {
 				"my text".to_string(),
 				"--background".to_string(),
 				"#fff".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -699,7 +740,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#ffffff".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -710,7 +752,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#xxx".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -719,7 +762,8 @@ mod args {
 				"my text".to_string(),
 				"--background".to_string(),
 				"#xXx".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -728,7 +772,8 @@ mod args {
 				"my text".to_string(),
 				"-b".to_string(),
 				"#xXXXXx".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
@@ -1021,7 +1066,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#000".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1030,7 +1076,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#000000".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1039,7 +1086,8 @@ mod args {
 				"my text".to_string(),
 				"--colors".to_string(),
 				"#000".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1050,7 +1098,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#888".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1059,7 +1108,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#888888".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1068,7 +1118,8 @@ mod args {
 				"my text".to_string(),
 				"--colors".to_string(),
 				"#888".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1079,7 +1130,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#fff".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1088,7 +1140,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#ffffff".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1097,7 +1150,8 @@ mod args {
 				"my text".to_string(),
 				"--colors".to_string(),
 				"#fff".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1108,7 +1162,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#xxx".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1117,7 +1172,8 @@ mod args {
 				"my text".to_string(),
 				"-c".to_string(),
 				"#xXXXXx".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1126,7 +1182,8 @@ mod args {
 				"my text".to_string(),
 				"--colors".to_string(),
 				"#XXX".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
@@ -1209,7 +1266,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"lgbt".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1218,7 +1276,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"lGbT".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1227,7 +1286,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"LGBT".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1236,7 +1296,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"lgbtq".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1245,7 +1306,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"lgbtqa".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1254,7 +1316,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"pride".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1265,7 +1328,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"agender".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1276,7 +1340,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"aromantic".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1287,7 +1352,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"asexual".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1298,7 +1364,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"bisexual".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1307,7 +1374,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"bi".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1318,7 +1386,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"genderfluid".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1329,7 +1398,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"genderqueer".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1340,7 +1410,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"intersex".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1351,7 +1422,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"lesbian".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1362,7 +1434,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"nonbinary".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1373,7 +1446,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"pansexual".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1382,7 +1456,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"pan".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1393,7 +1468,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"polysexual".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1402,7 +1478,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"poly".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1413,7 +1490,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"transgender".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 		assert_eq!(
@@ -1422,7 +1500,8 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"trans".to_string()
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
@@ -1478,7 +1557,8 @@ mod args {
 				"-d".to_string(),
 				"-x".to_string(),
 				"3".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1507,7 +1587,8 @@ mod args {
 				"browser".to_string(),
 				"-x".to_string(),
 				"3".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 
@@ -1536,7 +1617,8 @@ mod args {
 				"browser".to_string(),
 				"--debug-level".to_string(),
 				"3".to_string(),
-			]),
+			])
+			.unwrap(),
 			options
 		);
 	}
