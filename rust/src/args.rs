@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::color::{hex2rgb, rgb2hex};
 use crate::config::{
 	Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS, GRADIENTS_AGENDER,
 	GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL, GRADIENTS_BISEXUAL, GRADIENTS_GENDERFLUID, GRADIENTS_GENDERQUEER,
@@ -7,7 +8,6 @@ use crate::config::{
 	GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
 };
 use crate::debug::{d, Dt};
-use crate::gradient::{hex2rgb, rgb2hex};
 
 pub fn parse(args: Vec<String>) -> Options {
 	let mut my_args = args;

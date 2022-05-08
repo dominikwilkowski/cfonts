@@ -2,7 +2,7 @@ extern crate strum;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::gradient::Rgb;
+use crate::color::Rgb;
 use crate::helpers::first_letter_to_lowercase;
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]

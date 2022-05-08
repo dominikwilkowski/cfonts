@@ -1,15 +1,15 @@
 extern crate cfonts;
 
-use cfonts::args;
+use cfonts::args::parse;
+use cfonts::color::Rgb;
 use cfonts::config::{
 	Align, BgColors, Colors, Env, Fonts, Options, GRADIENTS_AGENDER, GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL,
 	GRADIENTS_BISEXUAL, GRADIENTS_GENDERFLUID, GRADIENTS_GENDERQUEER, GRADIENTS_INTERSEX, GRADIENTS_LESBIAN,
 	GRADIENTS_NONBINARY, GRADIENTS_PANSEXUAL, GRADIENTS_POLYSEXUAL, GRADIENTS_PRIDE, GRADIENTS_TRANSGENDER,
 };
-use cfonts::gradient::Rgb;
 
 #[cfg(test)]
-mod tests {
+mod args {
 	use super::*;
 
 	macro_rules! color_test {
@@ -20,7 +20,7 @@ mod tests {
 			$(
 				options.$kind = $color;
 				assert_eq!(
-					args::parse(vec![
+					parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_short.to_string(),
@@ -29,7 +29,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					args::parse(vec![
+					parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_short.to_string(),
@@ -38,7 +38,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					args::parse(vec![
+					parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_short.to_string(),
@@ -47,7 +47,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					args::parse(vec![
+					parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_long.to_string(),
@@ -56,7 +56,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					args::parse(vec![
+					parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_long.to_string(),
@@ -65,7 +65,7 @@ mod tests {
 					options
 				);
 				assert_eq!(
-					args::parse(vec![
+					parse(vec![
 						"path/to/bin".to_string(),
 						"my text".to_string(),
 						$flag_long.to_string(),
@@ -80,14 +80,14 @@ mod tests {
 	#[test]
 	fn args_parse_default_options() {
 		let options = Options::default();
-		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "".to_string()]), options);
 	}
 
 	#[test]
 	fn args_parse_text() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
-		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string()]), options);
 	}
 
 	#[test]
@@ -104,7 +104,7 @@ mod tests {
 
 		// long flags
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--version".to_string(),
@@ -119,7 +119,7 @@ mod tests {
 
 		// short flags
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-v".to_string(),
@@ -133,7 +133,7 @@ mod tests {
 		);
 
 		// stacked flags
-		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-vhsitd".to_string(),]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-vhsitd".to_string(),]), options);
 	}
 
 	#[test]
@@ -143,15 +143,15 @@ mod tests {
 		options.version = true;
 
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--version".to_string()
 			]),
 			options
 		);
-		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-v".to_string()]), options);
-		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-V".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-v".to_string()]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-V".to_string()]), options);
 	}
 
 	#[test]
@@ -163,7 +163,7 @@ mod tests {
 
 		// long flags
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--help".to_string(),
@@ -174,7 +174,7 @@ mod tests {
 
 		// short flags
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-h".to_string(),
@@ -184,7 +184,7 @@ mod tests {
 		);
 
 		// stacked flags
-		assert_eq!(args::parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]), options);
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]), options);
 	}
 
 	#[test]
@@ -195,7 +195,7 @@ mod tests {
 
 		// casing
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -204,7 +204,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--font".to_string(),
@@ -213,7 +213,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -224,7 +224,7 @@ mod tests {
 
 		options.font = Fonts::FontConsole;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -234,7 +234,7 @@ mod tests {
 		);
 		options.font = Fonts::FontBlock;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -244,7 +244,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSimpleBlock;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -254,7 +254,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSimple;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -264,7 +264,7 @@ mod tests {
 		);
 		options.font = Fonts::Font3d;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -274,7 +274,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSimple3d;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -284,7 +284,7 @@ mod tests {
 		);
 		options.font = Fonts::FontChrome;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -294,7 +294,7 @@ mod tests {
 		);
 		options.font = Fonts::FontHuge;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -304,7 +304,7 @@ mod tests {
 		);
 		options.font = Fonts::FontShade;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -314,7 +314,7 @@ mod tests {
 		);
 		options.font = Fonts::FontSlick;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -324,7 +324,7 @@ mod tests {
 		);
 		options.font = Fonts::FontGrid;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -334,7 +334,7 @@ mod tests {
 		);
 		options.font = Fonts::FontPallet;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -344,7 +344,7 @@ mod tests {
 		);
 		options.font = Fonts::FontTiny;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-f".to_string(),
@@ -362,7 +362,7 @@ mod tests {
 
 		// casing
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -371,7 +371,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--align".to_string(),
@@ -380,7 +380,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -391,7 +391,7 @@ mod tests {
 
 		options.align = Align::Left;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -401,7 +401,7 @@ mod tests {
 		);
 		options.align = Align::Center;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -411,7 +411,7 @@ mod tests {
 		);
 		options.align = Align::Right;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -421,7 +421,7 @@ mod tests {
 		);
 		options.align = Align::Top;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -431,7 +431,7 @@ mod tests {
 		);
 		options.align = Align::Bottom;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-a".to_string(),
@@ -449,7 +449,7 @@ mod tests {
 
 		// casing
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-e".to_string(),
@@ -458,7 +458,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--env".to_string(),
@@ -467,7 +467,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-e".to_string(),
@@ -478,7 +478,7 @@ mod tests {
 
 		options.env = Env::Cli;
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-e".to_string(),
@@ -618,7 +618,7 @@ mod tests {
 
 		options.background = BgColors::Rgb(Rgb::Val(0.0, 0.0, 0.0));
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -627,7 +627,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -636,7 +636,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -647,7 +647,7 @@ mod tests {
 
 		options.background = BgColors::Rgb(Rgb::Val(136.0, 136.0, 136.0));
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -656,7 +656,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -665,7 +665,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -676,7 +676,7 @@ mod tests {
 
 		options.background = BgColors::Rgb(Rgb::Val(255.0, 255.0, 255.0));
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -685,7 +685,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -694,7 +694,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -705,7 +705,7 @@ mod tests {
 
 		options.background = BgColors::Rgb(Rgb::Val(0.0, 0.0, 0.0));
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -714,7 +714,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--background".to_string(),
@@ -723,7 +723,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-b".to_string(),
@@ -1016,7 +1016,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))];
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1025,7 +1025,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1034,7 +1034,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1045,7 +1045,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0))];
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1054,7 +1054,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1063,7 +1063,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1074,7 +1074,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0))];
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1083,7 +1083,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1092,7 +1092,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1103,7 +1103,7 @@ mod tests {
 
 		options.colors = vec![Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))];
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1112,7 +1112,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-c".to_string(),
@@ -1121,7 +1121,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"--colors".to_string(),
@@ -1204,7 +1204,7 @@ mod tests {
 		options.transition_gradient = true;
 		options.gradient = GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1213,7 +1213,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1222,7 +1222,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1231,7 +1231,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1240,7 +1240,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1249,7 +1249,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1260,7 +1260,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_AGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1271,7 +1271,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_AROMANTIC.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1282,7 +1282,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_ASEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1293,7 +1293,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_BISEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1302,7 +1302,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1313,7 +1313,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_GENDERFLUID.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1324,7 +1324,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_GENDERQUEER.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1335,7 +1335,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_INTERSEX.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1346,7 +1346,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_LESBIAN.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1357,7 +1357,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_NONBINARY.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1368,7 +1368,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_PANSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1377,7 +1377,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1388,7 +1388,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_POLYSEXUAL.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1397,7 +1397,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1408,7 +1408,7 @@ mod tests {
 
 		options.gradient = GRADIENTS_TRANSGENDER.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1417,7 +1417,7 @@ mod tests {
 			options
 		);
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"my text".to_string(),
 				"-g".to_string(),
@@ -1449,7 +1449,7 @@ mod tests {
 		options.debug_level = 3;
 
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"long text|with new line".to_string(),
 				"-f".to_string(),
@@ -1483,7 +1483,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"long text|with new line".to_string(),
 				"-f".to_string(),
@@ -1512,7 +1512,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			args::parse(vec![
+			parse(vec![
 				"path/to/bin".to_string(),
 				"long text|with new line".to_string(),
 				"--font".to_string(),
