@@ -476,7 +476,7 @@ mod tests {
 			options
 		);
 
-		options.env = Env::Node;
+		options.env = Env::Cli;
 		assert_eq!(
 			args::parse(vec![
 				"path/to/bin".to_string(),

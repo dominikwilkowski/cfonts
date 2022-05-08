@@ -68,7 +68,7 @@ pub enum BgColors {
 
 #[derive(EnumIter, Debug, Clone, PartialEq)]
 pub enum Env {
-	Node,
+	Cli,
 	Browser,
 }
 
@@ -199,7 +199,7 @@ impl Options {
 			gradient: vec![String::from("")],
 			independent_gradient: false,
 			transition_gradient: false,
-			env: Env::Node,
+			env: Env::Cli,
 			help: false,
 			version: false,
 			debug: false,

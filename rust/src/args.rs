@@ -346,7 +346,7 @@ pub fn parse(args: Vec<String>) -> Options {
 							std::process::exit(exitcode::USAGE);
 						}
 						options.env = match my_args[i].to_lowercase().as_str() {
-							"node" => Env::Node,
+							"node" | "cli" => Env::Cli,
 							"browser" => Env::Browser,
 							unknown => {
 								println!("The env option \"{}\" is not supported.\nAllowed options are: {:?}", unknown, Env::list());
