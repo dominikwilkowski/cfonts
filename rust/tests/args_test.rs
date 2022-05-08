@@ -86,8 +86,8 @@ mod args {
 	#[test]
 	fn args_parse_text() {
 		let mut options = Options::default();
-		options.text = String::from("my text");
-		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string()]).unwrap(), options);
+		options.text = String::from("my|text");
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "my|text".to_string()]).unwrap(), options);
 	}
 
 	#[test]
@@ -228,6 +228,24 @@ mod args {
 			])
 			.unwrap(),
 			options
+		);
+
+		// missing value
+		assert!(
+			parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-f".to_string()]).is_err(),
+			"We should error when no value has been passed to the flag"
+		);
+
+		// unknown value
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-f".to_string(),
+				"unknown".to_string(),
+			])
+			.is_err(),
+			"We should error when an unknown value has been passed to the flag"
 		);
 
 		options.font = Fonts::FontConsole;
@@ -413,6 +431,24 @@ mod args {
 			options
 		);
 
+		// missing value
+		assert!(
+			parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-a".to_string()]).is_err(),
+			"We should error when no value has been passed to the flag"
+		);
+
+		// unknown value
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-a".to_string(),
+				"unknown".to_string(),
+			])
+			.is_err(),
+			"We should error when an unknown value has been passed to the flag"
+		);
+
 		options.align = Align::Left;
 		assert_eq!(
 			parse(vec![
@@ -508,7 +544,35 @@ mod args {
 			options
 		);
 
+		// missing value
+		assert!(
+			parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-e".to_string()]).is_err(),
+			"We should error when no value has been passed to the flag"
+		);
+
+		// unknown value
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-e".to_string(),
+				"unknown".to_string(),
+			])
+			.is_err(),
+			"We should error when an unknown value has been passed to the flag"
+		);
+
 		options.env = Env::Cli;
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-e".to_string(),
+				"cli".to_string()
+			])
+			.unwrap(),
+			options
+		);
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -525,7 +589,57 @@ mod args {
 	fn args_parse_bgcolors() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
-		options.background = BgColors::Red;
+
+		// missing value
+		assert!(
+			parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-b".to_string()]).is_err(),
+			"We should error when no value has been passed to the flag"
+		);
+
+		// unknown value
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-b".to_string(),
+				"unknown".to_string(),
+			])
+			.is_err(),
+			"We should error when an unknown value has been passed to the flag"
+		);
+
+		// forgiving input formats
+		options.background = BgColors::Rgb(Rgb::Val(255.0, 255.0, 255.0));
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-b".to_string(),
+				"#ff".to_string()
+			])
+			.unwrap(),
+			options
+		);
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-b".to_string(),
+				"#fffffff".to_string()
+			])
+			.unwrap(),
+			options
+		);
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-b".to_string(),
+				"#ffffffffffff".to_string()
+			])
+			.unwrap(),
+			options
+		);
 
 		color_test!(
 			background,
@@ -782,6 +896,57 @@ mod args {
 	fn args_parse_colors() {
 		let mut options = Options::default();
 		options.text = String::from("my text");
+
+		// missing value
+		assert!(
+			parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-c".to_string()]).is_err(),
+			"We should error when no value has been passed to the flag"
+		);
+
+		// unknown value
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-c".to_string(),
+				"unknown".to_string(),
+			])
+			.is_err(),
+			"We should error when an unknown value has been passed to the flag"
+		);
+
+		// forgiving input formats
+		options.colors = vec![Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))];
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-c".to_string(),
+				"#00".to_string()
+			])
+			.unwrap(),
+			options
+		);
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-c".to_string(),
+				"#0000".to_string()
+			])
+			.unwrap(),
+			options
+		);
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-c".to_string(),
+				"#0000000".to_string()
+			])
+			.unwrap(),
+			options
+		);
 
 		color_test!(
 			colors,
@@ -1190,6 +1355,64 @@ mod args {
 
 	#[test]
 	fn args_parse_gradient() {
+		let mut options = Options::default();
+		options.text = String::from("my text");
+
+		// missing value
+		assert!(
+			parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-g".to_string()]).is_err(),
+			"We should error when no value has been passed to the flag"
+		);
+
+		// unknown value
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"unknown".to_string(),
+			])
+			.is_err(),
+			"We should error when an unknown value has been passed to the flag"
+		);
+
+		// combination errors
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"red".to_string(),
+				"-t".to_string(),
+			])
+			.is_err(),
+			"We should error when only one color is passed into a transition gradient"
+		);
+
+		assert!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"red,green,blue".to_string(),
+			])
+			.is_err(),
+			"We should error when more than 2 colors is passed into a non-transition gradient"
+		);
+
+		// forgiving input format
+		options.gradient = vec!["#888888".to_string(), "#000000".to_string()];
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-g".to_string(),
+				"#88,#0000000".to_string()
+			])
+			.unwrap(),
+			options
+		);
+
 		color_test!(
 			gradient,
 			vec!["#ff0000".to_string(), "#00ff00".to_string()],
@@ -1256,8 +1479,6 @@ mod args {
 			"GREY,GREEN",
 		);
 
-		let mut options = Options::default();
-		options.text = String::from("my text");
 		options.transition_gradient = true;
 		options.gradient = GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		assert_eq!(

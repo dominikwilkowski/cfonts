@@ -133,7 +133,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								"cyanbright" => Ok(Colors::CyanBright),
 								"whitebright" => Ok(Colors::WhiteBright),
 								unknown => {
-									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
+									if unknown.starts_with('#') && unknown.len() > 2 {
 										Ok(Colors::Rgb(hex2rgb(unknown, &options)))
 									} else {
 										Err(format!(
@@ -171,7 +171,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 							"cyanbright" => BgColors::CyanBright,
 							"whitebright" => BgColors::WhiteBright,
 							unknown => {
-								if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
+								if unknown.starts_with('#') && unknown.len() > 2 {
 									BgColors::Rgb(hex2rgb(unknown, &options))
 								} else {
 									return Err(format!(
@@ -256,7 +256,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								"white" => Ok(String::from("#ffffff")),
 								"gray" | "grey" => Ok(String::from("#808080")),
 								unknown => {
-									if unknown.starts_with('#') && unknown.len() == 4 || unknown.starts_with('#') && unknown.len() == 7 {
+									if unknown.starts_with('#') && unknown.len() > 2 {
 										// parsing hex round trip to make sure it's in a good format
 										Ok(rgb2hex(&hex2rgb(unknown, &options), &options))
 									} else {
@@ -275,6 +275,8 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								options.gradient.len()
 							));
 						}
+
+						// TODO: error when the same colors are selected?
 
 						if !is_transition && options.gradient.len() != 2 {
 							return Err(format!(
