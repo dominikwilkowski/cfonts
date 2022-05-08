@@ -146,7 +146,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 							})
 							.collect::<Result<Vec<Colors>, String>>()?;
 					}
-					OptionType::Color => {
+					OptionType::BgColor => {
 						i += 1;
 						if i >= args_length {
 							return Err(format!("Missing value for option: {}", this_flag.name));

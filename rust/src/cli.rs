@@ -40,7 +40,7 @@ pub fn help(options: &Options) -> String {
 			OptionType::Colors => {
 				output += &color(&format!(" [ {} ]", Colors::list()), Colors::Green).to_string();
 			}
-			OptionType::Color => {
+			OptionType::BgColor => {
 				output += &color(&format!(" [ {} ]", BgColors::list()), Colors::Green).to_string();
 			}
 			OptionType::Align => {

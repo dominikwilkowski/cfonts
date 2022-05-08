@@ -213,7 +213,7 @@ pub enum OptionType {
 	Font,
 	Align,
 	Colors,
-	Color,
+	BgColor,
 	Gradient,
 	Number,
 	Bool,
@@ -275,7 +275,7 @@ pub const CLIOPTIONS: [CliOption; 16] = [
 		fallback_shortcut: "",
 		description: "Use to define background color",
 		example: "--background blue",
-		kind: OptionType::Color,
+		kind: OptionType::BgColor,
 	},
 	CliOption {
 		key: "align",
