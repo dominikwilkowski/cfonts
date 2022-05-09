@@ -196,7 +196,7 @@ impl Options {
 			line_height: 1,
 			spaceless: false,
 			max_length: 0,
-			gradient: vec![String::from("")],
+			gradient: Vec::new(),
 			independent_gradient: false,
 			transition_gradient: false,
 			env: Env::Cli,

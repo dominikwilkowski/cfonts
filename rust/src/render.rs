@@ -19,6 +19,11 @@ pub fn render(options: &Options) -> RenderedString {
 	// enable ansi support in windows 10
 	if let Ok(()) = enable_ansi_support() {}
 
+	// the gradient option supersedes the color options
+	if !options.gradient.is_empty() {
+		options.colors = Vec::new();
+	}
+
 	// we render the console font separately as it's too simple to be put through the process for the other fonts
 	if options.font == Fonts::FontConsole {
 		RenderedString {
