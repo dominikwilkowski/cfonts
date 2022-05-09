@@ -18,6 +18,7 @@ pub struct Font {
 	lines: u8,
 	buffer: Vec<String>,
 	letterspace: Vec<String>,
+	letterspace_size: usize,
 	chars: HashMap<String, Vec<String>>,
 }
 
