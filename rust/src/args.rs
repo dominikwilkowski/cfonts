@@ -132,6 +132,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								"magentabright" => Ok(Colors::MagentaBright),
 								"cyanbright" => Ok(Colors::CyanBright),
 								"whitebright" => Ok(Colors::WhiteBright),
+								"candy" => Ok(Colors::Candy),
 								unknown => {
 									if unknown.starts_with('#') && unknown.len() > 2 {
 										Ok(Colors::Rgb(hex2rgb(unknown, &options)))

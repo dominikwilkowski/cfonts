@@ -14,9 +14,9 @@ pub mod render;
 use debug::{d, Dt};
 use render::render;
 
-pub fn say(options: config::Options) {
-	d("say()", 1, Dt::Head, &options, &mut std::io::stdout());
-	d(&format!("say() Options:\n{:#?}", options), 3, Dt::Log, &options, &mut std::io::stdout());
+pub fn say(options: &mut config::Options) {
+	d("say()", 1, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("say() Options:\n{:#?}", options), 3, Dt::Log, options, &mut std::io::stdout());
 
 	// For API later:
 	// extern crate cfonts;
@@ -30,6 +30,6 @@ pub fn say(options: config::Options) {
 	// 	});
 	// }
 
-	let render_options = render(&options);
+	let render_options = render(options);
 	println!("{}", render_options.text);
 }

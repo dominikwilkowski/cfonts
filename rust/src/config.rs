@@ -41,6 +41,7 @@ pub enum Colors {
 	MagentaBright,
 	CyanBright,
 	WhiteBright,
+	Candy,
 	Rgb(Rgb),
 }
 

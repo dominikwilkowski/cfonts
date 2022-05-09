@@ -12,7 +12,7 @@ pub struct RenderedString {
 	pub options: Options,
 }
 
-pub fn render(options: &Options) -> RenderedString {
+pub fn render(options: &mut Options) -> RenderedString {
 	d("render()", 1, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("render() Options:\n{:#?}", options), 3, Dt::Log, options, &mut std::io::stdout());
 

@@ -1,3 +1,4 @@
+use rand::seq::SliceRandom;
 use std::env;
 
 use crate::config::Options;
@@ -232,6 +233,13 @@ pub fn get_foreground_color(color: Colors) -> (String, String) {
 		Colors::MagentaBright => String::from("\x1b[95m"),
 		Colors::CyanBright => String::from("\x1b[96m"),
 		Colors::WhiteBright => String::from("\x1b[97m"),
+		Colors::Candy => {
+			let colors = [
+				"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[35m", "\x1b[36m", "\x1b[91m", "\x1b[92m", "\x1b[93m", "\x1b[94m",
+				"\x1b[95m", "\x1b[96m",
+			];
+			String::from(*colors.choose(&mut rand::thread_rng()).unwrap())
+		}
 		Colors::Rgb(rgb) => {
 			let (r, g, b) = rgb.get_value();
 			format!("\x1b[38;2;{};{};{}m", r, g, b)
