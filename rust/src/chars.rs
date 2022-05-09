@@ -2,13 +2,13 @@ use crate::config::Options;
 use crate::debug::{d, Dt};
 
 pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<String> {
-	d("chars::get_letter_space()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("chars::get_letter_space()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
-			"chars::get_letter_space()\nletter_space:{:?} options.letter_spacing:{:?}",
+			"chars::get_letter_space()\nletter_space:{:?}\noptions.letter_spacing:{:?}",
 			letter_space, options.letter_spacing
 		),
-		3,
+		2,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -25,7 +25,7 @@ pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<Strin
 		output.push(space);
 	}
 
-	d(&format!("chars::get_letter_space() -> {:?}", output), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::get_letter_space() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 	output
 }
 
@@ -37,6 +37,22 @@ pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<Strin
 
 // pub fn add_char(char: &Vec<String>, output: &Vec<String>, options: &Options) -> Vec<String> {}
 
-// pub fn add_line(output: &Vec<String>, font_lines: &usize, options: &Options) -> Vec<String> {}
+pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) -> Vec<String> {
+	d("chars::add_line()", 2, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("chars::add_line()\noutput:{:?}\nfont_lines:{:?}", output, font_lines),
+		2,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	for _ in 0..font_lines {
+		output.push(String::new());
+	}
+
+	d(&format!("chars::add_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	output.to_vec()
+}
 
 // pub fn align_last_line(output: &Vec<String>, font_lines: &usize, options: &Options) -> Vec<String> {}
