@@ -1,4 +1,5 @@
-use crate::config::Options;
+use crate::color::get_foreground_color;
+use crate::config::{Colors, Options};
 use crate::debug::{d, Dt};
 
 pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<String> {
@@ -47,7 +48,7 @@ pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) 
 	output.to_vec()
 }
 
-// pub fn add_letter(char: &Vec<String>, output: &Vec<String>, options: &Options) -> Vec<String> {}
+// pub fn add_letter(letter: &Vec<String>, output: &Vec<String>, options: &Options) -> Vec<String> {}
 
 pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Options) -> usize {
 	d("chars::get_longest_line_len()", 2, Dt::Head, options, &mut std::io::stdout());
@@ -65,10 +66,10 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 	size
 }
 
-pub fn get_letter_length(letter: &[String], font_colors: usize, options: &Options) -> usize {
+pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &Options) -> usize {
 	d("chars::get_char_length()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
-		&format!("chars::get_char_length()\nchar:{:?}\nfont_colors:{:?}", letter, font_colors),
+		&format!("chars::get_char_length()\nchar:{:?}\nfont_color_count:{:?}", letter, font_color_count),
 		2,
 		Dt::Log,
 		options,
@@ -79,8 +80,8 @@ pub fn get_letter_length(letter: &[String], font_colors: usize, options: &Option
 		let mut stripped_item = item.clone();
 		// first we remove color annotations
 		// but fonts that support only a single color don't have color annotations
-		if font_colors > 1 {
-			for i in 1..=font_colors {
+		if font_color_count > 1 {
+			for i in 1..=font_color_count {
 				let open = format!("<c{}>", i);
 				let close = format!("</c{}>", i);
 				stripped_item = stripped_item.replace(&open, "").replace(&close, "");
@@ -98,6 +99,39 @@ pub fn get_letter_length(letter: &[String], font_colors: usize, options: &Option
 	size
 }
 
-// pub fn paint_letter(char: &Vec<String>, colors: &Vec<[String; 2]>, options: &Options) -> Vec<String> {}
+pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usize, options: &Options) -> Vec<String> {
+	d("chars::paint_letter()", 2, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!(
+			"chars::paint_letter()\nletter:{:?}\ncolors:{:?}\nfont_color_count:{:?}",
+			letter, colors, font_color_count
+		),
+		2,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	let painted_letter = letter
+		.iter()
+		.map(|line| {
+			let mut new_line = line.clone();
+			for i in 1..=font_color_count {
+				let color_name = colors.get(i - 1).unwrap_or(&Colors::System);
+				let (color_start, color_end) = match color_name {
+					Colors::System => (String::from(""), String::from("")),
+					color => get_foreground_color(color),
+				};
+				let open = format!("<c{}>", i);
+				let close = format!("</c{}>", i);
+				new_line = new_line.replace(&open, &color_start).replace(&close, &color_end);
+			}
+			new_line
+		})
+		.collect();
+
+	d(&format!("chars::paint_letter() -> {:?}", painted_letter), 2, Dt::Log, options, &mut std::io::stdout());
+	painted_letter
+}
 
 // pub fn align_last_line(output: &Vec<String>, font_lines: &usize, options: &Options) -> Vec<String> {}

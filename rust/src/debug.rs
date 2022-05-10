@@ -13,14 +13,14 @@ pub fn d(text: &str, level: u16, debug_type: Dt, options: &Options, stdout: &mut
 	} else {
 		match debug_type {
 			Dt::Head => {
-				let (bg_start, bg_end) = get_background_color(BgColors::Yellow);
+				let (bg_start, bg_end) = get_background_color(&BgColors::Yellow);
 				writeln!(stdout, "{}\n  {} {}", bg_start, color(text, Colors::Black), bg_end).unwrap_or(());
 			}
 			Dt::Log => {
 				writeln!(stdout, "  {}", color(text, Colors::Yellow)).unwrap_or(());
 			}
 			Dt::Error => {
-				let (bg_start, bg_end) = get_background_color(BgColors::Red);
+				let (bg_start, bg_end) = get_background_color(&BgColors::Red);
 				writeln!(stdout, "{}{}{} {}", bg_start, color(" ERROR ", Colors::White), bg_end, color(text, Colors::Red))
 					.unwrap_or(());
 			}

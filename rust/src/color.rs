@@ -210,7 +210,7 @@ pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 	result
 }
 
-pub fn get_foreground_color(color: Colors) -> (String, String) {
+pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	if env::var("NO_COLOR").is_ok() {
 		return (String::from(""), String::from(""));
 	}
@@ -250,7 +250,7 @@ pub fn get_foreground_color(color: Colors) -> (String, String) {
 	(start, String::from("\x1b[39m"))
 }
 
-pub fn get_background_color(color: BgColors) -> (String, String) {
+pub fn get_background_color(color: &BgColors) -> (String, String) {
 	if env::var("NO_COLOR").is_ok() {
 		return (String::from(""), String::from(""));
 	}
@@ -287,7 +287,7 @@ pub fn color(text: &str, color: Colors) -> String {
 	if env::var("NO_COLOR").is_ok() {
 		text.to_string()
 	} else {
-		let (start, end) = get_foreground_color(color);
+		let (start, end) = get_foreground_color(&color);
 		format!("{}{}{}", start, text, end)
 	}
 }
@@ -296,7 +296,7 @@ pub fn bg_color(text: &str, color: BgColors) -> String {
 	if env::var("NO_COLOR").is_ok() {
 		text.to_string()
 	} else {
-		let (start, end) = get_background_color(color);
+		let (start, end) = get_background_color(&color);
 		format!("{}{}{}", start, text, end)
 	}
 }

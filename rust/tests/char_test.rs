@@ -1,7 +1,7 @@
 extern crate cfonts;
 
-use cfonts::chars::{add_line, get_letter_length, get_letter_space, get_longest_line_len};
-use cfonts::config::Options;
+use cfonts::chars::{add_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter};
+use cfonts::config::{Colors, Options};
 
 #[cfg(test)]
 mod chars {
@@ -129,5 +129,61 @@ mod chars {
 
 		letter = vec![String::from("111"), String::from("1111"), String::from("11111")];
 		assert_eq!(get_letter_length(&letter, 1, &options), 5);
+	}
+
+	#[test]
+	fn paint_letter_works() {
+		let options = Options::default();
+		let mut letter = vec![
+			String::from("<c1>red</c1>"),
+			String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
+			String::from("no color"),
+		];
+		let mut colors = vec![Colors::Red, Colors::Green];
+		let mut output = vec![
+			String::from("\x1b[31mred\x1b[39m"),
+			String::from("\x1b[31mred\x1b[39m\x1b[32mgreen\x1b[39m\x1b[31mred\x1b[39m"),
+			String::from("no color"),
+		];
+		assert_eq!(paint_letter(&letter, &colors, 2, &options), output);
+
+		letter = vec![
+			String::from("<c1>red</c1>"),
+			String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
+			String::from("no color"),
+		];
+		colors = vec![Colors::Red];
+		output = vec![
+			String::from("\x1b[31mred\x1b[39m"),
+			String::from("\x1b[31mred\x1b[39mgreen\x1b[31mred\x1b[39m"),
+			String::from("no color"),
+		];
+		assert_eq!(paint_letter(&letter, &colors, 2, &options), output);
+
+		letter = vec![
+			String::from("<c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1>"),
+			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
+			String::from("no color"),
+		];
+		colors = vec![Colors::Red];
+		output = vec![
+			String::from("\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m"),
+			String::from("\x1b[31mred\x1b[39mgreen\x1b[31mred\x1b[39mblue"),
+			String::from("no color"),
+		];
+		assert_eq!(paint_letter(&letter, &colors, 3, &options), output);
+
+		letter = vec![
+			String::from("<c1>red</c1>"),
+			String::from("green<c1>red</c1>blue<c1>red</c1>blue"),
+			String::from("no color"),
+		];
+		colors = vec![Colors::Red];
+		output = vec![
+			String::from("\x1b[31mred\x1b[39m"),
+			String::from("green\x1b[31mred\x1b[39mblue\x1b[31mred\x1b[39mblue"),
+			String::from("no color"),
+		];
+		assert_eq!(paint_letter(&letter, &colors, 1, &options), output);
 	}
 }
