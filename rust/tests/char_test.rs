@@ -46,7 +46,7 @@ mod chars {
 		let options = Options::default();
 		let mut output = vec![String::from("1"), String::from("1"), String::from("1")];
 		assert_eq!(
-			add_line(&mut output, 3, &options),
+			add_line(&output, 3, &options),
 			vec![
 				String::from("1"),
 				String::from("1"),
@@ -64,7 +64,7 @@ mod chars {
 			String::from("2"),
 		];
 		assert_eq!(
-			add_line(&mut output, 2, &options),
+			add_line(&output, 2, &options),
 			vec![
 				String::from("1"),
 				String::from("1"),
