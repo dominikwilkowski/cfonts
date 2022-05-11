@@ -1,5 +1,5 @@
-use crate::color::get_foreground_color;
-use crate::config::{Align, Colors, Options};
+use crate::color::{color2hex, get_foreground_color};
+use crate::config::{Align, Colors, Env, Options};
 use crate::debug::{d, Dt};
 
 pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<String> {
@@ -137,12 +137,22 @@ pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usiz
 			let mut new_line = line.clone();
 			for i in 1..=font_color_count {
 				let color_name = colors.get(i - 1).unwrap_or(&Colors::System);
-				let (color_start, color_end) = match color_name {
-					Colors::System => (String::from(""), String::from("")),
-					color => get_foreground_color(color),
+				let (color_start, color_end) = match options.env {
+					Env::Cli => {
+						let (color_start, color_end) = match color_name {
+							Colors::System => (String::from(""), String::from("")),
+							color => get_foreground_color(color),
+						};
+						(color_start, color_end)
+					}
+					Env::Browser => {
+						(format!("<span style=\"color:{}\">", color2hex(color_name, options)), String::from("</span>"))
+					}
 				};
+
 				let open = format!("<c{}>", i);
 				let close = format!("</c{}>", i);
+
 				new_line = new_line.replace(&open, &color_start).replace(&close, &color_end);
 			}
 			new_line

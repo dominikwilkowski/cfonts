@@ -3,7 +3,7 @@ extern crate cfonts;
 use cfonts::chars::{
 	add_letter, add_line, align_last_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter,
 };
-use cfonts::config::{Align, Colors, Options};
+use cfonts::config::{Align, Colors, Env, Options};
 
 #[cfg(test)]
 mod chars {
@@ -175,7 +175,7 @@ mod chars {
 
 	#[test]
 	fn paint_letter_works() {
-		let options = Options::default();
+		let mut options = Options::default();
 		let mut letter = vec![
 			String::from("<c1>red</c1>"),
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
@@ -227,6 +227,20 @@ mod chars {
 			String::from("no color"),
 		];
 		assert_eq!(paint_letter(&letter, &colors, 1, &options), output);
+
+		letter = vec![
+			String::from("<c1>red</c1>"),
+			String::from("no color"),
+			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
+		];
+		colors = vec![Colors::Red, Colors::Green, Colors::Blue];
+		options.env = Env::Browser;
+		output = vec![
+			String::from("<span style=\"color:#ea3223\">red</span>"),
+			String::from("no color"),
+			String::from("<span style=\"color:#ea3223\">red</span><span style=\"color:#377d22\">green</span><span style=\"color:#ea3223\">red</span><span style=\"color:#0020f5\">blue</span>"),
+		];
+		assert_eq!(paint_letter(&letter, &colors, 3, &options), output);
 	}
 
 	#[test]
