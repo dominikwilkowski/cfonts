@@ -1,7 +1,7 @@
 extern crate cfonts;
 
 use cfonts::chars::{
-	add_line, align_last_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter,
+	add_letter, add_line, align_last_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter,
 };
 use cfonts::config::{Align, Colors, Options};
 
@@ -76,7 +76,47 @@ mod chars {
 		);
 	}
 
-	//
+	#[test]
+	fn add_letter_works() {
+		let options = Options::default();
+		let mut output = vec![
+			String::from("1"),
+			String::from("1"),
+			String::from("2"),
+			String::from("2"),
+		];
+		let mut letter = vec![String::from("letter"), String::from("letter")];
+		assert_eq!(
+			add_letter(&output, &letter, &options),
+			vec![
+				String::from("1"),
+				String::from("1"),
+				String::from("2letter"),
+				String::from("2letter"),
+			]
+		);
+
+		output = vec![
+			String::from("1"),
+			String::from("1"),
+			String::from("1"),
+			String::from("2"),
+			String::from("2"),
+			String::from("2"),
+		];
+		letter = vec![String::from("letter"), String::from("letter"), String::from("letter")];
+		assert_eq!(
+			add_letter(&output, &letter, &options),
+			vec![
+				String::from("1"),
+				String::from("1"),
+				String::from("1"),
+				String::from("2letter"),
+				String::from("2letter"),
+				String::from("2letter"),
+			]
+		);
+	}
 
 	#[test]
 	fn get_longest_line_len_works() {

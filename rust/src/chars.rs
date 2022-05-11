@@ -49,7 +49,25 @@ pub fn add_line(output: &[String], font_lines: usize, options: &Options) -> Vec<
 	output_with_new_line.to_vec()
 }
 
-// pub fn add_letter(letter: &Vec<String>, output: &Vec<String>, options: &Options) -> Vec<String> {}
+pub fn add_letter(output: &[String], letter: &[String], options: &Options) -> Vec<String> {
+	d("chars::add_letter()", 2, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("chars::add_letter()\noutput:{:?}\nletter:{:?}", output, letter),
+		2,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+	let mut output_with_letter = output.to_owned();
+
+	for (i, line) in letter.iter().enumerate() {
+		let index = output.len() - (letter.len() - i);
+		output_with_letter[index] += line;
+	}
+
+	d(&format!("chars::add_letter() -> {:?}", output_with_letter), 2, Dt::Log, options, &mut std::io::stdout());
+	output_with_letter
+}
 
 pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Options) -> usize {
 	d("chars::get_longest_line_len()", 2, Dt::Head, options, &mut std::io::stdout());
@@ -68,9 +86,9 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 }
 
 pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &Options) -> usize {
-	d("chars::get_char_length()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::get_letter_length()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
-		&format!("chars::get_char_length()\nchar:{:?}\nfont_color_count:{:?}", letter, font_color_count),
+		&format!("chars::get_letter_length()\nchar:{:?}\nfont_color_count:{:?}", letter, font_color_count),
 		2,
 		Dt::Log,
 		options,
@@ -96,7 +114,7 @@ pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &O
 		}
 	});
 
-	d(&format!("chars::get_char_length() -> {:?}", size), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::get_letter_length() -> {:?}", size), 2, Dt::Log, options, &mut std::io::stdout());
 	size
 }
 
