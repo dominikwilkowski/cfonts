@@ -1,5 +1,5 @@
 use crate::color::get_foreground_color;
-use crate::config::{Colors, Options};
+use crate::config::{Align, Colors, Options};
 use crate::debug::{d, Dt};
 
 pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<String> {
@@ -134,4 +134,39 @@ pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usiz
 	painted_letter
 }
 
-// pub fn align_last_line(output: &Vec<String>, font_lines: &usize, options: &Options) -> Vec<String> {}
+pub fn align_last_line(
+	output: &mut Vec<String>,
+	font_lines: usize,
+	line_length: usize,
+	max_length: usize,
+	options: &Options,
+) -> Vec<String> {
+	d("chars::align_last_line()", 2, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!(
+			"chars::align_last_line()\noutput:{:?}\nfont_lines:{:?}\nline_length:{:?}\nmax_length:{:?}",
+			output, font_lines, line_length, max_length
+		),
+		2,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	let space = match options.align {
+		Align::Right => format!("{0:>width$}", "", width = (max_length - line_length)),
+		Align::Center => {
+			format!("{0:>width$}", "", width = (((max_length as f64 - line_length as f64) / 2.0).round() as usize))
+		}
+		_ => String::from(""),
+	};
+
+	let start = output.len() - font_lines;
+	#[allow(clippy::needless_range_loop)]
+	for i in start..output.len() {
+		output[i] = format!("{}{}", space, output[i]);
+	}
+
+	d(&format!("chars::align_last_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	output.to_vec()
+}

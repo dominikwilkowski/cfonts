@@ -1,7 +1,9 @@
 extern crate cfonts;
 
-use cfonts::chars::{add_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter};
-use cfonts::config::{Colors, Options};
+use cfonts::chars::{
+	add_line, align_last_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter,
+};
+use cfonts::config::{Align, Colors, Options};
 
 #[cfg(test)]
 mod chars {
@@ -185,5 +187,150 @@ mod chars {
 			String::from("no color"),
 		];
 		assert_eq!(paint_letter(&letter, &colors, 1, &options), output);
+	}
+
+	#[test]
+	fn align_last_line_works() {
+		let mut options = Options::default();
+
+		let mut output = vec![
+			String::from("    line 1"),
+			String::from("    line 2"),
+			String::from("    line 3"),
+			String::from("    line 4"),
+			String::from("    line 5"),
+		];
+		options.align = Align::Right;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("    line 1"),
+					String::from("    line 2"),
+					String::from("    line 3"),
+					String::from("line 4"),
+					String::from("line 5"),
+				],
+				2,
+				6,
+				10,
+				&options
+			),
+			output
+		);
+
+		options.align = Align::Center;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("    line 1"),
+					String::from("    line 2"),
+					String::from("    line 3"),
+					String::from("line 4"),
+					String::from("line 5"),
+				],
+				2,
+				6,
+				14,
+				&options
+			),
+			output
+		);
+
+		output = vec![
+			String::from("line-line 1"),
+			String::from("line-line 2"),
+			String::from("line-line 3"),
+			String::from("line-line 4"),
+			String::from("line-line 5"),
+		];
+		options.align = Align::Right;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("line-line 1"),
+					String::from("line-line 2"),
+					String::from("line-line 3"),
+					String::from("line-line 4"),
+					String::from("line-line 5"),
+				],
+				2,
+				11,
+				11,
+				&options
+			),
+			output
+		);
+
+		options.align = Align::Center;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("line-line 1"),
+					String::from("line-line 2"),
+					String::from("line-line 3"),
+					String::from("line-line 4"),
+					String::from("line-line 5"),
+				],
+				2,
+				11,
+				11,
+				&options
+			),
+			output
+		);
+
+		options.align = Align::Left;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("line-line 1"),
+					String::from("line-line 2"),
+					String::from("line-line 3"),
+					String::from("line-line 4"),
+					String::from("line-line 5"),
+				],
+				2,
+				11,
+				20,
+				&options
+			),
+			output
+		);
+
+		options.align = Align::Top;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("line-line 1"),
+					String::from("line-line 2"),
+					String::from("line-line 3"),
+					String::from("line-line 4"),
+					String::from("line-line 5"),
+				],
+				2,
+				11,
+				20,
+				&options
+			),
+			output
+		);
+
+		options.align = Align::Bottom;
+		assert_eq!(
+			align_last_line(
+				&mut vec![
+					String::from("line-line 1"),
+					String::from("line-line 2"),
+					String::from("line-line 3"),
+					String::from("line-line 4"),
+					String::from("line-line 5"),
+				],
+				2,
+				11,
+				20,
+				&options
+			),
+			output
+		);
 	}
 }
