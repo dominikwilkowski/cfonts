@@ -1,8 +1,8 @@
 extern crate cfonts;
 
 use cfonts::color::{
-	bg_color, color, get_background_color, get_foreground_color, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex, rgb2hsv,
-	rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	bg_color, color, color2hex, get_background_color, get_foreground_color, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex,
+	rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
 use cfonts::config::{BgColors, Colors, Options};
 
@@ -178,6 +178,13 @@ mod color {
 		assert_eq!(rsv2hex(&Rsv::Val(3.141592653589793, 100.0, 100.0), &options), "#00ffff".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(5.235987755982989, 100.0, 100.0), &options), "#ff00ff".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(1.0471975511965976, 100.0, 100.0), &options), "#ffff00".to_string());
+	}
+
+	#[test]
+	fn color2hex_works() {
+		let options = Options::default();
+		assert_eq!(color2hex(&Colors::Red, &options), "#ea3223".to_string());
+		assert_eq!(color2hex(&Colors::Rgb(Rgb::Val(255.0, 0.0, 0.0)), &options), "#ff0000".to_string());
 	}
 
 	#[test]

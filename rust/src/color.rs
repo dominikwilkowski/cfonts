@@ -51,8 +51,8 @@ impl Rsv {
 }
 
 pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
-	d("gradient::rgb2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::rgb2hsv()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rgb2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hsv()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (r_input, g_input, b_input) = rgb.get_value();
 	let red = r_input / 255.0;
@@ -78,14 +78,14 @@ pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 		60.0 * ((red - green) / diff) + 240.0
 	};
 
-	d(&format!("gradient::rgb2hsv() {:?} -> {:?}", rgb, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hsv() {:?} -> {:?}", rgb, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
 
 	Hsv::Val(h, s, v)
 }
 
 pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
-	d("gradient::hsv2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::hsv2rgb()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hsv2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rgb()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (h_input, s_input, v_input) = hsv.get_value();
 	let hue = h_input / 60.0;
@@ -109,24 +109,24 @@ pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 		_ => unreachable!(),
 	};
 
-	d(&format!("gradient::hsv2rgb() {:?} -> {:?}", hsv, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rgb() {:?} -> {:?}", hsv, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
 pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
-	d("gradient::rgb2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::rgb2hex()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rgb2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hex()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, g, b) = rgb.get_value();
 	let result = format!("#{:0>2x}{:0>2x}{:0>2x}", r as u8, g as u8, b as u8);
 
-	d(&format!("gradient::rgb2hex() {:?} -> {:?}", rgb, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hex() {:?} -> {:?}", rgb, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
 pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
-	d("gradient::hex2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::hex2rgb()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hex2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hex2rgb()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let clean_hex = hex.strip_prefix('#').unwrap();
 	let full_hex = match clean_hex.len() {
@@ -163,51 +163,89 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	let b = u8::from_str_radix(&full_hex[4..6], 16).unwrap_or(0);
 	let result = Rgb::Val(r.into(), g.into(), b.into());
 
-	d(&format!("gradient::hex2rgb() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hex2rgb() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
 pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
-	d("gradient::hsv2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::hsv2rsv()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hsv2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rsv()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (h, s, v) = hsv.get_value();
 	let r = (h * std::f64::consts::PI) / 180.0;
 
-	d(&format!("gradient::hsv2rsv() {:?} -> {:?}", hsv, Rsv::Val(r, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rsv() {:?} -> {:?}", hsv, Rsv::Val(r, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
 	Rsv::Val(r, s, v)
 }
 
 pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
-	d("gradient::rsv2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::rsv2hsv()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rsv2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hsv()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, s, v) = rsv.get_value();
 	let precision = 1000000000000.0;
 	let h = (((r * 180.0) / std::f64::consts::PI) * precision).round() / precision;
 
-	d(&format!("gradient::rsv2hsv() {:?} -> {:?}", rsv, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hsv() {:?} -> {:?}", rsv, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
 	Hsv::Val(h, s, v)
 }
 
 pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
-	d("gradient::hex2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::hex2rsv()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hex2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hex2rsv()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let result = hsv2rsv(&rgb2hsv(&hex2rgb(hex, options), options), options);
 
-	d(&format!("gradient::hex2rsv() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hex2rsv() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
 pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
-	d("gradient::rsv2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("gradient::rsv2hex()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rsv2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hex()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let result = rgb2hex(&hsv2rgb(&rsv2hsv(rsv, options), options), options);
 
-	d(&format!("gradient::rsv2hex() {:?} -> {:?}", rsv, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hex() {:?} -> {:?}", rsv, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
+}
+
+pub fn color2hex(color: &Colors, options: &Options) -> String {
+	d("color::color2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::color2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+
+	let hex = match color {
+		Colors::System => String::from("currentColor"),
+		Colors::Black => String::from("#000000"),
+		Colors::Red => String::from("#ea3223"),
+		Colors::Green => String::from("#377d22"),
+		Colors::Yellow => String::from("#fffd54"),
+		Colors::Blue => String::from("#0020f5"),
+		Colors::Magenta => String::from("#ea3df7"),
+		Colors::Cyan => String::from("#74fbfd"),
+		Colors::White | Colors::WhiteBright => String::from("#ffffff"),
+		Colors::Gray => String::from("#808080"),
+		Colors::RedBright => String::from("#ee776d"),
+		Colors::GreenBright => String::from("#8cf57b"),
+		Colors::YellowBright => String::from("#fffb7f"),
+		Colors::BlueBright => String::from("#6974f6"),
+		Colors::MagentaBright => String::from("#ee82f8"),
+		Colors::CyanBright => String::from("#8dfafd"),
+		Colors::Candy => {
+			let colors = [
+				"#ea3223", "#377d22", "#fffd54", "#ea3df7", "#74fbfd", "#ee776d", "#8cf57b", "#fffb7f", "#6974f6", "#ee82f8",
+				"#8dfafd",
+			];
+			String::from(*colors.choose(&mut rand::thread_rng()).unwrap())
+		}
+		Colors::Rgb(rgb) => {
+			let (r, g, b) = rgb.get_value();
+			rgb2hex(&Rgb::Val(r, g, b), options)
+		}
+	};
+
+	d(&format!("color::color2hex() -> {:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	hex
 }
 
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
