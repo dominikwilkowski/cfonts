@@ -17,6 +17,7 @@ const fontArray = [
 	'lines',
 	'buffer',
 	'letterspace',
+	'letterspace_size',
 	'chars',
 ];
 
