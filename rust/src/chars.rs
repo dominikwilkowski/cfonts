@@ -90,7 +90,7 @@ pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
 	d(&format!("chars::get_first_char_position()\noutput:{:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 
 	let closest_line = output.iter().fold(&output[0], |prev_line, line| {
-		if !line.is_empty() && line.len() - prev_line.trim_start().len() < prev_line.len() - prev_line.trim_start().len() {
+		if !line.is_empty() && line.len() - line.trim_start().len() < prev_line.len() - prev_line.trim_start().len() {
 			line
 		} else {
 			prev_line

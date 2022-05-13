@@ -1,5 +1,6 @@
 use std::f64;
 
+use crate::chars::{get_first_char_position, get_longest_line_len};
 use crate::color::{color, hex2rgb, hex2rsv, rgb2hex, rsv2hex, Rgb, Rsv};
 use crate::config::{Colors, Options};
 use crate::debug::{d, Dt};
@@ -215,4 +216,49 @@ pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: 
 
 	d(&format!("gradient::transition() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
+}
+
+pub fn gradient(output: &[String], lines: usize, font_lines: usize, options: &Options) -> Vec<String> {
+	d("gradient::gradient()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!(
+			"gradient::gradient()\noutput:{:#?}\nlines:{}\nfont_lines:{}\noptions: {:?}",
+			output, lines, font_lines, options
+		),
+		3,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+	let mut output_with_gradient = Vec::new();
+	let mut first_char_pos = get_first_char_position(output, options);
+	let mut longest_line_len = get_longest_line_len(output, output.len(), options);
+
+	for i in 0..lines {
+		let start = i * (font_lines + options.line_height as usize);
+		let end = font_lines + start;
+		let this_line = &output[start..end];
+
+		if options.independent_gradient {
+			first_char_pos = get_first_char_position(this_line, options);
+			longest_line_len = get_longest_line_len(this_line, font_lines, options);
+		}
+
+		let colors_needed = longest_line_len - first_char_pos;
+		let mut lines_inbetween = match i == 0 {
+			true => Vec::new(),
+			false => vec![String::from(""); options.line_height as usize],
+		};
+
+		let colors = match options.transition_gradient {
+			true => get_multiple_transition_colors(&options.gradient, colors_needed, options),
+			false => get_gradient_colors(&options.gradient[0], &options.gradient[1], colors_needed, options),
+		};
+
+		output_with_gradient.append(&mut lines_inbetween);
+		output_with_gradient.append(&mut paint_lines(this_line, &colors, first_char_pos, options));
+	}
+
+	d(&format!("gradient::gradient() -> {:?}", output_with_gradient), 3, Dt::Log, options, &mut std::io::stdout());
+	output_with_gradient
 }

@@ -1,9 +1,9 @@
 extern crate cfonts;
 
-use cfonts::config::Options;
+use cfonts::config::{Options, GRADIENTS_PRIDE};
 use cfonts::gradient::{
 	get_gradient_colors, get_linear, get_multiple_transition_colors, get_theta, get_transition_colors,
-	get_transition_steps, paint_lines,
+	get_transition_steps, gradient, paint_lines,
 };
 
 #[cfg(test)]
@@ -201,5 +201,98 @@ mod gradient {
 				"#0000ff".to_string(),
 			]
 		);
+	}
+
+	#[test]
+	fn gradient_works() {
+		let mut options = Options::default();
+		options.gradient = vec![String::from("#ff0000"), String::from("#0000ff")];
+		options.line_height = 0;
+		let mut output = vec![
+			String::from("x"),
+			String::from("xxx"),
+			String::from("xxx"),
+			String::from("x"),
+		];
+		assert_eq!(
+			gradient(&output, 4, 1, &options),
+			vec![
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
+			]
+		);
+
+		output = vec![
+			String::from(" x"),
+			String::from("xxx"),
+			String::from("xxx"),
+			String::from(" x"),
+		];
+		assert_eq!(
+			gradient(&output, 4, 1, &options),
+			vec![
+				String::from("\x1b[38;2;255;0;0m \x1b[39m\x1b[38;2;0;255;0mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m \x1b[39m\x1b[38;2;0;255;0mx\x1b[39m"),
+			]
+		);
+
+		options.independent_gradient = true;
+		output = vec![
+			String::from(" x"),
+			String::from("xxx"),
+			String::from("xxx"),
+			String::from(" x"),
+		];
+		assert_eq!(
+			gradient(&output, 4, 1, &options),
+			vec![
+				String::from(" \x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from(" \x1b[38;2;0;0;255mx\x1b[39m"),
+			]
+		);
+	}
+
+	#[test]
+	fn gradient_multiple_lines_works() {
+		let mut options = Options::default();
+		options.gradient = vec![String::from("#ff0000"), String::from("#0000ff")];
+		options.line_height = 0;
+		options.transition_gradient = true;
+		let mut output = vec![
+			String::from("x"),
+			String::from("xxx"),
+			String::from("xxx"),
+			String::from("x"),
+		];
+		assert_eq!(
+			gradient(&output, 4, 1, &options),
+			vec![
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;127;0;127mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;127;0;127mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
+			]
+		);
+
+		options.gradient = GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
+		options.transition_gradient = true;
+		output = vec![
+			String::from(" x"),
+			String::from("xxxxxxxx"),
+			String::from("xxx"),
+			String::from("x"),
+		];
+		assert_eq!(gradient(&output, 4, 1, &options), vec![
+			String::from("\x1b[38;2;117;7;135m \x1b[39m\x1b[38;2;0;77;255mx\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135mx\x1b[39m\x1b[38;2;0;77;255mx\x1b[39m\x1b[38;2;0;128;38mx\x1b[39m\x1b[38;2;255;237;0mx\x1b[39m\x1b[38;2;255;188;0mx\x1b[39m\x1b[38;2;255;140;0mx\x1b[39m\x1b[38;2;241;71;1mx\x1b[39m\x1b[38;2;228;3;3mx\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135mx\x1b[39m\x1b[38;2;0;77;255mx\x1b[39m\x1b[38;2;0;128;38mx\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135mx\x1b[39m"),
+		]);
 	}
 }

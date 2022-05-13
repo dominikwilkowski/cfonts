@@ -168,6 +168,10 @@ mod chars {
 			get_first_char_position(&vec![String::from("     x"), String::from(""), String::from("   x")], &options),
 			3
 		);
+		assert_eq!(
+			get_first_char_position(&vec![String::from("   x"), String::from("   x x"), String::from(" x   x")], &options),
+			1
+		);
 	}
 
 	#[test]
