@@ -492,13 +492,9 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 		Debugging.report(`Gradient start: ${ gradient[ 0 ] } | Gradient end: ${ gradient[ 1 ] }`, 2);
 	}
 
-	let firstCharacterPosition;
-	let longestLine;
-
-	if( !independentGradient ) {
-		firstCharacterPosition = GetFirstCharacterPosition( output );
-		longestLine = GetLongestLine( output ).length;
-	}
+	let firstCharacterPosition = GetFirstCharacterPosition( output );
+	let longestLine = GetLongestLine( output ).length;
+	console.log(firstCharacterPosition);
 
 	for( let i = 0; i < lines; i++ ) {
 		const start = ( i * ( fontLines + lineHeight ) );
