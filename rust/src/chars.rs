@@ -85,6 +85,23 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 	size
 }
 
+pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
+	d("chars::get_first_char_position()", 2, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("chars::get_first_char_position()\noutput:{:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+
+	let closest_line = output.iter().fold(&output[0], |prev_line, line| {
+		if !line.is_empty() && line.len() - prev_line.trim_start().len() < prev_line.len() - prev_line.trim_start().len() {
+			line
+		} else {
+			prev_line
+		}
+	});
+	let pos = closest_line.len() - closest_line.trim_start().len();
+
+	d(&format!("chars::get_first_char_position() -> {:?}", pos), 2, Dt::Log, options, &mut std::io::stdout());
+	pos
+}
+
 pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &Options) -> usize {
 	d("chars::get_letter_length()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(

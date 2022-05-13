@@ -1,7 +1,8 @@
 extern crate cfonts;
 
 use cfonts::chars::{
-	add_letter, add_line, align_last_line, get_letter_length, get_letter_space, get_longest_line_len, paint_letter,
+	add_letter, add_line, align_last_line, get_first_char_position, get_letter_length, get_letter_space,
+	get_longest_line_len, paint_letter,
 };
 use cfonts::config::{Align, Colors, Env, Options};
 
@@ -150,6 +151,23 @@ mod chars {
 			String::from("33333"),
 		];
 		assert_eq!(get_longest_line_len(&mut output, 2, &options), 5);
+	}
+
+	#[test]
+	fn get_first_char_position_works() {
+		let options = Options::default();
+		assert_eq!(get_first_char_position(&vec![String::from("x")], &options), 0);
+		assert_eq!(get_first_char_position(&vec![String::from("  x")], &options), 2);
+		assert_eq!(get_first_char_position(&vec![String::from("    x")], &options), 4);
+
+		assert_eq!(
+			get_first_char_position(&vec![String::from("     x"), String::from(" x"), String::from("   x")], &options),
+			1
+		);
+		assert_eq!(
+			get_first_char_position(&vec![String::from("     x"), String::from(""), String::from("   x")], &options),
+			3
+		);
 	}
 
 	#[test]
