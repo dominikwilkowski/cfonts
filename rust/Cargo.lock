@@ -20,6 +20,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "temp-env",
+ "terminal_size",
 ]
 
 [[package]]
@@ -206,6 +207,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45107136c2ddf8c4b87453c02294fd0adf41751796e81e8ba3f7fd951977ab57"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "terminal_size"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "633c1a546cee861a1a6d0dc69ebeca693bf4296661ba7852b9d21d159e0506df"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
