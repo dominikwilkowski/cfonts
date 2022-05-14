@@ -280,23 +280,23 @@ test(`Gradient - Transition - Should return colors between multiple`, () => {
 	expect( Transition( ['set2'], 4, { set2: [ '#ff0000', '#0000ff' ] } ) ).toEqual( [ '#ff0000', '#aa0055', '#5500aa', '#0000ff' ] );
 });
 
-test.only(`Gradient - PaintGradient - Should paint multi-line output`, () => {
-	// const output1 = PaintGradient({
-	// 	output: ['x','xxx','xxx','x'],
-	// 	gradient: ['red','blue'],
-	// 	lines: 4,
-	// 	lineHeight: 0,
-	// 	fontLines: 1,
-	// 	independentGradient: false,
-	// 	transitionGradient: false,
-	// });
+test(`Gradient - PaintGradient - Should paint multi-line output`, () => {
+	const output1 = PaintGradient({
+		output: ['x','xxx','xxx','x'],
+		gradient: ['red','blue'],
+		lines: 4,
+		lineHeight: 0,
+		fontLines: 1,
+		independentGradient: false,
+		transitionGradient: false,
+	});
 
-	// expect( output1 ).toEqual([
-	// 	'\u001b[38;2;255;0;0mx\u001b[39m',
-	// 	'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
-	// 	'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
-	// 	'\u001b[38;2;255;0;0mx\u001b[39m',
-	// ]);
+	expect( output1 ).toEqual([
+		'\u001b[38;2;255;0;0mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m',
+	]);
 
 	const output2 = PaintGradient({
 		output: [' x','xxx','xxx',' x'],
@@ -315,22 +315,22 @@ test.only(`Gradient - PaintGradient - Should paint multi-line output`, () => {
 		'\u001b[38;2;255;0;0m \u001b[39m\u001b[38;2;0;255;0mx\u001b[39m',
 	]);
 
-	// const output3 = PaintGradient({
-	// 	output: [' x','xxx','xxx',' x'],
-	// 	gradient: ['red','blue'],
-	// 	lines: 4,
-	// 	lineHeight: 0,
-	// 	fontLines: 1,
-	// 	independentGradient: true,
-	// 	transitionGradient: false,
-	// });
+	const output3 = PaintGradient({
+		output: [' x','xxx','xxx',' x'],
+		gradient: ['red','blue'],
+		lines: 4,
+		lineHeight: 0,
+		fontLines: 1,
+		independentGradient: true,
+		transitionGradient: false,
+	});
 
-	// expect( output3 ).toEqual([
-	// 	' \u001b[38;2;0;0;255mx\u001b[39m',
-	// 	'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
-	// 	'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
-	// 	' \u001b[38;2;0;0;255mx\u001b[39m',
-	// ]);
+	expect( output3 ).toEqual([
+		' \u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		'\u001b[38;2;255;0;0mx\u001b[39m\u001b[38;2;0;255;0mx\u001b[39m\u001b[38;2;0;0;255mx\u001b[39m',
+		' \u001b[38;2;0;0;255mx\u001b[39m',
+	]);
 });
 
 test(`Gradient - PaintGradient - Should paint multi-line output for transitions`, () => {
