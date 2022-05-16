@@ -30,7 +30,7 @@ pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<Strin
 	output
 }
 
-pub fn add_line(output: &[String], font_lines: usize, options: &Options) -> Vec<String> {
+pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) {
 	d("chars::add_line()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::add_line()\noutput:{:?}\nfont_lines:{:?}", output, font_lines),
@@ -39,17 +39,15 @@ pub fn add_line(output: &[String], font_lines: usize, options: &Options) -> Vec<
 		options,
 		&mut std::io::stdout(),
 	);
-	let mut output_with_new_line = output.to_owned();
 
 	for _ in 0..font_lines {
-		output_with_new_line.push(String::new());
+		output.push(String::new());
 	}
 
-	d(&format!("chars::add_line() -> {:?}", output_with_new_line), 2, Dt::Log, options, &mut std::io::stdout());
-	output_with_new_line.to_vec()
+	d(&format!("chars::add_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
-pub fn add_letter(output: &[String], letter: &[String], options: &Options) -> Vec<String> {
+pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 	d("chars::add_letter()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::add_letter()\noutput:{:?}\nletter:{:?}", output, letter),
@@ -58,15 +56,13 @@ pub fn add_letter(output: &[String], letter: &[String], options: &Options) -> Ve
 		options,
 		&mut std::io::stdout(),
 	);
-	let mut output_with_letter = output.to_owned();
 
 	for (i, line) in letter.iter().enumerate() {
 		let index = output.len() - (letter.len() - i);
-		output_with_letter[index] += line;
+		output[index] += line;
 	}
 
-	d(&format!("chars::add_letter() -> {:?}", output_with_letter), 2, Dt::Log, options, &mut std::io::stdout());
-	output_with_letter
+	d(&format!("chars::add_letter() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
 pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Options) -> usize {
@@ -181,12 +177,12 @@ pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usiz
 }
 
 pub fn align_last_line(
-	output: &[String],
+	output: &mut [String],
 	font_lines: usize,
 	line_length: usize,
 	max_length: usize,
 	options: &Options,
-) -> Vec<String> {
+) {
 	d("chars::align_last_line()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
@@ -206,13 +202,11 @@ pub fn align_last_line(
 		}
 		_ => String::from(""),
 	};
-	let mut output_aligned = output.to_owned();
 
-	let start = output_aligned.len() - font_lines;
-	for line in output_aligned.iter_mut().skip(start) {
+	let start = output.len() - font_lines;
+	for line in output.iter_mut().skip(start) {
 		line.insert_str(0, &space);
 	}
 
-	d(&format!("chars::align_last_line() -> {:?}", output_aligned), 2, Dt::Log, options, &mut std::io::stdout());
-	output_aligned.to_vec()
+	d(&format!("chars::align_last_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }

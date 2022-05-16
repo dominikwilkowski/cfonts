@@ -218,7 +218,7 @@ pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: 
 	result
 }
 
-pub fn gradient(output: &[String], lines: usize, font_lines: usize, options: &Options) -> Vec<String> {
+pub fn add_gradient_colors(output: &[String], lines: usize, font_lines: usize, options: &Options) -> Vec<String> {
 	d("gradient::gradient()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(

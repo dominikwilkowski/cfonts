@@ -46,8 +46,9 @@ mod chars {
 	fn add_line_works() {
 		let options = Options::default();
 		let mut output = vec![String::from("1"), String::from("1"), String::from("1")];
+		add_line(&mut output, 3, &options);
 		assert_eq!(
-			add_line(&output, 3, &options),
+			output,
 			vec![
 				String::from("1"),
 				String::from("1"),
@@ -64,8 +65,9 @@ mod chars {
 			String::from("2"),
 			String::from("2"),
 		];
+		add_line(&mut output, 2, &options);
 		assert_eq!(
-			add_line(&output, 2, &options),
+			output,
 			vec![
 				String::from("1"),
 				String::from("1"),
@@ -87,8 +89,9 @@ mod chars {
 			String::from("2"),
 		];
 		let mut letter = vec![String::from("letter"), String::from("letter")];
+		add_letter(&mut output, &letter, &options);
 		assert_eq!(
-			add_letter(&output, &letter, &options),
+			output,
 			vec![
 				String::from("1"),
 				String::from("1"),
@@ -106,8 +109,9 @@ mod chars {
 			String::from("2"),
 		];
 		letter = vec![String::from("letter"), String::from("letter"), String::from("letter")];
+		add_letter(&mut output, &letter, &options);
 		assert_eq!(
-			add_letter(&output, &letter, &options),
+			output,
 			vec![
 				String::from("1"),
 				String::from("1"),
@@ -269,50 +273,43 @@ mod chars {
 	fn align_last_line_works() {
 		let mut options = Options::default();
 
-		let mut output = vec![
+		let mut input = vec![
+			String::from("    line 1"),
+			String::from("    line 2"),
+			String::from("    line 3"),
+			String::from("line 4"),
+			String::from("line 5"),
+		];
+		options.align = Align::Right;
+		let mut fixture = vec![
 			String::from("    line 1"),
 			String::from("    line 2"),
 			String::from("    line 3"),
 			String::from("    line 4"),
 			String::from("    line 5"),
 		];
-		options.align = Align::Right;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("    line 1"),
-					String::from("    line 2"),
-					String::from("    line 3"),
-					String::from("line 4"),
-					String::from("line 5"),
-				],
-				2,
-				6,
-				10,
-				&options
-			),
-			output
-		);
+		align_last_line(&mut input, 2, 6, 10, &options);
+		assert_eq!(input, fixture);
 
+		input = vec![
+			String::from("    line 1"),
+			String::from("    line 2"),
+			String::from("    line 3"),
+			String::from("line 4"),
+			String::from("line 5"),
+		];
 		options.align = Align::Center;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("    line 1"),
-					String::from("    line 2"),
-					String::from("    line 3"),
-					String::from("line 4"),
-					String::from("line 5"),
-				],
-				2,
-				6,
-				14,
-				&options
-			),
-			output
-		);
+		fixture = vec![
+			String::from("    line 1"),
+			String::from("    line 2"),
+			String::from("    line 3"),
+			String::from("    line 4"),
+			String::from("    line 5"),
+		];
+		align_last_line(&mut input, 2, 6, 14, &options);
+		assert_eq!(input, fixture);
 
-		output = vec![
+		input = vec![
 			String::from("line-line 1"),
 			String::from("line-line 2"),
 			String::from("line-line 3"),
@@ -320,93 +317,56 @@ mod chars {
 			String::from("line-line 5"),
 		];
 		options.align = Align::Right;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("line-line 1"),
-					String::from("line-line 2"),
-					String::from("line-line 3"),
-					String::from("line-line 4"),
-					String::from("line-line 5"),
-				],
-				2,
-				11,
-				11,
-				&options
-			),
-			output
-		);
+		fixture = input.clone();
+		align_last_line(&mut input, 2, 11, 11, &options);
+		assert_eq!(input, fixture);
 
+		input = vec![
+			String::from("line-line 1"),
+			String::from("line-line 2"),
+			String::from("line-line 3"),
+			String::from("line-line 4"),
+			String::from("line-line 5"),
+		];
 		options.align = Align::Center;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("line-line 1"),
-					String::from("line-line 2"),
-					String::from("line-line 3"),
-					String::from("line-line 4"),
-					String::from("line-line 5"),
-				],
-				2,
-				11,
-				11,
-				&options
-			),
-			output
-		);
+		fixture = input.clone();
+		align_last_line(&mut input, 2, 11, 11, &options);
+		assert_eq!(input, fixture);
 
+		input = vec![
+			String::from("line-line 1"),
+			String::from("line-line 2"),
+			String::from("line-line 3"),
+			String::from("line-line 4"),
+			String::from("line-line 5"),
+		];
 		options.align = Align::Left;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("line-line 1"),
-					String::from("line-line 2"),
-					String::from("line-line 3"),
-					String::from("line-line 4"),
-					String::from("line-line 5"),
-				],
-				2,
-				11,
-				20,
-				&options
-			),
-			output
-		);
+		fixture = input.clone();
+		align_last_line(&mut input, 2, 11, 20, &options);
+		assert_eq!(input, fixture);
 
+		input = vec![
+			String::from("line-line 1"),
+			String::from("line-line 2"),
+			String::from("line-line 3"),
+			String::from("line-line 4"),
+			String::from("line-line 5"),
+		];
 		options.align = Align::Top;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("line-line 1"),
-					String::from("line-line 2"),
-					String::from("line-line 3"),
-					String::from("line-line 4"),
-					String::from("line-line 5"),
-				],
-				2,
-				11,
-				20,
-				&options
-			),
-			output
-		);
+		fixture = input.clone();
+		align_last_line(&mut input, 2, 11, 20, &options);
+		assert_eq!(input, fixture);
 
+		input = vec![
+			String::from("line-line 1"),
+			String::from("line-line 2"),
+			String::from("line-line 3"),
+			String::from("line-line 4"),
+			String::from("line-line 5"),
+		];
 		options.align = Align::Bottom;
-		assert_eq!(
-			align_last_line(
-				&mut vec![
-					String::from("line-line 1"),
-					String::from("line-line 2"),
-					String::from("line-line 3"),
-					String::from("line-line 4"),
-					String::from("line-line 5"),
-				],
-				2,
-				11,
-				20,
-				&options
-			),
-			output
-		);
+		fixture = input.clone();
+		align_last_line(&mut input, 2, 11, 20, &options);
+		assert_eq!(input, fixture);
 	}
 }
