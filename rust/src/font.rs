@@ -11,15 +11,15 @@ use crate::debug::{d, Dt};
 
 #[derive(Debug, Deserialize)]
 pub struct Font {
-	name: String,
-	version: String,
-	homepage: String,
-	colors: usize,
-	lines: usize,
-	buffer: Vec<String>,
-	letterspace: Vec<String>,
-	letterspace_size: usize,
-	chars: HashMap<String, Vec<String>>,
+	pub name: String,
+	pub version: String,
+	pub homepage: String,
+	pub colors: usize,
+	pub lines: usize,
+	pub buffer: Vec<String>,
+	pub letterspace: Vec<String>,
+	pub letterspace_size: usize,
+	pub chars: HashMap<String, Vec<String>>,
 }
 
 pub fn get(options: &Options) -> Font {

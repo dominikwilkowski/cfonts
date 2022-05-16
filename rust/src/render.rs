@@ -2,6 +2,7 @@ extern crate enable_ansi_support;
 use enable_ansi_support::enable_ansi_support;
 use terminal_size::{terminal_size, Width};
 
+use crate::chars::{add_letter, add_line, get_letter_space, get_longest_line_len};
 use crate::config::{Env, Fonts, Options};
 use crate::debug::{d, Dt};
 use crate::font;
@@ -37,33 +38,9 @@ pub fn render(options: &mut Options) -> RenderedString {
 		Env::Browser => 65535,
 	};
 
-	// let mut line_length
-	// let mut letter_count
-	// let mut lines = 0;
-	// let mut output
-	// add new line to output
-	// add letterspace to output
-	// line_length += letterspace width
-	// for options.text.chars {
-	// get_letter_size
-	// if char_size > line_length || line_length + char_size > terminal.width || letter_count + 1 > max_length || char === "|"
-	// align_last_line
-	// add new line
-	// line_length = 0
-	// letter_count = 0
-	// line += 1
-	// add letterspace
-	// }
-	// if char != "|"
-	// paint char
-	// add letter
-	// letter_count += 1
-	// line_length += letter_size
-	// }
-	// }
-
 	// we render the console font separately as it's too simple to be put through the process for the other fonts
 	if options.font == Fonts::FontConsole {
+		// TODO render console font
 		RenderedString {
 			text: options.text.clone(),
 			array: vec![String::from("")],
@@ -72,6 +49,53 @@ pub fn render(options: &mut Options) -> RenderedString {
 		}
 	} else {
 		let font = font::get(options);
+
+		let mut line_length = 0;
+		let mut letter_count = 0;
+		let mut lines = 0;
+		let mut output: Vec<String> = Vec::new();
+
+		let letter_space = get_letter_space(&font.letterspace, options);
+		let letter_space_len = get_longest_line_len(&letter_space, font.lines, options);
+
+		// some fonts have smaller letter spacing
+		if font.letterspace_size == 0 && options.letter_spacing > 0 {
+			options.letter_spacing -= 1;
+		}
+
+		add_line(&mut output, font.lines, options);
+		lines += 1;
+
+		add_letter(&mut output, &letter_space, options);
+		line_length += letter_space_len;
+
+		options.text.chars().for_each(|og_letter| {
+			match font.chars.get(&og_letter.to_string().to_uppercase()) {
+				None => { /* we ignore characters that are not supported */ }
+				Some(font_letter) => {
+					//
+					//
+				}
+			}
+		});
+
+		// for options.text.chars {
+		// get_letter_size
+		// if char_size > line_length || line_length + char_size > terminal.width || letter_count + 1 > max_length || char === "|"
+		// align_last_line
+		// add new line
+		// line_length = 0
+		// letter_count = 0
+		// line += 1
+		// add letterspace
+		// }
+		// if char != "|"
+		// paint char
+		// add letter
+		// letter_count += 1
+		// line_length += letter_size
+		// }
+		// }
 
 		RenderedString {
 			text: options.text.clone(),
