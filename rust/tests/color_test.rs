@@ -1,10 +1,10 @@
 extern crate cfonts;
 
 use cfonts::color::{
-	bg_color, color, color2hex, get_background_color, get_foreground_color, hex2rgb, hex2rsv, hsv2rgb, hsv2rsv, rgb2hex,
-	rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
+	bg_color, bgcolor2hex, color, color2hex, get_background_color, get_foreground_color, hex2rgb, hex2rsv, hsv2rgb,
+	hsv2rsv, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, Hsv, Rgb, Rsv,
 };
-use cfonts::config::{BgColors, Colors, Options};
+use cfonts::config::{BgColors, Colors, Env, Options};
 
 #[cfg(test)]
 mod color {
@@ -188,34 +188,53 @@ mod color {
 	}
 
 	#[test]
+	fn bgcolor2hex_works() {
+		let options = Options::default();
+		assert_eq!(bgcolor2hex(&BgColors::Red, &options), "#ea3223".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Rgb(Rgb::Val(255.0, 0.0, 0.0)), &options), "#ff0000".to_string());
+	}
+
+	#[test]
 	fn color_works_without_env() {
 		temp_env::with_var_unset("NO_COLOR", || {
-			assert_eq!(color("test", Colors::System), String::from("\x1b[39mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Black), String::from("\x1b[30mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Red), String::from("\x1b[31mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Green), String::from("\x1b[32mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Yellow), String::from("\x1b[33mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Blue), String::from("\x1b[34mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Magenta), String::from("\x1b[35mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Cyan), String::from("\x1b[36mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::White), String::from("\x1b[37mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::Gray), String::from("\x1b[90mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::RedBright), String::from("\x1b[91mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::GreenBright), String::from("\x1b[92mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::YellowBright), String::from("\x1b[93mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::BlueBright), String::from("\x1b[94mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::MagentaBright), String::from("\x1b[95mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::CyanBright), String::from("\x1b[96mtest\x1b[39m"));
-			assert_eq!(color("test", Colors::WhiteBright), String::from("\x1b[97mtest\x1b[39m"));
+			let mut options = Options::default();
 
-			assert_eq!(color("test", Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))), String::from("\x1b[38;2;0;0;0mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::System, &options), String::from("\x1b[39mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Black, &options), String::from("\x1b[30mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Red, &options), String::from("\x1b[31mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Green, &options), String::from("\x1b[32mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Yellow, &options), String::from("\x1b[33mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Blue, &options), String::from("\x1b[34mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Magenta, &options), String::from("\x1b[35mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Cyan, &options), String::from("\x1b[36mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::White, &options), String::from("\x1b[37mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::Gray, &options), String::from("\x1b[90mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::RedBright, &options), String::from("\x1b[91mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::GreenBright, &options), String::from("\x1b[92mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::YellowBright, &options), String::from("\x1b[93mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::BlueBright, &options), String::from("\x1b[94mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::MagentaBright, &options), String::from("\x1b[95mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::CyanBright, &options), String::from("\x1b[96mtest\x1b[39m"));
+			assert_eq!(color("test", Colors::WhiteBright, &options), String::from("\x1b[97mtest\x1b[39m"));
+
 			assert_eq!(
-				color("test", Colors::Rgb(Rgb::Val(100.0, 100.0, 100.0))),
+				color("test", Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0)), &options),
+				String::from("\x1b[38;2;0;0;0mtest\x1b[39m")
+			);
+			assert_eq!(
+				color("test", Colors::Rgb(Rgb::Val(100.0, 100.0, 100.0)), &options),
 				String::from("\x1b[38;2;100;100;100mtest\x1b[39m")
 			);
 			assert_eq!(
-				color("test", Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0))),
+				color("test", Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0)), &options),
 				String::from("\x1b[38;2;255;255;255mtest\x1b[39m")
+			);
+
+			options.env = Env::Browser;
+			assert_eq!(color("test", Colors::Red, &options), String::from("<span style=\"color:#ea3223\">test</span>"));
+			assert_eq!(
+				color("test", Colors::Rgb(Rgb::Val(255.0, 0.0, 0.0)), &options),
+				String::from("<span style=\"color:#ff0000\">test</span>")
 			);
 		});
 	}
@@ -223,26 +242,31 @@ mod color {
 	#[test]
 	fn color_works_with_env() {
 		temp_env::with_var("NO_COLOR", Some(""), || {
-			assert_eq!(color("test", Colors::System), String::from("test"));
-			assert_eq!(color("test", Colors::Black), String::from("test"));
-			assert_eq!(color("test", Colors::Red), String::from("test"));
-			assert_eq!(color("test", Colors::Green), String::from("test"));
-			assert_eq!(color("test", Colors::Yellow), String::from("test"));
-			assert_eq!(color("test", Colors::Blue), String::from("test"));
-			assert_eq!(color("test", Colors::Magenta), String::from("test"));
-			assert_eq!(color("test", Colors::Cyan), String::from("test"));
-			assert_eq!(color("test", Colors::White), String::from("test"));
-			assert_eq!(color("test", Colors::Gray), String::from("test"));
-			assert_eq!(color("test", Colors::RedBright), String::from("test"));
-			assert_eq!(color("test", Colors::GreenBright), String::from("test"));
-			assert_eq!(color("test", Colors::YellowBright), String::from("test"));
-			assert_eq!(color("test", Colors::BlueBright), String::from("test"));
-			assert_eq!(color("test", Colors::MagentaBright), String::from("test"));
-			assert_eq!(color("test", Colors::CyanBright), String::from("test"));
-			assert_eq!(color("test", Colors::WhiteBright), String::from("test"));
-			assert_eq!(color("test", Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))), String::from("test"));
-			assert_eq!(color("test", Colors::Rgb(Rgb::Val(100.0, 100.0, 100.0))), String::from("test"));
-			assert_eq!(color("test", Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0))), String::from("test"));
+			let mut options = Options::default();
+			assert_eq!(color("test", Colors::System, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Black, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Red, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Green, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Yellow, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Blue, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Magenta, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Cyan, &options), String::from("test"));
+			assert_eq!(color("test", Colors::White, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Gray, &options), String::from("test"));
+			assert_eq!(color("test", Colors::RedBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::GreenBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::YellowBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::BlueBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::MagentaBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::CyanBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::WhiteBright, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0)), &options), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(100.0, 100.0, 100.0)), &options), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0)), &options), String::from("test"));
+
+			options.env = Env::Browser;
+			assert_eq!(color("test", Colors::Red, &options), String::from("test"));
+			assert_eq!(color("test", Colors::Rgb(Rgb::Val(255.0, 0.0, 0.0)), &options), String::from("test"));
 		});
 	}
 

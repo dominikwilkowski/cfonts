@@ -1,4 +1,4 @@
-use crate::color::{color2hex, get_foreground_color};
+use crate::color::get_foreground_color;
 use crate::config::{Align, Colors, Env, Options};
 use crate::debug::{d, Dt};
 
@@ -65,6 +65,23 @@ pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 	d(&format!("chars::add_letter() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
+pub fn add_line_height(output: &mut Vec<String>, options: &Options) {
+	d("chars::add_line_height()", 2, Dt::Head, options, &mut std::io::stdout());
+	d(
+		&format!("chars::add_line_height()\noutput:{:?}\nline_height:{:?}", output, options.line_height),
+		2,
+		Dt::Log,
+		options,
+		&mut std::io::stdout(),
+	);
+
+	for _ in 0..options.line_height {
+		output.push(String::new());
+	}
+
+	d(&format!("chars::add_line_height() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+}
+
 pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Options) -> usize {
 	d("chars::get_longest_line_len()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -75,7 +92,13 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 		&mut std::io::stdout(),
 	);
 
-	let size = output.iter().rev().take(font_lines).fold(0, |acc, item| if item.len() > acc { item.len() } else { acc });
+	let size = output.iter().rev().take(font_lines).fold(0, |acc, item| {
+		if item.chars().count() > acc {
+			item.chars().count()
+		} else {
+			acc
+		}
+	});
 
 	d(&format!("chars::get_longest_line_len() -> {:?}", size), 2, Dt::Log, options, &mut std::io::stdout());
 	size
@@ -120,8 +143,8 @@ pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &O
 			}
 		}
 
-		if stripped_item.len() > acc {
-			stripped_item.len()
+		if stripped_item.chars().count() > acc {
+			stripped_item.chars().count()
 		} else {
 			acc
 		}
@@ -131,12 +154,12 @@ pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &O
 	size
 }
 
-pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usize, options: &Options) -> Vec<String> {
+pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Options) -> Vec<String> {
 	d("chars::paint_letter()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
 			"chars::paint_letter()\nletter:{:?}\ncolors:{:?}\nfont_color_count:{:?}",
-			letter, colors, font_color_count
+			letter, options.colors, font_color_count
 		),
 		2,
 		Dt::Log,
@@ -149,7 +172,7 @@ pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usiz
 		.map(|line| {
 			let mut new_line = line.clone();
 			for i in 1..=font_color_count {
-				let color_name = colors.get(i - 1).unwrap_or(&Colors::System);
+				let color_name = options.colors.get(i - 1).unwrap_or(&Colors::System);
 				let (color_start, color_end) = match options.env {
 					Env::Cli => {
 						let (color_start, color_end) = match color_name {
@@ -159,7 +182,8 @@ pub fn paint_letter(letter: &[String], colors: &[Colors], font_color_count: usiz
 						(color_start, color_end)
 					}
 					Env::Browser => {
-						(format!("<span style=\"color:{}\">", color2hex(color_name, options)), String::from("</span>"))
+						// in browser envs we remove all color annotations
+						(String::from(""), String::from(""))
 					}
 				};
 
@@ -195,17 +219,19 @@ pub fn align_last_line(
 		&mut std::io::stdout(),
 	);
 
-	let space = match options.align {
-		Align::Right => format!("{0:>width$}", "", width = (max_length - line_length)),
-		Align::Center => {
-			format!("{0:>width$}", "", width = (((max_length as f64 - line_length as f64) / 2.0).round() as usize))
-		}
-		_ => String::from(""),
-	};
+	if options.env == Env::Cli {
+		let space = match options.align {
+			Align::Right => format!("{0:>width$}", "", width = (max_length - line_length)),
+			Align::Center => {
+				format!("{0:>width$}", "", width = (((max_length as f64 - line_length as f64) / 2.0).round() as usize))
+			}
+			_ => String::from(""),
+		};
 
-	let start = output.len() - font_lines;
-	for line in output.iter_mut().skip(start) {
-		line.insert_str(0, &space);
+		let start = output.len() - font_lines;
+		for line in output.iter_mut().skip(start) {
+			line.insert_str(0, &space);
+		}
 	}
 
 	d(&format!("chars::align_last_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());

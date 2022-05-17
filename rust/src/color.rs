@@ -1,8 +1,8 @@
 use rand::seq::SliceRandom;
 use std::env;
 
-use crate::config::Options;
 use crate::config::{BgColors, Colors};
+use crate::config::{Env, Options};
 use crate::debug::{d, Dt};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -248,6 +248,37 @@ pub fn color2hex(color: &Colors, options: &Options) -> String {
 	hex
 }
 
+pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
+	d("color::bgcolor2hex()", 3, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::bgcolor2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+
+	let hex = match color {
+		BgColors::Transparent => String::from("currentColor"),
+		BgColors::Black => String::from("#000000"),
+		BgColors::Red => String::from("#ea3223"),
+		BgColors::Green => String::from("#377d22"),
+		BgColors::Yellow => String::from("#fffd54"),
+		BgColors::Blue => String::from("#0020f5"),
+		BgColors::Magenta => String::from("#ea3df7"),
+		BgColors::Cyan => String::from("#74fbfd"),
+		BgColors::White | BgColors::WhiteBright => String::from("#ffffff"),
+		BgColors::Gray => String::from("#808080"),
+		BgColors::RedBright => String::from("#ee776d"),
+		BgColors::GreenBright => String::from("#8cf57b"),
+		BgColors::YellowBright => String::from("#fffb7f"),
+		BgColors::BlueBright => String::from("#6974f6"),
+		BgColors::MagentaBright => String::from("#ee82f8"),
+		BgColors::CyanBright => String::from("#8dfafd"),
+		BgColors::Rgb(rgb) => {
+			let (r, g, b) = rgb.get_value();
+			rgb2hex(&Rgb::Val(r, g, b), options)
+		}
+	};
+
+	d(&format!("color::bgcolor2hex() -> {:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	hex
+}
+
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	if env::var("NO_COLOR").is_ok() {
 		return (String::from(""), String::from(""));
@@ -321,12 +352,20 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 	(start, String::from("\x1b[49m"))
 }
 
-pub fn color(text: &str, color: Colors) -> String {
+pub fn color(text: &str, color: Colors, options: &Options) -> String {
 	if env::var("NO_COLOR").is_ok() {
 		text.to_string()
 	} else {
-		let (start, end) = get_foreground_color(&color);
-		format!("{}{}{}", start, text, end)
+		match options.env {
+			Env::Cli => {
+				let (start, end) = get_foreground_color(&color);
+				format!("{}{}{}", start, text, end)
+			}
+			Env::Browser => {
+				let hex = color2hex(&color, options);
+				format!("<span style=\"color:{}\">{}</span>", hex, text)
+			}
+		}
 	}
 }
 

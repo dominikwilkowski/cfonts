@@ -37,15 +37,17 @@ pub fn get(options: &Options) -> Font {
 		Fonts::FontGrid => "./fonts/grid.json",
 		Fonts::FontPallet => "./fonts/pallet.json",
 		Fonts::FontTiny => "./fonts/tiny.json",
-		Fonts::FontConsole => {
-			// we should not get to this point of the program, console font needs to be take care of before
-			panic!("The function font::get() does get all fonts with the exception of the console font");
-		}
+		Fonts::FontConsole => "./fonts/console.json",
 	};
 	d(&format!("font::get() read font file at \"{}\"", filename), 2, Dt::Log, options, &mut std::io::stdout());
 
 	let data = read_to_string(Path::new(filename).as_os_str())
-		.unwrap_or(format!("Unable to read file \"{}\"", color(filename, Colors::Red)));
-	serde_json::from_str(&data)
-		.unwrap_or_else(|_| panic!("JSON parsing error encountered for: \"{}\"", color(filename, Colors::Red)))
+		.unwrap_or(format!("Unable to read file \"{}\"", color(filename, Colors::Red, options)));
+	serde_json::from_str(&data).unwrap_or_else(|error| {
+		panic!(
+			"JSON parsing error encountered for: \"{}\"\nError: {}",
+			color(filename, Colors::Red, options),
+			color(&format!("{}", error), Colors::Yellow, options)
+		)
+	})
 }

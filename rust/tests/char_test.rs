@@ -1,7 +1,7 @@
 extern crate cfonts;
 
 use cfonts::chars::{
-	add_letter, add_line, align_last_line, get_first_char_position, get_letter_length, get_letter_space,
+	add_letter, add_line, add_line_height, align_last_line, get_first_char_position, get_letter_length, get_letter_space,
 	get_longest_line_len, paint_letter,
 };
 use cfonts::config::{Align, Colors, Env, Options};
@@ -124,6 +124,29 @@ mod chars {
 	}
 
 	#[test]
+	fn add_line_height_works() {
+		let mut options = Options::default();
+		let mut output = vec![String::from("1"), String::from("1"), String::from("1")];
+		add_line_height(&mut output, &options);
+		assert_eq!(output, vec![String::from("1"), String::from("1"), String::from("1"), String::new(),]);
+
+		output = vec![String::from("1"), String::from("1"), String::from("1")];
+		options.line_height = 3;
+		add_line_height(&mut output, &options);
+		assert_eq!(
+			output,
+			vec![
+				String::from("1"),
+				String::from("1"),
+				String::from("1"),
+				String::new(),
+				String::new(),
+				String::new(),
+			]
+		);
+	}
+
+	#[test]
 	fn get_longest_line_len_works() {
 		let options = Options::default();
 		let mut output = vec![
@@ -197,6 +220,16 @@ mod chars {
 
 		letter = vec![String::from("111"), String::from("1111"), String::from("11111")];
 		assert_eq!(get_letter_length(&letter, 1, &options), 5);
+
+		letter = vec![
+			String::from("<c1>███</c1><c2>╗</c2><c1>   ███</c1><c2>╗</c2>"),
+			String::from("<c1>████</c1><c2>╗</c2><c1> ████</c1><c2>║</c2>"),
+			String::from("<c1>██</c1><c2>╔</c2><c1>████</c1><c2>╔</c2><c1>██</c1><c2>║</c2>"),
+			String::from("<c1>██</c1><c2>║╚</c2><c1>██</c1><c2>╔╝</c2><c1>██</c1><c2>║</c2>"),
+			String::from("<c1>██</c1><c2>║ ╚═╝</c2><c1> ██</c1><c2>║</c2>"),
+			String::from("<c2>╚═╝     ╚═╝</c2>"),
+		];
+		assert_eq!(get_letter_length(&letter, 2, &options), 11);
 	}
 
 	#[test]
@@ -207,66 +240,66 @@ mod chars {
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
 			String::from("no color"),
 		];
-		let mut colors = vec![Colors::Red, Colors::Green];
+		options.colors = vec![Colors::Red, Colors::Green];
 		let mut output = vec![
 			String::from("\x1b[31mred\x1b[39m"),
 			String::from("\x1b[31mred\x1b[39m\x1b[32mgreen\x1b[39m\x1b[31mred\x1b[39m"),
 			String::from("no color"),
 		];
-		assert_eq!(paint_letter(&letter, &colors, 2, &options), output);
+		assert_eq!(paint_letter(&letter, 2, &options), output);
 
 		letter = vec![
 			String::from("<c1>red</c1>"),
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
 			String::from("no color"),
 		];
-		colors = vec![Colors::Red];
+		options.colors = vec![Colors::Red];
 		output = vec![
 			String::from("\x1b[31mred\x1b[39m"),
 			String::from("\x1b[31mred\x1b[39mgreen\x1b[31mred\x1b[39m"),
 			String::from("no color"),
 		];
-		assert_eq!(paint_letter(&letter, &colors, 2, &options), output);
+		assert_eq!(paint_letter(&letter, 2, &options), output);
 
 		letter = vec![
 			String::from("<c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1>"),
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
 			String::from("no color"),
 		];
-		colors = vec![Colors::Red];
+		options.colors = vec![Colors::Red];
 		output = vec![
 			String::from("\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m\x1b[31mred\x1b[39m"),
 			String::from("\x1b[31mred\x1b[39mgreen\x1b[31mred\x1b[39mblue"),
 			String::from("no color"),
 		];
-		assert_eq!(paint_letter(&letter, &colors, 3, &options), output);
+		assert_eq!(paint_letter(&letter, 3, &options), output);
 
 		letter = vec![
 			String::from("<c1>red</c1>"),
 			String::from("green<c1>red</c1>blue<c1>red</c1>blue"),
 			String::from("no color"),
 		];
-		colors = vec![Colors::Red];
+		options.colors = vec![Colors::Red];
 		output = vec![
 			String::from("\x1b[31mred\x1b[39m"),
 			String::from("green\x1b[31mred\x1b[39mblue\x1b[31mred\x1b[39mblue"),
 			String::from("no color"),
 		];
-		assert_eq!(paint_letter(&letter, &colors, 1, &options), output);
+		assert_eq!(paint_letter(&letter, 1, &options), output);
 
 		letter = vec![
 			String::from("<c1>red</c1>"),
 			String::from("no color"),
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
 		];
-		colors = vec![Colors::Red, Colors::Green, Colors::Blue];
+		options.colors = vec![Colors::Red, Colors::Green, Colors::Blue];
 		options.env = Env::Browser;
 		output = vec![
-			String::from("<span style=\"color:#ea3223\">red</span>"),
+			String::from("red"),
 			String::from("no color"),
-			String::from("<span style=\"color:#ea3223\">red</span><span style=\"color:#377d22\">green</span><span style=\"color:#ea3223\">red</span><span style=\"color:#0020f5\">blue</span>"),
+			String::from("redgreenredblue"),
 		];
-		assert_eq!(paint_letter(&letter, &colors, 3, &options), output);
+		assert_eq!(paint_letter(&letter, 3, &options), output);
 	}
 
 	#[test]
@@ -367,6 +400,18 @@ mod chars {
 		options.align = Align::Bottom;
 		fixture = input.clone();
 		align_last_line(&mut input, 2, 11, 20, &options);
+		assert_eq!(input, fixture);
+
+		input = vec![
+			String::from("   line-line 1"),
+			String::from("   line-line 1"),
+			String::from("line-line 2"),
+			String::from("line-line 2"),
+		];
+		options.align = Align::Right;
+		options.env = Env::Browser;
+		fixture = input.clone();
+		align_last_line(&mut input, 2, 14, 20, &options);
 		assert_eq!(input, fixture);
 	}
 }

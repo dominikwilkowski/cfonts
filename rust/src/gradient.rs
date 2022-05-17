@@ -146,7 +146,7 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 		colored_lines.push(String::from(&space));
 		line.split_at(first_char_pos).1.chars().for_each(|c| {
 			let this_color = hex2rgb(&colors[i], options);
-			colored_lines[l] += &color(&c.to_string(), Colors::Rgb(this_color));
+			colored_lines[l] += &color(&c.to_string(), Colors::Rgb(this_color), options);
 			i += 1;
 		});
 	}
