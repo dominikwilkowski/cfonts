@@ -195,7 +195,7 @@ mod color {
 	}
 
 	#[test]
-	fn color_works_without_env() {
+	fn color_works_without_no_color() {
 		temp_env::with_var_unset("NO_COLOR", || {
 			let mut options = Options::default();
 
@@ -240,7 +240,7 @@ mod color {
 	}
 
 	#[test]
-	fn color_works_with_env() {
+	fn color_works_with_no_color() {
 		temp_env::with_var("NO_COLOR", Some(""), || {
 			let mut options = Options::default();
 			assert_eq!(color("test", Colors::System, &options), String::from("test"));
@@ -271,7 +271,7 @@ mod color {
 	}
 
 	#[test]
-	fn bg_color_works_without_env() {
+	fn bg_color_works_without_no_color() {
 		temp_env::with_var_unset("NO_COLOR", || {
 			assert_eq!(bg_color("test", BgColors::Transparent), String::from("\x1b[49mtest\x1b[49m"));
 			assert_eq!(bg_color("test", BgColors::Black), String::from("\x1b[40mtest\x1b[49m"));
@@ -307,7 +307,7 @@ mod color {
 	}
 
 	#[test]
-	fn bg_color_works_with_env() {
+	fn bg_color_works_with_no_color() {
 		temp_env::with_var("NO_COLOR", Some(""), || {
 			assert_eq!(bg_color("test", BgColors::Transparent), String::from("test"));
 			assert_eq!(bg_color("test", BgColors::Black), String::from("test"));
@@ -333,7 +333,7 @@ mod color {
 	}
 
 	#[test]
-	fn get_foreground_color_works_without_env() {
+	fn get_foreground_color_works_without_no_color() {
 		temp_env::with_var_unset("NO_COLOR", || {
 			assert_eq!(get_foreground_color(&Colors::System), (String::from("\x1b[39m"), String::from("\x1b[39m")));
 			assert_eq!(get_foreground_color(&Colors::Red), (String::from("\x1b[31m"), String::from("\x1b[39m")));
@@ -343,7 +343,7 @@ mod color {
 	}
 
 	#[test]
-	fn get_foreground_color_works_with_env() {
+	fn get_foreground_color_works_with_no_color() {
 		temp_env::with_var("NO_COLOR", Some(""), || {
 			assert_eq!(get_foreground_color(&Colors::System), (String::from(""), String::from("")));
 			assert_eq!(get_foreground_color(&Colors::Red), (String::from(""), String::from("")));
@@ -353,7 +353,7 @@ mod color {
 	}
 
 	#[test]
-	fn get_background_color_works_without_env() {
+	fn get_background_color_works_without_no_color() {
 		temp_env::with_var_unset("NO_COLOR", || {
 			assert_eq!(get_background_color(&BgColors::Transparent), (String::from("\x1b[49m"), String::from("\x1b[49m")));
 			assert_eq!(get_background_color(&BgColors::Red), (String::from("\x1b[41m"), String::from("\x1b[49m")));
@@ -363,12 +363,108 @@ mod color {
 	}
 
 	#[test]
-	fn get_background_color_works_with_env() {
+	fn get_background_color_works_with_no_color() {
 		temp_env::with_var("NO_COLOR", Some(""), || {
 			assert_eq!(get_background_color(&BgColors::Transparent), (String::from(""), String::from("")));
 			assert_eq!(get_background_color(&BgColors::Red), (String::from(""), String::from("")));
 			assert_eq!(get_background_color(&BgColors::Green), (String::from(""), String::from("")));
 			assert_eq!(get_background_color(&BgColors::Blue), (String::from(""), String::from("")));
+		});
+	}
+
+	#[test]
+	fn color_works_with_force_color() {
+		let options = Options::default();
+		temp_env::with_var("FORCE_COLOR", Some("0"), || {
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+		});
+
+		temp_env::with_var("FORCE_COLOR", Some("1"), || {
+			assert_eq!(
+				color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options),
+				String::from("\u{1b}[91m testing \u{1b}[39m")
+			);
+		});
+
+		temp_env::with_var("FORCE_COLOR", Some("2"), || {
+			assert_eq!(
+				color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options),
+				String::from("\u{1b}[38;5;205m testing \u{1b}[39m")
+			);
+		});
+
+		temp_env::with_var("FORCE_COLOR", Some("3"), || {
+			assert_eq!(
+				color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options),
+				String::from("\u{1b}[38;2;243;79;168m testing \u{1b}[39m")
+			);
+		});
+	}
+
+	#[test]
+	fn bg_color_works_with_force_color() {
+		temp_env::with_var("FORCE_COLOR", Some("0"), || {
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+		});
+
+		temp_env::with_var("FORCE_COLOR", Some("1"), || {
+			assert_eq!(
+				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))),
+				String::from("\u{1b}[101m testing \u{1b}[49m")
+			);
+		});
+
+		temp_env::with_var("FORCE_COLOR", Some("2"), || {
+			assert_eq!(
+				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))),
+				String::from("\u{1b}[48;5;205m testing \u{1b}[49m")
+			);
+		});
+
+		temp_env::with_var("FORCE_COLOR", Some("3"), || {
+			assert_eq!(
+				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))),
+				String::from("\u{1b}[48;2;243;79;168m testing \u{1b}[49m")
+			);
+		});
+	}
+
+	#[test]
+	fn color_works_with_force_color_and_with_no_color() {
+		let options = Options::default();
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("0")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+		});
+
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("1")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+		});
+
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+		});
+
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("3")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+		});
+	}
+
+	#[test]
+	fn bg_color_works_with_force_color_and_with_no_color() {
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("0")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+		});
+
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("1")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+		});
+
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+		});
+
+		temp_env::with_vars(vec![("FORCE_COLOR", Some("3")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
 		});
 	}
 }

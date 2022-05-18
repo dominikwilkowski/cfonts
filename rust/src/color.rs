@@ -435,7 +435,11 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	};
 
 	// we use the same "reset code" for all foreground colors and it's to set the color (only) back to system color
-	(start, String::from("\x1b[39m"))
+	if start.is_empty() {
+		(String::from(""), String::from(""))
+	} else {
+		(start, String::from("\x1b[39m"))
+	}
 }
 
 pub fn get_background_color(color: &BgColors) -> (String, String) {
@@ -474,7 +478,11 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 	};
 
 	// reset only background to system color
-	(start, String::from("\x1b[49m"))
+	if start.is_empty() {
+		(String::from(""), String::from(""))
+	} else {
+		(start, String::from("\x1b[49m"))
+	}
 }
 
 pub fn color(text: &str, color: Colors, options: &Options) -> String {
