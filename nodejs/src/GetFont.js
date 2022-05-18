@@ -30,7 +30,7 @@ const GetFont = ( font ) => {
 
 	// try loading the font file
 	try {
-		let FONTFACE = require(`../../fonts/${ font }.json`); // read font file
+		let FONTFACE = require(`../fonts/${ font }.json`); // read font file
 
 		Debugging.report( `GetFont: Fontface path selected: "${ font }.json"`, 2 );
 

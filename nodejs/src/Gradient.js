@@ -494,7 +494,6 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 
 	let firstCharacterPosition = GetFirstCharacterPosition( output );
 	let longestLine = GetLongestLine( output ).length;
-	console.log(firstCharacterPosition);
 
 	for( let i = 0; i < lines; i++ ) {
 		const start = ( i * ( fontLines + lineHeight ) );
