@@ -31,23 +31,25 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+          args: --manifest-path ./rust/Cargo.toml
 
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: -- --check
+          args: --manifest-path ./rust/Cargo.toml -- --check
 
       - name: Annotate commit with clippy warnings
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+          args: --all-features --manifest-path ./rust/Cargo.toml
 
       - name: Security audit
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path ./rust/Cargo.toml
 
   # ***********
   # RUST - testing
@@ -73,7 +75,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-fail-fast
+          args: --no-fail-fast --manifest-path ./rust/Cargo.toml
 
   # ***********
   # NODEJS - testing
