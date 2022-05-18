@@ -20,33 +20,34 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        components: rustfmt, clippy
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
 
-    - name: Change dir
-      run: cd rust
+      - name: Change dir
+        run: cd rust
 
-    - name: Check formatting
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: -- --check
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
 
-    - name: Annotate commit with clippy warnings
-      uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features
+      - name: Annotate commit with clippy warnings
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
 
-    - name: Security audit
-      uses: actions-rs/audit-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Security audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # ***********
   # RUST - testing
@@ -57,31 +58,30 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
-    - name: Change dir
-      run: cd rust
+      - name: Change dir
+        run: cd rust
 
-    - name: Tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --no-fail-fast
+      - name: Tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-fail-fast
 
-  # ***********
-  # NODEJS - testing
-  # ***********
   test-nodejs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:
           - ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
 
@@ -91,7 +91,7 @@ jobs:
           node-version: '12.x'
 
       - name: Change dir
-      run: cd nodejs
+        run: cd nodejs
 
       - name: Get yarn cache
         id: yarn-cache
