@@ -393,7 +393,7 @@ pub fn get_term_color_support() -> TermColorSupport {
 }
 
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
-	if env::var("NO_COLOR").is_ok() {
+	if env::var("NO_COLOR").is_ok() && !env::var("FORCE_COLOR").is_ok() {
 		return (String::from(""), String::from(""));
 	}
 
@@ -424,7 +424,6 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 		}
 		Colors::Rgb(rgb) => {
 			let color_support = get_term_color_support();
-			println!("color_support={:?}", color_support);
 
 			match color_support {
 				TermColorSupport::NoColor => String::from(""),
@@ -444,7 +443,7 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 }
 
 pub fn get_background_color(color: &BgColors) -> (String, String) {
-	if env::var("NO_COLOR").is_ok() {
+	if env::var("NO_COLOR").is_ok() && !env::var("FORCE_COLOR").is_ok() {
 		return (String::from(""), String::from(""));
 	}
 
@@ -487,7 +486,7 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 }
 
 pub fn color(text: &str, color: Colors, options: &Options) -> String {
-	if env::var("NO_COLOR").is_ok() {
+	if env::var("NO_COLOR").is_ok() && !env::var("FORCE_COLOR").is_ok() {
 		text.to_string()
 	} else {
 		match options.env {
@@ -504,7 +503,7 @@ pub fn color(text: &str, color: Colors, options: &Options) -> String {
 }
 
 pub fn bg_color(text: &str, color: BgColors) -> String {
-	if env::var("NO_COLOR").is_ok() {
+	if env::var("NO_COLOR").is_ok() && !env::var("FORCE_COLOR").is_ok() {
 		text.to_string()
 	} else {
 		let (start, end) = get_background_color(&color);

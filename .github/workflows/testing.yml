@@ -71,9 +71,6 @@ jobs:
         with:
           toolchain: stable
 
-      - name: All relevant env vars
-        run: echo "NO_COLOR ${{ NO_COLOR }}" && echo "FORCE_COLOR ${{ FORCE_COLOR }}"
-
       - name: Tests
         uses: actions-rs/cargo@v1
         with:

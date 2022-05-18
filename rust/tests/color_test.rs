@@ -437,15 +437,15 @@ mod color {
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("1")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from("\u{1b}[91m testing \u{1b}[39m"));
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from("\u{1b}[38;5;205m testing \u{1b}[39m"));
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("3")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from(" testing "));
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243.0, 79.0, 168.0)), &options), String::from("\u{1b}[38;2;243;79;168m testing \u{1b}[39m"));
 		});
 	}
 
@@ -456,15 +456,15 @@ mod color {
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("1")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from("\u{1b}[101m testing \u{1b}[49m"));
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from("\u{1b}[48;5;205m testing \u{1b}[49m"));
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("3")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from(" testing "));
+			assert_eq!(bg_color(" testing ", BgColors::Rgb(Rgb::Val(243.0, 79.0, 168.0))), String::from("\u{1b}[48;2;243;79;168m testing \u{1b}[49m"));
 		});
 	}
 }
