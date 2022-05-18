@@ -394,7 +394,6 @@ pub fn get_term_color_support() -> TermColorSupport {
 
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	if env::var("NO_COLOR").is_ok() {
-		println!("NO_COLOR is set");
 		return (String::from(""), String::from(""));
 	}
 
@@ -425,6 +424,7 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 		}
 		Colors::Rgb(rgb) => {
 			let color_support = get_term_color_support();
+			println!("color_support={:?}", color_support);
 
 			match color_support {
 				TermColorSupport::NoColor => String::from(""),
