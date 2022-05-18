@@ -1,9 +1,25 @@
 use rand::seq::SliceRandom;
+use rgb2ansi256::rgb_to_ansi256;
 use std::env;
+use supports_color::Stream;
 
 use crate::config::{BgColors, Colors};
 use crate::config::{Env, Options};
 use crate::debug::{d, Dt};
+
+#[derive(Debug)]
+pub enum TermColorSupport {
+	Ansi16m,
+	Ansi256,
+	Ansi16,
+	NoColor,
+}
+
+#[derive(Debug)]
+pub enum ColorLayer {
+	Foreground,
+	Background,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Rgb {
@@ -279,6 +295,103 @@ pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
 	hex
 }
 
+pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
+	let (r, g, b) = rgb.get_value();
+	let layer_code = match layer {
+		ColorLayer::Foreground => 38,
+		ColorLayer::Background => 48,
+	};
+	format!("\x1b[{};2;{};{};{}m", layer_code, r as u8, g as u8, b as u8)
+}
+
+pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
+	let (r, g, b) = rgb.get_value();
+	let code = rgb_to_ansi256(r as u8, g as u8, b as u8);
+	let layer_code = match layer {
+		ColorLayer::Foreground => 38,
+		ColorLayer::Background => 48,
+	};
+	format!("\x1b[{};5;{}m", layer_code, code)
+}
+
+pub fn rgb2ansi_16(rgb: &Rgb, layer: ColorLayer) -> String {
+	let (r, g, b) = rgb.get_value();
+	let code = rgb_to_ansi256(r as u8, g as u8, b as u8);
+	let mut ansi_16_code = match code {
+		0..=7 => code + 10,
+		8..=15 => code + 82,
+		16 => 0,
+		17..=19 => 34,
+		20..=21 | 25..=27 => 94,
+		22..=24
+		| 58..=60
+		| 64..=66
+		| 94..=95
+		| 100..=102
+		| 106..=108
+		| 130..=131
+		| 136..=138
+		| 142..=144
+		| 148..=151
+		| 172..=174
+		| 178..=181
+		| 184..=189 => 33,
+		28..=30 | 34..=36 | 70..=72 | 76..=79 | 112..=114 => 32,
+		31..=33
+		| 37..=39
+		| 44..=45
+		| 61..=63
+		| 67..=69
+		| 73..=75
+		| 80..=81
+		| 103..=105
+		| 109..=111
+		| 115..=117
+		| 152..=153 => 36,
+		40..=43 | 46..=49 | 82..=85 | 118..=120 | 154..=157 => 92,
+		50..=51 | 86..=87 | 121..=123 | 158..=159 => 96,
+		52..=54 | 88..=90 | 124..=126 | 166..=168 => 31,
+		55..=57 | 91..=93 | 96..=99 | 127..=129 | 132..=135 | 139..=141 | 145..=147 | 169..=171 | 175..=177 => 35,
+		160..=163 | 196..=199 | 202..=213 => 91,
+		164..=165 | 182..=183 | 200..=201 | 218..=219 => 95,
+		190..=193 | 214..=217 | 220..=228 => 93,
+		194..=195 | 229..=231 | 253..=255 => 97,
+		232..=239 => 30,
+		240..=246 => 90,
+		247..=252 => 37,
+	};
+	match layer {
+		ColorLayer::Foreground => {}
+		ColorLayer::Background => ansi_16_code += 10,
+	}
+	format!("\x1b[{}m", ansi_16_code)
+}
+
+pub fn get_term_color_support() -> TermColorSupport {
+	let term_support = if let Some(support) = supports_color::on(Stream::Stdout) {
+		match (support.has_16m, support.has_256, support.has_basic) {
+			(true, _, _) => TermColorSupport::Ansi16m,
+			(false, true, _) => TermColorSupport::Ansi256,
+			(false, false, true) => TermColorSupport::Ansi16,
+			_ => TermColorSupport::NoColor,
+		}
+	} else {
+		TermColorSupport::NoColor
+	};
+
+	if env::var("FORCE_COLOR").is_ok() {
+		match env::var("FORCE_COLOR").unwrap().as_str() {
+			"0" => TermColorSupport::NoColor,
+			"1" => TermColorSupport::Ansi16,
+			"2" => TermColorSupport::Ansi256,
+			"3" => TermColorSupport::Ansi16m,
+			_ => term_support,
+		}
+	} else {
+		term_support
+	}
+}
+
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	if env::var("NO_COLOR").is_ok() {
 		return (String::from(""), String::from(""));
@@ -310,8 +423,14 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 			String::from(*colors.choose(&mut rand::thread_rng()).unwrap())
 		}
 		Colors::Rgb(rgb) => {
-			let (r, g, b) = rgb.get_value();
-			format!("\x1b[38;2;{};{};{}m", r, g, b)
+			let color_support = get_term_color_support();
+
+			match color_support {
+				TermColorSupport::NoColor => String::from(""),
+				TermColorSupport::Ansi16 => rgb2ansi_16(rgb, ColorLayer::Foreground),
+				TermColorSupport::Ansi256 => rgb2ansi_256(rgb, ColorLayer::Foreground),
+				TermColorSupport::Ansi16m => rgb2ansi_16m(rgb, ColorLayer::Foreground),
+			}
 		}
 	};
 
@@ -343,8 +462,14 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 		BgColors::CyanBright => String::from("\x1b[106m"),
 		BgColors::WhiteBright => String::from("\x1b[107m"),
 		BgColors::Rgb(rgb) => {
-			let (r, g, b) = rgb.get_value();
-			format!("\x1b[48;2;{};{};{}m", r, g, b)
+			let color_support = get_term_color_support();
+
+			match color_support {
+				TermColorSupport::NoColor => String::from(""),
+				TermColorSupport::Ansi16 => rgb2ansi_16(rgb, ColorLayer::Background),
+				TermColorSupport::Ansi256 => rgb2ansi_256(rgb, ColorLayer::Background),
+				TermColorSupport::Ansi16m => rgb2ansi_16m(rgb, ColorLayer::Background),
+			}
 		}
 	};
 
