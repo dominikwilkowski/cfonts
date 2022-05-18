@@ -78,7 +78,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-fail-fast --manifest-path ./rust/Cargo.toml
+          args: --no-fail-fast --nocapture --manifest-path ./rust/Cargo.toml
 
   # ***********
   # NODEJS - testing
