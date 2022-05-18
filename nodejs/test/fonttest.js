@@ -51,7 +51,7 @@ const FontTest = ( FONTFACES, CHARS ) => {
 
 	for( let i in FONTFACES ) {
 		font = FONTFACES[ i ];
-		fontFile = Path.normalize( `${ __dirname }/../fonts/${ font }.json` );
+		fontFile = Path.normalize( `${ __dirname }/../../fonts/${ font }.json` );
 
 		Log.headline(`${ font }`);
 		Log.check(`Checking: "${ font }" existence`);

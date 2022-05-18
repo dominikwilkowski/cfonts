@@ -1,3 +1,3 @@
 install:
-	npx mkdirp fonts
-	npx cpx '../fonts/*' './fonts/'
+	mkdir -p fonts
+	cp -R ../fonts/. fonts/
