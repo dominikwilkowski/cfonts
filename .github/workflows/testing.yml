@@ -29,22 +29,22 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
 
-      - name: Change dir
-        run: cd rust
-
       - name: Check formatting
+        working-directory: ./rust
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: -- --check
 
       - name: Annotate commit with clippy warnings
+        working-directory: ./rust
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
 
       - name: Security audit
+        working-directory: ./rust
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -66,15 +66,16 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Change dir
-        run: cd rust
-
       - name: Tests
+        working-directory: ./rust
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --no-fail-fast
 
+  # ***********
+  # NODEJS - testing
+  # ***********
   test-nodejs:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -90,14 +91,13 @@ jobs:
         with:
           node-version: '12.x'
 
-      - name: Change dir
-        run: cd nodejs
-
       - name: Get yarn cache
+        working-directory: ./nodejs
         id: yarn-cache
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - name: Cache dependencies
+        working-directory: ./nodejs
         uses: actions/cache@v2
         with:
           path: ${{ steps.yarn-cache.outputs.dir }}
@@ -106,16 +106,21 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Node version
+        working-directory: ./nodejs
         run: node --version
 
       - name: npm version
+        working-directory: ./nodejs
         run: npm --version
 
       - name: Yarn version
+        working-directory: ./nodejs
         run: yarn --version
 
       - name: Yarn install dependencies
+        working-directory: ./nodejs
         run: yarn install --frozen-lockfile
 
       - name: Yarn test
+        working-directory: ./nodejs
         run: yarn test
