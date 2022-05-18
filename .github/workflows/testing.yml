@@ -45,11 +45,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --manifest-path ./rust/Cargo.toml
 
-      - name: Security audit
-        uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --manifest-path ./rust/Cargo.toml
+      # disabled until https://github.com/actions-rs/audit-check/issues/194 is fixed
+      # - name: Security audit
+      #   uses: actions-rs/audit-check@v1
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
 
   # ***********
   # RUST - testing
