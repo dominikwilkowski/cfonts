@@ -30,7 +30,6 @@
 		"node": ">=10"
 	},
 	"scripts": {
-		"prepublish": "yarn build && yarn test",
 		"test": "yarn build && yarn test:unit && yarn test:lint && yarn test:types && yarn test:fonts",
 		"test:fonts": "node ./test/fonttest.js",
 		"test:watch": "jest --watchAll --coverage",
