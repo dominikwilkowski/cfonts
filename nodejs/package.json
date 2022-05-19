@@ -39,7 +39,7 @@
 		"build": "yarn build:lib && yarn build:bin && yarn build:fonts",
 		"build:bin": "npx mkdirp bin && mv lib/bin.js bin/index.js",
 		"build:lib": "npx mkdirp lib && babel src --out-dir lib",
-		"build:fonts": "npx mkdirp fonts && npx cpx '../fonts/*' './fonts/'",
+		"build:fonts": "npx mkdirp fonts && npx cpy-cli \"../fonts/*\" \"./fonts/\"",
 		"types:clean": "find lib/ -type f -name '*.d.ts' -exec rm {} +",
 		"watch": "yarn build:lib && onchange 'src/**/*' -- yarn build:lib",
 		"coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
