@@ -81,6 +81,16 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install package
+        run: |
+          sudo apt-get -y install tree & which tree
+
+      - name: Run Makefile
+        run: make
+
+      - name: Tree files
+        run: tree -I "node_modules*|.git*"
+
       - name: Tests
         uses: actions-rs/cargo@v1
         with:
@@ -135,11 +145,11 @@ jobs:
       - name: Yarn install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Tree files
-        run: npx tree-cli -l 5 --ignore "node_modules/, .git/"
-
       - name: Build files
         run: yarn build
+
+      - name: Tree files
+        run: npx tree-cli -l 5 --ignore "node_modules/, .git/"
 
       - name: Yarn test
         run: yarn test
