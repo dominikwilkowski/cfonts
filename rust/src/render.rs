@@ -13,7 +13,7 @@ use crate::gradient::add_gradient_colors;
 
 pub struct RenderedString {
 	pub text: String,
-	pub array: Vec<String>,
+	pub vec: Vec<String>,
 	pub lines: usize,
 	pub options: Options,
 }
@@ -141,7 +141,7 @@ pub fn render(options: &mut Options) -> RenderedString {
 
 	RenderedString {
 		text,
-		array: output,
+		vec: output,
 		lines,
 		options: options.clone(),
 	}
