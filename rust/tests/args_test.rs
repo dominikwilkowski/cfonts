@@ -609,7 +609,7 @@ mod args {
 		);
 
 		// forgiving input formats
-		options.background = BgColors::Rgb(Rgb::Val(255.0, 255.0, 255.0));
+		options.background = BgColors::Rgb(Rgb::Val(255, 255, 255));
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -763,7 +763,7 @@ mod args {
 			"WHITEBRIGHT",
 		);
 
-		options.background = BgColors::Rgb(Rgb::Val(0.0, 0.0, 0.0));
+		options.background = BgColors::Rgb(Rgb::Val(0, 0, 0));
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -795,7 +795,7 @@ mod args {
 			options
 		);
 
-		options.background = BgColors::Rgb(Rgb::Val(136.0, 136.0, 136.0));
+		options.background = BgColors::Rgb(Rgb::Val(136, 136, 136));
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -827,7 +827,7 @@ mod args {
 			options
 		);
 
-		options.background = BgColors::Rgb(Rgb::Val(255.0, 255.0, 255.0));
+		options.background = BgColors::Rgb(Rgb::Val(255, 255, 255));
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -859,7 +859,7 @@ mod args {
 			options
 		);
 
-		options.background = BgColors::Rgb(Rgb::Val(0.0, 0.0, 0.0));
+		options.background = BgColors::Rgb(Rgb::Val(0, 0, 0));
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -916,7 +916,7 @@ mod args {
 		);
 
 		// forgiving input formats
-		options.colors = vec![Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))];
+		options.colors = vec![Colors::Rgb(Rgb::Val(0, 0, 0))];
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -1072,118 +1072,98 @@ mod args {
 
 		color_test!(
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::System],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::System],
 			"-c",
 			"--colors",
 			"blue,#888,system",
 			"bLuE,#888888,sYsTeM",
 			"BLUE,#888,SYSTEM",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Black],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Black],
 			"-c",
 			"--colors",
 			"blue,#888,black",
 			"bLuE,#888888,bLaCk",
 			"BLUE,#888,BLACK",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Red],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Red],
 			"-c",
 			"--colors",
 			"blue,#888,red",
 			"bLuE,#888888,rEd",
 			"BLUE,#888,RED",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Green],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Green],
 			"-c",
 			"--colors",
 			"blue,#888,green",
 			"bLuE,#888888,gReEn",
 			"BLUE,#888,GREEN",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Yellow],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Yellow],
 			"-c",
 			"--colors",
 			"blue,#888,yellow",
 			"bLuE,#888888,yElLOw",
 			"BLUE,#888,YELLOW",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Blue],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Blue],
 			"-c",
 			"--colors",
 			"blue,#888,blue",
 			"bLuE,#888888,bLuE",
 			"BLUE,#888,BLUE",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::Magenta
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Magenta],
 			"-c",
 			"--colors",
 			"blue,#888,magenta",
 			"bLuE,#888888,mAgEnTa",
 			"BLUE,#888,MAGENTA",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Cyan],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Cyan],
 			"-c",
 			"--colors",
 			"blue,#888,cyan",
 			"bLuE,#888888,cYaN",
 			"BLUE,#888,CYAN",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::White],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::White],
 			"-c",
 			"--colors",
 			"blue,#888,white",
 			"bLuE,#888888,wHiTe",
 			"BLUE,#888,WHITE",
 			colors,
-			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)), Colors::Gray],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Gray],
 			"-c",
 			"--colors",
 			"blue,#888,gray",
 			"bLuE,#888888,gRaY",
 			"BLUE,#888,GRAY",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::RedBright
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::RedBright],
 			"-c",
 			"--colors",
 			"blue,#888,redbright",
 			"bLuE,#888888,rEdBrIgHt",
 			"BLUE,#888,REDBRIGHT",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::GreenBright
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::GreenBright],
 			"-c",
 			"--colors",
 			"blue,#888,greenbright",
 			"bLuE,#888888,gReEnBrIgHt",
 			"BLUE,#888,GREENBRIGHT",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::YellowBright
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::YellowBright],
 			"-c",
 			"--colors",
 			"blue,#888,yellowbright",
 			"bLuE,#888888,yElLoWbRiGhT",
 			"BLUE,#888,YELLOWBRIGHT",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::BlueBright
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::BlueBright],
 			"-c",
 			"--colors",
 			"blue,#888,bluebright",
@@ -1192,7 +1172,7 @@ mod args {
 			colors,
 			vec![
 				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
+				Colors::Rgb(Rgb::Val(136, 136, 136)),
 				Colors::MagentaBright
 			],
 			"-c",
@@ -1201,22 +1181,14 @@ mod args {
 			"bLuE,#888888,mAgEnTaBrIgHt",
 			"BLUE,#888,MAGENTABRIGHT",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::CyanBright
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::CyanBright],
 			"-c",
 			"--colors",
 			"blue,#888,cyanbright",
 			"bLuE,#888888,cYaNbRiGhT",
 			"BLUE,#888,CYANBRIGHT",
 			colors,
-			vec![
-				Colors::Blue,
-				Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0)),
-				Colors::WhiteBright
-			],
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::WhiteBright],
 			"-c",
 			"--colors",
 			"blue,#888,whitebright",
@@ -1224,7 +1196,7 @@ mod args {
 			"BLUE,#888,WHITEBRIGHT",
 		);
 
-		options.colors = vec![Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))];
+		options.colors = vec![Colors::Rgb(Rgb::Val(0, 0, 0))];
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -1256,7 +1228,7 @@ mod args {
 			options
 		);
 
-		options.colors = vec![Colors::Rgb(Rgb::Val(136.0, 136.0, 136.0))];
+		options.colors = vec![Colors::Rgb(Rgb::Val(136, 136, 136))];
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -1288,7 +1260,7 @@ mod args {
 			options
 		);
 
-		options.colors = vec![Colors::Rgb(Rgb::Val(255.0, 255.0, 255.0))];
+		options.colors = vec![Colors::Rgb(Rgb::Val(255, 255, 255))];
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -1320,7 +1292,7 @@ mod args {
 			options
 		);
 
-		options.colors = vec![Colors::Rgb(Rgb::Val(0.0, 0.0, 0.0))];
+		options.colors = vec![Colors::Rgb(Rgb::Val(0, 0, 0))];
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),

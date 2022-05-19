@@ -23,17 +23,17 @@ pub enum ColorLayer {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Rgb {
-	Val(f64, f64, f64),
+	Val(u8, u8, u8),
 }
 
 impl Default for Rgb {
 	fn default() -> Self {
-		Rgb::Val(0.0, 0.0, 0.0)
+		Rgb::Val(0, 0, 0)
 	}
 }
 
 impl Rgb {
-	pub fn get_value(&self) -> (f64, f64, f64) {
+	pub fn get_value(&self) -> (u8, u8, u8) {
 		match self {
 			Rgb::Val(r, g, b) => (*r, *g, *b),
 		}
@@ -71,9 +71,9 @@ pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 	d(&format!("color::rgb2hsv()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (r_input, g_input, b_input) = rgb.get_value();
-	let red = r_input / 255.0;
-	let green = g_input / 255.0;
-	let blue = b_input / 255.0;
+	let red = r_input as f64 / 255.0;
+	let green = g_input as f64 / 255.0;
+	let blue = b_input as f64 / 255.0;
 
 	let max = [red, green, blue].iter().fold(0.0, |a: f64, &b| a.max(b));
 	let min = [red, green, blue, f64::NAN].iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -115,12 +115,12 @@ pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 	val *= 255.0;
 
 	let result = match (hue.floor() % 6.0) as u8 {
-		0 => Rgb::Val(val, t, p),
-		1 => Rgb::Val(q, val, p),
-		2 => Rgb::Val(p, val, t),
-		3 => Rgb::Val(p, q, val),
-		4 => Rgb::Val(t, p, val),
-		5 => Rgb::Val(val, p, q),
+		0 => Rgb::Val(val as u8, t as u8, p as u8),
+		1 => Rgb::Val(q as u8, val as u8, p as u8),
+		2 => Rgb::Val(p as u8, val as u8, t as u8),
+		3 => Rgb::Val(p as u8, q as u8, val as u8),
+		4 => Rgb::Val(t as u8, p as u8, val as u8),
+		5 => Rgb::Val(val as u8, p as u8, q as u8),
 		// due to the modulo operation we would never get anything above 5
 		_ => unreachable!(),
 	};
@@ -177,7 +177,7 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	let r = u8::from_str_radix(&full_hex[0..2], 16).unwrap_or(0);
 	let g = u8::from_str_radix(&full_hex[2..4], 16).unwrap_or(0);
 	let b = u8::from_str_radix(&full_hex[4..6], 16).unwrap_or(0);
-	let result = Rgb::Val(r.into(), g.into(), b.into());
+	let result = Rgb::Val(r, g, b);
 
 	d(&format!("color::hex2rgb() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
 	result
@@ -301,12 +301,12 @@ pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
 		ColorLayer::Foreground => 38,
 		ColorLayer::Background => 48,
 	};
-	format!("\x1b[{};2;{};{};{}m", layer_code, r as u8, g as u8, b as u8)
+	format!("\x1b[{};2;{};{};{}m", layer_code, r, g, b)
 }
 
 pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
-	let code = rgb_to_ansi256(r as u8, g as u8, b as u8);
+	let code = rgb_to_ansi256(r, g, b);
 	let layer_code = match layer {
 		ColorLayer::Foreground => 38,
 		ColorLayer::Background => 48,
@@ -316,7 +316,7 @@ pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 
 pub fn rgb2ansi_16(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
-	let code = rgb_to_ansi256(r as u8, g as u8, b as u8);
+	let code = rgb_to_ansi256(r, g, b);
 	let mut ansi_16_code = match code {
 		0..=7 => code + 10,
 		8..=15 => code + 82,

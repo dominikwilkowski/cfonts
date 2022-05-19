@@ -117,11 +117,11 @@ pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options)
 	let mut colors = Vec::new();
 
 	for n in 1..=steps {
-		let r = get_linear(from_r, to_r, n as usize, (steps + 1) as usize, options);
-		let g = get_linear(from_g, to_g, n as usize, (steps + 1) as usize, options);
-		let b = get_linear(from_b, to_b, n as usize, (steps + 1) as usize, options);
+		let r = get_linear(from_r.into(), to_r.into(), n as usize, (steps + 1) as usize, options);
+		let g = get_linear(from_g.into(), to_g.into(), n as usize, (steps + 1) as usize, options);
+		let b = get_linear(from_b.into(), to_b.into(), n as usize, (steps + 1) as usize, options);
 
-		colors.push(rgb2hex(&Rgb::Val(r, g, b), options));
+		colors.push(rgb2hex(&Rgb::Val(r as u8, g as u8, b as u8), options));
 	}
 
 	d(&format!("gradient::get_transition_colors() -> {:?}", colors), 3, Dt::Log, options, &mut std::io::stdout());
