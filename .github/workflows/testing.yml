@@ -125,5 +125,8 @@ jobs:
       - name: Yarn install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Tree files
+        run: npx tree-cli -l 5 --ignore "node_modules/, .git/, .gitignore"
+
       - name: Yarn test
         run: yarn test
