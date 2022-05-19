@@ -373,10 +373,10 @@ pub fn get_term_color_support() -> TermColorSupport {
 			(true, _, _) => TermColorSupport::Ansi16m,
 			(false, true, _) => TermColorSupport::Ansi256,
 			(false, false, true) => TermColorSupport::Ansi16,
-			_ => TermColorSupport::NoColor,
+			_ => TermColorSupport::Ansi16m,
 		}
 	} else {
-		TermColorSupport::NoColor
+		TermColorSupport::Ansi16m
 	};
 
 	if env::var("FORCE_COLOR").is_ok() {
