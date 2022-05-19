@@ -33,6 +33,16 @@ jobs:
           components: rustfmt, clippy
           args: --manifest-path ./rust/Cargo.toml
 
+      - name: Install package
+        run: |
+          sudo apt-get -y install tree & which tree
+
+      - name: Run Makefile
+        run: make
+
+      - name: Tree files
+        run: tree -I "node_modules*|.git*"
+
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
@@ -126,7 +136,10 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Tree files
-        run: npx tree-cli -l 5 --ignore "node_modules/, .git/, .gitignore"
+        run: npx tree-cli -l 5 --ignore "node_modules/, .git/"
+
+      - name: Build files
+        run: yarn build
 
       - name: Yarn test
         run: yarn test
