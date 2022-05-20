@@ -380,14 +380,16 @@ pub fn get_term_color_support() -> TermColorSupport {
 	};
 
 	if env::var("FORCE_COLOR").is_ok() {
-		match (env::var("FORCE_COLOR").unwrap().as_str(), env::var("NO_COLOR").unwrap_or_else(|_| String::from("not set")).as_str())
-		{
+		match (
+			env::var("FORCE_COLOR").unwrap().as_str(),
+			env::var("NO_COLOR").unwrap_or_else(|_| String::from("unset")).as_str(),
+		) {
 			("0", _) => TermColorSupport::NoColor,
 			("1", _) => TermColorSupport::Ansi16,
 			("2", _) => TermColorSupport::Ansi256,
 			("3", _) => TermColorSupport::Ansi16m,
-			(_, "") => TermColorSupport::NoColor,
-			(_, _) => term_support,
+			(_, "unset") => term_support,
+			(_, _) => TermColorSupport::NoColor,
 		}
 	} else {
 		term_support
