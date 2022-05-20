@@ -67,6 +67,7 @@ jobs:
   # ***********
   test-rust:
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
@@ -93,7 +94,7 @@ jobs:
         run: make
 
       - name: List files
-        run: find ./
+        run: find "./"
 
       - name: Tests
         uses: actions-rs/cargo@v1
