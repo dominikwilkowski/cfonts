@@ -95,14 +95,6 @@ jobs:
       - name: Run Makefile
         run: make
 
-      - name: List files
-        run: |
-          if [[ $OS =~ ^windows.*$ ]]; then
-              dir /s /b
-          else
-              find "./"
-          fi
-
       - name: Tests
         uses: actions-rs/cargo@v1
         with:
