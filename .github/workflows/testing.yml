@@ -1,5 +1,9 @@
 name: Testing
 
+defaults:
+  run:
+    shell: bash
+
 on:
   push:
     branches:
@@ -11,15 +15,16 @@ on:
       - 'released'
 
 jobs:
+  # ---------------------------------| RUST |--------------------------------- #
   # ***********
   # RUST - linting
   # ***********
   lint-rust:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:
           - ubuntu-latest
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ./rust
@@ -33,15 +38,11 @@ jobs:
           components: rustfmt, clippy
           args: --manifest-path ./rust/Cargo.toml
 
-      - name: Install package
-        run: |
-          sudo apt-get -y install tree & which tree
-
       - name: Run Makefile
         run: make
 
-      - name: Tree files
-        run: tree -I "node_modules*|.git*"
+      - name: List files
+        run: find ./
 
       - name: Check formatting
         uses: actions-rs/cargo@v1
@@ -65,11 +66,13 @@ jobs:
   # RUST - testing
   # ***********
   test-rust:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:
           - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ./rust
@@ -77,19 +80,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
 
-      - name: Install package
-        run: |
-          sudo apt-get -y install tree & which tree
-
       - name: Run Makefile
         run: make
 
-      - name: Tree files
-        run: tree -I "node_modules*|.git*"
+      - name: List files
+        run: find ./
 
       - name: Tests
         uses: actions-rs/cargo@v1
@@ -97,11 +101,11 @@ jobs:
           command: test
           args: --no-fail-fast --manifest-path ./rust/Cargo.toml -- --nocapture
 
+  # ---------------------------------| NODE |--------------------------------- #
   # ***********
   # NODEJS - testing
   # ***********
   test-nodejs:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         node: [ 12, 14, 16 ]
@@ -109,6 +113,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macOS-latest
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ./nodejs
