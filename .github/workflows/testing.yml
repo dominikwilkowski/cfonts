@@ -41,8 +41,10 @@ jobs:
       - name: Run Makefile
         run: make
 
-      - name: List files
-        run: find ./
+      - name: Tree files
+        run: |
+          sudo apt-get -y install tree & which tree
+          tree -I "node_modules*|.git*"
 
       - name: Check formatting
         uses: actions-rs/cargo@v1
@@ -95,11 +97,17 @@ jobs:
       - name: Run Makefile
         run: make
 
-      - name: Tests
+      - name: Run cargo tests
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --no-fail-fast --manifest-path ./rust/Cargo.toml -- --nocapture
+
+      - name: Run build
+        run: cargo build --release --verbose
+
+      - name: Run end-to-end test
+        run: node tests/end-to-end/index.js
 
   # ---------------------------------| NODE |--------------------------------- #
   # ***********
