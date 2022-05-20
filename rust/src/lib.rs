@@ -96,7 +96,7 @@ pub use config::{Align, BgColors, Colors, Env, Fonts, Options};
 use debug::{d, Dt};
 pub use render::render;
 
-/// The say function will print your cfonts output to `stdout`.
+/// The `say` function will print your cfonts output to `stdout`.
 ///
 /// The way you pass it Options is the same as for [`render()`]
 ///

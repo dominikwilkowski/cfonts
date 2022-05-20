@@ -11,10 +11,15 @@ use crate::debug::{d, Dt};
 use crate::font;
 use crate::gradient::add_gradient_colors;
 
+/// The return struct you get from [`render()`]
 pub struct RenderedString {
+	/// A string ready to go to stdout with ansi escape codes and line breaks
 	pub text: String,
+	/// A vec of the string where each item is a new line in the output
 	pub vec: Vec<String>,
+	/// How many lines the output has, that is lines of cfont text, not output text
 	pub lines: usize,
+	/// The [`Options`] struct that was used to compile this output
 	pub options: Options,
 }
 
