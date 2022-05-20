@@ -7,7 +7,7 @@ use crate::config::{BgColors, Colors};
 use crate::config::{Env, Options};
 use crate::debug::{d, Dt};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TermColorSupport {
 	Ansi16m,
 	Ansi256,
@@ -380,12 +380,14 @@ pub fn get_term_color_support() -> TermColorSupport {
 	};
 
 	if env::var("FORCE_COLOR").is_ok() {
-		match env::var("FORCE_COLOR").unwrap().as_str() {
-			"0" => TermColorSupport::NoColor,
-			"1" => TermColorSupport::Ansi16,
-			"2" => TermColorSupport::Ansi256,
-			"3" => TermColorSupport::Ansi16m,
-			_ => term_support,
+		match (env::var("FORCE_COLOR").unwrap().as_str(), env::var("NO_COLOR").unwrap_or_else(|_| String::from("not set")).as_str())
+		{
+			("0", _) => TermColorSupport::NoColor,
+			("1", _) => TermColorSupport::Ansi16,
+			("2", _) => TermColorSupport::Ansi256,
+			("3", _) => TermColorSupport::Ansi16m,
+			(_, "") => TermColorSupport::NoColor,
+			(_, _) => term_support,
 		}
 	} else {
 		term_support
@@ -393,7 +395,8 @@ pub fn get_term_color_support() -> TermColorSupport {
 }
 
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
-	if env::var("NO_COLOR").is_ok() && env::var("FORCE_COLOR").is_err() {
+	let color_support = get_term_color_support();
+	if color_support == TermColorSupport::NoColor {
 		return (String::from(""), String::from(""));
 	}
 
@@ -422,16 +425,12 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 			];
 			String::from(*colors.choose(&mut rand::thread_rng()).unwrap())
 		}
-		Colors::Rgb(rgb) => {
-			let color_support = get_term_color_support();
-
-			match color_support {
-				TermColorSupport::NoColor => String::from(""),
-				TermColorSupport::Ansi16 => rgb2ansi_16(rgb, ColorLayer::Foreground),
-				TermColorSupport::Ansi256 => rgb2ansi_256(rgb, ColorLayer::Foreground),
-				TermColorSupport::Ansi16m => rgb2ansi_16m(rgb, ColorLayer::Foreground),
-			}
-		}
+		Colors::Rgb(rgb) => match color_support {
+			TermColorSupport::NoColor => String::from(""),
+			TermColorSupport::Ansi16 => rgb2ansi_16(rgb, ColorLayer::Foreground),
+			TermColorSupport::Ansi256 => rgb2ansi_256(rgb, ColorLayer::Foreground),
+			TermColorSupport::Ansi16m => rgb2ansi_16m(rgb, ColorLayer::Foreground),
+		},
 	};
 
 	// we use the same "reset code" for all foreground colors and it's to set the color (only) back to system color
@@ -443,7 +442,8 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 }
 
 pub fn get_background_color(color: &BgColors) -> (String, String) {
-	if env::var("NO_COLOR").is_ok() && env::var("FORCE_COLOR").is_err() {
+	let color_support = get_term_color_support();
+	if color_support == TermColorSupport::NoColor {
 		return (String::from(""), String::from(""));
 	}
 
@@ -465,16 +465,12 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 		BgColors::MagentaBright => String::from("\x1b[105m"),
 		BgColors::CyanBright => String::from("\x1b[106m"),
 		BgColors::WhiteBright => String::from("\x1b[107m"),
-		BgColors::Rgb(rgb) => {
-			let color_support = get_term_color_support();
-
-			match color_support {
-				TermColorSupport::NoColor => String::from(""),
-				TermColorSupport::Ansi16 => rgb2ansi_16(rgb, ColorLayer::Background),
-				TermColorSupport::Ansi256 => rgb2ansi_256(rgb, ColorLayer::Background),
-				TermColorSupport::Ansi16m => rgb2ansi_16m(rgb, ColorLayer::Background),
-			}
-		}
+		BgColors::Rgb(rgb) => match color_support {
+			TermColorSupport::NoColor => String::from(""),
+			TermColorSupport::Ansi16 => rgb2ansi_16(rgb, ColorLayer::Background),
+			TermColorSupport::Ansi256 => rgb2ansi_256(rgb, ColorLayer::Background),
+			TermColorSupport::Ansi16m => rgb2ansi_16m(rgb, ColorLayer::Background),
+		},
 	};
 
 	// reset only background to system color

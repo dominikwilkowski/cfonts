@@ -317,7 +317,7 @@ mod color {
 
 	#[test]
 	fn get_foreground_color_works_with_no_color() {
-		temp_env::with_var("NO_COLOR", Some(""), || {
+		temp_env::with_vars(vec![("NO_COLOR", Some("")), ("FORCE_COLOR", Some("invalid"))], || {
 			assert_eq!(get_foreground_color(&Colors::System), (String::from(""), String::from("")));
 			assert_eq!(get_foreground_color(&Colors::Red), (String::from(""), String::from("")));
 			assert_eq!(get_foreground_color(&Colors::Green), (String::from(""), String::from("")));
@@ -337,7 +337,7 @@ mod color {
 
 	#[test]
 	fn get_background_color_works_with_no_color() {
-		temp_env::with_var("NO_COLOR", Some(""), || {
+		temp_env::with_vars(vec![("NO_COLOR", Some("")), ("FORCE_COLOR", Some("invalid"))], || {
 			assert_eq!(get_background_color(&BgColors::Transparent), (String::from(""), String::from("")));
 			assert_eq!(get_background_color(&BgColors::Red), (String::from(""), String::from("")));
 			assert_eq!(get_background_color(&BgColors::Green), (String::from(""), String::from("")));
