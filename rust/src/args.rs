@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::color::{color, hex2rgb, rgb2hex};
+use crate::color::{color, get_foreground_color, hex2rgb, rgb2hex};
 use crate::config::{
 	Align, BgColors, CliOption, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS, GRADIENTS_AGENDER,
 	GRADIENTS_AROMANTIC, GRADIENTS_ASEXUAL, GRADIENTS_BISEXUAL, GRADIENTS_GENDERFLUID, GRADIENTS_GENDERQUEER,
@@ -25,6 +25,15 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 			let shortcut = option.fallback_shortcut.to_string();
 			options_lookup.insert(shortcut, option);
 		}
+	}
+
+	if my_args.len() < 2 {
+		let (start, end) = get_foreground_color(&Colors::Green);
+		return Err(format!(
+			"Please provide text to convert with: {start}cfonts \"Text\"{end}\nRun {start}cfonts --help{end} for more infos",
+			start = start,
+			end = end
+		));
 	}
 
 	// our text to be converted
