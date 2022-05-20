@@ -74,6 +74,8 @@ jobs:
           - macos-latest
           - windows-latest
     runs-on: ${{ matrix.os }}
+    env:
+      OS: ${{ matrix.OS }}
     defaults:
       run:
         working-directory: ./rust
@@ -94,7 +96,12 @@ jobs:
         run: make
 
       - name: List files
-        run: find "./"
+        run: |
+          if [[ $OS =~ ^windows.*$ ]]; then
+              dir /s /b
+          else
+              find "./"
+          fi
 
       - name: Tests
         uses: actions-rs/cargo@v1
