@@ -1,7 +1,48 @@
+//! The contents of this module is all about transforming letters on the output vector
 use crate::color::get_foreground_color;
 use crate::config::{Align, Colors, Env, Options};
 use crate::debug::{d, Dt};
 
+/// Generate the letter space by taking into account the letter_spacing options
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::get_letter_space;
+///
+/// let options = Options::default();
+/// let font_letter_space = vec![
+///     String::from("~"),
+///     String::from("~"),
+///     String::from("~")
+/// ];
+///
+/// assert_eq!(
+///     get_letter_space(&font_letter_space, 1, &options),
+///     vec![
+///         String::from("~"),
+///         String::from("~"),
+///         String::from("~")
+///     ]
+/// );
+/// assert_eq!(
+///     get_letter_space(&font_letter_space, 2, &options),
+///     vec![
+///         String::from("~~"),
+///         String::from("~~"),
+///         String::from("~~")
+///     ]
+/// );
+/// assert_eq!(
+///     get_letter_space(&font_letter_space, 10, &options),
+///     vec![
+///         String::from("~~~~~~~~~~"),
+///         String::from("~~~~~~~~~~"),
+///         String::from("~~~~~~~~~~")
+///     ]
+/// );
+/// ```
 pub fn get_letter_space(letter_space: &[String], letter_spacing: u16, options: &Options) -> Vec<String> {
 	d("chars::get_letter_space()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -27,6 +68,35 @@ pub fn get_letter_space(letter_space: &[String], letter_spacing: u16, options: &
 	output
 }
 
+/// Adding a new line to a given output vector
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::add_line;
+///
+/// let options = Options::default();
+/// let mut output = vec![
+///     String::from("1"),
+///     String::from("1"),
+///     String::from("2"),
+///     String::from("2"),
+/// ];
+/// add_line(&mut output, 2, &options);
+///
+/// assert_eq!(
+///     output,
+///     vec![
+///         String::from("1"),
+///         String::from("1"),
+///         String::from("2"),
+///         String::from("2"),
+///         String::new(),
+///         String::new(),
+///     ]
+/// );
+/// ```
 pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) {
 	d("chars::add_line()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
