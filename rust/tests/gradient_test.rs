@@ -17,17 +17,17 @@ mod gradient {
 		let point_a = 0.0;
 		let point_b = 5.0;
 		let steps = 5;
-		assert_eq!(get_linear(point_a, point_b, 0, steps, &options), point_a);
-		assert_eq!(get_linear(point_a, point_b, 1, steps, &options), 1.0);
-		assert_eq!(get_linear(point_a, point_b, 2, steps, &options), 2.0);
-		assert_eq!(get_linear(point_a, point_b, 3, steps, &options), 3.0);
-		assert_eq!(get_linear(point_a, point_b, 4, steps, &options), 4.0);
-		assert_eq!(get_linear(point_a, point_b, 5, steps, &options), point_b);
+		assert!((get_linear(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+		assert!((get_linear(point_a, point_b, 1, steps, &options) - 1.0).abs() < f64::EPSILON);
+		assert!((get_linear(point_a, point_b, 2, steps, &options) - 2.0).abs() < f64::EPSILON);
+		assert!((get_linear(point_a, point_b, 3, steps, &options) - 3.0).abs() < f64::EPSILON);
+		assert!((get_linear(point_a, point_b, 4, steps, &options) - 4.0).abs() < f64::EPSILON);
+		assert!((get_linear(point_a, point_b, 5, steps, &options) - point_b).abs() < f64::EPSILON);
 
 		let point_a = 0.0;
 		let point_b = 5.0;
 		let steps = 0;
-		assert_eq!(get_linear(point_a, point_b, 0, steps, &options), 5.0);
+		assert!((get_linear(point_a, point_b, 0, steps, &options) - 5.0).abs() < f64::EPSILON);
 	}
 
 	#[test]
@@ -37,41 +37,41 @@ mod gradient {
 		let point_a = 0.0;
 		let point_b = 5.0;
 		let steps = 5;
-		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
-		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 1.0);
-		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 2.0);
-		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), 3.0);
-		assert_eq!(get_theta(point_a, point_b, 4, steps, &options), 4.0);
-		assert_eq!(get_theta(point_a, point_b, 5, steps, &options), point_b);
+		assert!((get_theta(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 1, steps, &options) - 1.0).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 2, steps, &options) - 2.0).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 3, steps, &options) - 3.0).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 4, steps, &options) - 4.0).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 5, steps, &options) - point_b).abs() < f64::EPSILON);
 
 		let point_a = 2.0;
 		let point_b = 3.0;
 		let steps = 3;
-		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
-		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 0.238938230940138);
-		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 4.761061769059863);
-		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+		assert!((get_theta(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 1, steps, &options) - 0.238938230940138).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 2, steps, &options) - 4.761061769059863).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 3, steps, &options) - point_b).abs() < f64::EPSILON);
 
 		let point_a = 3.0;
 		let point_b = 2.0;
 		let steps = 3;
-		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
-		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 4.761061769059862);
-		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 0.23893823094013733);
-		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+		assert!((get_theta(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 1, steps, &options) - 4.761061769059862).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 2, steps, &options) - 0.23893823094013733).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 3, steps, &options) - point_b).abs() < f64::EPSILON);
 
 		let point_a = 5.0;
 		let point_b = 1.0;
 		let steps = 3;
-		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
-		assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 3.666666666666667);
-		assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 2.3333333333333335);
-		assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+		assert!((get_theta(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 1, steps, &options) - 3.666666666666667).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 2, steps, &options) - 2.3333333333333335).abs() < f64::EPSILON);
+		assert!((get_theta(point_a, point_b, 3, steps, &options) - point_b).abs() < f64::EPSILON);
 
 		let point_a = 0.0;
 		let point_b = 5.0;
 		let steps = 0;
-		assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_b);
+		assert!((get_theta(point_a, point_b, 0, steps, &options) - point_b).abs() < f64::EPSILON);
 	}
 
 	#[test]
@@ -126,17 +126,17 @@ mod gradient {
 	fn get_transition_steps_works() {
 		let options = Options::default();
 
-		let result = get_transition_steps(&vec!["color1".to_string()], 1, &options);
+		let result = get_transition_steps(&["color1".to_string()], 1, &options);
 		assert_eq!(result.len(), 0);
 
-		let colors = vec!["color1".to_string(), "color2".to_string()];
+		let colors = ["color1".to_string(), "color2".to_string()];
 		assert_eq!(get_transition_steps(&colors, 1, &options), vec![-1]);
 		assert_eq!(get_transition_steps(&colors, 2, &options), vec![0]);
 		assert_eq!(get_transition_steps(&colors, 3, &options), vec![1]);
 		assert_eq!(get_transition_steps(&colors, 4, &options), vec![2]);
 		assert_eq!(get_transition_steps(&colors, 5, &options), vec![3]);
 
-		let colors = vec!["color1".to_string(), "color2".to_string(), "color3".to_string()];
+		let colors = ["color1".to_string(), "color2".to_string(), "color3".to_string()];
 		assert_eq!(get_transition_steps(&colors, 1, &options), vec![-1, -1]);
 		assert_eq!(get_transition_steps(&colors, 2, &options), vec![-1, 0]);
 		assert_eq!(get_transition_steps(&colors, 3, &options), vec![0, 0]);
@@ -147,7 +147,7 @@ mod gradient {
 	#[test]
 	fn get_multiple_transition_colors_works() {
 		let options = Options::default();
-		let colors = vec!["#ff0000".to_string(), "#0000ff".to_string()];
+		let colors = ["#ff0000".to_string(), "#0000ff".to_string()];
 		assert_eq!(get_multiple_transition_colors(&colors, 1, &options), vec!["#0000ff".to_string()]);
 		assert_eq!(
 			get_multiple_transition_colors(&colors, 2, &options),
@@ -167,7 +167,7 @@ mod gradient {
 			]
 		);
 
-		let colors = vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
+		let colors = ["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
 		assert_eq!(get_multiple_transition_colors(&colors, 1, &options), vec!["#0000ff".to_string()]);
 		assert_eq!(
 			get_multiple_transition_colors(&colors, 2, &options),

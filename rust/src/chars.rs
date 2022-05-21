@@ -15,7 +15,7 @@ use crate::debug::{d, Dt};
 /// let font_letter_space = vec![
 ///     String::from("~"),
 ///     String::from("~"),
-///     String::from("~")
+///     String::from("~"),
 /// ];
 ///
 /// assert_eq!(
@@ -23,7 +23,7 @@ use crate::debug::{d, Dt};
 ///     vec![
 ///         String::from("~"),
 ///         String::from("~"),
-///         String::from("~")
+///         String::from("~"),
 ///     ]
 /// );
 /// assert_eq!(
@@ -31,7 +31,7 @@ use crate::debug::{d, Dt};
 ///     vec![
 ///         String::from("~~"),
 ///         String::from("~~"),
-///         String::from("~~")
+///         String::from("~~"),
 ///     ]
 /// );
 /// assert_eq!(
@@ -39,7 +39,7 @@ use crate::debug::{d, Dt};
 ///     vec![
 ///         String::from("~~~~~~~~~~"),
 ///         String::from("~~~~~~~~~~"),
-///         String::from("~~~~~~~~~~")
+///         String::from("~~~~~~~~~~"),
 ///     ]
 /// );
 /// ```
@@ -114,6 +114,37 @@ pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) 
 	d(&format!("chars::add_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
+/// Adding a letter to a given output vector
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::add_letter;
+///
+/// let options = Options::default();
+/// let mut output = vec![
+///     String::from("1"),
+///     String::from("1"),
+///     String::from("2"),
+///     String::from("2"),
+/// ];
+/// let mut letter = vec![
+///     String::from("letter"),
+///     String::from("letter"),
+/// ];
+/// add_letter(&mut output, &letter, &options);
+///
+/// assert_eq!(
+///     output,
+///     vec![
+///         String::from("1"),
+///         String::from("1"),
+///         String::from("2letter"),
+///         String::from("2letter"),
+///     ]
+/// );
+/// ```
 pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 	d("chars::add_letter()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -132,6 +163,34 @@ pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 	d(&format!("chars::add_letter() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
+/// Adding line height to a given output vector
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::add_line_height;
+///
+/// let options = Options::default();
+/// let mut output = vec![
+///     String::from("1"),
+///     String::from("1"),
+///     String::from("1"),
+/// ];
+/// add_line_height(&mut output, 3, &options);
+///
+/// assert_eq!(
+///     output,
+///     vec![
+///         String::from("1"),
+///         String::from("1"),
+///         String::from("1"),
+///         String::new(),
+///         String::new(),
+///         String::new(),
+///     ]
+/// );
+/// ```
 pub fn add_line_height(output: &mut Vec<String>, line_height: u16, options: &Options) {
 	d("chars::add_line_height()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -149,6 +208,26 @@ pub fn add_line_height(output: &mut Vec<String>, line_height: u16, options: &Opt
 	d(&format!("chars::add_line_height() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
+/// Get the longest line length of a vectors last n items
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::get_longest_line_len;
+///
+/// let options = Options::default();
+/// let output = vec![
+///     String::from("1"),
+///     String::from("1"),
+///     String::from("1"),
+///     String::from("222"),
+///     String::from("22"),
+///     String::from("22"),
+/// ];
+///
+/// assert_eq!(get_longest_line_len(&output, 3, &options), 3);
+/// ```
 pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Options) -> usize {
 	d("chars::get_longest_line_len()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -171,6 +250,44 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 	size
 }
 
+/// Get the longest line length of a vectors last n items
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::get_first_char_position;
+///
+/// let options = Options::default();
+/// assert_eq!(get_first_char_position(&[String::from("x")], &options), 0);
+/// assert_eq!(get_first_char_position(&[String::from("  x")], &options), 2);
+/// assert_eq!(get_first_char_position(&[String::from("    x")], &options), 4);
+///
+/// assert_eq!(
+///     get_first_char_position(&[
+///         String::from("     x"),
+///         String::from(" x"),
+///         String::from("   x"),
+///     ], &options),
+///     1
+/// );
+/// assert_eq!(
+///     get_first_char_position(&[
+///         String::from("     x"),
+///         String::from(""),
+///         String::from("   x"),
+///     ], &options),
+///     3
+/// );
+/// assert_eq!(
+///     get_first_char_position(&[
+///         String::from("   x"),
+///         String::from("   x x"),
+///         String::from(" x   x"),
+///     ], &options),
+///     1
+/// );
+/// ```
 pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
 	d("chars::get_first_char_position()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("chars::get_first_char_position()\noutput:{:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
@@ -188,6 +305,26 @@ pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
 	pos
 }
 
+/// Get the length of a letter contained in a vector
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::chars::get_letter_length;
+///
+/// let options = Options::default();
+/// let letter = [
+///     String::from("<c1>███</c1><c2>╗</c2><c1>   ███</c1><c2>╗</c2>"),
+///     String::from("<c1>████</c1><c2>╗</c2><c1> ████</c1><c2>║</c2>"),
+///     String::from("<c1>██</c1><c2>╔</c2><c1>████</c1><c2>╔</c2><c1>██</c1><c2>║</c2>"),
+///     String::from("<c1>██</c1><c2>║╚</c2><c1>██</c1><c2>╔╝</c2><c1>██</c1><c2>║</c2>"),
+///     String::from("<c1>██</c1><c2>║ ╚═╝</c2><c1> ██</c1><c2>║</c2>"),
+///     String::from("<c2>╚═╝     ╚═╝</c2>"),
+/// ];
+///
+/// assert_eq!(get_letter_length(&letter, 2, &options), 11);
+/// ```
 pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &Options) -> usize {
 	d("chars::get_letter_length()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -221,6 +358,30 @@ pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &O
 	size
 }
 
+/// Add color meta info to a letter in form of ansi escape codes or HTML depending on the env set in [`Options`]
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Colors};
+/// use cfonts::chars::paint_letter;
+///
+/// let mut options = Options::default();
+/// options.colors = vec![Colors::Red, Colors::Green];
+/// let mut letter = vec![
+///     String::from("<c1>red</c1>"),
+///     String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
+///     String::from("no color"),
+/// ];
+///
+/// assert_eq!(paint_letter(&letter, 2, &options),
+///     vec![
+///         String::from("\x1b[31mred\x1b[39m"),
+///         String::from("\x1b[31mred\x1b[39m\x1b[32mgreen\x1b[39m\x1b[31mred\x1b[39m"),
+///         String::from("no color"),
+///     ]
+/// );
+/// ```
 pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Options) -> Vec<String> {
 	d("chars::paint_letter()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -270,6 +431,33 @@ pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Option
 	painted_letter
 }
 
+/// Align the last n line of an output vector to x total width taking into account the max amount of letters allowed
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Align};
+/// use cfonts::chars::align_last_line;
+///
+/// let mut options = Options::default();
+/// options.align = Align::Right;
+/// let mut input = vec![
+///     String::from("    line 1"),
+///     String::from("    line 2"),
+///     String::from("    line 3"),
+///     String::from("line 4"),
+///     String::from("line 5"),
+/// ];
+/// align_last_line(&mut input, 2, 6, 10, &options);
+///
+/// assert_eq!(input, vec![
+///     String::from("    line 1"),
+///     String::from("    line 2"),
+///     String::from("    line 3"),
+///     String::from("    line 4"),
+///     String::from("    line 5"),
+/// ]);
+/// ```
 pub fn align_last_line(
 	output: &mut [String],
 	font_lines: usize,

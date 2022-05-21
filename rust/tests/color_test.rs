@@ -126,7 +126,7 @@ mod color {
 		let options = Options::default();
 		assert_eq!(hsv2rsv(&Hsv::Val(0.0, 0.0, 0.0), &options), Rsv::Val(0.0, 0.0, 0.0));
 		assert_eq!(hsv2rsv(&Hsv::Val(360.0, 0.0, 0.0), &options), Rsv::Val(6.283185307179586, 0.0, 0.0));
-		assert_eq!(hsv2rsv(&Hsv::Val(180.0, 0.0, 0.0), &options), Rsv::Val(3.141592653589793, 0.0, 0.0));
+		assert_eq!(hsv2rsv(&Hsv::Val(180.0, 0.0, 0.0), &options), Rsv::Val(std::f64::consts::PI, 0.0, 0.0));
 		assert_eq!(hsv2rsv(&Hsv::Val(300.0, 0.0, 0.0), &options), Rsv::Val(5.235987755982989, 0.0, 0.0));
 	}
 
@@ -135,7 +135,7 @@ mod color {
 		let options = Options::default();
 		assert_eq!(rsv2hsv(&Rsv::Val(0.0, 0.0, 0.0), &options), Hsv::Val(0.0, 0.0, 0.0));
 		assert_eq!(rsv2hsv(&Rsv::Val(6.283185307179586, 0.0, 0.0), &options), Hsv::Val(360.0, 0.0, 0.0));
-		assert_eq!(rsv2hsv(&Rsv::Val(3.141592653589793, 0.0, 0.0), &options), Hsv::Val(180.0, 0.0, 0.0));
+		assert_eq!(rsv2hsv(&Rsv::Val(std::f64::consts::PI, 0.0, 0.0), &options), Hsv::Val(180.0, 0.0, 0.0));
 		assert_eq!(rsv2hsv(&Rsv::Val(5.235987755982989, 0.0, 0.0), &options), Hsv::Val(300.0, 0.0, 0.0));
 	}
 
@@ -144,7 +144,7 @@ mod color {
 		let options = Options::default();
 		assert_eq!(hex2rsv("#000000", &options), Rsv::Val(0.0, 0.0, 0.0));
 		assert_eq!(hex2rsv("#ffffff", &options), Rsv::Val(0.0, 0.0, 100.0));
-		assert_eq!(hex2rsv("#00ffff", &options), Rsv::Val(3.141592653589793, 100.0, 100.0));
+		assert_eq!(hex2rsv("#00ffff", &options), Rsv::Val(std::f64::consts::PI, 100.0, 100.0));
 		assert_eq!(hex2rsv("#ff00ff", &options), Rsv::Val(5.235987755982989, 100.0, 100.0));
 		assert_eq!(hex2rsv("#ffff00", &options), Rsv::Val(1.0471975511965976, 100.0, 100.0));
 	}
@@ -154,7 +154,7 @@ mod color {
 		let options = Options::default();
 		assert_eq!(rsv2hex(&Rsv::Val(0.0, 0.0, 0.0), &options), "#000000".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(0.0, 0.0, 100.0), &options), "#ffffff".to_string());
-		assert_eq!(rsv2hex(&Rsv::Val(3.141592653589793, 100.0, 100.0), &options), "#00ffff".to_string());
+		assert_eq!(rsv2hex(&Rsv::Val(std::f64::consts::PI, 100.0, 100.0), &options), "#00ffff".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(5.235987755982989, 100.0, 100.0), &options), "#ff00ff".to_string());
 		assert_eq!(rsv2hex(&Rsv::Val(1.0471975511965976, 100.0, 100.0), &options), "#ffff00".to_string());
 	}

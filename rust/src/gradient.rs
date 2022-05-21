@@ -21,12 +21,12 @@ use crate::debug::{d, Dt};
 /// let point_b = 5.0;
 /// let steps = 5;
 ///
-/// assert_eq!(get_linear(point_a, point_b, 0, steps, &options), point_a);
-/// assert_eq!(get_linear(point_a, point_b, 1, steps, &options), 1.0);
-/// assert_eq!(get_linear(point_a, point_b, 2, steps, &options), 2.0);
-/// assert_eq!(get_linear(point_a, point_b, 3, steps, &options), 3.0);
-/// assert_eq!(get_linear(point_a, point_b, 4, steps, &options), 4.0);
-/// assert_eq!(get_linear(point_a, point_b, 5, steps, &options), point_b);
+/// assert!((get_linear(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+/// assert!((get_linear(point_a, point_b, 1, steps, &options) - 1.0).abs() < f64::EPSILON);
+/// assert!((get_linear(point_a, point_b, 2, steps, &options) - 2.0).abs() < f64::EPSILON);
+/// assert!((get_linear(point_a, point_b, 3, steps, &options) - 3.0).abs() < f64::EPSILON);
+/// assert!((get_linear(point_a, point_b, 4, steps, &options) - 4.0).abs() < f64::EPSILON);
+/// assert!((get_linear(point_a, point_b, 5, steps, &options) - point_b).abs() < f64::EPSILON);
 /// // Note that was 6 steps in the end and the system is build to work that way
 /// ```
 pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
@@ -69,10 +69,10 @@ pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, op
 /// let point_b = 2.0;
 /// let steps = 3;
 ///
-/// assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
-/// assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 4.761061769059862);
-/// assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 0.23893823094013733);
-/// assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+/// assert!((get_theta(point_a, point_b, 0, steps, &options) - point_a).abs() < f64::EPSILON);
+/// assert!((get_theta(point_a, point_b, 1, steps, &options) - 4.761061769059862).abs() < f64::EPSILON);
+/// assert!((get_theta(point_a, point_b, 2, steps, &options) - 0.23893823094013733).abs() < f64::EPSILON);
+/// assert!((get_theta(point_a, point_b, 3, steps, &options) - point_b).abs() < f64::EPSILON);
 /// // Note that was 4 steps in the end and the system is build to work that way
 /// ```
 pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
@@ -280,7 +280,7 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 /// use cfonts::gradient::get_transition_steps;
 ///
 /// let options = Options::default();
-/// let colors = vec!["color1".to_string(), "color2".to_string()];
+/// let colors = ["color1".to_string(), "color2".to_string()];
 ///
 /// assert_eq!(get_transition_steps(&colors, 1, &options), vec![-1]);
 /// assert_eq!(get_transition_steps(&colors, 2, &options), vec![0]);
@@ -323,19 +323,19 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 /// use cfonts::gradient::get_multiple_transition_colors;
 ///
 /// let options = Options::default();
-/// let colors = vec!["#ff0000".to_string(), "#0000ff".to_string()];
+/// let colors = ["#ff0000".to_string(), "#0000ff".to_string()];
 ///
 /// assert_eq!(
 ///     get_multiple_transition_colors(&colors, 1, &options),
 ///     vec![
-///         "#0000ff".to_string()
+///         "#0000ff".to_string(),
 ///     ]
 /// );
 /// assert_eq!(
 ///     get_multiple_transition_colors(&colors, 2, &options),
 ///     vec![
 ///         "#ff0000".to_string(),
-///         "#0000ff".to_string()
+///         "#0000ff".to_string(),
 ///     ]
 /// );
 /// assert_eq!(
@@ -343,7 +343,7 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 ///     vec![
 ///         "#ff0000".to_string(),
 ///         "#7f007f".to_string(),
-///         "#0000ff".to_string()
+///         "#0000ff".to_string(),
 ///     ]
 /// );
 /// assert_eq!(
@@ -352,7 +352,7 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 ///         "#ff0000".to_string(),
 ///         "#aa0055".to_string(),
 ///         "#5500aa".to_string(),
-///         "#0000ff".to_string()
+///         "#0000ff".to_string(),
 ///     ]
 /// );
 /// ```

@@ -199,7 +199,7 @@ pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
 	d(&format!("color::rsv2hsv()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, s, v) = rsv.get_value();
-	let precision = 1000000000000.0;
+	let precision = 1_000_000_000_000.0;
 	let h = (((r * 180.0) / std::f64::consts::PI) * precision).round() / precision;
 
 	d(&format!("color::rsv2hsv() {:?} -> {:?}", rsv, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());

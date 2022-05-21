@@ -71,7 +71,7 @@ pub fn render(options: Options) -> RenderedString {
 				80
 			}
 		}
-		Env::Browser => 65535,
+		Env::Browser => 0xFFFF,
 	};
 
 	let mut font = font::get(&options);

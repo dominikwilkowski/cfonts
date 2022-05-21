@@ -151,7 +151,7 @@ mod chars {
 			String::from("3333"),
 			String::from("3"),
 		];
-		assert_eq!(get_longest_line_len(&mut output, 2, &options), 4);
+		assert_eq!(get_longest_line_len(&output, 2, &options), 4);
 
 		output = vec![
 			String::from("1"),
@@ -161,7 +161,7 @@ mod chars {
 			String::from("22"),
 			String::from("22"),
 		];
-		assert_eq!(get_longest_line_len(&mut output, 3, &options), 3);
+		assert_eq!(get_longest_line_len(&output, 3, &options), 3);
 
 		output = vec![
 			String::from("1"),
@@ -171,26 +171,23 @@ mod chars {
 			String::from("3333"),
 			String::from("33333"),
 		];
-		assert_eq!(get_longest_line_len(&mut output, 2, &options), 5);
+		assert_eq!(get_longest_line_len(&output, 2, &options), 5);
 	}
 
 	#[test]
 	fn get_first_char_position_works() {
 		let options = Options::default();
-		assert_eq!(get_first_char_position(&vec![String::from("x")], &options), 0);
-		assert_eq!(get_first_char_position(&vec![String::from("  x")], &options), 2);
-		assert_eq!(get_first_char_position(&vec![String::from("    x")], &options), 4);
+		assert_eq!(get_first_char_position(&[String::from("x")], &options), 0);
+		assert_eq!(get_first_char_position(&[String::from("  x")], &options), 2);
+		assert_eq!(get_first_char_position(&[String::from("    x")], &options), 4);
 
 		assert_eq!(
-			get_first_char_position(&vec![String::from("     x"), String::from(" x"), String::from("   x")], &options),
+			get_first_char_position(&[String::from("     x"), String::from(" x"), String::from("   x")], &options),
 			1
 		);
+		assert_eq!(get_first_char_position(&[String::from("     x"), String::from(""), String::from("   x")], &options), 3);
 		assert_eq!(
-			get_first_char_position(&vec![String::from("     x"), String::from(""), String::from("   x")], &options),
-			3
-		);
-		assert_eq!(
-			get_first_char_position(&vec![String::from("   x"), String::from("   x x"), String::from(" x   x")], &options),
+			get_first_char_position(&[String::from("   x"), String::from("   x x"), String::from(" x   x")], &options),
 			1
 		);
 	}
