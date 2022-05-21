@@ -1,5 +1,3 @@
-//! # Command Line Interface
-//!
 //! The contents of this module is all about cli specific functionality
 use crate::color::color;
 use crate::config::{Align, BgColors, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};

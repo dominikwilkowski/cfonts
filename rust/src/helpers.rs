@@ -1,5 +1,3 @@
-//! # Helper file
-//!
 //! The contents of this module is all about helper functions
 
 /// A function to print the type of a thing

@@ -1,7 +1,6 @@
-//! # Gradients
+//! The contents of this module is all about functions to add gradients to the output of cfonts.
 //!
-//! The contents of this module is all about functions to add gradients to the output of cfonts,
-//! it depends heavily on the color module
+//! This module depends heavily on the color module
 use std::f64;
 
 use crate::chars::{get_first_char_position, get_longest_line_len};

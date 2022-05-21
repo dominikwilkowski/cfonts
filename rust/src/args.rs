@@ -1,5 +1,3 @@
-//! # Parsing cli arguments
-//!
 //! The contents of this module is all about parsing cli arguments
 use std::collections::HashMap;
 

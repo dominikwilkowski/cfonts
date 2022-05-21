@@ -1,5 +1,3 @@
-//! # Config
-//!
 //! The contents of this module is all about the configuration of this package
 extern crate strum;
 use strum::IntoEnumIterator;
