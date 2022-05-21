@@ -17,7 +17,7 @@ use debug::{d, Dt};
 use render::render;
 
 fn main() {
-	let mut options = match args::parse(args().collect::<Vec<String>>()) {
+	let options = match args::parse(args().collect::<Vec<String>>()) {
 		Ok(options) => options,
 		Err(msg) => {
 			println!("{}", msg);
@@ -44,6 +44,6 @@ fn main() {
 		return;
 	}
 
-	let render_options = render(&mut options);
+	let render_options = render(options);
 	println!("{}", render_options.text);
 }

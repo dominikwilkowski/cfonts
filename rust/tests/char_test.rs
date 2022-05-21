@@ -12,21 +12,18 @@ mod chars {
 
 	#[test]
 	fn get_letter_space_works() {
-		let mut options = Options::default();
-		options.letter_spacing = 1;
+		let options = Options::default();
 		let mut letter_space = vec![String::from(" "), String::from(" "), String::from(" ")];
 		assert_eq!(
-			get_letter_space(&letter_space, &options),
+			get_letter_space(&letter_space, 1, &options),
 			vec![String::from(" "), String::from(" "), String::from(" ")]
 		);
-		options.letter_spacing = 2;
 		assert_eq!(
-			get_letter_space(&letter_space, &options),
+			get_letter_space(&letter_space, 2, &options),
 			vec![String::from("  "), String::from("  "), String::from("  ")]
 		);
-		options.letter_spacing = 10;
 		assert_eq!(
-			get_letter_space(&letter_space, &options),
+			get_letter_space(&letter_space, 10, &options),
 			vec![
 				String::from("          "),
 				String::from("          "),
@@ -34,12 +31,10 @@ mod chars {
 			]
 		);
 
-		options.letter_spacing = 1;
 		letter_space = vec![String::from(""), String::from("")];
-		assert_eq!(get_letter_space(&letter_space, &options), vec![String::from(" "), String::from(" ")]);
-		options.letter_spacing = 5;
+		assert_eq!(get_letter_space(&letter_space, 1, &options), vec![String::from(" "), String::from(" ")]);
 		letter_space = vec![String::from(""), String::from("")];
-		assert_eq!(get_letter_space(&letter_space, &options), vec![String::from("     "), String::from("     ")]);
+		assert_eq!(get_letter_space(&letter_space, 5, &options), vec![String::from("     "), String::from("     ")]);
 	}
 
 	#[test]
@@ -125,14 +120,13 @@ mod chars {
 
 	#[test]
 	fn add_line_height_works() {
-		let mut options = Options::default();
+		let options = Options::default();
 		let mut output = vec![String::from("1"), String::from("1"), String::from("1")];
-		add_line_height(&mut output, &options);
+		add_line_height(&mut output, 1, &options);
 		assert_eq!(output, vec![String::from("1"), String::from("1"), String::from("1"), String::new(),]);
 
 		output = vec![String::from("1"), String::from("1"), String::from("1")];
-		options.line_height = 3;
-		add_line_height(&mut output, &options);
+		add_line_height(&mut output, 3, &options);
 		assert_eq!(
 			output,
 			vec![

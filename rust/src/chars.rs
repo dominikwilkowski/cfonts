@@ -2,13 +2,10 @@ use crate::color::get_foreground_color;
 use crate::config::{Align, Colors, Env, Options};
 use crate::debug::{d, Dt};
 
-pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<String> {
+pub fn get_letter_space(letter_space: &[String], letter_spacing: u16, options: &Options) -> Vec<String> {
 	d("chars::get_letter_space()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
-		&format!(
-			"chars::get_letter_space()\nletter_space:{:?}\noptions.letter_spacing:{:?}",
-			letter_space, options.letter_spacing
-		),
+		&format!("chars::get_letter_space()\nletter_space:{:?}\noptions.letter_spacing:{:?}", letter_space, letter_spacing),
 		2,
 		Dt::Log,
 		options,
@@ -19,8 +16,8 @@ pub fn get_letter_space(letter_space: &[String], options: &Options) -> Vec<Strin
 
 	for letter_space_line in letter_space {
 		let space = match letter_space_line.len() {
-			0 => String::from(" ").repeat(options.letter_spacing as usize),
-			_ => letter_space_line.repeat(options.letter_spacing as usize),
+			0 => String::from(" ").repeat(letter_spacing as usize),
+			_ => letter_space_line.repeat(letter_spacing as usize),
 		};
 
 		output.push(space);
@@ -65,17 +62,17 @@ pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 	d(&format!("chars::add_letter() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
 }
 
-pub fn add_line_height(output: &mut Vec<String>, options: &Options) {
+pub fn add_line_height(output: &mut Vec<String>, line_height: u16, options: &Options) {
 	d("chars::add_line_height()", 2, Dt::Head, options, &mut std::io::stdout());
 	d(
-		&format!("chars::add_line_height()\noutput:{:?}\nline_height:{:?}", output, options.line_height),
+		&format!("chars::add_line_height()\noutput:{:?}\nline_height:{:?}", output, line_height),
 		2,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
 	);
 
-	for _ in 0..options.line_height {
+	for _ in 0..line_height {
 		output.push(String::new());
 	}
 
@@ -172,7 +169,10 @@ pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Option
 		.map(|line| {
 			let mut new_line = line.clone();
 			for i in 1..=font_color_count {
-				let color_name = options.colors.get(i - 1).unwrap_or(&Colors::System);
+				let color_name = match !options.gradient.is_empty() {
+					true => &Colors::System,
+					false => options.colors.get(i - 1).unwrap_or(&Colors::System),
+				};
 				let (color_start, color_end) = match options.env {
 					Env::Cli => {
 						let (color_start, color_end) = match color_name {

@@ -16,7 +16,7 @@ pub fn help(options: &Options) -> String {
 	d("cli::help()", 1, Dt::Head, options, &mut std::io::stdout());
 
 	let mut output = String::new();
-	let render_options = render(&mut Options {
+	let render_options = render(Options {
 		text: String::from("cfonts"),
 		align: Align::Left,
 		gradient: vec![String::from("#ff0000"), String::from("#00ff00")],

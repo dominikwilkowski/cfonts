@@ -31,7 +31,7 @@
 //! use cfonts::{ say, Options };
 //!
 //! fn main() {
-//!     say(&mut Options {
+//!     say(Options {
 //!         text: String::from("hello"),
 //!         ..Options::default()
 //!     });
@@ -46,7 +46,7 @@
 //! use cfonts::{ render, Options, Fonts };
 //!
 //! fn main() {
-//!     let output = render(&mut Options {
+//!     let output = render(Options {
 //!         text: String::from("hello"),
 //!         font: Fonts::FontTiny,
 //!         ..Options::default()
@@ -106,7 +106,7 @@ pub use render::render;
 /// use cfonts::{ say, Options, Align, BgColors, Colors, Env, Fonts, Rgb };
 ///
 /// fn main() {
-///     say(&mut Options {
+///     say(Options {
 ///         text: String::from("hello"),
 ///         font: Fonts::FontSlick,
 ///         colors: vec![Colors::Red, Colors::Rgb(Rgb::Val(20, 216, 79))],
@@ -124,9 +124,9 @@ pub use render::render;
 ///     });
 /// }
 /// ```
-pub fn say(options: &mut config::Options) {
-	d("say()", 1, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("say() Options:\n{:#?}", options), 3, Dt::Log, options, &mut std::io::stdout());
+pub fn say(options: Options) {
+	d("say()", 1, Dt::Head, &options, &mut std::io::stdout());
+	d(&format!("say() Options:\n{:#?}", options), 3, Dt::Log, &options, &mut std::io::stdout());
 
 	let render_options = render(options);
 	println!("{}", render_options.text);

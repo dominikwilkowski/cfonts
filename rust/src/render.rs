@@ -23,17 +23,12 @@ pub struct RenderedString {
 	pub options: Options,
 }
 
-pub fn render(options: &mut Options) -> RenderedString {
-	d("render()", 1, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("render() Options:\n{:#?}", options), 3, Dt::Log, options, &mut std::io::stdout());
+pub fn render(options: Options) -> RenderedString {
+	d("render()", 1, Dt::Head, &options, &mut std::io::stdout());
+	d(&format!("render() Options:\n{:#?}", options), 3, Dt::Log, &options, &mut std::io::stdout());
 
 	// enable ansi support in windows 10
 	if let Ok(()) = enable_ansi_support() {}
-
-	// the gradient option supersedes the color options
-	if !options.gradient.is_empty() {
-		options.colors = Vec::new();
-	}
 
 	let size = terminal_size();
 	let terminal_width = match options.env {
@@ -47,31 +42,35 @@ pub fn render(options: &mut Options) -> RenderedString {
 		Env::Browser => 65535,
 	};
 
-	let mut font = font::get(options);
+	let mut font = font::get(&options);
 	let mut line_length = 0;
 	let mut letter_count = 0;
 	let mut lines = 0;
 	let mut output: Vec<String> = Vec::new();
 
 	// some fonts have smaller letter spacing
-	if font.letterspace_size == 0 && options.letter_spacing > 0 {
-		options.letter_spacing -= 1;
-	}
+	let letter_spacing = if font.letterspace_size == 0 && options.letter_spacing > 0 {
+		options.letter_spacing - 1
+	} else {
+		options.letter_spacing
+	};
 
 	// the console font is special in that it has less line height space
-	if options.font == Fonts::FontConsole && options.line_height > 0 {
-		options.line_height -= 1;
-	}
+	let line_height = if options.font == Fonts::FontConsole && options.line_height > 0 {
+		options.line_height - 1
+	} else {
+		options.line_height
+	};
 
-	let letter_space = get_letter_space(&font.letterspace, options);
-	let letter_space_len = get_letter_length(&letter_space, font.colors, options);
-	let painted_letter_space = paint_letter(&letter_space, font.colors, options);
+	let letter_space = get_letter_space(&font.letterspace, letter_spacing, &options);
+	let letter_space_len = get_letter_length(&letter_space, font.colors, &options);
+	let painted_letter_space = paint_letter(&letter_space, font.colors, &options);
 
-	add_line(&mut output, font.lines, options);
+	add_line(&mut output, font.lines, &options);
 	lines += 1;
 
-	add_letter(&mut output, &font.buffer, options);
-	let buffer_len = get_letter_length(&font.buffer, font.lines, options);
+	add_letter(&mut output, &font.buffer, &options);
+	let buffer_len = get_letter_length(&font.buffer, font.lines, &options);
 	line_length += buffer_len;
 
 	options.text.chars().for_each(|og_letter| {
@@ -80,34 +79,34 @@ pub fn render(options: &mut Options) -> RenderedString {
 		match font.chars.get(&og_letter.to_string().to_uppercase()) {
 			None => { /* we ignore characters that are not supported */ }
 			Some(font_letter) => {
-				let this_letter_len = get_letter_length(font_letter, font.colors, options);
+				let this_letter_len = get_letter_length(font_letter, font.colors, &options);
 				if font_letter[0] == "|"
 					|| this_letter_len + letter_space_len + line_length > terminal_width.into()
 					|| letter_count + 1 > options.max_length && options.max_length > 0
 				{
-					align_last_line(&mut output, font.lines, line_length, terminal_width.into(), options);
-					add_line(&mut output, font.lines, options);
-					add_line_height(&mut output, options);
-					add_letter(&mut output, &font.buffer, options);
+					align_last_line(&mut output, font.lines, line_length, terminal_width.into(), &options);
+					add_line(&mut output, font.lines, &options);
+					add_line_height(&mut output, line_height, &options);
+					add_letter(&mut output, &font.buffer, &options);
 					line_length = buffer_len;
 					lines += 1;
 					letter_count = 0;
 				}
 
 				if font_letter[0] != "|" {
-					let painted_letter = paint_letter(font_letter, font.colors, options);
-					add_letter(&mut output, &painted_letter_space, options);
-					add_letter(&mut output, &painted_letter, options);
+					let painted_letter = paint_letter(font_letter, font.colors, &options);
+					add_letter(&mut output, &painted_letter_space, &options);
+					add_letter(&mut output, &painted_letter, &options);
 					letter_count += 1;
 					line_length += letter_space_len + this_letter_len;
 				}
 			}
 		}
 	});
-	align_last_line(&mut output, font.lines, line_length, terminal_width.into(), options);
+	align_last_line(&mut output, font.lines, line_length, terminal_width.into(), &options);
 
 	if !options.gradient.is_empty() {
-		output = add_gradient_colors(&output, lines, font.lines, options);
+		output = add_gradient_colors(&output, lines, font.lines, &options);
 	}
 
 	if !options.spaceless {
@@ -134,7 +133,7 @@ pub fn render(options: &mut Options) -> RenderedString {
 	};
 
 	if options.env == Env::Browser {
-		let color = bgcolor2hex(&options.background, options);
+		let color = bgcolor2hex(&options.background, &options);
 		let align = match options.align {
 			Align::Left => "left",
 			Align::Right => "right",
@@ -148,6 +147,6 @@ pub fn render(options: &mut Options) -> RenderedString {
 		text,
 		vec: output,
 		lines,
-		options: options.clone(),
+		options,
 	}
 }
