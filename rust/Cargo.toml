@@ -1,6 +1,6 @@
 [package]
 name = "cfonts"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-2.0"
@@ -8,6 +8,7 @@ description = "Sexy fonts for the console"
 readme = "../README.md"
 homepage = "https://github.com/dominikwilkowski/cfonts"
 repository = "https://github.com/dominikwilkowski/cfonts"
+documentation = "https://docs.rs/cfonts/"
 keywords = ["font", "banner", "logo", "CLI", "console", "ascii", "pretty", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 include = ["/fonts", "/src", "!.DS_Store"]
