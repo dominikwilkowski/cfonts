@@ -76,7 +76,6 @@
 //!     });
 //! }
 //! ```
-//!
 
 extern crate exitcode;
 
