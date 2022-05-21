@@ -1,8 +1,22 @@
+//! # Command Line Interface
+//!
+//! The contents of this module is all about cli specific functionality
 use crate::color::color;
 use crate::config::{Align, BgColors, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
 use crate::debug::{d, Dt};
 use crate::render::render;
 
+/// Return the string to display when the `version` option is passed in via the [`Options`] struct
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::cli::version;
+///
+/// let options = Options::default();
+/// assert_eq!(version(&options), format!("v{}", env!("CARGO_PKG_VERSION")));
+/// ```
 pub fn version(options: &Options) -> String {
 	d("cli::version()", 1, Dt::Head, options, &mut std::io::stdout());
 
@@ -12,6 +26,17 @@ pub fn version(options: &Options) -> String {
 	format!("v{}", version)
 }
 
+/// Return the string to display when the `help` option is passed in via the [`Options`] struct
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::cli::help;
+///
+/// let options = Options::default();
+/// assert!(help(&options).contains("Usage:"));
+/// ```
 pub fn help(options: &Options) -> String {
 	d("cli::help()", 1, Dt::Head, options, &mut std::io::stdout());
 
