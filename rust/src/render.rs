@@ -1,3 +1,6 @@
+//! # Render
+//!
+//! The contents of this module is all about composing all functions together to render our output
 extern crate enable_ansi_support;
 use enable_ansi_support::enable_ansi_support;
 use terminal_size::{terminal_size, Width};

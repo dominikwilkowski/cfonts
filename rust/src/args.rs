@@ -1,3 +1,6 @@
+//! # Parsing cli arguments
+//!
+//! The contents of this module is all about parsing cli arguments
 use std::collections::HashMap;
 
 use crate::color::{color, get_foreground_color, hex2rgb, rgb2hex};

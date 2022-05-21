@@ -1,3 +1,6 @@
+//! # Font files
+//!
+//! The contents of this module is all about getting information about our font
 extern crate serde_json;
 use serde::Deserialize;
 

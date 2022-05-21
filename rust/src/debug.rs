@@ -1,9 +1,9 @@
 //! # Debugging
 //!
-//! The debug function is to make debugging easier.
+//! The contents of this module is all about debugging
 //! We use the `debug_level` of [`Options`] to toggle visibility of debug messages
 //!
-//! The debug message may later go into a file you can send to in for analysis.
+//! The debug message _may_ later go into a file you can send to in for analysis.
 use crate::color::{color, get_background_color};
 use crate::config::{BgColors, Colors, Options};
 
