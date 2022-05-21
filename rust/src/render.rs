@@ -13,16 +13,47 @@ use crate::gradient::add_gradient_colors;
 
 /// The return struct you get from [`render()`]
 pub struct RenderedString {
-	/// A string ready to go to stdout with ansi escape codes and line breaks
+	/// A string ready to go to `stdout` with ansi escape codes and line breaks
 	pub text: String,
 	/// A vec of the string where each item is a new line in the output
 	pub vec: Vec<String>,
-	/// How many lines the output has, that is lines of cfont text, not output text
+	/// How many lines the output has
+	/// – that is lines of cfonts text, not lines in output text
 	pub lines: usize,
 	/// The [`Options`] struct that was used to compile this output
 	pub options: Options,
 }
 
+/// ## Render your text to a sexy font ready to be printed to `stdout`
+///
+/// Use this function if you want control over what to do with the output and
+/// not have it automatically printed to `stdout` via the [`crate::say()`] function.
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{ render, Options, Fonts };
+///
+/// fn main() {
+///     let output = render(Options {
+///         text: String::from("hello"),
+///         font: Fonts::FontTiny,
+///         ..Options::default()
+///     });
+///
+///     assert_eq!(
+///         output.text,
+///         format!("{}{}{}",
+///             "\n\n",
+///             " █ █ █▀▀ █   █   █▀█\n",
+///             " █▀█ ██▄ █▄▄ █▄▄ █▄█\n\n"
+///         )
+///     );
+/// }
+/// ```
+///
+/// The return struct [`RenderedString`] will give you a bunch of things you
+/// use to work with the output.
 pub fn render(options: Options) -> RenderedString {
 	d("render()", 1, Dt::Head, &options, &mut std::io::stdout());
 	d(&format!("render() Options:\n{:#?}", options), 3, Dt::Log, &options, &mut std::io::stdout());
