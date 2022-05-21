@@ -9,19 +9,43 @@ use crate::color::color;
 use crate::config::{Colors, Fonts, Options};
 use crate::debug::{d, Dt};
 
+/// The shape of our font data
 #[derive(Debug, Deserialize)]
 pub struct Font {
+	/// The name of our font
 	pub name: String,
+	/// The version of this font
 	pub version: String,
+	/// The homepage of this font
 	pub homepage: String,
+	/// The supported colors of this font
 	pub colors: usize,
+	/// The output lines this font needs
 	pub lines: usize,
+	/// The buffer to be printed at the start of each new line
 	pub buffer: Vec<String>,
+	/// The letter space of this font
 	pub letterspace: Vec<String>,
+	/// The letter space size of this font
 	pub letterspace_size: usize,
+	/// A hashmap of all supported letters
 	pub chars: HashMap<String, Vec<String>>,
 }
 
+/// Function to get the data of the font chosen
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{ Options, Fonts };
+/// use cfonts::font::get;
+///
+/// let mut options = Options::default();
+/// options.font = Fonts::FontChrome;
+///
+/// let this_font = get(&options);
+/// assert_eq!(this_font.name, String::from("chrome"));
+/// ```
 pub fn get(options: &Options) -> Font {
 	d("font::get()", 1, Dt::Head, options, &mut std::io::stdout());
 	let filename = match options.font {

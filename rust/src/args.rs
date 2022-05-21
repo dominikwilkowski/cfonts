@@ -14,7 +14,7 @@ use crate::debug::{d, Dt};
 /// ```rust
 /// extern crate cfonts;
 ///
-/// use cfonts::{ render, Options, Align, Colors, BgColors, Fonts, Env };
+/// use cfonts::{ Options, Align, Colors, BgColors, Fonts, Env };
 /// use cfonts::args::parse;
 ///
 /// let mut options = Options::default();
