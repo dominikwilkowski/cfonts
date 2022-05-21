@@ -1,3 +1,4 @@
+//! The contents of this module is all about colors, color-transformation and color-conversion
 use rand::seq::SliceRandom;
 use rgb2ansi256::rgb_to_ansi256;
 use std::env;
@@ -7,32 +8,42 @@ use crate::config::{BgColors, Colors};
 use crate::config::{Env, Options};
 use crate::debug::{d, Dt};
 
+/// An enum to list the available ANSI color support in the consumers console/terminal
 #[derive(Debug, PartialEq)]
 pub enum TermColorSupport {
+	/// 16 million colors via truecolor RGB
 	Ansi16m,
+	/// 256 colors
 	Ansi256,
+	/// 8 base colors + 8 bright colors
 	Ansi16,
+	/// No color support
 	NoColor,
 }
 
+/// An enum to list the two color layers: foreground and background
 #[derive(Debug)]
 pub enum ColorLayer {
 	Foreground,
 	Background,
 }
 
+/// The `Rgb` enum is being used to store [RGB](https://en.wikipedia.org/wiki/RGB_color_model) values
 #[derive(Debug, Clone, PartialEq)]
 pub enum Rgb {
 	Val(u8, u8, u8),
 }
 
+/// We need the Default trait because Options implements it
 impl Default for Rgb {
+	/// We default to black by default for no particular reason at all
 	fn default() -> Self {
 		Rgb::Val(0, 0, 0)
 	}
 }
 
 impl Rgb {
+	/// An implementation to get the values out of the enum
 	pub fn get_value(&self) -> (u8, u8, u8) {
 		match self {
 			Rgb::Val(r, g, b) => (*r, *g, *b),
@@ -40,12 +51,14 @@ impl Rgb {
 	}
 }
 
+/// The `Hsv` enum is being used to store [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV) values
 #[derive(Debug, Clone, PartialEq)]
 pub enum Hsv {
 	Val(f64, f64, f64),
 }
 
 impl Hsv {
+	/// An implementation to get the values out of the enum
 	pub fn get_value(&self) -> (f64, f64, f64) {
 		match self {
 			Hsv::Val(h, s, v) => (*h, *s, *v),
@@ -53,12 +66,14 @@ impl Hsv {
 	}
 }
 
+/// The `Rsv` enum is being used to store [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV) values but with radial coordinates
 #[derive(Debug, Clone, PartialEq)]
 pub enum Rsv {
 	Val(f64, f64, f64),
 }
 
 impl Rsv {
+	/// An implementation to get the values out of the enum
 	pub fn get_value(&self) -> (f64, f64, f64) {
 		match self {
 			Rsv::Val(h, s, v) => (*h, *s, *v),
@@ -66,6 +81,29 @@ impl Rsv {
 	}
 }
 
+/// Convert RGB colors to HSV colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Rgb};
+/// use cfonts::color::{rgb2hsv, Hsv};
+///
+/// let options = Options::default();
+///
+/// assert_eq!(
+///     rgb2hsv(&Rgb::Val(0, 0, 0), &options),
+///     Hsv::Val(0.0, 0.0, 0.0)
+/// );
+/// assert_eq!(
+///     rgb2hsv(&Rgb::Val(155, 150, 100), &options),
+///     Hsv::Val(54.54545454545456, 35.48387096774193, 60.78431372549019)
+/// );
+/// assert_eq!(
+///     rgb2hsv(&Rgb::Val(166, 20, 100), &options),
+///     Hsv::Val(327.1232876712329, 87.95180722891565, 65.09803921568627)
+/// );
+/// ```
 pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 	d("color::rgb2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::rgb2hsv()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
@@ -99,6 +137,21 @@ pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 	Hsv::Val(h, s, v)
 }
 
+/// Convert HSV colors to RBG colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Rgb};
+/// use cfonts::color::{hsv2rgb, Hsv};
+///
+/// let options = Options::default();
+///
+/// assert_eq!(hsv2rgb(&Hsv::Val(0.0, 0.0, 0.0), &options), Rgb::Val(0, 0, 0));
+/// assert_eq!(hsv2rgb(&Hsv::Val(30.0, 20.0, 20.0), &options), Rgb::Val(51, 45, 40));
+/// assert_eq!(hsv2rgb(&Hsv::Val(80.0, 20.0, 20.0), &options), Rgb::Val(47, 51, 40));
+/// assert_eq!(hsv2rgb(&Hsv::Val(120.0, 20.0, 20.0), &options), Rgb::Val(40, 51, 40));
+/// ```
 pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 	d("color::hsv2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::hsv2rgb()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
@@ -129,6 +182,24 @@ pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 	result
 }
 
+/// Convert RGB colors to Hex colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Rgb};
+/// use cfonts::color::rgb2hex;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(rgb2hex(&Rgb::Val(0, 0, 0), &options), "#000000");
+/// assert_eq!(rgb2hex(&Rgb::Val(255, 255, 255), &options), "#ffffff");
+/// assert_eq!(rgb2hex(&Rgb::Val(0, 255, 255), &options), "#00ffff");
+/// assert_eq!(rgb2hex(&Rgb::Val(255, 0, 255), &options), "#ff00ff");
+/// assert_eq!(rgb2hex(&Rgb::Val(255, 255, 0), &options), "#ffff00");
+/// assert_eq!(rgb2hex(&Rgb::Val(127, 127, 127), &options), "#7f7f7f");
+/// assert_eq!(rgb2hex(&Rgb::Val(255, 136, 0), &options), "#ff8800");
+/// ```
 pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
 	d("color::rgb2hex()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::rgb2hex()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
@@ -140,6 +211,25 @@ pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
 	result
 }
 
+/// Convert Hex colors to RGB colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Rgb};
+/// use cfonts::color::hex2rgb;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(hex2rgb("#000000", &options), Rgb::Val(0, 0, 0));
+/// assert_eq!(hex2rgb("#000", &options), Rgb::Val(0, 0, 0));
+/// assert_eq!(hex2rgb("#ffffff", &options), Rgb::Val(255, 255, 255));
+/// assert_eq!(hex2rgb("#00ffff", &options), Rgb::Val(0, 255, 255));
+/// assert_eq!(hex2rgb("#ff00ff", &options), Rgb::Val(255, 0, 255));
+/// assert_eq!(hex2rgb("#ffff00", &options), Rgb::Val(255, 255, 0));
+/// assert_eq!(hex2rgb("#ffffffff", &options), Rgb::Val(255, 255, 255));
+/// // ^ The function is trying to be as forgiving as possible when it comes to parsing hex input from a string
+/// ```
 pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	d("color::hex2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::hex2rgb()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
@@ -183,6 +273,21 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	result
 }
 
+/// Convert HSV colors to RSV colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::color::{hsv2rsv, Hsv, Rsv};
+///
+/// let options = Options::default();
+///
+/// assert_eq!(hsv2rsv(&Hsv::Val(0.0, 0.0, 0.0), &options), Rsv::Val(0.0, 0.0, 0.0));
+/// assert_eq!(hsv2rsv(&Hsv::Val(360.0, 0.0, 0.0), &options), Rsv::Val(6.283185307179586, 0.0, 0.0));
+/// assert_eq!(hsv2rsv(&Hsv::Val(180.0, 0.0, 0.0), &options), Rsv::Val(std::f64::consts::PI, 0.0, 0.0));
+/// assert_eq!(hsv2rsv(&Hsv::Val(300.0, 0.0, 0.0), &options), Rsv::Val(5.235987755982989, 0.0, 0.0));
+/// ```
 pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
 	d("color::hsv2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::hsv2rsv()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
@@ -194,6 +299,21 @@ pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
 	Rsv::Val(r, s, v)
 }
 
+/// Convert RSV colors to HSV colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::color::{rsv2hsv, Hsv, Rsv};
+///
+/// let options = Options::default();
+///
+/// assert_eq!(rsv2hsv(&Rsv::Val(0.0, 0.0, 0.0), &options), Hsv::Val(0.0, 0.0, 0.0));
+/// assert_eq!(rsv2hsv(&Rsv::Val(6.283185307179586, 0.0, 0.0), &options), Hsv::Val(360.0, 0.0, 0.0));
+/// assert_eq!(rsv2hsv(&Rsv::Val(std::f64::consts::PI, 0.0, 0.0), &options), Hsv::Val(180.0, 0.0, 0.0));
+/// assert_eq!(rsv2hsv(&Rsv::Val(5.235987755982989, 0.0, 0.0), &options), Hsv::Val(300.0, 0.0, 0.0));
+/// ```
 pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
 	d("color::rsv2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::rsv2hsv()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
@@ -206,6 +326,22 @@ pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
 	Hsv::Val(h, s, v)
 }
 
+/// Convert Hex colors to RSV colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::color::{hex2rsv, Rsv};
+///
+/// let options = Options::default();
+///
+/// assert_eq!(hex2rsv("#000000", &options), Rsv::Val(0.0, 0.0, 0.0));
+/// assert_eq!(hex2rsv("#ffffff", &options), Rsv::Val(0.0, 0.0, 100.0));
+/// assert_eq!(hex2rsv("#00ffff", &options), Rsv::Val(std::f64::consts::PI, 100.0, 100.0));
+/// assert_eq!(hex2rsv("#ff00ff", &options), Rsv::Val(5.235987755982989, 100.0, 100.0));
+/// assert_eq!(hex2rsv("#ffff00", &options), Rsv::Val(1.0471975511965976, 100.0, 100.0));
+/// ```
 pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
 	d("color::hex2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::hex2rsv()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
@@ -216,6 +352,22 @@ pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
 	result
 }
 
+/// Convert Rsv colors to Hex colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::color::{rsv2hex, Rsv};
+///
+/// let options = Options::default();
+///
+/// assert_eq!(rsv2hex(&Rsv::Val(0.0, 0.0, 0.0), &options), "#000000".to_string());
+/// assert_eq!(rsv2hex(&Rsv::Val(0.0, 0.0, 100.0), &options), "#ffffff".to_string());
+/// assert_eq!(rsv2hex(&Rsv::Val(std::f64::consts::PI, 100.0, 100.0), &options), "#00ffff".to_string());
+/// assert_eq!(rsv2hex(&Rsv::Val(5.235987755982989, 100.0, 100.0), &options), "#ff00ff".to_string());
+/// assert_eq!(rsv2hex(&Rsv::Val(1.0471975511965976, 100.0, 100.0), &options), "#ffff00".to_string());
+/// ```
 pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 	d("color::rsv2hex()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::rsv2hex()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
@@ -226,6 +378,21 @@ pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 	result
 }
 
+/// Convert [`Colors`] values to Hex colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Colors, Rgb};
+/// use cfonts::color::color2hex;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(color2hex(&Colors::Red, &options), "#ea3223".to_string());
+/// assert_eq!(color2hex(&Colors::CyanBright, &options), "#8dfafd".to_string());
+/// assert_eq!(color2hex(&Colors::Rgb(Rgb::Val(255, 0, 0)), &options), "#ff0000".to_string());
+/// ```
+/// > 💡  `Colors::Candy` will give us a random pick of some assorted candy-like colors
 pub fn color2hex(color: &Colors, options: &Options) -> String {
 	d("color::color2hex()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::color2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
@@ -264,6 +431,20 @@ pub fn color2hex(color: &Colors, options: &Options) -> String {
 	hex
 }
 
+/// Convert [`BgColors`] values to Hex colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, BgColors, Rgb};
+/// use cfonts::color::bgcolor2hex;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(bgcolor2hex(&BgColors::Red, &options), "#ea3223".to_string());
+/// assert_eq!(bgcolor2hex(&BgColors::YellowBright, &options), "#fffb7f".to_string());
+/// assert_eq!(bgcolor2hex(&BgColors::Rgb(Rgb::Val(255, 0, 0)), &options), "#ff0000".to_string());
+/// ```
 pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
 	d("color::bgcolor2hex()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("color::bgcolor2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
@@ -295,6 +476,24 @@ pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
 	hex
 }
 
+/// Convert RGB colors to the opening ansi escape sequence for consoles supporting 16 million colors (`truecolor`)
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Rgb;
+/// use cfonts::color::{rgb2ansi_16m, ColorLayer};
+///
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[38;2;255;0;0m".to_string());
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[38;2;255;255;0m".to_string());
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;2;255;255;255m".to_string());
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;2;157;5;98m".to_string());
+///
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[48;2;255;0;0m".to_string());
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[48;2;255;255;0m".to_string());
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;2;255;255;255m".to_string());
+/// assert_eq!(rgb2ansi_16m(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;2;157;5;98m".to_string());
+/// ```
 pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
 	let layer_code = match layer {
@@ -304,6 +503,24 @@ pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
 	format!("\x1b[{};2;{};{};{}m", layer_code, r, g, b)
 }
 
+/// Convert RGB colors to the opening ansi escape sequence for consoles supporting 256 colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Rgb;
+/// use cfonts::color::{rgb2ansi_256, ColorLayer};
+///
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[38;5;196m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[38;5;226m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;231m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;125m".to_string());
+///
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[48;5;196m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[48;5;226m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;231m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;125m".to_string());
+/// ```
 pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
 	let code = rgb_to_ansi256(r, g, b);
@@ -314,6 +531,26 @@ pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 	format!("\x1b[{};5;{}m", layer_code, code)
 }
 
+/// Convert RGB colors to the opening ansi escape sequence for consoles supporting 16 colors
+///
+/// This function is basically me doing some manual curating of what color looks similar to one of the 16 colors.
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Rgb;
+/// use cfonts::color::{rgb2ansi_16, ColorLayer};
+///
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[91m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[93m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[97m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[31m".to_string());
+///
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[101m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[103m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[107m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[41m".to_string());
+/// ```
 pub fn rgb2ansi_16(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
 	let code = rgb_to_ansi256(r, g, b);
@@ -367,6 +604,22 @@ pub fn rgb2ansi_16(rgb: &Rgb, layer: ColorLayer) -> String {
 	format!("\x1b[{}m", ansi_16_code)
 }
 
+/// Return the color support of this console taking into account the `NO_COLOR` and `FORCE_COLOR` env vars
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::color::{get_term_color_support, TermColorSupport};
+///
+/// assert!(
+///     [
+///         TermColorSupport::Ansi16m,
+///         TermColorSupport::Ansi256,
+///         TermColorSupport::Ansi16,
+///         TermColorSupport::NoColor
+///     ].contains(&get_term_color_support())
+/// );
+/// ```
 pub fn get_term_color_support() -> TermColorSupport {
 	let term_support = if let Some(support) = supports_color::on(Stream::Stdout) {
 		match (support.has_16m, support.has_256, support.has_basic) {
@@ -396,6 +649,19 @@ pub fn get_term_color_support() -> TermColorSupport {
 	}
 }
 
+/// Return the start and end of an ansi escape sequence for a given [`Colors`]
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Colors;
+/// use cfonts::color::get_foreground_color;
+///
+/// assert_eq!(get_foreground_color(&Colors::System), (String::from("\x1b[39m"), String::from("\x1b[39m")));
+/// assert_eq!(get_foreground_color(&Colors::Red), (String::from("\x1b[31m"), String::from("\x1b[39m")));
+/// assert_eq!(get_foreground_color(&Colors::Green), (String::from("\x1b[32m"), String::from("\x1b[39m")));
+/// assert_eq!(get_foreground_color(&Colors::Blue), (String::from("\x1b[34m"), String::from("\x1b[39m")));
+/// ```
 pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	let color_support = get_term_color_support();
 	if color_support == TermColorSupport::NoColor {
@@ -443,6 +709,19 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 	}
 }
 
+/// Return the start and end of an ansi escape sequence for a given [`BgColors`]
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::BgColors;
+/// use cfonts::color::get_background_color;
+///
+/// assert_eq!(get_background_color(&BgColors::Transparent), (String::from("\x1b[49m"), String::from("\x1b[49m")));
+/// assert_eq!(get_background_color(&BgColors::Red), (String::from("\x1b[41m"), String::from("\x1b[49m")));
+/// assert_eq!(get_background_color(&BgColors::Green), (String::from("\x1b[42m"), String::from("\x1b[49m")));
+/// assert_eq!(get_background_color(&BgColors::Blue), (String::from("\x1b[44m"), String::from("\x1b[49m")));
+/// ```
 pub fn get_background_color(color: &BgColors) -> (String, String) {
 	let color_support = get_term_color_support();
 	if color_support == TermColorSupport::NoColor {
@@ -483,6 +762,20 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 	}
 }
 
+/// Take a `&str` and surround it with ansi escape sequences for a specified [`Colors`]
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{Options, Colors};
+/// use cfonts::color::color;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(color(" test ", Colors::Red, &options), String::from("\x1b[31m test \x1b[39m"));
+/// assert_eq!(color(" test ", Colors::Green, &options), String::from("\x1b[32m test \x1b[39m"));
+/// assert_eq!(color(" test ", Colors::Blue, &options), String::from("\x1b[34m test \x1b[39m"));
+/// ```
 pub fn color(text: &str, color: Colors, options: &Options) -> String {
 	if env::var("NO_COLOR").is_ok() && env::var("FORCE_COLOR").is_err() {
 		text.to_string()
@@ -500,6 +793,18 @@ pub fn color(text: &str, color: Colors, options: &Options) -> String {
 	}
 }
 
+/// Take a `&str` and surround it with ansi escape sequences for a specified [`BgColors`]
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::BgColors;
+/// use cfonts::color::bg_color;
+///
+/// assert_eq!(bg_color(" test ", BgColors::Red), String::from("\x1b[41m test \x1b[49m"));
+/// assert_eq!(bg_color(" test ", BgColors::Green), String::from("\x1b[42m test \x1b[49m"));
+/// assert_eq!(bg_color(" test ", BgColors::Blue), String::from("\x1b[44m test \x1b[49m"));
+/// ```
 pub fn bg_color(text: &str, color: BgColors) -> String {
 	if env::var("NO_COLOR").is_ok() && env::var("FORCE_COLOR").is_err() {
 		text.to_string()
