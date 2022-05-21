@@ -101,23 +101,23 @@ mod gradient {
 	#[test]
 	fn paint_lines_works() {
 		let options = Options::default();
-		let lines = vec!["XXX".to_string(), "XXX".to_string()];
+		let lines = vec!["###".to_string(), "###".to_string()];
 		let colors = vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
 
 		assert_eq!(
 			paint_lines(&lines, &colors, 0, &options),
 			vec![
-				"\x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
-				"\x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
+				"\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m".to_string(),
+				"\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m".to_string(),
 			]
 		);
 
-		let lines = vec!["     XXX".to_string(), "     XXX".to_string()];
+		let lines = vec!["     ###".to_string(), "     ###".to_string()];
 		assert_eq!(
 			paint_lines(&lines, &colors, 5, &options),
 			vec![
-				"     \x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
-				"     \x1b[38;2;255;0;0mX\x1b[39m\x1b[38;2;0;255;0mX\x1b[39m\x1b[38;2;0;0;255mX\x1b[39m".to_string(),
+				"     \x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m".to_string(),
+				"     \x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m".to_string(),
 			]
 		);
 	}
@@ -209,51 +209,51 @@ mod gradient {
 		options.gradient = vec![String::from("#ff0000"), String::from("#0000ff")];
 		options.line_height = 0;
 		let mut output = vec![
-			String::from("x"),
-			String::from("xxx"),
-			String::from("xxx"),
-			String::from("x"),
+			String::from("#"),
+			String::from("###"),
+			String::from("###"),
+			String::from("#"),
 		];
 		assert_eq!(
 			add_gradient_colors(&output, 4, 1, &options),
 			vec![
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m"),
 			]
 		);
 
 		output = vec![
-			String::from(" x"),
-			String::from("xxx"),
-			String::from("xxx"),
-			String::from(" x"),
+			String::from(" #"),
+			String::from("###"),
+			String::from("###"),
+			String::from(" #"),
 		];
 		assert_eq!(
 			add_gradient_colors(&output, 4, 1, &options),
 			vec![
-				String::from("\x1b[38;2;255;0;0m \x1b[39m\x1b[38;2;0;255;0mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0m \x1b[39m\x1b[38;2;0;255;0mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m \x1b[39m\x1b[38;2;0;255;0m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m \x1b[39m\x1b[38;2;0;255;0m#\x1b[39m"),
 			]
 		);
 
 		options.independent_gradient = true;
 		output = vec![
-			String::from(" x"),
-			String::from("xxx"),
-			String::from("xxx"),
-			String::from(" x"),
+			String::from(" #"),
+			String::from("###"),
+			String::from("###"),
+			String::from(" #"),
 		];
 		assert_eq!(
 			add_gradient_colors(&output, 4, 1, &options),
 			vec![
-				String::from(" \x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;0;255;0mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from(" \x1b[38;2;0;0;255mx\x1b[39m"),
+				String::from(" \x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from(" \x1b[38;2;0;0;255m#\x1b[39m"),
 			]
 		);
 	}
@@ -265,34 +265,34 @@ mod gradient {
 		options.line_height = 0;
 		options.transition_gradient = true;
 		let mut output = vec![
-			String::from("x"),
-			String::from("xxx"),
-			String::from("xxx"),
-			String::from("x"),
+			String::from("#"),
+			String::from("###"),
+			String::from("###"),
+			String::from("#"),
 		];
 		assert_eq!(
 			add_gradient_colors(&output, 4, 1, &options),
 			vec![
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;127;0;127mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m\x1b[38;2;127;0;127mx\x1b[39m\x1b[38;2;0;0;255mx\x1b[39m"),
-				String::from("\x1b[38;2;255;0;0mx\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;127;0;127m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;127;0;127m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+				String::from("\x1b[38;2;255;0;0m#\x1b[39m"),
 			]
 		);
 
 		options.gradient = GRADIENTS_PRIDE.iter().map(|color| String::from(*color)).collect::<Vec<String>>();
 		options.transition_gradient = true;
 		output = vec![
-			String::from(" x"),
-			String::from("xxxxxxxx"),
-			String::from("xxx"),
-			String::from("x"),
+			String::from(" #"),
+			String::from("########"),
+			String::from("###"),
+			String::from("#"),
 		];
 		assert_eq!(add_gradient_colors(&output, 4, 1, &options), vec![
-			String::from("\x1b[38;2;117;7;135m \x1b[39m\x1b[38;2;0;77;255mx\x1b[39m"),
-			String::from("\x1b[38;2;117;7;135mx\x1b[39m\x1b[38;2;0;77;255mx\x1b[39m\x1b[38;2;0;128;38mx\x1b[39m\x1b[38;2;255;237;0mx\x1b[39m\x1b[38;2;255;188;0mx\x1b[39m\x1b[38;2;255;140;0mx\x1b[39m\x1b[38;2;241;71;1mx\x1b[39m\x1b[38;2;228;3;3mx\x1b[39m"),
-			String::from("\x1b[38;2;117;7;135mx\x1b[39m\x1b[38;2;0;77;255mx\x1b[39m\x1b[38;2;0;128;38mx\x1b[39m"),
-			String::from("\x1b[38;2;117;7;135mx\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135m \x1b[39m\x1b[38;2;0;77;255m#\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135m#\x1b[39m\x1b[38;2;0;77;255m#\x1b[39m\x1b[38;2;0;128;38m#\x1b[39m\x1b[38;2;255;237;0m#\x1b[39m\x1b[38;2;255;188;0m#\x1b[39m\x1b[38;2;255;140;0m#\x1b[39m\x1b[38;2;241;71;1m#\x1b[39m\x1b[38;2;228;3;3m#\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135m#\x1b[39m\x1b[38;2;0;77;255m#\x1b[39m\x1b[38;2;0;128;38m#\x1b[39m"),
+			String::from("\x1b[38;2;117;7;135m#\x1b[39m"),
 		]);
 	}
 }

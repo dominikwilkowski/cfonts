@@ -1,3 +1,7 @@
+//! # Gradients
+//!
+//! The contents of this module is all about functions to add gradients to the output of cfonts,
+//! it depends heavily on the color module
 use std::f64;
 
 use crate::chars::{get_first_char_position, get_longest_line_len};
@@ -5,6 +9,27 @@ use crate::color::{color, hex2rgb, hex2rsv, rgb2hex, rsv2hex, Rgb, Rsv};
 use crate::config::{Colors, Options};
 use crate::debug::{d, Dt};
 
+/// Get _linear_ interpolation of two points at a certain step of `steps`
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::get_linear;
+///
+/// let options = Options::default();
+/// let point_a = 0.0;
+/// let point_b = 5.0;
+/// let steps = 5;
+///
+/// assert_eq!(get_linear(point_a, point_b, 0, steps, &options), point_a);
+/// assert_eq!(get_linear(point_a, point_b, 1, steps, &options), 1.0);
+/// assert_eq!(get_linear(point_a, point_b, 2, steps, &options), 2.0);
+/// assert_eq!(get_linear(point_a, point_b, 3, steps, &options), 3.0);
+/// assert_eq!(get_linear(point_a, point_b, 4, steps, &options), 4.0);
+/// assert_eq!(get_linear(point_a, point_b, 5, steps, &options), point_b);
+/// // Note that was 6 steps in the end and the system is build to work that way
+/// ```
 pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
 	d("gradient::get_linear()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -28,6 +53,29 @@ pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, op
 	result
 }
 
+/// Get _radial_ interpolation of two points at a certain step of `steps`
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::get_theta;
+///
+/// let options = Options::default();
+/// let point_a = 0.0;
+/// let point_b = 5.0;
+/// let steps = 5;
+///
+/// let point_a = 3.0;
+/// let point_b = 2.0;
+/// let steps = 3;
+///
+/// assert_eq!(get_theta(point_a, point_b, 0, steps, &options), point_a);
+/// assert_eq!(get_theta(point_a, point_b, 1, steps, &options), 4.761061769059862);
+/// assert_eq!(get_theta(point_a, point_b, 2, steps, &options), 0.23893823094013733);
+/// assert_eq!(get_theta(point_a, point_b, 3, steps, &options), point_b);
+/// // Note that was 4 steps in the end and the system is build to work that way
+/// ```
 pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
 	d("gradient::get_theta()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -74,6 +122,35 @@ pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, opt
 	result
 }
 
+/// Generate a vector of colors between two given colors
+/// by going through as many colors as possible
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::get_gradient_colors;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(
+///     get_gradient_colors("#ff8800", "#8899dd", 10, &options),
+///     vec![
+///         "#ff8800",
+///         "#fbe211",
+///         "#c0f721",
+///         "#7bf331",
+///         "#44ef41",
+///         "#50ec86",
+///         "#5fe8c0",
+///         "#6ddbe4",
+///         "#7ab4e0",
+///         "#8799dd",
+///     ]
+/// );
+/// // Note: the first color is the same as the first color given and the last is the last point generated,
+/// // not the second color given
+/// ```
 pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options) -> Vec<String> {
 	d("gradient::get_gradient_colors()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -101,6 +178,26 @@ pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options
 	colors
 }
 
+/// Generate a vector of colors between two given colors
+/// by going straight from `color_a` to `color_b`
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::get_transition_colors;
+///
+/// let options = Options::default();
+///
+/// assert_eq!(get_transition_colors("#ff0000", "#0000ff", -1, &options).len(), 0);
+/// assert_eq!(get_transition_colors("#ff0000", "#0000ff", 0, &options).len(), 0);
+/// assert_eq!(get_transition_colors("#ff0000", "#0000ff", 1, &options), vec!["#7f007f"]);
+/// assert_eq!(get_transition_colors("#ff0000", "#0000ff", 2, &options), vec!["#aa0055", "#5500aa"]);
+/// assert_eq!(
+///     get_transition_colors("#ff0000", "#0000ff", 5, &options),
+///     vec!["#d4002a", "#aa0055", "#7f007f", "#5500aa", "#2a00d4"]
+/// );
+/// ```
 pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options) -> Vec<String> {
 	d("gradient::get_transition_colors()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -128,6 +225,26 @@ pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options)
 	colors
 }
 
+/// Take a bunch of lines and color them in the colors provided
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::paint_lines;
+///
+/// let options = Options::default();
+/// let lines = vec!["###".to_string(), "###".to_string()];
+/// let colors = vec!["#ff0000".to_string(), "#00ff00".to_string(), "#0000ff".to_string()];
+///
+/// assert_eq!(
+///     paint_lines(&lines, &colors, 0, &options),
+///     vec![
+///         "\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m".to_string(),
+///         "\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m".to_string(),
+///     ]
+/// );
+/// ```
 pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, options: &Options) -> Vec<String> {
 	d("gradient::paint_lines()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -155,6 +272,23 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 	colored_lines
 }
 
+/// Calculate the steps from the number of colors in an array to get a vector of i8 that signal what to skip and what to paint
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::get_transition_steps;
+///
+/// let options = Options::default();
+/// let colors = vec!["color1".to_string(), "color2".to_string()];
+///
+/// assert_eq!(get_transition_steps(&colors, 1, &options), vec![-1]);
+/// assert_eq!(get_transition_steps(&colors, 2, &options), vec![0]);
+/// assert_eq!(get_transition_steps(&colors, 3, &options), vec![1]);
+/// assert_eq!(get_transition_steps(&colors, 4, &options), vec![2]);
+/// assert_eq!(get_transition_steps(&colors, 5, &options), vec![3]);
+/// ```
 pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) -> Vec<i8> {
 	d("gradient::get_transition_steps()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -181,6 +315,48 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 	gaps
 }
 
+/// Generate n colors between x colors
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::get_multiple_transition_colors;
+///
+/// let options = Options::default();
+/// let colors = vec!["#ff0000".to_string(), "#0000ff".to_string()];
+///
+/// assert_eq!(
+///     get_multiple_transition_colors(&colors, 1, &options),
+///     vec![
+///         "#0000ff".to_string()
+///     ]
+/// );
+/// assert_eq!(
+///     get_multiple_transition_colors(&colors, 2, &options),
+///     vec![
+///         "#ff0000".to_string(),
+///         "#0000ff".to_string()
+///     ]
+/// );
+/// assert_eq!(
+///     get_multiple_transition_colors(&colors, 3, &options),
+///     vec![
+///         "#ff0000".to_string(),
+///         "#7f007f".to_string(),
+///         "#0000ff".to_string()
+///     ]
+/// );
+/// assert_eq!(
+///     get_multiple_transition_colors(&colors, 4, &options),
+///     vec![
+///         "#ff0000".to_string(),
+///         "#aa0055".to_string(),
+///         "#5500aa".to_string(),
+///         "#0000ff".to_string()
+///     ]
+/// );
+/// ```
 pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: &Options) -> Vec<String> {
 	d("gradient::transition()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
@@ -218,6 +394,34 @@ pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: 
 	result
 }
 
+/// Generating and adding gradient colors to an array of strings
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Options;
+/// use cfonts::gradient::add_gradient_colors;
+///
+/// let mut options = Options::default();
+/// options.gradient = vec![String::from("#ff0000"), String::from("#0000ff")];
+/// options.line_height = 0;
+///
+/// let mut output = vec![
+///     String::from("#"),
+///     String::from("###"),
+///     String::from("###"),
+///     String::from("#"),
+/// ];
+/// assert_eq!(
+///     add_gradient_colors(&output, 4, 1, &options),
+///     vec![
+///         String::from("\x1b[38;2;255;0;0m#\x1b[39m"),
+///         String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+///         String::from("\x1b[38;2;255;0;0m#\x1b[39m\x1b[38;2;0;255;0m#\x1b[39m\x1b[38;2;0;0;255m#\x1b[39m"),
+///         String::from("\x1b[38;2;255;0;0m#\x1b[39m"),
+///     ]
+/// );
+/// ```
 pub fn add_gradient_colors(output: &[String], lines: usize, font_lines: usize, options: &Options) -> Vec<String> {
 	d("gradient::gradient()", 3, Dt::Head, options, &mut std::io::stdout());
 	d(
