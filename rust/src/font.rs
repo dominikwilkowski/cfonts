@@ -46,6 +46,21 @@ pub struct Font {
 /// let this_font = get(&options);
 /// assert_eq!(this_font.name, String::from("chrome"));
 /// ```
+///
+/// Even the `console` font has a file you can request now:
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{ Options, Fonts };
+/// use cfonts::font::get;
+///
+/// let mut options = Options::default();
+/// options.font = Fonts::FontConsole;
+///
+/// let this_font = get(&options);
+/// assert_eq!(this_font.chars.get("D").unwrap(), &vec![String::from("d")]);
+/// ```
 pub fn get(options: &Options) -> Font {
 	d("font::get()", 1, Dt::Head, options, &mut std::io::stdout());
 	let filename = match options.font {
