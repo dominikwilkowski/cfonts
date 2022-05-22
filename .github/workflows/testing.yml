@@ -172,7 +172,7 @@ jobs:
     needs: test-nodejs
     strategy:
       matrix:
-        node: 16
+        node: [16]
         os:
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
