@@ -201,7 +201,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Produce Coverage
-        run: yarn jest -- --coverage
+        run: yarn jest --coverage
 
       - name: Upload to coveralls
         uses: coverallsapp/github-action@master
