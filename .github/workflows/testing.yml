@@ -166,3 +166,11 @@ jobs:
 
       - name: Yarn test
         run: yarn test
+
+      - name: Produce Coverage
+        run: jest --coverage
+
+      - name: Upload to coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
