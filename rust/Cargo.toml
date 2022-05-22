@@ -9,7 +9,7 @@ readme = "../README.md"
 homepage = "https://github.com/dominikwilkowski/cfonts"
 repository = "https://github.com/dominikwilkowski/cfonts"
 documentation = "https://docs.rs/cfonts/"
-keywords = ["font", "banner", "logo", "CLI", "console", "ascii", "pretty", "ANSI"]
+keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 include = ["/fonts", "/src", "!.DS_Store"]
 
