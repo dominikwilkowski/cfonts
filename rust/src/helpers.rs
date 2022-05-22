@@ -9,21 +9,21 @@
 /// use cfonts::helpers::print_type_of;
 ///
 /// assert_eq!(print_type_of(&String::from("test")), "alloc::string::String");
-/// assert_eq!(print_type_of(&5), "i32");
+/// assert_eq!(print_type_of(&5_i32), "i32");
 /// assert_eq!(print_type_of(&(5_u8)), "u8");
-/// assert_eq!(print_type_of(&[1]), "[i32; 1]");
+/// assert_eq!(print_type_of(&[1_i32]), "[i32; 1]");
 /// assert_eq!(print_type_of(&vec![""]), "alloc::vec::Vec<&str>");
 /// ```
 pub fn print_type_of<T>(_: &T) -> String {
-	std::any::type_name::<T>().to_string()
+	std::any::type_name::<T>().to_owned()
 }
 
 #[test]
 fn print_type_of_works() {
 	assert_eq!(print_type_of(&String::from("test")), "alloc::string::String");
-	assert_eq!(print_type_of(&5), "i32");
+	assert_eq!(print_type_of(&5_i32), "i32");
 	assert_eq!(print_type_of(&(5_u8)), "u8");
-	assert_eq!(print_type_of(&[1]), "[i32; 1]");
+	assert_eq!(print_type_of(&[1_i32]), "[i32; 1]");
 	assert_eq!(print_type_of(&vec![""]), "alloc::vec::Vec<&str>");
 }
 

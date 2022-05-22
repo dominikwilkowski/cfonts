@@ -60,7 +60,9 @@ pub fn render(options: Options) -> RenderedString {
 	d(&format!("render() Options\n{:#?}", options), 1, Dt::Log, &options, &mut std::io::stdout());
 
 	// enable ansi support in windows 10
-	if let Ok(()) = enable_ansi_support() {}
+	if let Ok(()) = enable_ansi_support() {
+		d("render() enabled ansi support in windows", 2, Dt::Log, &options, &mut std::io::stdout());
+	}
 
 	let size = terminal_size();
 	let terminal_width = match options.env {
@@ -120,7 +122,7 @@ pub fn render(options: Options) -> RenderedString {
 	d("render() added buffer", 1, Dt::Log, &options, &mut std::io::stdout());
 
 	options.text.chars().for_each(|og_letter| {
-		d(&format!("render() • loop og_letter:{:?}", og_letter), 1, Dt::Log, &options, &mut std::io::stdout());
+		d(&format!("render() \u{2022} loop og_letter:{:?}", og_letter), 1, Dt::Log, &options, &mut std::io::stdout());
 		// we insert the pipe here so that out match will find it. it's not defined in our font files because it's just a new-line
 		font.chars.insert(String::from("|"), vec![String::from("|")]);
 		match font.chars.get(&og_letter.to_string().to_uppercase()) {
@@ -187,7 +189,7 @@ pub fn render(options: Options) -> RenderedString {
 		match options.align {
 			Align::Top => output.push(String::from("\n\n\n")),
 			Align::Bottom => output[0] = String::from("\n\n\n\n") + &output[0],
-			_ => {
+			Align::Left | Align::Center | Align::Right => {
 				output[0] = String::from("\n\n") + &output[0];
 				output.push(String::from("\n"));
 			}
@@ -211,10 +213,9 @@ pub fn render(options: Options) -> RenderedString {
 	if options.env == Env::Browser {
 		let color = bgcolor2hex(&options.background, &options);
 		let align = match options.align {
-			Align::Left => "left",
 			Align::Right => "right",
 			Align::Center => "center",
-			_ => "left",
+			Align::Left | Align::Top | Align::Bottom => "left",
 		};
 		text = format!("<div style=\"font-family:monospace;white-space:pre;text-align:{};max-width:100%;overflow:scroll;background:{}\">{}<div>", align, color, text);
 		d("render() formatted for Env::Browser", 1, Dt::Log, &options, &mut std::io::stdout());
