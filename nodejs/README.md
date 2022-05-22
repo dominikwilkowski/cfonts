@@ -73,7 +73,7 @@ prettyFont.options // returns the options used
 
 ## Usage
 
-Read more in the [root repo `Readme.md`](../Readme.md).
+Read more in the [root repo](../).
 
 
 ## Release History

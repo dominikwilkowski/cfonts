@@ -113,7 +113,7 @@ fn main() {
 
 ## Usage
 
-Read more in the [root repo `Readme.md`](../Readme.md).
+Read more in the [root repo](../).
 
 
 ## Release History

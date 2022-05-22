@@ -24,11 +24,11 @@
 
 ### Rust
 
-Read more in the [Rust `Readme.md`](./rust/Readme.md).
+Read more in the [Rust folder](./rust).
 
 ### Nodejs
 
-Read more in the [Nodejs `Readme.md`](./nodejs/Readme.md).
+Read more in the [Nodejs folder](./nodejs).
 
 ## Usage
 
