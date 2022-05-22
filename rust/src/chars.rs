@@ -44,10 +44,10 @@ use crate::debug::{d, Dt};
 /// );
 /// ```
 pub fn get_letter_space(letter_space: &[String], letter_spacing: u16, options: &Options) -> Vec<String> {
-	d("chars::get_letter_space()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::get_letter_space()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::get_letter_space()\nletter_space:{:?}\noptions.letter_spacing:{:?}", letter_space, letter_spacing),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -64,7 +64,7 @@ pub fn get_letter_space(letter_space: &[String], letter_spacing: u16, options: &
 		output.push(space);
 	}
 
-	d(&format!("chars::get_letter_space() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::get_letter_space() -> {:?}", output), 5, Dt::Log, options, &mut std::io::stdout());
 	output
 }
 
@@ -98,10 +98,10 @@ pub fn get_letter_space(letter_space: &[String], letter_spacing: u16, options: &
 /// );
 /// ```
 pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) {
-	d("chars::add_line()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::add_line()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::add_line()\noutput:{:?}\nfont_lines:{:?}", output, font_lines),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -111,7 +111,7 @@ pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) 
 		output.push(String::new());
 	}
 
-	d(&format!("chars::add_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::add_line() -> {:?}", output), 5, Dt::Log, options, &mut std::io::stdout());
 }
 
 /// Adding a letter to a given output vector
@@ -146,10 +146,10 @@ pub fn add_line(output: &mut Vec<String>, font_lines: usize, options: &Options) 
 /// );
 /// ```
 pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
-	d("chars::add_letter()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::add_letter()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::add_letter()\noutput:{:?}\nletter:{:?}", output, letter),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -160,7 +160,7 @@ pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 		output[index] += line;
 	}
 
-	d(&format!("chars::add_letter() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::add_letter() -> {:?}", output), 5, Dt::Log, options, &mut std::io::stdout());
 }
 
 /// Adding line height to a given output vector
@@ -192,10 +192,10 @@ pub fn add_letter(output: &mut [String], letter: &[String], options: &Options) {
 /// );
 /// ```
 pub fn add_line_height(output: &mut Vec<String>, line_height: u16, options: &Options) {
-	d("chars::add_line_height()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::add_line_height()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::add_line_height()\noutput:{:?}\nline_height:{:?}", output, line_height),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -205,7 +205,7 @@ pub fn add_line_height(output: &mut Vec<String>, line_height: u16, options: &Opt
 		output.push(String::new());
 	}
 
-	d(&format!("chars::add_line_height() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::add_line_height() -> {:?}", output), 5, Dt::Log, options, &mut std::io::stdout());
 }
 
 /// Get the longest line length of a vectors last n items
@@ -229,10 +229,10 @@ pub fn add_line_height(output: &mut Vec<String>, line_height: u16, options: &Opt
 /// assert_eq!(get_longest_line_len(&output, 3, &options), 3);
 /// ```
 pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Options) -> usize {
-	d("chars::get_longest_line_len()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::get_longest_line_len()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::get_longest_line_len()\noutput:{:?}\nfont_lines:{:?}", output, font_lines),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -246,7 +246,7 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 		}
 	});
 
-	d(&format!("chars::get_longest_line_len() -> {:?}", size), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::get_longest_line_len() -> {:?}", size), 5, Dt::Log, options, &mut std::io::stdout());
 	size
 }
 
@@ -289,8 +289,8 @@ pub fn get_longest_line_len(output: &[String], font_lines: usize, options: &Opti
 /// );
 /// ```
 pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
-	d("chars::get_first_char_position()", 2, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("chars::get_first_char_position()\noutput:{:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	d("chars::get_first_char_position()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("chars::get_first_char_position()\noutput:{:?}", output), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let closest_line = output.iter().fold(&output[0], |prev_line, line| {
 		if !line.is_empty() && line.len() - line.trim_start().len() < prev_line.len() - prev_line.trim_start().len() {
@@ -301,7 +301,7 @@ pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
 	});
 	let pos = closest_line.len() - closest_line.trim_start().len();
 
-	d(&format!("chars::get_first_char_position() -> {:?}", pos), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::get_first_char_position() -> {:?}", pos), 5, Dt::Log, options, &mut std::io::stdout());
 	pos
 }
 
@@ -326,10 +326,10 @@ pub fn get_first_char_position(output: &[String], options: &Options) -> usize {
 /// assert_eq!(get_letter_length(&letter, 2, &options), 11);
 /// ```
 pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &Options) -> usize {
-	d("chars::get_letter_length()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::get_letter_length()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("chars::get_letter_length()\nchar:{:?}\nfont_color_count:{:?}", letter, font_color_count),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -354,7 +354,7 @@ pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &O
 		}
 	});
 
-	d(&format!("chars::get_letter_length() -> {:?}", size), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::get_letter_length() -> {:?}", size), 5, Dt::Log, options, &mut std::io::stdout());
 	size
 }
 
@@ -383,13 +383,13 @@ pub fn get_letter_length(letter: &[String], font_color_count: usize, options: &O
 /// );
 /// ```
 pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Options) -> Vec<String> {
-	d("chars::paint_letter()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::paint_letter()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
 			"chars::paint_letter()\nletter:{:?}\ncolors:{:?}\nfont_color_count:{:?}",
 			letter, options.colors, font_color_count
 		),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -427,7 +427,7 @@ pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Option
 		})
 		.collect();
 
-	d(&format!("chars::paint_letter() -> {:?}", painted_letter), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::paint_letter() -> {:?}", painted_letter), 5, Dt::Log, options, &mut std::io::stdout());
 	painted_letter
 }
 
@@ -465,13 +465,13 @@ pub fn align_last_line(
 	max_length: usize,
 	options: &Options,
 ) {
-	d("chars::align_last_line()", 2, Dt::Head, options, &mut std::io::stdout());
+	d("chars::align_last_line()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
 			"chars::align_last_line()\noutput:{:?}\nfont_lines:{:?}\nline_length:{:?}\nmax_length:{:?}",
 			output, font_lines, line_length, max_length
 		),
-		2,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -492,5 +492,5 @@ pub fn align_last_line(
 		}
 	}
 
-	d(&format!("chars::align_last_line() -> {:?}", output), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("chars::align_last_line() -> {:?}", output), 5, Dt::Log, options, &mut std::io::stdout());
 }

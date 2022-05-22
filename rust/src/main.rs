@@ -63,13 +63,7 @@ fn main() {
 	};
 
 	d("main()", 1, Dt::Head, &options, &mut std::io::stdout());
-	d(
-		&format!("main() CLI args parsed from\n{:#?}\nto:\n{:#?}", args().collect::<Vec<String>>(), options),
-		3,
-		Dt::Log,
-		&options,
-		&mut std::io::stdout(),
-	);
+	d(&format!("main()\nCLI args:{:#?}", args().collect::<Vec<String>>()), 1, Dt::Log, &options, &mut std::io::stdout());
 
 	if options.version {
 		println!("{}", cli::version(&options));

@@ -125,7 +125,7 @@ pub use render::render;
 /// ```
 pub fn say(options: Options) {
 	d("say()", 1, Dt::Head, &options, &mut std::io::stdout());
-	d(&format!("say() Options:\n{:#?}", options), 3, Dt::Log, &options, &mut std::io::stdout());
+	d(&format!("say() Options:\n{:#?}", options), 2, Dt::Log, &options, &mut std::io::stdout());
 
 	let render_options = render(options);
 	println!("{}", render_options.text);

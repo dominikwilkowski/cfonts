@@ -105,8 +105,8 @@ impl Rsv {
 /// );
 /// ```
 pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
-	d("color::rgb2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::rgb2hsv()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rgb2hsv()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hsv()\nrgb:{:?}", rgb), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let (r_input, g_input, b_input) = rgb.get_value();
 	let red = r_input as f64 / 255.0;
@@ -132,7 +132,7 @@ pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 		60.0 * ((red - green) / diff) + 240.0
 	};
 
-	d(&format!("color::rgb2hsv() {:?} -> {:?}", rgb, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hsv() {:?} -> {:?}", rgb, Hsv::Val(h, s, v)), 5, Dt::Log, options, &mut std::io::stdout());
 
 	Hsv::Val(h, s, v)
 }
@@ -153,8 +153,8 @@ pub fn rgb2hsv(rgb: &Rgb, options: &Options) -> Hsv {
 /// assert_eq!(hsv2rgb(&Hsv::Val(120.0, 20.0, 20.0), &options), Rgb::Val(40, 51, 40));
 /// ```
 pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
-	d("color::hsv2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::hsv2rgb()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hsv2rgb()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rgb()\nhsv:{:?}", hsv), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let (h_input, s_input, v_input) = hsv.get_value();
 	let hue = h_input / 60.0;
@@ -178,7 +178,7 @@ pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 		_ => unreachable!(),
 	};
 
-	d(&format!("color::hsv2rgb() {:?} -> {:?}", hsv, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rgb() {:?} -> {:?}", hsv, result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -201,13 +201,13 @@ pub fn hsv2rgb(hsv: &Hsv, options: &Options) -> Rgb {
 /// assert_eq!(rgb2hex(&Rgb::Val(255, 136, 0), &options), "#ff8800");
 /// ```
 pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
-	d("color::rgb2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::rgb2hex()\nrgb:{:?}", rgb), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rgb2hex()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hex()\nrgb:{:?}", rgb), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, g, b) = rgb.get_value();
 	let result = format!("#{:0>2x}{:0>2x}{:0>2x}", r as u8, g as u8, b as u8);
 
-	d(&format!("color::rgb2hex() {:?} -> {:?}", rgb, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rgb2hex() {:?} -> {:?}", rgb, result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -231,8 +231,8 @@ pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
 /// // ^ The function is trying to be as forgiving as possible when it comes to parsing hex input from a string
 /// ```
 pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
-	d("color::hex2rgb()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::hex2rgb()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hex2rgb()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hex2rgb()\nhex:{:?}", hex), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let clean_hex = hex.strip_prefix('#').unwrap();
 	let full_hex = match clean_hex.len() {
@@ -269,7 +269,7 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 	let b = u8::from_str_radix(&full_hex[4..6], 16).unwrap_or(0);
 	let result = Rgb::Val(r, g, b);
 
-	d(&format!("color::hex2rgb() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hex2rgb() {:?} -> {:?}", hex, result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -289,13 +289,13 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 /// assert_eq!(hsv2rsv(&Hsv::Val(300.0, 0.0, 0.0), &options), Rsv::Val(5.235987755982989, 0.0, 0.0));
 /// ```
 pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
-	d("color::hsv2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::hsv2rsv()\nhsv:{:?}", hsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hsv2rsv()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rsv()\nhsv:{:?}", hsv), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let (h, s, v) = hsv.get_value();
 	let r = (h * std::f64::consts::PI) / 180.0;
 
-	d(&format!("color::hsv2rsv() {:?} -> {:?}", hsv, Rsv::Val(r, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hsv2rsv() {:?} -> {:?}", hsv, Rsv::Val(r, s, v)), 5, Dt::Log, options, &mut std::io::stdout());
 	Rsv::Val(r, s, v)
 }
 
@@ -315,14 +315,14 @@ pub fn hsv2rsv(hsv: &Hsv, options: &Options) -> Rsv {
 /// assert_eq!(rsv2hsv(&Rsv::Val(5.235987755982989, 0.0, 0.0), &options), Hsv::Val(300.0, 0.0, 0.0));
 /// ```
 pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
-	d("color::rsv2hsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::rsv2hsv()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rsv2hsv()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hsv()\nrsv:{:?}", rsv), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, s, v) = rsv.get_value();
 	let precision = 1_000_000_000_000.0;
 	let h = (((r * 180.0) / std::f64::consts::PI) * precision).round() / precision;
 
-	d(&format!("color::rsv2hsv() {:?} -> {:?}", rsv, Hsv::Val(h, s, v)), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hsv() {:?} -> {:?}", rsv, Hsv::Val(h, s, v)), 5, Dt::Log, options, &mut std::io::stdout());
 	Hsv::Val(h, s, v)
 }
 
@@ -343,12 +343,12 @@ pub fn rsv2hsv(rsv: &Rsv, options: &Options) -> Hsv {
 /// assert_eq!(hex2rsv("#ffff00", &options), Rsv::Val(1.0471975511965976, 100.0, 100.0));
 /// ```
 pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
-	d("color::hex2rsv()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::hex2rsv()\nhex:{:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::hex2rsv()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::hex2rsv()\nhex:{:?}", hex), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let result = hsv2rsv(&rgb2hsv(&hex2rgb(hex, options), options), options);
 
-	d(&format!("color::hex2rsv() {:?} -> {:?}", hex, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::hex2rsv() {:?} -> {:?}", hex, result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -369,12 +369,12 @@ pub fn hex2rsv(hex: &str, options: &Options) -> Rsv {
 /// assert_eq!(rsv2hex(&Rsv::Val(1.0471975511965976, 100.0, 100.0), &options), "#ffff00".to_string());
 /// ```
 pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
-	d("color::rsv2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::rsv2hex()\nrsv:{:?}", rsv), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::rsv2hex()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hex()\nrsv:{:?}", rsv), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let result = rgb2hex(&hsv2rgb(&rsv2hsv(rsv, options), options), options);
 
-	d(&format!("color::rsv2hex() {:?} -> {:?}", rsv, result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::rsv2hex() {:?} -> {:?}", rsv, result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -394,8 +394,8 @@ pub fn rsv2hex(rsv: &Rsv, options: &Options) -> String {
 /// ```
 /// > 💡  `Colors::Candy` will give us a random pick of some assorted candy-like colors
 pub fn color2hex(color: &Colors, options: &Options) -> String {
-	d("color::color2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::color2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::color2hex()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::color2hex()\ncolor:{:?}", color), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let hex = match color {
 		Colors::System => String::from("currentColor"),
@@ -427,7 +427,7 @@ pub fn color2hex(color: &Colors, options: &Options) -> String {
 		}
 	};
 
-	d(&format!("color::color2hex() -> {:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::color2hex() -> {:?}", hex), 5, Dt::Log, options, &mut std::io::stdout());
 	hex
 }
 
@@ -446,8 +446,8 @@ pub fn color2hex(color: &Colors, options: &Options) -> String {
 /// assert_eq!(bgcolor2hex(&BgColors::Rgb(Rgb::Val(255, 0, 0)), &options), "#ff0000".to_string());
 /// ```
 pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
-	d("color::bgcolor2hex()", 3, Dt::Head, options, &mut std::io::stdout());
-	d(&format!("color::bgcolor2hex()\ncolor:{:?}", color), 3, Dt::Log, options, &mut std::io::stdout());
+	d("color::bgcolor2hex()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("color::bgcolor2hex()\ncolor:{:?}", color), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let hex = match color {
 		BgColors::Transparent => String::from("currentColor"),
@@ -472,7 +472,7 @@ pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
 		}
 	};
 
-	d(&format!("color::bgcolor2hex() -> {:?}", hex), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("color::bgcolor2hex() -> {:?}", hex), 5, Dt::Log, options, &mut std::io::stdout());
 	hex
 }
 

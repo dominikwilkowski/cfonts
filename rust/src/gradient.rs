@@ -30,25 +30,25 @@ use crate::debug::{d, Dt};
 /// // Note that was 6 steps in the end and the system is build to work that way
 /// ```
 pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
-	d("gradient::get_linear()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::get_linear()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
 			"gradient::get_linear()\npoint_a:{:?}\npoint_b:{:?}\nthis_step:{:?}\nsteps:{:?}",
 			point_a, point_b, this_step, steps
 		),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
 	);
 
 	if steps == 0 {
-		d(&format!("gradient::get_linear() -> {:?}", point_b), 3, Dt::Log, options, &mut std::io::stdout());
+		d(&format!("gradient::get_linear() -> {:?}", point_b), 5, Dt::Log, options, &mut std::io::stdout());
 		return point_b;
 	}
 
 	let result = point_a + this_step as f64 * ((point_b - point_a) / steps as f64);
-	d(&format!("gradient::get_linear() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::get_linear() -> {:?}", result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -76,13 +76,13 @@ pub fn get_linear(point_a: f64, point_b: f64, this_step: usize, steps: usize, op
 /// // Note that was 4 steps in the end and the system is build to work that way
 /// ```
 pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, options: &Options) -> f64 {
-	d("gradient::get_theta()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::get_theta()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
 			"gradient::get_theta()\npoint_a:{:?}\npoint_b:{:?}\nthis_step:{:?}\nsteps:{:?}",
 			point_a, point_b, this_step, steps
 		),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -91,7 +91,7 @@ pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, opt
 	let long_distance;
 
 	if steps == 0 {
-		d(&format!("gradient::get_theta() -> {:?}", point_b), 3, Dt::Log, options, &mut std::io::stdout());
+		d(&format!("gradient::get_theta() -> {:?}", point_b), 5, Dt::Log, options, &mut std::io::stdout());
 		return point_b;
 	}
 
@@ -117,7 +117,7 @@ pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, opt
 		result -= std::f64::consts::TAU;
 	}
 
-	d(&format!("gradient::get_theta() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::get_theta() -> {:?}", result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -151,10 +151,10 @@ pub fn get_theta(point_a: f64, point_b: f64, this_step: usize, steps: usize, opt
 /// // not the second color given
 /// ```
 pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options) -> Vec<String> {
-	d("gradient::get_gradient_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::get_gradient_colors()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("gradient::get_gradient_colors()\nfrom:{:?}\nto:{:?}\nsteps:{:?}", from, to, steps),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -173,7 +173,7 @@ pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options
 		colors.push(rsv2hex(&Rsv::Val(r, s, v), options));
 	}
 
-	d(&format!("gradient::get_gradient_colors() -> {:?}", colors), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::get_gradient_colors() -> {:?}", colors), 5, Dt::Log, options, &mut std::io::stdout());
 	colors
 }
 
@@ -198,10 +198,10 @@ pub fn get_gradient_colors(from: &str, to: &str, steps: usize, options: &Options
 /// );
 /// ```
 pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options) -> Vec<String> {
-	d("gradient::get_transition_colors()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::get_transition_colors()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("gradient::get_transition_colors()\nfrom:{:?}\nto:{:?}\nsteps:{:?}", from, to, steps),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -220,7 +220,7 @@ pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options)
 		colors.push(rgb2hex(&Rgb::Val(r as u8, g as u8, b as u8), options));
 	}
 
-	d(&format!("gradient::get_transition_colors() -> {:?}", colors), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::get_transition_colors() -> {:?}", colors), 5, Dt::Log, options, &mut std::io::stdout());
 	colors
 }
 
@@ -245,10 +245,10 @@ pub fn get_transition_colors(from: &str, to: &str, steps: i8, options: &Options)
 /// );
 /// ```
 pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, options: &Options) -> Vec<String> {
-	d("gradient::paint_lines()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::paint_lines()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("gradient::paint_lines()\nlines:{:#?}\ncolors:{:#?}\nfirst_char_pos:{}", lines, colors, first_char_pos),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -267,7 +267,7 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 		});
 	}
 
-	d(&format!("gradient::paint_lines() -> {:?}", colored_lines), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::paint_lines() -> {:?}", colored_lines), 5, Dt::Log, options, &mut std::io::stdout());
 	colored_lines
 }
 
@@ -289,10 +289,10 @@ pub fn paint_lines(lines: &[String], colors: &[String], first_char_pos: usize, o
 /// assert_eq!(get_transition_steps(&colors, 5, &options), vec![3]);
 /// ```
 pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) -> Vec<i8> {
-	d("gradient::get_transition_steps()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::get_transition_steps()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("gradient::get_transition_steps()\ncolors:{:#?}\nsteps:{}", colors, steps),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -310,7 +310,7 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 		gaps[len - 1 - i] += 1;
 	}
 
-	d(&format!("gradient::get_transition_steps() -> {:?}", gaps), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::get_transition_steps() -> {:?}", gaps), 5, Dt::Log, options, &mut std::io::stdout());
 	gaps
 }
 
@@ -357,10 +357,10 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 /// );
 /// ```
 pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: &Options) -> Vec<String> {
-	d("gradient::transition()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::transition()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!("gradient::transition()\ncolors:{:#?}\nsteps:{}", colors, steps),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -389,7 +389,7 @@ pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: 
 		}
 	}
 
-	d(&format!("gradient::transition() -> {:?}", result), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::transition() -> {:?}", result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
 }
 
@@ -422,13 +422,13 @@ pub fn get_multiple_transition_colors(colors: &[String], steps: usize, options: 
 /// );
 /// ```
 pub fn add_gradient_colors(output: &[String], lines: usize, font_lines: usize, options: &Options) -> Vec<String> {
-	d("gradient::gradient()", 3, Dt::Head, options, &mut std::io::stdout());
+	d("gradient::gradient()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(
 		&format!(
 			"gradient::gradient()\noutput:{:#?}\nlines:{}\nfont_lines:{}\noptions: {:?}",
 			output, lines, font_lines, options
 		),
-		3,
+		5,
 		Dt::Log,
 		options,
 		&mut std::io::stdout(),
@@ -462,6 +462,6 @@ pub fn add_gradient_colors(output: &[String], lines: usize, font_lines: usize, o
 		output_with_gradient.append(&mut paint_lines(this_line, &colors, first_char_pos, options));
 	}
 
-	d(&format!("gradient::gradient() -> {:?}", output_with_gradient), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("gradient::gradient() -> {:?}", output_with_gradient), 5, Dt::Log, options, &mut std::io::stdout());
 	output_with_gradient
 }

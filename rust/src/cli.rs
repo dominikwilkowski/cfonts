@@ -16,10 +16,10 @@ use crate::render::render;
 /// assert_eq!(version(&options), format!("v{}", env!("CARGO_PKG_VERSION")));
 /// ```
 pub fn version(options: &Options) -> String {
-	d("cli::version()", 1, Dt::Head, options, &mut std::io::stdout());
+	d("cli::version()", 5, Dt::Head, options, &mut std::io::stdout());
 
 	let version = env!("CARGO_PKG_VERSION");
-	d(&format!("cli::version() version: {}", version), 3, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("cli::version() version: {}", version), 5, Dt::Log, options, &mut std::io::stdout());
 
 	format!("v{}", version)
 }
@@ -36,7 +36,7 @@ pub fn version(options: &Options) -> String {
 /// assert!(help(&options).contains("Usage:"));
 /// ```
 pub fn help(options: &Options) -> String {
-	d("cli::help()", 1, Dt::Head, options, &mut std::io::stdout());
+	d("cli::help()", 5, Dt::Head, options, &mut std::io::stdout());
 
 	let mut output = String::new();
 	let render_options = render(Options {

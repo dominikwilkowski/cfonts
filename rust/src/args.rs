@@ -153,6 +153,16 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 		}
 	}
 
+	// we check for the debug flag to make sure we send debug messages in this function as well
+	let debug_options = options_lookup.get("-d").unwrap();
+	let enabled_debug =
+		my_args.contains(&debug_options.name.to_string()) || my_args.contains(&debug_options.shortcut.to_string());
+	if enabled_debug {
+		options.debug = true;
+	}
+
+	d("args::parse()", 1, Dt::Head, &options, &mut std::io::stdout());
+
 	if my_args.len() < 2 {
 		let (start, end) = get_foreground_color(&Colors::Green);
 		return Err(format!(

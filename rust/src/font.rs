@@ -63,7 +63,8 @@ pub struct Font {
 /// assert_eq!(this_font.chars.get("D").unwrap(), &vec![String::from("d")]);
 /// ```
 pub fn get(options: &Options) -> Font {
-	d("font::get()", 1, Dt::Head, options, &mut std::io::stdout());
+	d("font::get()", 5, Dt::Head, options, &mut std::io::stdout());
+	d(&format!("font::get()\noptions.font{:?}", options.font), 5, Dt::Log, options, &mut std::io::stdout());
 	let filename = match options.font {
 		Fonts::FontBlock => "./fonts/block.json",
 		Fonts::FontSimpleBlock => "./fonts/simpleBlock.json",
@@ -79,7 +80,7 @@ pub fn get(options: &Options) -> Font {
 		Fonts::FontTiny => "./fonts/tiny.json",
 		Fonts::FontConsole => "./fonts/console.json",
 	};
-	d(&format!("font::get() read font file at \"{}\"", filename), 2, Dt::Log, options, &mut std::io::stdout());
+	d(&format!("font::get() read font file at \"{}\"", filename), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let data = read_to_string(Path::new(filename).as_os_str())
 		.unwrap_or(format!("Unable to read file \"{}\"", color(filename, Colors::Red, options)));

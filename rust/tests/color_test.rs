@@ -126,7 +126,7 @@ mod color {
 	fn hsv2rsv_works() {
 		let options = Options::default();
 		assert_eq!(hsv2rsv(&Hsv::Val(0.0, 0.0, 0.0), &options), Rsv::Val(0.0, 0.0, 0.0));
-		assert_eq!(hsv2rsv(&Hsv::Val(360.0, 0.0, 0.0), &options), Rsv::Val(6.283185307179586, 0.0, 0.0));
+		assert_eq!(hsv2rsv(&Hsv::Val(360.0, 0.0, 0.0), &options), Rsv::Val(std::f64::consts::TAU, 0.0, 0.0));
 		assert_eq!(hsv2rsv(&Hsv::Val(180.0, 0.0, 0.0), &options), Rsv::Val(std::f64::consts::PI, 0.0, 0.0));
 		assert_eq!(hsv2rsv(&Hsv::Val(300.0, 0.0, 0.0), &options), Rsv::Val(5.235987755982989, 0.0, 0.0));
 	}
@@ -135,7 +135,7 @@ mod color {
 	fn rsv2hsv_works() {
 		let options = Options::default();
 		assert_eq!(rsv2hsv(&Rsv::Val(0.0, 0.0, 0.0), &options), Hsv::Val(0.0, 0.0, 0.0));
-		assert_eq!(rsv2hsv(&Rsv::Val(6.283185307179586, 0.0, 0.0), &options), Hsv::Val(360.0, 0.0, 0.0));
+		assert_eq!(rsv2hsv(&Rsv::Val(std::f64::consts::TAU, 0.0, 0.0), &options), Hsv::Val(360.0, 0.0, 0.0));
 		assert_eq!(rsv2hsv(&Rsv::Val(std::f64::consts::PI, 0.0, 0.0), &options), Hsv::Val(180.0, 0.0, 0.0));
 		assert_eq!(rsv2hsv(&Rsv::Val(5.235987755982989, 0.0, 0.0), &options), Hsv::Val(300.0, 0.0, 0.0));
 	}
