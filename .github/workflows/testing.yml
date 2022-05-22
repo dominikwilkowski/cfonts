@@ -200,6 +200,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - name: Yarn install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build files
+        run: yarn build
+
       - name: Produce Coverage
         run: yarn jest --coverage
 
