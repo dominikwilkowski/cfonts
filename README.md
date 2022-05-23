@@ -175,10 +175,12 @@ Type: `<string list>`
 Default value: `['system']`
 
 With this setting you can set the colors for your font.
-Use the below color strings built in by [chalk](https://github.com/chalk/chalk) or a hex color.  
+Use the below color strings or a hex color.  
 Provide colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
-If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
+If you use a hex color make sure you include the `#` prefix. _(In most terminals wrap the hex in quotes)_  
 The `system` color falls back to the system color of your terminal.
+
+💡  There are [environment variables](#consistency) that can effect the display of colors in your terminal.
 
 - `system` _(default)_
 - `black`
@@ -215,7 +217,7 @@ With this setting you can set a gradient over your output.
 This setting supersedes the color open.  
 The gradient requires two colors, a start color and an end color from left to right.  
 _(If you want to set your own colors for the gradient, use the [transition](#-t---transition-gradient) option.)_  
-CFonts will then generate a gradient through as many colors as it can find to make the output most impressive.  
+`cfonts` will then generate a gradient through as many colors as it can find to make the output most impressive.  
 Provide two colors in a comma-separated string, eg: `red,blue`. _(no spaces)_  
 If you use a hex color make sure you include the `#` prefix. _(In the terminal wrap the hex in quotes)_  
 
@@ -273,7 +275,7 @@ $ cfonts "text" --gradient red,"#f80",green,blue --transition-gradient
 Type: `<string>`  
 Default value: `"transparent"`
 
-With this setting you can set the background colors for the output. Use the below color strings built in by [chalk](https://github.com/chalk/chalk).
+With this setting you can set the background colors for the output. Use the below color strings.
 Provide the background color from the below supported list, eg: 'white'
 
 - `transparent` _(default)_
@@ -293,6 +295,8 @@ Provide the background color from the below supported list, eg: 'white'
 - `magentaBright`
 - `cyanBright`
 - `whiteBright`
+- `#ff8800` _(any valid hex color)_
+- `#f80` _(short form is supported as well)_
 
 ```shell
 $ cfonts "text" --background "Green"
@@ -345,7 +349,7 @@ Type: `<integer>`
 Default value: `0`
 
 This option sets the maximum characters that will be printed on one line.  
-CFonts detects the size of your terminal but you can opt out and determine your own max width.  
+`cfonts` detects the size of your terminal but you can opt out and determine your own max width.  
 `0` means no max width and the text will break at the edge of the terminal window.
 
 ```shell
@@ -357,116 +361,34 @@ $ cfonts "text" --max-length 15
 
 #### -e, --env
 Type: `<string>`  
-Default value: `node`
+Default value: `cli`
 
-This option lets you use CFonts to generate HTML instead of ANSI code.  
-Note that `max-length` won't be automatically detected anymore and you will have to supply it if you want the text to wrap.
-Best used in a node script.
+This option lets you use `cfonts` to generate HTML instead of ANSI code.  
+Note that `max-length` will be set to very large.  
 
-```js
-const CFonts = require('cfonts');
-const path = require('path');
-const fs = require('fs');
-
-const output = CFonts.render('My text', {
-	colors: ['white'],
-	gradient: ['cyan', 'red'],
-	background: 'black',
-	space: false,
-	env: 'browser',
-});
-
-fs.writeFileSync(
-	path.normalize(`${ __dirname }/test.html`),
-	output.string,
-	{
-		encoding: 'utf8',
-	}
-);
+```sh
+$ cfonts "text" --env browser
 ```
 
 ![Max length command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
 
 
 ## Consistency
-[Chalk](https://github.com/chalk/chalk) detects what colors are supported on your platform.
-It sets a [level of support](https://github.com/chalk/chalk#256-and-truecolor-color-support) automatically.
-In CFonts you can override this by passing in the `FORCE_COLOR` environment variable.
+`cfonts` detects what colors are supported on your platform.
+It sets a level of support automatically.
+In `cfonts` you can override this by passing in the `FORCE_COLOR` environment variable.
 
 ```shell
 FORCE_COLOR=3 cfonts "hello world" -c "#0088ff"
 ```
 
-## Contributing
-To build the repo install dependencies via:  
-_(Since we ship a `yarn.lock` file please use [`yarn`](https://yarnpkg.com/) for development.)_
+You can also use the `NO_COLOR` environment variable to set no color output for environments like CI.
 
 ```shell
-yarn
+NO_COLOR="" cfonts "hello world" -c "#0088ff"
 ```
 
-and run the watch to continuously transpile the code.
-
-```shell
-yarn watch
-```
-
-Please look at the coding style and work with it, not against it ;)
-
-
-## Tests
-This package is tested on the below platform and node combinations as part of our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.travis.yml).
-
-| Platform | Node   |
-|----------|--------|
-| Linux    | v10    |
-| Linux    | v12    |
-| Linux    | latest |
-| OSX      | v10    |
-| OSX      | v12    |
-| OSX      | latest |
-| Windows  | v10    |
-| Windows  | v12    |
-| Windows  | latest |
-
-### Unit tests
-The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/released/test/unit) that aim to cover 100% of the code base.
-For more details about the code coverage check out [coveralls](https://coveralls.io/github/dominikwilkowski/cfonts?branch=released).
-
-```shell
-npm run test:unit
-```
-
-### Type tests
-Since the code base uses [JSDocs](https://jsdoc.app/) we use [typescript](https://www.typescriptlang.org/) to test the inferred types from those comments.
-Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our
-[test](https://github.com/dominikwilkowski/cfonts/blob/released/package.json#L38).
-
-```shell
-npm run test:types
-```
-
-### Font file test
-There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/released/test/fonttest.js) for font files.
-
-```shell
-npm run test:fonts
-```
-
-This tool checks:
-- the existence of the font
-- all attributes of a font
-- each character for:
-	- existence
-	- consistent width
-	- consistent lines
-
-### All tests
-Run all tests via:
-
-```shell
-npm run test
-```
+💡  `FORCE_COLOR` overrides `NO_COLOR` if both are set.
 
 
 ## License

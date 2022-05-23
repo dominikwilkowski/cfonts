@@ -37,9 +37,9 @@ _Remember to escape the `!` character with `\` in the shell_
 Or use it in your project:
 
 ```js
-const CFonts = require('cfonts');
+const cfonts = require('cfonts');
 
-CFonts.say('Hello|world!', {
+cfonts.say('Hello|world!', {
 	font: 'block',              // define the font face
 	align: 'left',              // define text alignment
 	colors: ['system'],         // define all colors
@@ -51,18 +51,18 @@ CFonts.say('Hello|world!', {
 	gradient: false,            // define your two gradient colors
 	independentGradient: false, // define if you want to recalculate the gradient for each new line
 	transitionGradient: false,  // define if this is a transition between colors directly
-	env: 'node'                 // define the environment CFonts is being executed in
+	env: 'node'                 // define the environment cfonts is being executed in
 });
 ```
 
 _All settings are optional and shown here with their default_
 
-You can use CFonts in your project without the direct output to the console:
+You can use `cfonts` in your project without the direct output to the console:
 
 ```js
-const CFonts = require('cfonts');
+const cfonts = require('cfonts');
 
-const prettyFont = CFonts.render('Hello|world!', {/* same settings object as above */});
+const prettyFont = cfonts.render('Hello|world!', {/* same settings object as above */});
 
 prettyFont.string  // the ansi string for sexy console font
 prettyFont.array   // returns the array for the output
@@ -71,9 +71,81 @@ prettyFont.options // returns the options used
 ```
 
 
-## Usage
+## CLI Usage
 
 Read more in the [root repo](../).
+
+
+## Tests
+This package is tested on the below platform and node combinations as part of our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.travis.yml).
+
+| Platform | Node   |
+|----------|--------|
+| Linux    | v10    |
+| Linux    | v12    |
+| Linux    | latest |
+| OSX      | v10    |
+| OSX      | v12    |
+| OSX      | latest |
+| Windows  | v10    |
+| Windows  | v12    |
+| Windows  | latest |
+
+### Unit tests
+The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/released/test/unit) that aim to cover 100% of the code base.
+For more details about the code coverage check out [coveralls](https://coveralls.io/github/dominikwilkowski/cfonts?branch=released).
+
+```shell
+npm run test:unit
+```
+
+### Type tests
+Since the code base uses [JSDocs](https://jsdoc.app/) we use [typescript](https://www.typescriptlang.org/) to test the inferred types from those comments.
+Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our
+[test](https://github.com/dominikwilkowski/cfonts/blob/released/package.json#L38).
+
+```shell
+npm run test:types
+```
+
+### Font file test
+There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/released/test/fonttest.js) for font files.
+
+```shell
+npm run test:fonts
+```
+
+This tool checks:
+- the existence of the font
+- all attributes of a font
+- each character for:
+	- existence
+	- consistent width
+	- consistent lines
+
+### All tests
+Run all tests via:
+
+```shell
+npm run test
+```
+
+
+## Contributing
+To build the repo install dependencies via:  
+_(Since we ship a `yarn.lock` file please use [`yarn`](https://yarnpkg.com/) for development.)_
+
+```shell
+yarn
+```
+
+and run the watch to continuously transpile the code.
+
+```shell
+yarn watch
+```
+
+Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
@@ -114,7 +186,7 @@ Read more in the [root repo](../).
 * 2.1.3  -  refactored some loops
 * 2.1.2  -  made WinSize more robust
 * 2.1.1  -  fixed size detection in non-tty environments
-* 2.1.0  -  rebuilt cfonts with pure functions, made colors case-insensitive
+* 2.1.0  -  rebuilt `cfonts` with pure functions, made colors case-insensitive
 * 2.0.1  -  fixed terminal width detection
 * 2.0.0  -  added tests, split into more pure functions
 * 1.2.0  -  added `transparent` and `system` as default background and color option, added `backgroundColor` as alias for `background`, upgraded deps

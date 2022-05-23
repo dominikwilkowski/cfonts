@@ -71,7 +71,7 @@ fn main() {
 
 _All settings are optional and shown here with their default_
 
-You can use CFonts in your project without the direct output to the console:
+You can use `cfonts` in your project without the direct output to the console:
 
 ```rust
 extern crate cfonts;
@@ -111,7 +111,7 @@ fn main() {
 ```
 
 
-## Usage
+## CLI Usage
 
 Read more in the [root repo](../).
 
