@@ -63,8 +63,7 @@
 //!
 //!     assert_eq!(output.vec, vec![
 //!         String::from("\n\n █ █ █▀▀ █   █   █▀█"),
-//!         String::from(    " █▀█ ██▄ █▄▄ █▄▄ █▄█"),
-//!         String::from("\n"),
+//!         String::from(    " █▀█ ██▄ █▄▄ █▄▄ █▄█\n\n"),
 //!     ]);
 //!
 //!     assert_eq!(output.lines, 1);
