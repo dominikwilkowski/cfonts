@@ -38,7 +38,7 @@ const AlignText = ( output, lineLength, characterLines, align, size = Size ) => 
 	let space = 0;
 
 	if( align === 'center' ) { // calculate the size for center alignment
-		space = Math.floor( ( size.width - lineLength ) / 2 );
+		space = Math.ceil( ( size.width - lineLength ) / 2 );
 
 		Debugging.report( `AlignText: Center lineLength: ${ lineLength }, size.width: ${ size.width }, space: ${ space }`, 2 );
 	}

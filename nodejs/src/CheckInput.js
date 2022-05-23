@@ -109,11 +109,14 @@ const CheckInput = (
 	});
 
 	// checking background colors
-	if( Object.keys( bgcolors ).indexOf( userBackground.toLowerCase() ) === -1 ) {
+	if(
+		Object.keys( bgcolors ).indexOf( userBackground.toLowerCase() ) === -1
+		&& !HEXTEST.test( userBackground )
+	) {
 		return {
 			message: `"${ Chalk.red( userBackground ) }" is not a valid background option.\n` +
 				`Please use a color from the supported stack:\n${
-					Chalk.green( Object.keys( bgcolors ).map( bgcolor => bgcolors[ bgcolor ] ).join(', ') )
+					Chalk.green(`${Object.keys( bgcolors ).map( bgcolor => bgcolors[ bgcolor ] ).join(', ')}, "#3456ff", "#f80", etc...`)
 				}`,
 			pass: false,
 		};

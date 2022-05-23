@@ -142,9 +142,6 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		output = AddLine( [], FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // create first lines with buffer
 		lines ++;
 
-		output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing ); // add letter spacing to the beginning
-		lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // count the space for the letter spacing
-
 		for( let i = 0; i < INPUT.length; i++ ) { // iterate through the message
 			let CHAR = INPUT.charAt( i ).toUpperCase(); // the current character we convert, only upper case is supported at this time
 			let lastLineLength = lineLength; // we need the lineLength for alignment before we look up if the next char fits
@@ -172,27 +169,26 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 					output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align, size ); // calculate alignment based on lineLength
 				}
 
-				lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
 				lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
+				lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
 
 				if( CHAR !== `|` ) { // if this is a character and not a line break
-					lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
 					lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // add letter spacing at the end
+					lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
 				}
 
 				maxChars = 0; // new line, new maxLength goal
 
 				output = AddLine( output, FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // adding new line
 				// add letter spacing to the beginning
-				output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing );
 			}
 
 			Debugging.report(`lineLength at: "${ lineLength }"`, 2);
 
 			if( CHAR !== `|` ) {
 				maxChars++; // counting all printed characters
-				output = AddChar( CHAR, output, FONTFACE.lines, FONTFACE.chars, FONTFACE.colors, OPTIONS.colors ); // add new character
 				output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing );
+				output = AddChar( CHAR, output, FONTFACE.lines, FONTFACE.chars, FONTFACE.colors, OPTIONS.colors ); // add new character
 			}
 		}
 
@@ -233,7 +229,7 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		output[ output.length - 1 ] = `${ output[ output.length - 1 ] }${ closeNew }`;
 	}
 
-	let write = output.join( OPTIONS.env === 'node' ? `\n` : '<br>' );
+	let write = output.join( OPTIONS.env === 'node' ? `\n` : '<br>\n' );
 
 	if( OPTIONS.env === 'browser' ) {
 		const { open: bgColor } = Color( OPTIONS.background, true );

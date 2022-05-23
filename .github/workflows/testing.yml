@@ -106,6 +106,9 @@ jobs:
       - name: Run build
         run: cargo build --release --verbose
 
+      - name: Install dependencies in node folder for end-to-end tests
+        run: cd ../nodejs && yarn install --frozen-lockfile && yarn build
+
       - name: Run end-to-end test
         run: node tests/end-to-end/index.js
 

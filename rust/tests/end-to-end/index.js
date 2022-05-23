@@ -20,11 +20,52 @@ function test_stdout(args, fixture, FORCE_COLOR = "3", NO_COLOR = false) {
 	}
 }
 
-function run_tests(tests) {
+function compare_implementations(args, FORCE_COLOR = "3", NO_COLOR = false) {
+	const env = { ...process.env, FORCE_COLOR, ...(NO_COLOR !== false ? { NO_COLOR } : {}) };
+
+	let { stdout: rust_output } = spawnSync(
+		path.normalize(`${__dirname}/../../target/release/cfonts`),
+		args,
+		{
+			encoding: 'utf-8',
+			env,
+		}
+	);
+	rust_output = rust_output.toString();
+
+	args = args.map(arg => arg.includes('#') || arg.includes('|') ? `"${arg}"` : arg);
+	let { stdout: node_output } = spawnSync(
+		'node',
+		[path.normalize(`${__dirname}/../../../nodejs/bin/index.js`), ...args],
+		{
+			shell: true,
+			encoding: 'utf-8',
+			env,
+		}
+	);
+	node_output = node_output.toString();
+
+	if(rust_output !== node_output) {
+		let env_vars = [`FORCE_COLOR=${FORCE_COLOR}`];
+		if( NO_COLOR ) {
+			env_vars.push(`NO_COLOR=""`);
+		}
+		return `[${ env_vars.join(" ")} cfonts ${args.join(" ")}]\n` +
+			`RUST:\n` +
+			`${rust_output}\n` +
+			`NODE:\n${node_output}\n` +
+			`RUST OUTPUT:\n${require("util").inspect(rust_output)}\n` +
+			`NODE OUTPUT:\n${require("util").inspect(node_output)}`;
+	} else {
+		return 0;
+	}
+}
+
+function run_fixture_tests(tests) {
 	let fails = 0;
 	tests.forEach(test => {
 		let output = test_stdout(test.args, test.fixture, test.FORCE_COLOR, test.NO_COLOR);
-		process.stdout.write(`• Running test ${`"\x1b[33m${test.name}\x1b[39m"`.padEnd(57, ' ')} `);
+		process.stdout.write(`• Running fixture test ${`"\x1b[33m${test.name}\x1b[39m"`.padEnd(49, ' ')} `);
 		if(output === 0) {
 			process.stdout.write("\x1b[42m TEST SUCCESSFUL \x1b[49m\n");
 		} else {
@@ -38,7 +79,25 @@ function run_tests(tests) {
 	}
 }
 
-const TESTS = [
+function run_compare_tests(tests) {
+	let fails = 0;
+	tests.forEach(test => {
+		let output = compare_implementations(test.args, test.FORCE_COLOR, test.NO_COLOR);
+		process.stdout.write(`• Running compare test ${`"\x1b[33m${test.name}\x1b[39m"`.padEnd(49, ' ')} `);
+		if(output === 0) {
+			process.stdout.write("\x1b[42m TEST SUCCESSFUL \x1b[49m\n");
+		} else {
+			fails ++;
+			process.stdout.write(`\x1b[41m TEST FAILED \x1b[49m\n${output}\n`);
+		}
+	});
+
+	if(fails > 0) {
+		process.exit(1);
+	}
+}
+
+const FIXTURE_TESTS = [
 	{
 		name: "Default font",
 		args: ["test"],
@@ -240,7 +299,7 @@ const TESTS = [
 			'\n\n',
 	},
 	{
-		name: "Letter spacing 2",
+		name: "Letter spacing 10",
 		args: ["test", "-l" ,"10"],
 		fixture: '\n\n' +
 			'          ████████╗          ███████╗          ███████╗          ████████╗\n' +
@@ -383,7 +442,7 @@ const TESTS = [
 			'\n\n',
 	},
 	{
-		name: "Gradient transition with multiple colors",
+		name: "Gradient transition, multiple colors",
 		args: ["test", "-g", "red,#ff8800,blue,red,red", "-t"],
 		fixture: '\n\n' +
 			' \x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;15;0m█\x1B[39m\x1B[38;2;255;30;0m█\x1B[39m\x1B[38;2;255;45;0m█\x1B[39m\x1B[38;2;255;60;0m█\x1B[39m\x1B[38;2;255;75;0m█\x1B[39m\x1B[38;2;255;90;0m█\x1B[39m\x1B[38;2;255;105;0m█\x1B[39m\x1B[38;2;255;120;0m╗\x1B[39m\x1B[38;2;255;136;0m \x1B[39m\x1B[38;2;226;120;28m█\x1B[39m\x1B[38;2;198;105;56m█\x1B[39m\x1B[38;2;170;90;85m█\x1B[39m\x1B[38;2;141;75;113m█\x1B[39m\x1B[38;2;113;60;141m█\x1B[39m\x1B[38;2;85;45;170m█\x1B[39m\x1B[38;2;56;30;198m█\x1B[39m\x1B[38;2;28;15;226m╗\x1B[39m\x1B[38;2;0;0;255m \x1B[39m\x1B[38;2;28;0;226m█\x1B[39m\x1B[38;2;56;0;198m█\x1B[39m\x1B[38;2;85;0;170m█\x1B[39m\x1B[38;2;113;0;141m█\x1B[39m\x1B[38;2;141;0;113m█\x1B[39m\x1B[38;2;170;0;85m█\x1B[39m\x1B[38;2;198;0;56m█\x1B[39m\x1B[38;2;226;0;28m╗\x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m╗\x1B[39m\n' +
@@ -398,10 +457,136 @@ const TESTS = [
 		name: "Browser env",
 		args: ["test", "-e", "browser"],
 		fixture: '' +
-			'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:currentColor">\n\n' +
-			' ████████╗ ███████╗ ███████╗ ████████╗<br> ╚══██╔══╝ ██╔════╝ ██╔════╝ ╚══██╔══╝<br>    ██║    █████╗   ███████╗    ██║   <br>    ██║    ██╔══╝   ╚════██║    ██║   <br>    ██║    ███████╗ ███████║    ██║   <br>    ╚═╝    ╚══════╝ ╚══════╝    ╚═╝   <br>\n' +
-			'<div>\n',
+			'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:transparent">\n\n' +
+			' ████████╗ ███████╗ ███████╗ ████████╗<br>\n' +
+			' ╚══██╔══╝ ██╔════╝ ██╔════╝ ╚══██╔══╝<br>\n' +
+			'    ██║    █████╗   ███████╗    ██║   <br>\n' +
+			'    ██║    ██╔══╝   ╚════██║    ██║   <br>\n' +
+			'    ██║    ███████╗ ███████║    ██║   <br>\n' +
+			'    ╚═╝    ╚══════╝ ╚══════╝    ╚═╝   \n' +
+			'\n' +
+			'</div>\n',
 	},
 ];
 
-run_tests(TESTS);
+const COMPARE_TESTS = [
+	{
+		name: "Default font",
+		args: ["test"],
+	},
+	{
+		name: "Single color",
+		args: ["test", "-c" ,"red"],
+	},
+	{
+		name: "Two colors",
+		args: ["test", "-c" ,"red,blue"],
+	},
+	{
+		name: "Background colors",
+		args: ["test", "-b" ,"blue"],
+	},
+	{
+		name: "Background hex colors",
+		args: ["test", "-b" ,"#8f67e9"],
+	},
+	{
+		name: "Respect FORCE_COLOR=0",
+		args: ["test", "-c" ,"#ff8800"],
+		FORCE_COLOR: "0",
+	},
+	// {
+	// 	name: "Respect FORCE_COLOR=1",
+	// 	args: ["test", "-c" ,"#ff8800"],
+	// 	FORCE_COLOR: "1",
+	// },
+	// {
+	// 	name: "Respect FORCE_COLOR=2",
+	// 	args: ["test", "-c" ,"#ff8800"],
+	// 	FORCE_COLOR: "2",
+	// },
+	// {
+	// 	name: "Respect FORCE_COLOR=3",
+	// 	args: ["test", "-c" ,"#ff8800"],
+	// 	FORCE_COLOR: "3",
+	// },
+	// {
+	// 	name: "Respect NO_COLOR",
+	// 	args: ["test", "-c" ,"#ff8800"],
+	// 	FORCE_COLOR: "invalid",
+	// 	NO_COLOR: "",
+	// },
+	{
+		name: "FORCE_COLOR overrides NO_COLOR",
+		args: ["test", "-c" ,"#ff8800"],
+		FORCE_COLOR: "3",
+		NO_COLOR: "",
+	},
+	{
+		name: "Align center",
+		args: ["test", "-a" ,"center"],
+	},
+	{
+		name: "Align right",
+		args: ["test", "-a" ,"right"],
+	},
+	{
+		name: "Align top",
+		args: ["test", "-a" ,"top"],
+	},
+	{
+		name: "Align bottom",
+		args: ["test", "-a" ,"bottom"],
+	},
+	{
+		name: "Letter spacing 2",
+		args: ["test", "-l" ,"2"],
+	},
+	{
+		name: "Letter spacing 10",
+		args: ["test", "-l" ,"10"],
+	},
+	{
+		name: "Line break",
+		args: ["test|line"],
+	},
+	{
+		name: "Line height",
+		args: ["test|line", "-z", "5"],
+	},
+	{
+		name: "Spaceless",
+		args: ["test", "-s"],
+	},
+	{
+		name: "Max length at 2",
+		args: ["test", "-m", "2"],
+	},
+	{
+		name: "Max length at 3",
+		args: ["test", "-m", "3"],
+	},
+	// {
+	// 	name: "Gradient",
+	// 	args: ["test", "-g", "red,green"],
+	// },
+	// {
+	// 	name: "Gradient independent",
+	// 	args: ["test|x", "-g", "red,green", "-i"],
+	// },
+	{
+		name: "Gradient transition",
+		args: ["test", "-g", "red,#ff8800", "-t"],
+	},
+	{
+		name: "Gradient transition, multiple colors",
+		args: ["test", "-g", "red,#ff8800,blue,red,red", "-t"],
+	},
+	{
+		name: "Browser env",
+		args: ["test", "-e", "browser"],
+	},
+];
+
+run_fixture_tests(FIXTURE_TESTS);
+run_compare_tests(COMPARE_TESTS);
