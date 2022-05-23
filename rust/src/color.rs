@@ -398,7 +398,7 @@ pub fn color2hex(color: &Colors, options: &Options) -> String {
 	d(&format!("color::color2hex()\ncolor:{:?}", color), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let hex = match color {
-		Colors::System => String::from("currentColor"),
+		Colors::System => String::from("transparent"),
 		Colors::Black => String::from("#000000"),
 		Colors::Red => String::from("#ea3223"),
 		Colors::Green => String::from("#377d22"),
@@ -450,7 +450,7 @@ pub fn bgcolor2hex(color: &BgColors, options: &Options) -> String {
 	d(&format!("color::bgcolor2hex()\ncolor:{:?}", color), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let hex = match color {
-		BgColors::Transparent => String::from("currentColor"),
+		BgColors::Transparent => String::from("transparent"),
 		BgColors::Black => String::from("#000000"),
 		BgColors::Red => String::from("#ea3223"),
 		BgColors::Green => String::from("#377d22"),

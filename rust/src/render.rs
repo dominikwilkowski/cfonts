@@ -191,7 +191,8 @@ pub fn render(options: Options) -> RenderedString {
 			Align::Bottom => output[0] = String::from("\n\n\n\n") + &output[0],
 			Align::Left | Align::Center | Align::Right => {
 				output[0] = String::from("\n\n") + &output[0];
-				output.push(String::from("\n"));
+				let last_index = output.len() - 1;
+				output[last_index] = format!("{}\n\n", output[last_index]);
 			}
 		}
 		d("render() added space", 1, Dt::Log, &options, &mut std::io::stdout());
@@ -201,13 +202,13 @@ pub fn render(options: Options) -> RenderedString {
 		let (open, close) = get_background_color(&options.background);
 		output[0] = format!("{}\n", open) + &output[0];
 		let last_index = output.len() - 1;
-		output[last_index] = format!("{}{}", output[output.len() - 1], close);
+		output[last_index] = format!("{}{}", output[last_index], close);
 		d("render() added background", 1, Dt::Log, &options, &mut std::io::stdout());
 	}
 
 	let mut text = match options.env {
 		Env::Cli => output.join("\n"),
-		Env::Browser => output.join("<br>"),
+		Env::Browser => output.join("<br>\n"),
 	};
 
 	if options.env == Env::Browser {
@@ -217,7 +218,7 @@ pub fn render(options: Options) -> RenderedString {
 			Align::Center => "center",
 			Align::Left | Align::Top | Align::Bottom => "left",
 		};
-		text = format!("<div style=\"font-family:monospace;white-space:pre;text-align:{};max-width:100%;overflow:scroll;background:{}\">{}<div>", align, color, text);
+		text = format!("<div style=\"font-family:monospace;white-space:pre;text-align:{};max-width:100%;overflow:scroll;background:{}\">{}</div>", align, color, text);
 		d("render() formatted for Env::Browser", 1, Dt::Log, &options, &mut std::io::stdout());
 	}
 
