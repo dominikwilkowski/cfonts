@@ -495,21 +495,21 @@ const COMPARE_TESTS = [
 		args: ["test", "-c" ,"#ff8800"],
 		FORCE_COLOR: "0",
 	},
-	// {
-	// 	name: "Respect FORCE_COLOR=1",
-	// 	args: ["test", "-c" ,"#ff8800"],
-	// 	FORCE_COLOR: "1",
-	// },
-	// {
-	// 	name: "Respect FORCE_COLOR=2",
-	// 	args: ["test", "-c" ,"#ff8800"],
-	// 	FORCE_COLOR: "2",
-	// },
-	// {
-	// 	name: "Respect FORCE_COLOR=3",
-	// 	args: ["test", "-c" ,"#ff8800"],
-	// 	FORCE_COLOR: "3",
-	// },
+	{
+		name: "Respect FORCE_COLOR=1",
+		args: ["test", "-c" ,"#ff8800"],
+		FORCE_COLOR: "1",
+	},
+	{
+		name: "Respect FORCE_COLOR=2",
+		args: ["test", "-c" ,"#ff8800"],
+		FORCE_COLOR: "2",
+	},
+	{
+		name: "Respect FORCE_COLOR=3",
+		args: ["test", "-c" ,"#ff8800"],
+		FORCE_COLOR: "3",
+	},
 	// {
 	// 	name: "Respect NO_COLOR",
 	// 	args: ["test", "-c" ,"#ff8800"],
