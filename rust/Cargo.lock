@@ -26,7 +26,6 @@ dependencies = [
  "enable-ansi-support",
  "exitcode",
  "rand",
- "rgb2ansi256",
  "serde",
  "serde_json",
  "strum",
@@ -154,12 +153,6 @@ checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
  "getrandom",
 ]
-
-[[package]]
-name = "rgb2ansi256"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ebca96b1c05912d531790498048bab5b7b97a756a7bb9df71fa4ef7ef9814e1"
 
 [[package]]
 name = "rustversion"

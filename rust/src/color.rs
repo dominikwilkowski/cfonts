@@ -1,6 +1,5 @@
 //! The contents of this module is all about colors, color-transformation and color-conversion
 use rand::seq::SliceRandom;
-use rgb2ansi256::rgb_to_ansi256;
 use std::env;
 use supports_color::Stream;
 
@@ -503,6 +502,42 @@ pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
 	format!("\x1b[{};2;{};{};{}m", layer_code, r, g, b)
 }
 
+/// Convert RGB u8 values to ANSI 256
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::Rgb;
+/// use cfonts::color::{rgb_u8_2ansi_256,};
+///
+/// assert_eq!(rgb_u8_2ansi_256(100, 200, 100), 114);
+/// assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 16);
+/// assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 231);
+/// assert_eq!(rgb_u8_2ansi_256(167, 5, 98), 126);
+/// ```
+pub fn rgb_u8_2ansi_256(r: u8, g: u8, b: u8) -> u8 {
+	let red = r as f64;
+	let green = g as f64;
+	let blue = b as f64;
+
+	if r == g && g == b {
+		if red > 8.0 {
+			return 16;
+		}
+		if red > 248.0 {
+			return 231;
+		}
+		let result = (((red - 8.0) / 247.0) * 24.0).round() + 232.0;
+
+		return result as u8;
+	}
+
+	let result =
+		16.0 + (36.0 * (red / 255.0 * 5.0).round()) + (6.0 * (green / 255.0 * 5.0).round()) + (blue / 255.0 * 5.0).round();
+
+	result as u8
+}
+
 /// Convert RGB colors to the opening ansi escape sequence for consoles supporting 256 colors
 ///
 /// ```rust
@@ -513,17 +548,17 @@ pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
 ///
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[38;5;196m".to_string());
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[38;5;226m".to_string());
-/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;231m".to_string());
-/// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;125m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;16m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;126m".to_string());
 ///
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[48;5;196m".to_string());
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[48;5;226m".to_string());
-/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;231m".to_string());
-/// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;125m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;16m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;126m".to_string());
 /// ```
 pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
-	let code = rgb_to_ansi256(r, g, b);
+	let code = rgb_u8_2ansi_256(r, g, b);
 	let layer_code = match layer {
 		ColorLayer::Foreground => 38,
 		ColorLayer::Background => 48,
@@ -543,17 +578,17 @@ pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 ///
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[91m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[93m".to_string());
-/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[97m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[0m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[31m".to_string());
 ///
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[101m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[103m".to_string());
-/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[107m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[10m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[41m".to_string());
 /// ```
 pub fn rgb2ansi_16(rgb: &Rgb, layer: ColorLayer) -> String {
 	let (r, g, b) = rgb.get_value();
-	let code = rgb_to_ansi256(r, g, b);
+	let code = rgb_u8_2ansi_256(r, g, b);
 	let mut ansi_16_code = match code {
 		0..=7 => code + 10,
 		8..=15 => code + 82,

@@ -2,8 +2,8 @@ extern crate cfonts;
 
 use cfonts::color::{
 	bg_color, bgcolor2hex, color, color2hex, get_background_color, get_foreground_color, get_term_color_support, hex2rgb,
-	hex2rsv, hsv2rgb, hsv2rsv, rgb2ansi_16, rgb2ansi_16m, rgb2ansi_256, rgb2hex, rgb2hsv, rsv2hex, rsv2hsv, ColorLayer,
-	Hsv, Rgb, Rsv, TermColorSupport,
+	hex2rsv, hsv2rgb, hsv2rsv, rgb2ansi_16, rgb2ansi_16m, rgb2ansi_256, rgb2hex, rgb2hsv, rgb_u8_2ansi_256, rsv2hex,
+	rsv2hsv, ColorLayer, Hsv, Rgb, Rsv, TermColorSupport,
 };
 use cfonts::config::{BgColors, Colors, Env, Options};
 
@@ -188,28 +188,36 @@ mod color {
 	}
 
 	#[test]
+	fn rgb_u8_2ansi_256_works() {
+		assert_eq!(rgb_u8_2ansi_256(100, 200, 100), 114);
+		assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 16);
+		assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 231);
+		assert_eq!(rgb_u8_2ansi_256(167, 5, 98), 126);
+	}
+
+	#[test]
 	fn rgb2ansi_256_works() {
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[38;5;196m".to_string());
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[38;5;226m".to_string());
-		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;231m".to_string());
-		assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;125m".to_string());
+		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;16m".to_string());
+		assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;126m".to_string());
 
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[48;5;196m".to_string());
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[48;5;226m".to_string());
-		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;231m".to_string());
-		assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;125m".to_string());
+		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;16m".to_string());
+		assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;126m".to_string());
 	}
 
 	#[test]
 	fn rgb2ansi_16_works() {
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[91m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[93m".to_string());
-		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[97m".to_string());
+		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[0m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[31m".to_string());
 
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[101m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[103m".to_string());
-		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[107m".to_string());
+		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[10m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[41m".to_string());
 	}
 
@@ -413,7 +421,7 @@ mod color {
 		temp_env::with_var("FORCE_COLOR", Some("2"), || {
 			assert_eq!(
 				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168)), &options),
-				String::from("\u{1b}[38;5;205m testing \u{1b}[39m")
+				String::from("\u{1b}[38;5;211m testing \u{1b}[39m")
 			);
 		});
 
@@ -441,7 +449,7 @@ mod color {
 		temp_env::with_var("FORCE_COLOR", Some("2"), || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[48;5;205m testing \u{1b}[49m")
+				String::from("\u{1b}[48;5;211m testing \u{1b}[49m")
 			);
 		});
 
@@ -470,7 +478,7 @@ mod color {
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168)), &options),
-				String::from("\u{1b}[38;5;205m testing \u{1b}[39m")
+				String::from("\u{1b}[38;5;211m testing \u{1b}[39m")
 			);
 		});
 
@@ -498,7 +506,7 @@ mod color {
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[48;5;205m testing \u{1b}[49m")
+				String::from("\u{1b}[48;5;211m testing \u{1b}[49m")
 			);
 		});
 
