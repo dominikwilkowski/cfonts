@@ -566,6 +566,9 @@ const Color = ( color, bg = false ) => {
 				const rgb = Hex2rgb(hex);
 				const support = get_term_color_support();
 
+				if( support === 0 ) {
+					return { open: '', close: '' };
+				}
 				if( support === 1 ) {
 					open = ansi_2562ansi_16( rgb2ansi256Code( rgb[0], rgb[1], rgb[2] ), bg );
 				}
