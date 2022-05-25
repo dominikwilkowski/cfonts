@@ -16,7 +16,6 @@
 'use strict';
 
 const { AddLetterSpacing } = require('./AddLetterSpacing.js');
-const { RenderConsole } = require('./RenderConsole.js');
 const { Debugging, DEBUG } = require('./Debugging.js');
 const { PaintGradient } = require('./Gradient.js');
 const { CharLength } = require('./CharLength.js');
@@ -97,104 +96,89 @@ const Render = ( input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG
 		size.width = OPTIONS.maxLength === 0 ? 999999999999 : OPTIONS.maxLength;
 	}
 
+	FONTFACE = GetFont( OPTIONS.font );
+	if( !FONTFACE ) {
+		Log.error( `Font file for the font "${ OPTIONS.font }" could not be found.\nTry reinstalling this package.` );
 
-	if( OPTIONS.font === 'console' ) { // console fontface is pretty easy to process
-		FONTFACE = {
-			colors: 1,
-			lines: 1,
-		};
-
-		const consoleOutput = RenderConsole( INPUT, OPTIONS, size );
-
-		output = consoleOutput.output;
-		lines = consoleOutput.lines;
+		return false;
 	}
-	else { // all other fontfaces need the font-file and some more work
-		FONTFACE = GetFont( OPTIONS.font );
 
-		if( !FONTFACE ) {
-			Log.error( `Font file for the font "${ OPTIONS.font }" could not be found.\nTry reinstalling this package.` );
+	// setting the letterspacing preference from font face if there is no user overwrite
+	if( SETTINGS.letterSpacing === undefined ) {
+		Debugging.report( `Looking up letter spacing from font face`, 1 );
 
-			return false;
+		let width = 0;
+
+		FONTFACE.letterspace.forEach( item => {
+			let char = item.replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
+
+			if( width < char.length ) {
+				width = char.length;
+			}
+		});
+
+		Debugging.report(`Letter spacing set to font face default: "${ width }"`, 2);
+		OPTIONS.letterSpacing = width;
+	}
+
+	let lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // count each output character per line and start with the buffer
+	let maxChars = 0; // count each character we print for maxLength option
+
+	output = AddLine( [], FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // create first lines with buffer
+	lines ++;
+
+	for( let i = 0; i < INPUT.length; i++ ) { // iterate through the message
+		let CHAR = INPUT.charAt( i ).toUpperCase(); // the current character we convert, only upper case is supported at this time
+		let lastLineLength = lineLength; // we need the lineLength for alignment before we look up if the next char fits
+
+		Debugging.report(`Character found in font: "${ CHAR }"`, 2);
+
+		if( CHAR !== `|` ) { // what will the line length be if we add the next char?
+			lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
+			lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // new line, new line length
 		}
 
-		// setting the letterspacing preference from font face if there is no user overwrite
-		if( SETTINGS.letterSpacing === undefined ) {
-			Debugging.report( `Looking up letter spacing from font face`, 1 );
+		// jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would have ran out of space
+		if( maxChars >= OPTIONS.maxLength && OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > size.width ) {
+			lines ++;
 
-			let width = 0;
+			Debugging.report(
+				`NEWLINE: maxChars: ${ maxChars }, ` +
+				`OPTIONS.maxLength: ${ OPTIONS.maxLength }, ` +
+				`CHAR: ${ CHAR }, ` +
+				`lineLength: ${ lineLength }, ` +
+				`Size.width: ${ size.width } `, 2
+			);
 
-			FONTFACE.letterspace.forEach( item => {
-				let char = item.replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
+			if( OPTIONS.env === 'node' ) {
+				output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align, size ); // calculate alignment based on lineLength
+			}
 
-				if( width < char.length ) {
-					width = char.length;
-				}
-			});
+			lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
+			lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
 
-			Debugging.report(`Letter spacing set to font face default: "${ width }"`, 2);
-			OPTIONS.letterSpacing = width;
-		}
-
-		let lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // count each output character per line and start with the buffer
-		let maxChars = 0; // count each character we print for maxLength option
-
-		output = AddLine( [], FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // create first lines with buffer
-		lines ++;
-
-		for( let i = 0; i < INPUT.length; i++ ) { // iterate through the message
-			let CHAR = INPUT.charAt( i ).toUpperCase(); // the current character we convert, only upper case is supported at this time
-			let lastLineLength = lineLength; // we need the lineLength for alignment before we look up if the next char fits
-
-			Debugging.report(`Character found in font: "${ CHAR }"`, 2);
-
-			if( CHAR !== `|` ) { // what will the line length be if we add the next char?
+			if( CHAR !== `|` ) { // if this is a character and not a line break
+				lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // add letter spacing at the end
 				lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
-				lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // new line, new line length
 			}
 
-			// jump to next line after OPTIONS.maxLength characters or when line break is found or the console windows would have ran out of space
-			if( maxChars >= OPTIONS.maxLength && OPTIONS.maxLength != 0 || CHAR === `|` || lineLength > size.width ) {
-				lines ++;
+			maxChars = 0; // new line, new maxLength goal
 
-				Debugging.report(
-					`NEWLINE: maxChars: ${ maxChars }, ` +
-					`OPTIONS.maxLength: ${ OPTIONS.maxLength }, ` +
-					`CHAR: ${ CHAR }, ` +
-					`lineLength: ${ lineLength }, ` +
-					`Size.width: ${ size.width } `, 2
-				);
-
-				if( OPTIONS.env === 'node' ) {
-					output = AlignText( output, lastLineLength, FONTFACE.lines, OPTIONS.align, size ); // calculate alignment based on lineLength
-				}
-
-				lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // each new line starts with letter spacing
-				lineLength = CharLength( FONTFACE.buffer, FONTFACE.lines, OPTIONS ); // new line: new line length
-
-				if( CHAR !== `|` ) { // if this is a character and not a line break
-					lineLength += CharLength( FONTFACE.letterspace, FONTFACE.lines, OPTIONS ) * OPTIONS.letterSpacing; // add letter spacing at the end
-					lineLength += CharLength( FONTFACE.chars[ CHAR ], FONTFACE.lines, OPTIONS ); // get the length of this character
-				}
-
-				maxChars = 0; // new line, new maxLength goal
-
-				output = AddLine( output, FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // adding new line
-				// add letter spacing to the beginning
-			}
-
-			Debugging.report(`lineLength at: "${ lineLength }"`, 2);
-
-			if( CHAR !== `|` ) {
-				maxChars++; // counting all printed characters
-				output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing );
-				output = AddChar( CHAR, output, FONTFACE.lines, FONTFACE.chars, FONTFACE.colors, OPTIONS.colors ); // add new character
-			}
+			output = AddLine( output, FONTFACE.lines, FONTFACE.buffer, OPTIONS.lineHeight ); // adding new line
+			// add letter spacing to the beginning
 		}
 
-		if( OPTIONS.env === 'node' ) {
-			output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align, size ); // alignment last line
+		Debugging.report(`lineLength at: "${ lineLength }"`, 2);
+
+		if( CHAR !== `|` ) {
+			maxChars++; // counting all printed characters
+			output = AddLetterSpacing( output, FONTFACE.lines, FONTFACE.letterspace, FONTFACE.colors, OPTIONS.colors, OPTIONS.letterSpacing );
+			output = AddChar( CHAR, output, FONTFACE.lines, FONTFACE.chars, FONTFACE.colors, OPTIONS.colors ); // add new character
 		}
+	}
+
+	if( OPTIONS.env === 'node' ) {
+		output = AlignText( output, lineLength, FONTFACE.lines, OPTIONS.align, size ); // alignment last line
 	}
 
 	if( OPTIONS.gradient ) {

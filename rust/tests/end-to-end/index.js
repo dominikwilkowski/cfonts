@@ -510,12 +510,12 @@ const COMPARE_TESTS = [
 		args: ["test", "-c" ,"#ff8800"],
 		FORCE_COLOR: "3",
 	},
-	// {
-	// 	name: "Respect NO_COLOR",
-	// 	args: ["test", "-c" ,"#ff8800"],
-	// 	FORCE_COLOR: "invalid",
-	// 	NO_COLOR: "",
-	// },
+	{
+		name: "Respect NO_COLOR",
+		args: ["test", "-c" ,"#ff8800"],
+		FORCE_COLOR: "invalid",
+		NO_COLOR: "",
+	},
 	{
 		name: "FORCE_COLOR overrides NO_COLOR",
 		args: ["test", "-c" ,"#ff8800"],
@@ -566,14 +566,14 @@ const COMPARE_TESTS = [
 		name: "Max length at 3",
 		args: ["test", "-m", "3"],
 	},
-	// {
-	// 	name: "Gradient",
-	// 	args: ["test", "-g", "red,green"],
-	// },
-	// {
-	// 	name: "Gradient independent",
-	// 	args: ["test|x", "-g", "red,green", "-i"],
-	// },
+	{
+		name: "Gradient",
+		args: ["test", "-g", "red,green"],
+	},
+	{
+		name: "Gradient independent",
+		args: ["test|x", "-g", "red,green", "-i"],
+	},
 	{
 		name: "Gradient transition",
 		args: ["test", "-g", "red,#ff8800", "-t"],

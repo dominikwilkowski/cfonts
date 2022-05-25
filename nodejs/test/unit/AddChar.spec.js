@@ -26,7 +26,7 @@ test(`AddChar - Add a single line letter with color`, () => {
 		],
 	};
 
-	expect( AddChar( 'A', [''], 1, fontChars, 1, ['red'] ) ).toEqual( ['\u001b[38;2;255;0;0mA\u001b[39m'] );
+	expect( AddChar( 'A', [''], 1, fontChars, 1, ['red'] ) ).toEqual( ['\u001b[31mA\u001b[39m'] );
 });
 
 
@@ -53,9 +53,9 @@ test(`AddChar - Add a multi line letter with color`, () => {
 	};
 
 	const result = [
-		'\u001b[38;2;255;0;0m,-,\u001b[39m',
-		'\u001b[38;2;255;0;0m|-|\u001b[39m',
-		'\u001b[38;2;255;0;0m| |\u001b[39m',
+		'\u001b[31m,-,\u001b[39m',
+		'\u001b[31m|-|\u001b[39m',
+		'\u001b[31m| |\u001b[39m',
 	];
 
 	expect( AddChar( 'A', ['','',''], 3, fontChars, 1, ['red'] ) ).toEqual( result );
@@ -72,9 +72,9 @@ test(`AddChar - Add a multi line letter with multiple colors`, () => {
 	};
 
 	const result = [
-		',\u001b[38;2;255;0;0m-\u001b[39m,',
+		',\u001b[31m-\u001b[39m,',
 			'|-|',
-			'| \u001b[38;2;255;0;0m|\u001b[39m',
+			'| \u001b[31m|\u001b[39m',
 	];
 
 	expect( AddChar( 'A', ['','',''], 3, fontChars, 2, ['red', 'red'] ) ).toEqual( result );

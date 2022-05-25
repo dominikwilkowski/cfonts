@@ -8,14 +8,6 @@
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
- * Rgb2hsv              - Converts an RGB color value to HSV
- * Hsv2rgb              - Converts an HSV color value to RGB
- * Rgb2hex              - Converts RGB to HEX
- * Hex2rgb              - Convert HEX to RGB
- * Hsv2hsvRad           - Convert HSV coordinate to HSVrad (degree to radian)
- * HsvRad2hsv           - Convert HSVrad color to HSV (radian to degree)
- * Hex2hsvRad           - Convert HEX to HSVrad
- * HsvRad2hex           - Convert HSVrad to HEX
  * GetLinear            - Interpolate a linear path from a number to another number
  * GetTheta             - Interpolate a radial path from a number to another number
  * GetGradientColors    - Generate the most colorful delta between two colors
@@ -32,200 +24,11 @@
 
 
 const { GetFirstCharacterPosition } = require('./GetFirstCharacterPosition.js');
+const { Color, Hex2rgb, Hex2hsvRad, HsvRad2hex, Rgb2hex } = require('./Color.js');
 const { GetLongestLine } = require('./GetLongestLine.js');
 const { GRADIENTS } = require('./constants.js');
 const { Debugging } = require('./Debugging.js');
-const { Color } = require('./Color.js');
 
-/**
- * Converts an RGB color value to HSV
- *
- * @author https://github.com/Gavin-YYC/colorconvert
- *
- * @param   {object} options   - Arguments
- * @param   {number} options.r - The red color value
- * @param   {number} options.g - The green color value
- * @param   {number} options.b - The blue color value
- *
- * @return  {array}            - The HSV representation
- */
-function Rgb2hsv({ r, g, b }) {
-	r /= 255;
-	g /= 255;
-	b /= 255;
-
-	const max = Math.max( r, g, b );
-	const min = Math.min( r, g, b );
-	const diff = max - min;
-
-	let h = 0;
-	let v = max;
-	let s = max === 0 ? 0 : diff / max;
-
-	// h
-	if( max === min ) {
-		h = 0;
-	}
-	else if( max === r && g >= b ) {
-		h = 60 * ( ( g - b ) / diff );
-	}
-	else if( max === r && g < b ) {
-		h = 60 * ( ( g - b ) / diff ) + 360;
-	}
-	else if( max === g ) {
-		h = 60 * ( ( b - r ) / diff ) + 120;
-	}
-	else { // if( max === b ) {
-		h = 60 * ( ( r - g ) / diff ) + 240;
-	}
-
-	return [ h, ( s * 100 ), ( v * 100 ) ];
-}
-
-/**
- * Converts an HSV color value to RGB
- *
- * @author https://github.com/Gavin-YYC/colorconvert
- *
- * @param   {number}  h - The hue
- * @param   {number}  s - The saturation
- * @param   {number}  v - The value
- *
- * @typedef  {object} ReturnObject
- *   @property {number}  r  - The red value
- *   @property {number}  g  - The green value
- *   @property {number}  b  - The blue value
- *
- * @return  {ReturnObject}  - The RGB representation
- */
-function Hsv2rgb( h, s, v ) {
-	h /= 60;
-	s /= 100;
-	v /= 100;
-	const hi = Math.floor( h ) % 6;
-
-	const f = h - Math.floor( h );
-	const p = 255 * v * ( 1 - s );
-	const q = 255 * v * ( 1 - ( s * f ) );
-	const t = 255 * v * ( 1 - ( s * ( 1 - f ) ) );
-	v *= 255;
-
-	switch( hi ) {
-		case 0:
-			return { r: v, g: t, b: p };
-		case 1:
-			return { r: q, g: v, b: p };
-		case 2:
-			return { r: p, g: v, b: t };
-		case 3:
-			return { r: p, g: q, b: v };
-		case 4:
-			return { r: t, g: p, b: v };
-		case 5:
-			return { r: v, g: p, b: q };
-	}
-}
-
-/**
- * Converts RGB to HEX
- *
- * @param  {number} r - The Red value
- * @param  {number} g - The Green value
- * @param  {number} b - The Blue value
- *
- * @return {string}   - A HEX color
- */
-function Rgb2hex( r, g, b ) {
-	const val = ( ( b | g << 8 | r << 16) | 1 << 24 ).toString( 16 ).slice( 1 );
-	return '#' + val.toLowerCase();
-}
-
-/**
- * Convert HEX to RGB
- *
- * @param  {string} hex - The HEX color
- *
- * @return {array}      - An object with RGB values
- */
-function Hex2rgb( hex ) {
-	hex = hex.replace(/^#/, '');
-
-	if( hex.length > 6 ) {
-		hex = hex.slice( 0, 6 );
-	}
-
-	if( hex.length === 4 ) {
-		hex = hex.slice( 0, 3 );
-	}
-
-	if( hex.length === 3 ) {
-		hex = hex[ 0 ] + hex[ 0 ] + hex[ 1 ] + hex[ 1 ] + hex[ 2 ] + hex[ 2 ];
-	}
-
-	const num = parseInt( hex, 16 );
-	const r = num >> 16;
-	const g = ( num >> 8 ) & 255;
-	const b = num & 255;
-	const rgb = [ r, g, b ];
-
-	return rgb;
-}
-
-/**
- * Convert HSV coordinate to HSVrad (degree to radian)
- *
- * @param  {array}  argument  - The HSV representation of a color
- *
- * @return {array}            - The HSVrad color
- */
-function Hsv2hsvRad([ h, s, v ]) {
-	return [ ( h * Math.PI ) / 180, s, v ];
-}
-
-/**
- * Convert HSVrad color to HSV (radian to degree)
- *
- * @param {number} hRad - H in rad
- * @param {number} s    - S
- * @param {number} v    - V
- *
- * @return {array}    - The HSV color
- */
-function HsvRad2hsv( hRad, s, v ) {
-	return [ ( hRad * 180 ) / Math.PI, s, v ];
-}
-
-/**
- * Convert HEX to HSVrad
- *
- * @param  {string} hex - A HEX color
- *
- * @return {array}      - The HSVrad color
- */
-function Hex2hsvRad( hex ) {
-	const [ r, g, b, ] = Hex2rgb( hex );
-	const hsv = Rgb2hsv({ r, g, b, });
-	const hsvRad = Hsv2hsvRad( hsv );
-
-	return hsvRad;
-}
-
-/**
- * Convert HSVrad to HEX
- *
- * @param  {number} hRad - The hue in rad
- * @param  {number} s    - The saturation
- * @param  {number} v    - The value
- *
- * @return {string}      - The HEX color
- */
-function HsvRad2hex( hRad, s, v ) {
-	const [ h ] = HsvRad2hsv( hRad, s, v );
-	const { r, g, b } = Hsv2rgb( h, s, v );
-	const hex = Rgb2hex( r, g, b );
-
-	return hex;
-}
 
 /**
  * Interpolate a linear path from a number to another number
@@ -524,14 +327,6 @@ function PaintGradient({ output, gradient, lines, lineHeight, fontLines, indepen
 
 
 module.exports = exports = {
-	Rgb2hsv,
-	Hsv2rgb,
-	Rgb2hex,
-	Hex2rgb,
-	Hsv2hsvRad,
-	HsvRad2hsv,
-	Hex2hsvRad,
-	HsvRad2hex,
 	GetLinear,
 	GetTheta,
 	GetGradientColors,

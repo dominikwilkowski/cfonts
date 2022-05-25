@@ -21,7 +21,7 @@ const { CLIOPTIONS } = require('./constants.js');
 const { Debugging } = require('./Debugging.js');
 const { ParseArgs } = require('./ParseArgs.js');
 const { Render } = require('./Render.js');
-const { Chalk } = require('./Chalk.js');
+const { Color } = require('./Color.js');
 const { Log } = require('./Log.js');
 const { Say } = require('./Say.js');
 
@@ -67,9 +67,10 @@ const Cli = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
 	}
 
 	if( !args.text ) {
+		const { open: green_open, close: green_close } = Color("green");
 		Log.error(
-			`Please provide text to convert with ${ Chalk.green(`cfonts "Text"`) }\n` +
-			`Run ${ Chalk.green(`cfonts --help`) } for more infos`
+			`Please provide text to convert with ${green_open}cfonts "Text"${green_close}\n` +
+			`Run ${green_open}cfonts --help${green_close} for more infos`
 		);
 		return;
 	}

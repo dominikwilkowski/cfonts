@@ -32,8 +32,7 @@ const DEBUGLEVEL = 2;
 const CHARS = CFontsChars
 	.filter( font => font !== '|' ); // we don’t need the pipe in the char-set
 const FONTFACES = Object.keys( CFontsFontfaces )
-	.map( font => CFontsFontfaces[ font ] )
-	.filter( font => font !== 'console' ); // console is a font but not a font-file
+	.map( font => CFontsFontfaces[ font ] ); // console is a font but not a font-file
 
 
 /**

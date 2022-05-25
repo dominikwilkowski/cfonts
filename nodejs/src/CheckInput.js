@@ -15,7 +15,7 @@
 
 'use strict';
 
-const { Chalk } = require('./Chalk.js');
+const { HEXTEST, Color } = require('./Color.js');
 const {
 	COLORS,
 	BGCOLORS,
@@ -23,7 +23,6 @@ const {
 	GRADIENTS,
 	ALIGNMENT,
 	FONTFACES,
-	HEXTEST,
 } = require('./constants.js');
 
 
@@ -72,6 +71,9 @@ const CheckInput = (
 		pass: true,
 	};
 
+	const { open: red_open, close: red_close } = Color("red");
+	const { open: green_open, close: green_close } = Color("green");
+
 	// checking input
 	if( INPUT === undefined || INPUT === '' ) {
 		return {
@@ -83,10 +85,10 @@ const CheckInput = (
 	// checking font
 	if( Object.keys( fontfaces ).indexOf( userFont.toLowerCase() ) === -1 ) {
 		return {
-			message: `"${ Chalk.red( userFont ) }" is not a valid font option.\n` +
-				`Please use a font from the supported stack:\n${
-					Chalk.green( Object.keys( fontfaces ).map( font => fontfaces[ font ] ).join(', ') )
-				}`,
+			message: `"${red_open}${userFont}${red_close}" is not a valid font option.\n` +
+				`Please use a font from the supported stack:\n${green_open}${
+					Object.keys( fontfaces ).map( font => fontfaces[ font ] ).join(', ')
+				}${green_close}`,
 			pass: false,
 		};
 	}
@@ -99,10 +101,11 @@ const CheckInput = (
 			&& !HEXTEST.test( color )
 		) {
 			result = {
-				message: `"${ Chalk.red( color ) }" is not a valid font color option.\n` +
-					`Please use a color from the supported stack or any valid hex color:\n${ Chalk.green(`${
+				message: `"${red_open}${color}${red_close}" is not a valid font color option.\n` +
+					`Please use a color from the supported stack or any valid hex color:\n` +
+					`${green_open}${
 						Object.keys( colors ).map( color => colors[ color ] ).join(', ')
-					}, candy, "#3456ff", "#f80", etc...`) }`,
+					}, candy, "#3456ff", "#f80", etc...${green_close}`,
 				pass: false,
 			};
 		}
@@ -114,10 +117,11 @@ const CheckInput = (
 		&& !HEXTEST.test( userBackground )
 	) {
 		return {
-			message: `"${ Chalk.red( userBackground ) }" is not a valid background option.\n` +
-				`Please use a color from the supported stack:\n${
-					Chalk.green(`${Object.keys( bgcolors ).map( bgcolor => bgcolors[ bgcolor ] ).join(', ')}, "#3456ff", "#f80", etc...`)
-				}`,
+			message: `"${red_open}${userBackground}${red_close}" is not a valid background option.\n` +
+				`Please use a color from the supported stack:\n` +
+				`${green_open}${
+					Object.keys( bgcolors ).map( bgcolor => bgcolors[ bgcolor ] ).join(', ')
+				}, "#3456ff", "#f80", etc...${green_close}`,
 			pass: false,
 		};
 	}
@@ -125,10 +129,10 @@ const CheckInput = (
 	// CHECKING ALIGNMENT
 	if( alignment.indexOf( userAlign.toLowerCase() ) === -1 ) {
 		return {
-			message: `"${ Chalk.red( userAlign ) }" is not a valid alignment option.\n` +
-				`Please use an alignment option from the supported stack:\n${
-					Chalk.green( alignment.join(' | ') )
-				}`,
+			message: `"${red_open}${userAlign}${red_close}" is not a valid alignment option.\n` +
+				`Please use an alignment option from the supported stack:\n${green_open}${
+					alignment.join(' | ')
+				}${green_close}`,
 			pass: false,
 		};
 	}
@@ -145,7 +149,7 @@ const CheckInput = (
 		else {
 			if( userGradient.length < 2 ) {
 				return {
-					message: `"${ Chalk.red( userGradient ) }" is not a valid gradient option.\n` +
+					message: `"${red_open}${userGradient}${red_close}" is not a valid gradient option.\n` +
 						`Please pass in${ userTransitionGradient ? ' at least' : '' } two colors.`,
 					pass: false,
 				};
@@ -153,7 +157,7 @@ const CheckInput = (
 
 			if( userGradient.length !== 2 && !userTransitionGradient ) {
 				return {
-					message: `"${ Chalk.red( userGradient ) }" is not a valid gradient option.\n` +
+					message: `"${red_open}${userGradient}${red_close}" is not a valid gradient option.\n` +
 						`Please pass in two colors.`,
 					pass: false,
 				};
@@ -166,10 +170,10 @@ const CheckInput = (
 					&& !HEXTEST.test( color )
 				) {
 					result = {
-						message: `"${ Chalk.red( color ) }" is not a valid gradient color option.\n` +
-							`Please use a color from the supported stack or any valid hex color:\n${ Chalk.green(`${
+						message: `"${red_open}${color}${red_close}" is not a valid gradient color option.\n` +
+							`Please use a color from the supported stack or any valid hex color:\n${green_open}${
 								Object.keys( gradientcolors ).map( color => colors[ color ] ).join(', ')
-							}, "#3456ff", "#f80", etc...`) }`,
+							}, "#3456ff", "#f80", etc...${green_close}`,
 						pass: false,
 					};
 				}
@@ -180,8 +184,8 @@ const CheckInput = (
 	// CHECKING ENVIRONMENT
 	if( userEnv !== 'node' && userEnv !== 'browser' ) {
 		return {
-			message: `"${ Chalk.red( userEnv ) }" is not a valid environment option.\n` +
-				`Please use onlythe supported options:\n${ Chalk.green('node | browser') }`,
+			message: `"${red_open}${userEnv}${red_close}" is not a valid environment option.\n` +
+				`Please use only the supported options:\n${green_open}node | browser${green_close}`,
 			pass: false,
 		};
 	}

@@ -143,12 +143,12 @@ test(`CLI - Should log the right two dots`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\n\n         \n' +
-		'         \n' +
-		'         \n' +
-		'         \n' +
-		' ██╗ ██╗ \n' +
-		' ╚═╝ ╚═╝ \n\n'
+		'\n\n        \n' +
+		'        \n' +
+		'        \n' +
+		'        \n' +
+		' ██╗ ██╗\n' +
+		' ╚═╝ ╚═╝\n\n'
 	);
 });
 
@@ -178,13 +178,13 @@ test(`CLI - Should log the right two dots in two colors`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\n\n         \n' +
-		'         \n' +
-		'         \n' +
-		'         \n' +
-		' \u001b[38;2;255;0;0m██\u001b[39m\u001b[38;2;0;0;255m╗\u001b[39m \u001b[38;2;255;0;0m██\u001b[39m\u001b[38;2;0;0;255m╗\u001b[39m \n' +
-		' \u001b[38;2;0;0;255m╚═╝\u001b[39m \u001b[38;2;0;0;255m╚═╝\u001b[39m' +
-		' \n\n'
+		'\n\n        \n' +
+		'        \n' +
+		'        \n' +
+		'        \n' +
+		' \u001b[31m██\u001b[39m\u001b[34m╗\u001b[39m \u001b[31m██\u001b[39m\u001b[34m╗\u001b[39m\n' +
+		' \u001b[34m╚═╝\u001b[39m \u001b[34m╚═╝\u001b[39m' +
+		'\n\n'
 	);
 });
 
@@ -197,12 +197,12 @@ test(`CLI - Should log the right two dots and background color`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\u001b[48;2;255;0;0m\n\n\n         \n' +
-		'         \n' +
-		'         \n' +
-		'         \n' +
-		' ██╗ ██╗ \n' +
-		' ╚═╝ ╚═╝ \n\n\u001b[49m'
+		'\u001b[41m\n\n\n        \n' +
+		'        \n' +
+		'        \n' +
+		'        \n' +
+		' ██╗ ██╗\n' +
+		' ╚═╝ ╚═╝\n\n\u001b[49m'
 	);
 });
 
@@ -215,12 +215,12 @@ test(`CLI - Should log the right two dots with letter spacing`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\n\n            \n' +
-		'            \n' +
-		'            \n' +
-		'            \n' +
-		'  ██╗  ██╗  \n' +
-		'  ╚═╝  ╚═╝  \n\n'
+		'\n\n          \n' +
+		'          \n' +
+		'          \n' +
+		'          \n' +
+		'  ██╗  ██╗\n' +
+		'  ╚═╝  ╚═╝\n\n'
 	);
 });
 
@@ -233,18 +233,18 @@ test(`CLI - Should log the right two dots with lineheight`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'\n\n     \n' +
-		'     \n' +
-		'     \n' +
-		'     \n' +
-		' ██╗ \n' +
-		' ╚═╝ \n' +
-		'\n\n\n     \n' +
-		'     \n' +
-		'     \n' +
-		'     \n' +
-		' ██╗ \n' +
-		' ╚═╝ \n\n'
+		'\n\n    \n' +
+		'    \n' +
+		'    \n' +
+		'    \n' +
+		' ██╗\n' +
+		' ╚═╝\n' +
+		'\n\n\n    \n' +
+		'    \n' +
+		'    \n' +
+		'    \n' +
+		' ██╗\n' +
+		' ╚═╝\n\n'
 	);
 });
 
@@ -257,12 +257,12 @@ test(`CLI - Should log the right two dots without space`, () => {
 
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
-		'         \n' +
-		'         \n' +
-		'         \n' +
-		'         \n' +
-		' ██╗ ██╗ \n' +
-		' ╚═╝ ╚═╝ '
+		'        \n' +
+		'        \n' +
+		'        \n' +
+		'        \n' +
+		' ██╗ ██╗\n' +
+		' ╚═╝ ╚═╝'
 	);
 });
 
@@ -276,18 +276,18 @@ test(`CLI - Should log the right two dots with max-length set`, () => {
 	expect( console.error.mock.calls.length > 0 ).toBe( false );
 	expect( console.log.mock.calls[0][0] ).toBe(
 		'\n\n' +
-		'     \n' +
-		'     \n' +
-		'     \n' +
-		'     \n' +
-		' ██╗ \n' +
-		' ╚═╝ \n' +
+		'    \n' +
+		'    \n' +
+		'    \n' +
+		'    \n' +
+		' ██╗\n' +
+		' ╚═╝\n' +
 		'\n' +
-		'     \n' +
-		'     \n' +
-		'     \n' +
-		'     \n' +
-		' ██╗ \n' +
-		' ╚═╝ \n\n'
+		'    \n' +
+		'    \n' +
+		'    \n' +
+		'    \n' +
+		' ██╗\n' +
+		' ╚═╝\n\n'
 	);
 });

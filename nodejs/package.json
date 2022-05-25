@@ -58,7 +58,7 @@
 	},
 	"peerDependencies": {},
 	"dependencies": {
-		"chalk": "^4",
+		"supports-color": "^8",
 		"window-size": "^1.1.1"
 	},
 	"jest": {

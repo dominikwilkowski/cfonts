@@ -15,7 +15,7 @@
 
 'use strict';
 
-const { Chalk } = require('./Chalk.js');
+const { Color } = require('./Color.js');
 
 
 /**
@@ -31,8 +31,8 @@ const Log = {
 	 */
 	error: ( text ) => {
 		text = text.replace( /(?:\r\n|\r|\n)/g, '\n       ' ); // indent each line
-
-		console.error(`\n ${ Chalk.bold.red('Ouch:') } ${ text }\n`);
+		const { open, close } = Color("red");
+		console.error(`\n \u001b[1m${open}Ouch:${close}\u001b[22m ${ text }\n`);
 	},
 };
 

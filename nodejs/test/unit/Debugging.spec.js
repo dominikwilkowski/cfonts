@@ -23,7 +23,7 @@ test(`Debugging - Show headline message when debug is enabled`, () => {
 
 	Debugging.headline( 'text', 1, true, 1 );
 
-	expect( console.log.mock.calls[0][0] ).toBe( '\u001b[47m\u001b[49m\n\u001b[47m\u001b[1m ☑  \u001b[22m text\u001b[49m' );
+	expect( console.log.mock.calls[0][0] ).toBe( '\u001b[40m\n\u001b[1m ☑  \u001b[22m text\u001b[49m' );
 });
 
 
@@ -33,7 +33,7 @@ test(`Debugging - Show report message when debug is enabled`, () => {
 	Debugging.report( 'text', 1, true, 1 );
 
 	expect( console.log.mock.calls[0][0] )
-		.toBe( '\u001b[47m\u001b[49m\n\u001b[47m\u001b[1m\u001b[32m ☑  \u001b[39m\u001b[22m \u001b[30mtext \u001b[39m\u001b[49m' );
+		.toBe( '\x1B[40m\n\x1B[1m\x1B[32m ☑  \x1B[39m\x1B[22m \x1B[37mtext\x1B[39m\x1B[49m' );
 });
 
 
@@ -43,7 +43,7 @@ test(`Debugging - Show error message when debug is enabled`, () => {
 	Debugging.error( 'text', 1, true, 1 );
 
 	expect( console.error.mock.calls[0][0] )
-		.toBe( '\u001b[47m\u001b[49m\n\u001b[47m\u001b[31m ☒  \u001b[39m \u001b[30mtext \u001b[39m\u001b[49m' );
+		.toBe( '\x1B[40m\n\x1B[31m ☒  \x1B[39m \x1B[37mtext\x1B[39m\x1B[49m' );
 });
 
 

@@ -17,14 +17,10 @@
  *   FONTFACES
  *   CLIOPTIONS
  *   PACKAGE
- *   HEXTEST
  *
  **************************************************************************************************************************************************************/
 
 'use strict';
-
-const { Chalk } = require('./Chalk.js');
-
 
 // global defaults
 const CHARS = [
@@ -142,28 +138,28 @@ const CLIOPTIONS = {
 	},
 	'--font': {
 		description: 'Use to define the font face',
-		example: `--font block ${ Chalk.green(`( ${ Object.keys( FONTFACES ).map( font => FONTFACES[ font ] ).join(', ') } )`) }`,
+		example: `--font block [green-open][ ${ Object.keys( FONTFACES ).map( font => FONTFACES[ font ] ).join(', ') } ][green-close]`,
 		short: '-f',
 		options: Object.keys( FONTFACES ).map( color => FONTFACES[ color ] ),
 		default: 'block',
 	},
 	'--colors': {
 		description: 'Use to define the font color',
-		example: `--colors red ${ Chalk.green(`( ${ Object.keys( COLORS ).map( color => COLORS[ color ] ).join(', ') }, #ff8800, hex-colors etc... )`) }`,
+		example: `--colors red [green-open][ ${ Object.keys( COLORS ).map( color => COLORS[ color ] ).join(', ') }, #ff8800, hex-colors etc... ][green-close]`,
 		short: '-c',
 		options: true,
 		default: 'system',
 	},
 	'--background': {
 		description: 'Use to define background color',
-		example: `--background blue ${ Chalk.green(`( ${ Object.keys( BGCOLORS ).map( bgcolor => BGCOLORS[ bgcolor ] ).join(', ') } )`) }`,
+		example: `--background blue [green-open][ ${ Object.keys( BGCOLORS ).map( bgcolor => BGCOLORS[ bgcolor ] ).join(', ') } ][green-close]`,
 		short: '-b',
 		options: Object.keys( BGCOLORS ).map( color => BGCOLORS[ color ] ),
 		default: 'transparent',
 	},
 	'--align': {
 		description: 'Use to align your text output',
-		example: `--align ${ Chalk.green(`( ${ ALIGNMENT.join(', ') } )`) }`,
+		example: `--align [green-open][ ${ ALIGNMENT.join(', ') } ][green-close]`,
 		short: '-a',
 		options: ALIGNMENT,
 		default: 'left',
@@ -216,7 +212,7 @@ const CLIOPTIONS = {
 	},
 	'--env': {
 		description: 'Use to define what environment you run CFonts in.',
-		example: `--env ${ Chalk.green('"node", "browser"') }`,
+		example: `--env [green-open][ "node", "browser" ][green-close]`,
 		short: '-e',
 		options: true,
 		default: 'node',
@@ -238,9 +234,6 @@ const CLIOPTIONS = {
 
 const PACKAGE = require('../package.json');
 
-const HEXTEST = RegExp('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$');
-
-
 module.exports = exports = {
 	CHARS,
 	COLORS,
@@ -251,5 +244,4 @@ module.exports = exports = {
 	FONTFACES,
 	CLIOPTIONS,
 	PACKAGE,
-	HEXTEST,
 };

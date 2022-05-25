@@ -31,27 +31,11 @@ const { Color } = require('./Color.js');
 const Colorize = ( character, fontColors, optionColors ) => {
 	Debugging.report( `Running Colorize`, 1 );
 
-	let candyColors = [ // allowed candy colors
-		'red',
-		'green',
-		'yellow',
-		'magenta',
-		'cyan',
-		'redBright',
-		'greenBright',
-		'yellowBright',
-		'blueBright',
-		'magentaBright',
-		'cyanBright',
-	];
-
 	if( character !== undefined ) {
 		if( fontColors > 1 ) {
 			// we have to replace all color placeholder with ansi escape sequences
 			for( let i = 0; i < fontColors; i++ ) {
-				const color = optionColors[ i ] === 'candy'
-					? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
-					: optionColors[ i ] || 'system';
+				const color = optionColors[ i ] || 'system';
 
 				const { open: openNew, close: closeNew } = Color( color );
 
@@ -65,9 +49,7 @@ const Colorize = ( character, fontColors, optionColors ) => {
 
 		// if only one color is allowed there won't be any color placeholders in the characters
 		if( fontColors === 1 ) {
-			const color = optionColors[0] === 'candy'
-				? candyColors[ Math.floor( Math.random() * candyColors.length ) ]
-				: optionColors[0] || 'system';
+			const color = optionColors[0] || 'system';
 
 			const { open: openNew, close: closeNew } = Color( color );
 

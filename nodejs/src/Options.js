@@ -65,7 +65,7 @@ const Options = {
 	 * @param  {string}                  options.font                - Font face, Default 'block'
 	 * @param  {string}                  options.align               - Text alignment, Default: 'left'
 	 * @param  {array}                   options.colors              - Colors for font, Default: []
-	 * @param  {string}                  options.background          - Chalk color string for background, Default 'Black'
+	 * @param  {string}                  options.background          - Color string for background, Default 'Black'
 	 * @param  {string}                  options.backgroundColor     - Alias for background
 	 * @param  {number}                  options.letterSpacing       - Space between letters, Default: set by selected font face
 	 * @param  {number}                  options.lineHeight          - Space between lines, Default: 1

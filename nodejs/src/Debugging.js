@@ -15,7 +15,7 @@
 
 'use strict';
 
-const { Chalk } = require('./Chalk.js');
+const { Color } = require('./Color.js');
 
 
 /**
@@ -62,9 +62,8 @@ const Debugging = {
 	 */
 	headline: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
 		if( debug && level >= debuglevel ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.bold(' \u2611  ') } ${ text }`)
-			);
+			const { open, close } = Color("black", true);
+			console.log(`${open}\n\u001b[1m \u2611  \u001b[22m ${ text }${close}`);
 		}
 	},
 
@@ -78,9 +77,10 @@ const Debugging = {
 	 */
 	report: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
 		if( debug && level >= debuglevel ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.bold.green(' \u2611  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+			const { open: blackbg_open, close: blackbg_close } = Color("black", true);
+			const { open: green_open, close: green_close } = Color("green");
+			const { open: white_open, close: white_close } = Color("white");
+			console.log(`${blackbg_open}\n\u001b[1m${green_open} \u2611  ${green_close}\u001b[22m ${white_open}${ text }${white_close}${blackbg_close}`);
 		}
 	},
 
@@ -94,9 +94,10 @@ const Debugging = {
 	 */
 	error: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
 		if( debug && level >= debuglevel ) {
-			console.error(
-				Chalk.bgWhite(`\n${ Chalk.red(' \u2612  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+			const { open: blackbg_open, close: blackbg_close } = Color("black", true);
+			const { open: red_open, close: red_close } = Color("red");
+			const { open: white_open, close: white_close } = Color("white");
+			console.error(`${blackbg_open}\n${red_open} \u2612  ${red_close} ${white_open}${ text }${white_close}${blackbg_close}`);
 		}
 	},
 };
