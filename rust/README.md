@@ -116,10 +116,30 @@ fn main() {
 Read more in the [root repo](../).
 
 
+## Tests
+
+All tests are run via for the below platforms with our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.github/workflows/testing.yml).
+
+| Platform |
+|----------|
+| Linux    |
+| OSX      |
+| Windows  |
+
+### Unit tests
+
+There are some unit tests and some integration tests within the `./tests` folder.
+
+We also have an [end-to-end test script](./tests/end-to-end/index.js) setup that runs on the binaries (on all platforms) and compares its output against fixtures and the output of the node implementation.
+
+
 ## Release History
+
+* 1.0.0  -  Public release of rust API
 * 0.1.0  -  alpha test
 
 
 ## License
+
 Copyright (c) 2022 Dominik Wilkowski.
 Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).

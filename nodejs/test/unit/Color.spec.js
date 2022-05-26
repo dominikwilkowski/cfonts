@@ -327,6 +327,15 @@ test(`Color - Return the right colors for the difference color support levels`, 
 	expect( Color( 'red', true ) ).toEqual({ open: '\u001b[41m', close: '\u001b[49m', });
 	expect( Color( '#ff8800' ) ).toEqual({ open: '\x1B[38;2;255;136;0m', close: '\u001b[39m', });
 	expect( Color( '#ff8800', true ) ).toEqual({ open: '\x1B[48;2;255;136;0m', close: '\u001b[49m', });
+
+	delete process.env.FORCE_COLOR;
+	process.env.NO_COLOR = "";
+	expect( get_term_color_support() ).toEqual( 0 );
+	expect( Color( 'red' ) ).toEqual({ open: '', close: '', });
+	expect( Color( 'red', true ) ).toEqual({ open: '', close: '', });
+	expect( Color( '#ff8800' ) ).toEqual({ open: '', close: '', });
+	expect( Color( '#ff8800', true ) ).toEqual({ open: '', close: '', });
+	delete process.env.NO_COLOR;
 	process.env.FORCE_COLOR = "3";
 });
 

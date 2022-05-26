@@ -77,21 +77,23 @@ Read more in the [root repo](../).
 
 
 ## Tests
-This package is tested on the below platform and node combinations as part of our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.travis.yml).
 
-| Platform | Node   |
-|----------|--------|
-| Linux    | v10    |
-| Linux    | v12    |
-| Linux    | latest |
-| OSX      | v10    |
-| OSX      | v12    |
-| OSX      | latest |
-| Windows  | v10    |
-| Windows  | v12    |
-| Windows  | latest |
+This package is tested on the below platform and node combinations as part of our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.github/workflows/testing.yml).
+
+| Platform | Node |
+|----------|------|
+| Linux    | v12  |
+| Linux    | v14  |
+| Linux    | v16  |
+| OSX      | v10  |
+| OSX      | v12  |
+| OSX      | v16  |
+| Windows  | v10  |
+| Windows  | v12  |
+| Windows  | v16  |
 
 ### Unit tests
+
 The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/released/test/unit) that aim to cover 100% of the code base.
 For more details about the code coverage check out [coveralls](https://coveralls.io/github/dominikwilkowski/cfonts?branch=released).
 
@@ -100,16 +102,18 @@ npm run test:unit
 ```
 
 ### Type tests
+
 Since the code base uses [JSDocs](https://jsdoc.app/) we use [typescript](https://www.typescriptlang.org/) to test the inferred types from those comments.
 Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our
-[test](https://github.com/dominikwilkowski/cfonts/blob/released/package.json#L38).
+[test](https://github.com/dominikwilkowski/cfonts/blob/released/nodejs/package.json#L37).
 
 ```shell
 npm run test:types
 ```
 
 ### Font file test
-There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/released/test/fonttest.js) for font files.
+
+There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/released/nodejs/test/fonttest.js) for font files.
 
 ```shell
 npm run test:fonts
@@ -124,6 +128,7 @@ This tool checks:
 	- consistent lines
 
 ### All tests
+
 Run all tests via:
 
 ```shell
@@ -132,6 +137,7 @@ npm run test
 
 
 ## Contributing
+
 To build the repo install dependencies via:  
 _(Since we ship a `yarn.lock` file please use [`yarn`](https://yarnpkg.com/) for development.)_
 
@@ -149,6 +155,8 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## Release History
+
+* 3.0.0  -  Added rust library port, aligned APIs, added hex background colors, fixed minor alignment bugs
 * 2.10.1 -  bumped dependencies
 * 2.10.0 -  bumped dependencies, added typescript definitions into npm bundle
 * 2.9.3  -  bumped dependencies
@@ -213,4 +221,6 @@ Please look at the coding style and work with it, not against it ;)
 
 
 ## License
-Copyright (c) 2018 Dominik Wilkowski. Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).
+
+Copyright (c) 2022 Dominik Wilkowski.
+Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).

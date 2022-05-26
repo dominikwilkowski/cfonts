@@ -480,8 +480,10 @@ const Color = ( color, bg = false ) => {
 		whitebright: '#fff',
 	};
 
+	const support = get_term_color_support();
+
 	// bail early if we use system color
-	if( color === 'system' || process.env.FORCE_COLOR == '0' ) {
+	if( color === 'system' || support === 0 ) {
 		return { open: '', close: '' };
 	}
 
@@ -564,11 +566,7 @@ const Color = ( color, bg = false ) => {
 					return { open: '', close: '' };
 				}
 				const rgb = Hex2rgb(hex);
-				const support = get_term_color_support();
 
-				if( support === 0 ) {
-					return { open: '', close: '' };
-				}
 				if( support === 1 ) {
 					open = ansi_2562ansi_16( rgb2ansi256Code( rgb[0], rgb[1], rgb[2] ), bg );
 				}
