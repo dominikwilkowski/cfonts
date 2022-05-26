@@ -390,6 +390,8 @@ NO_COLOR="" cfonts "hello world" -c "#0088ff"
 
 💡  `FORCE_COLOR` overrides `NO_COLOR` if both are set.
 
+![Color consistency via env vars](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/color-consistency.png)
+
 
 ## License
 Copyright (c) 2022 Dominik Wilkowski.
