@@ -371,6 +371,20 @@ const TESTS = [
 			'</div>\n',
 	},
 	{
+		name: "Browser env with color",
+		args: ["test", "-e", "browser", "-c", "red,blue,green"],
+		fixture: '' +
+			'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:transparent">\n\n' +
+			' <span style="color:#ea3223">████████</span><span style="color:#0020f5">╗</span> <span style="color:#ea3223">███████</span><span style="color:#0020f5">╗</span> <span style="color:#ea3223">███████</span><span style="color:#0020f5">╗</span> <span style="color:#ea3223">████████</span><span style="color:#0020f5">╗</span><br>\n' +
+			' <span style="color:#0020f5">╚══</span><span style="color:#ea3223">██</span><span style="color:#0020f5">╔══╝</span> <span style="color:#ea3223">██</span><span style="color:#0020f5">╔════╝</span> <span style="color:#ea3223">██</span><span style="color:#0020f5">╔════╝</span> <span style="color:#0020f5">╚══</span><span style="color:#ea3223">██</span><span style="color:#0020f5">╔══╝</span><br>\n' +
+			' <span style="color:#ea3223">   ██</span><span style="color:#0020f5">║   </span> <span style="color:#ea3223">█████</span><span style="color:#0020f5">╗  </span> <span style="color:#ea3223">███████</span><span style="color:#0020f5">╗</span> <span style="color:#ea3223">   ██</span><span style="color:#0020f5">║   </span><br>\n' +
+			' <span style="color:#ea3223">   ██</span><span style="color:#0020f5">║   </span> <span style="color:#ea3223">██</span><span style="color:#0020f5">╔══╝  </span> <span style="color:#0020f5">╚════</span><span style="color:#ea3223">██</span><span style="color:#0020f5">║</span> <span style="color:#ea3223">   ██</span><span style="color:#0020f5">║   </span><br>\n' +
+			' <span style="color:#ea3223">   ██</span><span style="color:#0020f5">║   </span> <span style="color:#ea3223">███████</span><span style="color:#0020f5">╗</span> <span style="color:#ea3223">███████</span><span style="color:#0020f5">║</span> <span style="color:#ea3223">   ██</span><span style="color:#0020f5">║   </span><br>\n' +
+			' <span style="color:#0020f5">   ╚═╝   </span> <span style="color:#0020f5">╚══════╝</span> <span style="color:#0020f5">╚══════╝</span> <span style="color:#0020f5">   ╚═╝   </span>\n' +
+			'\n' +
+			'</div>\n'
+	},
+	{
 		name: "Font test: 'block' - no color",
 		args: [supportedCharacters, "--font", "block"],
 		fixture: '\n\n' +
