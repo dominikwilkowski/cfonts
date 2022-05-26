@@ -47,18 +47,43 @@ function compare_implementations(args, fixture, FORCE_COLOR = "3", NO_COLOR = fa
 	}
 }
 
+function print_output(args, fixture, FORCE_COLOR = "3", NO_COLOR = false) {
+	const env = { ...process.env, FORCE_COLOR, ...(NO_COLOR !== false ? { NO_COLOR } : {}) };
+
+	let { stdout: rust_output } = spawnSync(
+		path.normalize(`${__dirname}/../../target/release/cfonts`),
+		args,
+		{
+			encoding: 'utf-8',
+			env,
+		}
+	);
+	rust_output = rust_output.toString();
+
+	let env_vars = [`FORCE_COLOR=${FORCE_COLOR}`];
+	if( NO_COLOR ) {
+		env_vars.push(`NO_COLOR=""`);
+	}
+
+	console.log(`\x1b[30;43m\n ${ env_vars.join(" ")} cfonts ${args.join(" ")}\x1b[39;49m\n${rust_output}`);
+}
+
 function tests(tests) {
 	let fails = 0;
 	const failed = [];
 	tests.forEach(test => {
-		let output = compare_implementations(test.args, test.fixture, test.FORCE_COLOR, test.NO_COLOR);
-		process.stdout.write(`• Running test ${`"\x1b[33m${test.name}\x1b[39m"`.padEnd(57, ' ')} `);
-		if(output === 0) {
-			process.stdout.write("\x1b[42m TEST SUCCESSFUL \x1b[49m\n");
+		if( process.argv.includes('print') ) {
+			print_output(test.args, test.fixture, test.FORCE_COLOR, test.NO_COLOR);
 		} else {
-			fails ++;
-			failed.push(test.name);
-			process.stdout.write(`\x1b[41m TEST FAILED \x1b[49m\n${output}\n`);
+			let output = compare_implementations(test.args, test.fixture, test.FORCE_COLOR, test.NO_COLOR);
+			process.stdout.write(`• Running test ${`"\x1b[33m${test.name}\x1b[39m"`.padEnd(57, ' ')} `);
+			if(output === 0) {
+				process.stdout.write("\x1b[42m TEST SUCCESSFUL \x1b[49m\n");
+			} else {
+				fails ++;
+				failed.push(test.name);
+				process.stdout.write(`\x1b[41m TEST FAILED \x1b[49m\n${output}\n`);
+			}
 		}
 	});
 
