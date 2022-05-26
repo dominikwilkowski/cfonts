@@ -3,8 +3,8 @@ use rand::seq::SliceRandom;
 use std::env;
 use supports_color::Stream;
 
+use crate::config::Options;
 use crate::config::{BgColors, Colors};
-use crate::config::{Env, Options};
 use crate::debug::{d, Dt};
 
 /// An enum to list the available ANSI color support in the consumers console/terminal
@@ -802,29 +802,19 @@ pub fn get_background_color(color: &BgColors) -> (String, String) {
 /// ```rust
 /// extern crate cfonts;
 ///
-/// use cfonts::{Options, Colors};
+/// use cfonts::Colors;
 /// use cfonts::color::color;
 ///
-/// let options = Options::default();
-///
-/// assert_eq!(color(" test ", Colors::Red, &options), String::from("\x1b[31m test \x1b[39m"));
-/// assert_eq!(color(" test ", Colors::Green, &options), String::from("\x1b[32m test \x1b[39m"));
-/// assert_eq!(color(" test ", Colors::Blue, &options), String::from("\x1b[34m test \x1b[39m"));
+/// assert_eq!(color(" test ", Colors::Red), String::from("\x1b[31m test \x1b[39m"));
+/// assert_eq!(color(" test ", Colors::Green), String::from("\x1b[32m test \x1b[39m"));
+/// assert_eq!(color(" test ", Colors::Blue), String::from("\x1b[34m test \x1b[39m"));
 /// ```
-pub fn color(text: &str, color: Colors, options: &Options) -> String {
+pub fn color(text: &str, color: Colors) -> String {
 	if env::var("NO_COLOR").is_ok() && env::var("FORCE_COLOR").is_err() {
 		text.to_string()
 	} else {
-		match options.env {
-			Env::Cli => {
-				let (start, end) = get_foreground_color(&color);
-				format!("{}{}{}", start, text, end)
-			}
-			Env::Browser => {
-				let hex = color2hex(&color, options);
-				format!("<span style=\"color:{}\">{}</span>", hex, text)
-			}
-		}
+		let (start, end) = get_foreground_color(&color);
+		format!("{}{}{}", start, text, end)
 	}
 }
 

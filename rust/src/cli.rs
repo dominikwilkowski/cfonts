@@ -67,19 +67,19 @@ pub fn help(options: &Options) -> String {
 		output += &format!("\x1b[1m$\x1b[22m cfonts {}", option.example);
 		match option.kind {
 			OptionType::Font => {
-				output += &color(&format!(" [ {} ]", Fonts::list()), Colors::Green, options).to_string();
+				output += &color(&format!(" [ {} ]", Fonts::list()), Colors::Green).to_string();
 			}
 			OptionType::Colors => {
-				output += &color(&format!(" [ {} ]", Colors::list()), Colors::Green, options).to_string();
+				output += &color(&format!(" [ {} ]", Colors::list()), Colors::Green).to_string();
 			}
 			OptionType::BgColor => {
-				output += &color(&format!(" [ {} ]", BgColors::list()), Colors::Green, options).to_string();
+				output += &color(&format!(" [ {} ]", BgColors::list()), Colors::Green).to_string();
 			}
 			OptionType::Align => {
-				output += &color(&format!(" [ {} ]", Align::list()), Colors::Green, options).to_string();
+				output += &color(&format!(" [ {} ]", Align::list()), Colors::Green).to_string();
 			}
 			OptionType::Env => {
-				output += &color(&format!(" [ {} ]", Env::list()), Colors::Green, options).to_string();
+				output += &color(&format!(" [ {} ]", Env::list()), Colors::Green).to_string();
 			}
 			_ => {}
 		}

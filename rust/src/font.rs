@@ -83,12 +83,12 @@ pub fn get(options: &Options) -> Font {
 	d(&format!("font::get() read font file at \"{}\"", filename), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let data = read_to_string(Path::new(filename).as_os_str())
-		.unwrap_or(format!("Unable to read file \"{}\"", color(filename, Colors::Red, options)));
+		.unwrap_or(format!("Unable to read file \"{}\"", color(filename, Colors::Red)));
 	serde_json::from_str(&data).unwrap_or_else(|error| {
 		panic!(
 			"JSON parsing error encountered for: \"{}\"\nError: {}",
-			color(filename, Colors::Red, options),
-			color(&format!("{}", error), Colors::Yellow, options)
+			color(filename, Colors::Red),
+			color(&format!("{}", error), Colors::Yellow)
 		)
 	})
 }

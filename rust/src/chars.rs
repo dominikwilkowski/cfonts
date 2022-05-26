@@ -1,5 +1,5 @@
 //! The contents of this module is all about transforming letters on the output vector
-use crate::color::get_foreground_color;
+use crate::color::{color2hex, get_foreground_color};
 use crate::config::{Align, Colors, Env, Options};
 use crate::debug::{d, Dt};
 
@@ -399,31 +399,55 @@ pub fn paint_letter(letter: &[String], font_color_count: usize, options: &Option
 		.iter()
 		.map(|line| {
 			let mut new_line = line.clone();
-			for i in 1..=font_color_count {
-				let color_name = match !options.gradient.is_empty() {
-					true => &Colors::System,
-					false => options.colors.get(i - 1).unwrap_or(&Colors::System),
-				};
-				let (color_start, color_end) = match options.env {
-					Env::Cli => {
-						let (color_start, color_end) = match color_name {
-							Colors::System => (String::from(""), String::from("")),
-							color => get_foreground_color(color),
-						};
-						(color_start, color_end)
-					}
-					Env::Browser => {
-						// in browser envs we remove all color annotations
-						(String::from(""), String::from(""))
-					}
+			if line.is_empty() {
+				new_line
+			} else {
+				let colors = if options.colors.len() > font_color_count {
+					&options.colors[0..font_color_count]
+				} else {
+					&options.colors
 				};
 
-				let open = format!("<c{}>", i);
-				let close = format!("</c{}>", i);
+				for i in 0..=options.colors.len() {
+					let color_name = match !options.gradient.is_empty() {
+						true => &Colors::System,
+						false => colors.get(i).unwrap_or(&Colors::System),
+					};
+					let (color_start, color_end) = match options.env {
+						Env::Cli => {
+							let (color_start, color_end) = match color_name {
+								Colors::System => (String::from(""), String::from("")),
+								color => get_foreground_color(color),
+							};
+							(color_start, color_end)
+						}
+						Env::Browser => {
+							let hex = color2hex(color_name, options);
+							if hex == *"transparent" {
+								(String::from(""), String::from(""))
+							} else {
+								(format!("<span style=\"color:{}\">", hex), String::from("</span>"))
+							}
+						}
+					};
 
-				new_line = new_line.replace(&open, &color_start).replace(&close, &color_end);
+					if font_color_count == 1 {
+						new_line = format!("{}{}{}", color_start, new_line, color_end);
+					} else {
+						let open = format!("<c{}>", i + 1);
+						let close = format!("</c{}>", i + 1);
+						new_line = new_line.replace(&open, &color_start).replace(&close, &color_end);
+					}
+				}
+
+				for i in colors.len()..=font_color_count {
+					let open = format!("<c{}>", i);
+					let close = format!("</c{}>", i);
+					new_line = new_line.replace(&open, "").replace(&close, "");
+				}
+
+				new_line
 			}
-			new_line
 		})
 		.collect();
 

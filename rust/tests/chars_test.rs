@@ -276,7 +276,30 @@ mod chars {
 			String::from("green\x1b[31mred\x1b[39mblue\x1b[31mred\x1b[39mblue"),
 			String::from("no color"),
 		];
+		assert_eq!(paint_letter(&letter, 2, &options), output);
+
+		letter = vec![String::from("green red blue red blue"), String::from("color")];
+		options.colors = vec![Colors::Red];
+		output = vec![
+			String::from("\x1b[31mgreen red blue red blue\x1b[39m"),
+			String::from("\x1b[31mcolor\x1b[39m"),
+		];
 		assert_eq!(paint_letter(&letter, 1, &options), output);
+
+		letter = vec![
+			String::from("<c2>green</c2> <c1>red</c1> <c3>blue</c3> <c1>red</c1> nothing"),
+			String::from("<c4>color</c4>"),
+			String::from("nothing"),
+			String::from("<c1>red</c1> <c3>blue</c3>"),
+		];
+		options.colors = vec![Colors::Red, Colors::Blue];
+		output = vec![
+			String::from("\u{1b}[34mgreen\u{1b}[39m \u{1b}[31mred\u{1b}[39m blue \u{1b}[31mred\u{1b}[39m nothing"),
+			String::from("color"),
+			String::from("nothing"),
+			String::from("\u{1b}[31mred\u{1b}[39m blue"),
+		];
+		assert_eq!(paint_letter(&letter, 4, &options), output);
 
 		letter = vec![
 			String::from("<c1>red</c1>"),
@@ -286,9 +309,9 @@ mod chars {
 		options.colors = vec![Colors::Red, Colors::Green, Colors::Blue];
 		options.env = Env::Browser;
 		output = vec![
-			String::from("red"),
+			String::from("<span style=\"color:#ea3223\">red</span>"),
 			String::from("no color"),
-			String::from("redgreenredblue"),
+			String::from("<span style=\"color:#ea3223\">red</span><span style=\"color:#377d22\">green</span><span style=\"color:#ea3223\">red</span><span style=\"color:#0020f5\">blue</span>"),
 		];
 		assert_eq!(paint_letter(&letter, 3, &options), output);
 	}

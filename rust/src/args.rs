@@ -204,7 +204,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 					OptionType::Font => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						options.font = match my_args[i].to_lowercase().as_str() {
 							"console" => Fonts::FontConsole,
@@ -223,8 +223,8 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 							unknown => {
 								return Err(format!(
 									"The font \"{}\" is not supported.\nAllowed options are: {}",
-									color(unknown, Colors::Green, &options),
-									color(&Fonts::list(), Colors::Green, &options)
+									color(unknown, Colors::Green),
+									color(&Fonts::list(), Colors::Green)
 								));
 							}
 						};
@@ -232,7 +232,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 					OptionType::Align => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						options.align = match my_args[i].to_lowercase().as_str() {
 							"left" => Align::Left,
@@ -243,8 +243,8 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 							unknown => {
 								return Err(format!(
 									"The alignment option \"{}\" is not supported.\nAllowed options are: {}",
-									color(unknown, Colors::Green, &options),
-									color(&Align::list(), Colors::Green, &options)
+									color(unknown, Colors::Green),
+									color(&Align::list(), Colors::Green)
 								));
 							}
 						};
@@ -252,7 +252,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 					OptionType::Colors => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						options.colors = my_args[i]
 							.to_lowercase()
@@ -284,8 +284,8 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 									} else {
 										Err(format!(
 											"The color \"{}\" is not supported.\nAllowed options are: {}",
-											color(unknown, Colors::Green, &options),
-											color(&Colors::list(), Colors::Green, &options)
+											color(unknown, Colors::Green),
+											color(&Colors::list(), Colors::Green)
 										))
 									}
 								}
@@ -295,7 +295,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 					OptionType::BgColor => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						options.background = match my_args[i].to_lowercase().as_str() {
 							"transparent" => BgColors::Transparent,
@@ -322,8 +322,8 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								} else {
 									return Err(format!(
 										"The background color \"{}\" is not supported.\nAllowed options are: {}",
-										color(unknown, Colors::Green, &options),
-										color(&BgColors::list(), Colors::Green, &options)
+										color(unknown, Colors::Green),
+										color(&BgColors::list(), Colors::Green)
 									));
 								}
 							}
@@ -332,7 +332,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 					OptionType::Gradient => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						let expanded_args = match my_args[i].to_lowercase().as_str() {
 							"lgbt" | "lgbtq" | "lgbtqa" | "pride" => {
@@ -406,7 +406,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 										// parsing hex round trip to make sure it's in a good format
 										Ok(rgb2hex(&hex2rgb(unknown, &options), &options))
 									} else {
-										Err(format!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", color(unknown, Colors::Green, &options)))
+										Err(format!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", color(unknown, Colors::Green)))
 									}
 								}
 							}).collect::<Result<Vec<String>,String>>()?;
@@ -418,29 +418,29 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 						if is_transition && options.gradient.len() < 2 {
 							return Err(format!(
 								"You must specify at least two colors for transition gradients. You specified only \"{}\"",
-								color(&format!("{}", options.gradient.len()), Colors::Green, &options)
+								color(&format!("{}", options.gradient.len()), Colors::Green)
 							));
 						}
 
 						if !is_transition && options.gradient.len() != 2 {
 							return Err(format!(
 								"You must specify two colors for a gradient. You specified \"{}\"",
-								color(&format!("{}", options.gradient.len()), Colors::Green, &options)
+								color(&format!("{}", options.gradient.len()), Colors::Green)
 							));
 						}
 					}
 					OptionType::Number => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						let number = match my_args[i].parse::<u16>() {
 							Ok(n) => n,
 							Err(_) => {
 								return Err(format!(
 									"Could not read argument for option: {}. Needs to be a positive number but found instead: \"{}\"",
-									color(this_flag.name, Colors::Green, &options),
-									color(&my_args[i], Colors::Green, &options)
+									color(this_flag.name, Colors::Green),
+									color(&my_args[i], Colors::Green)
 								));
 							}
 						};
@@ -485,7 +485,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 					OptionType::Env => {
 						i += 1;
 						if i >= args_length {
-							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green, &options)));
+							return Err(format!("Missing value for option: {}", color(this_flag.name, Colors::Green)));
 						}
 						options.env = match my_args[i].to_lowercase().as_str() {
 							"node" | "cli" => Env::Cli,
@@ -493,8 +493,8 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 							unknown => {
 								return Err(format!(
 									"The env option \"{}\" is not supported.\nAllowed options are: {}",
-									color(unknown, Colors::Green, &options),
-									color(&Env::list(), Colors::Green, &options)
+									color(unknown, Colors::Green),
+									color(&Env::list(), Colors::Green)
 								));
 							}
 						};
