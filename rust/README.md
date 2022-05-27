@@ -142,4 +142,4 @@ We also have an [end-to-end test script](./tests/end-to-end/index.js) setup that
 ## License
 
 Copyright (c) 2022 Dominik Wilkowski.
-Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).
+Licensed under the [GNU GPLv3](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).

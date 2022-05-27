@@ -20,12 +20,6 @@
 	"bugs": {
 		"url": "https://github.com/dominikwilkowski/cfonts/issues"
 	},
-	"licenses": [
-		{
-			"type": "GPL-2.0",
-			"url": "https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE"
-		}
-	],
 	"engines": {
 		"node": ">=10"
 	},
@@ -126,5 +120,11 @@
 	"bin": {
 		"cfonts": "./bin/index.js"
 	},
-	"license": "GPL-2.0"
+	"licenses": [
+		{
+			"type": "GPL-3.0",
+			"url": "https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE"
+		}
+	],
+	"license": "GPL-3.0"
 }

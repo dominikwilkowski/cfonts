@@ -223,4 +223,4 @@ Please look at the coding style and work with it, not against it ;)
 ## License
 
 Copyright (c) 2022 Dominik Wilkowski.
-Licensed under the [GNU GPLv2](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).
+Licensed under the [GNU GPLv3](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).

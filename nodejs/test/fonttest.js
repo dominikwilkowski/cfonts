@@ -8,7 +8,7 @@
  * - All characters have the correct width?
  * - All characters have consistent lines?
  *
- * @license     https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE  GNU GPLv2
+ * @license     https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE  GNU GPLv3
  * @author      Dominik Wilkowski  hi@dominik-wilkowski.com
  * @repository  https://github.com/dominikwilkowski/cfonts
  *
