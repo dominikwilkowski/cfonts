@@ -212,8 +212,11 @@ jobs:
       - name: Produce Coverage
         run: yarn jest --coverage
 
+      - name: Print last few lines of lcov.info
+        run: tail ./coverage/lcov.info
+
       - name: Upload to coveralls
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./nodejs/coverage/lcov.info
+          path-to-lcov: ./coverage/lcov.info
