@@ -125,9 +125,9 @@
 	},
 	"licenses": [
 		{
-			"type": "GPL-3.0",
+			"type": "GPL-3.0-or-later",
 			"url": "https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE"
 		}
 	],
-	"license": "GPL-3.0"
+	"license": "GPL-3.0-or-later"
 }
