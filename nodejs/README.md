@@ -9,7 +9,7 @@
 
 ![cfont styles](./img/example1.png)
 
-<p align="center"><img src="./img/example2.png" alt="api example"></p>
+<p align="center"><img src="../img/example2.png" alt="api example"></p>
 <p align="center">
 	<a href="https://github.com/dominikwilkowski/cfonts/actions/workflows/testing.yml"><img src="https://github.com/dominikwilkowski/cfonts/actions/workflows/testing.yml/badge.svg" alt="build status"></a>
 	<a href="https://www.npmjs.com/package/cfonts"><img alt="npm" src="https://img.shields.io/npm/v/cfonts"></a>
