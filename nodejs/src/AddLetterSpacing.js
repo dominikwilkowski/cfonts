@@ -18,8 +18,6 @@
 const { Debugging } = require('./Debugging.js');
 const { Colorize } = require('./Colorize.js');
 
-
-
 /**
  * Add letter spacing for the next character
  *
@@ -32,27 +30,27 @@ const { Colorize } = require('./Colorize.js');
  *
  * @return {array}                   - The output array with space
  */
-const AddLetterSpacing = ( output, fontLines, fontLetterspace, fontColors, colors, letterSpacing ) => {
-	Debugging.report( `Running AddLetterSpacing`, 1 );
+const AddLetterSpacing = (output, fontLines, fontLetterspace, fontColors, colors, letterSpacing) => {
+	Debugging.report(`Running AddLetterSpacing`, 1);
 
 	let lines = output.length - fontLines; // last line is fontLines tall and is located at the bottom of the output array
 
-	for( let i = lines; i < output.length; i++ ) { // iterate over last line
+	for (let i = lines; i < output.length; i++) {
+		// iterate over last line
 		let index = i - lines;
-		let space = Colorize( fontLetterspace[ index ], fontColors, colors );
+		let space = Colorize(fontLetterspace[index], fontColors, colors);
 
-		if( space.length === 0 && letterSpacing > 0 ) {
-			Debugging.report( `AddLetterSpacing: Adding space to letter spacing`, 1 );
+		if (space.length === 0 && letterSpacing > 0) {
+			Debugging.report(`AddLetterSpacing: Adding space to letter spacing`, 1);
 
 			space = ' ';
 		}
 
-		output[ i ] += space.repeat( letterSpacing );
+		output[i] += space.repeat(letterSpacing);
 	}
 
 	return output;
 };
-
 
 module.exports = exports = {
 	AddLetterSpacing,

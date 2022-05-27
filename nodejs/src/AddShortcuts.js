@@ -15,7 +15,6 @@
 
 'use strict';
 
-
 /**
  * Flatten the shortcuts in our cli options object
  *
@@ -23,17 +22,16 @@
  *
  * @return {object}         - All short keys flattened into first level
  */
-const AddShortcuts = ( options ) => {
-	const flatOptions = Object.assign( {}, options );
+const AddShortcuts = (options) => {
+	const flatOptions = Object.assign({}, options);
 
-	Object.keys( flatOptions ).forEach( option => {
-		flatOptions[ option ]._name = option;
-		flatOptions[ flatOptions[ option ].short ] = flatOptions[ option ];
+	Object.keys(flatOptions).forEach((option) => {
+		flatOptions[option]._name = option;
+		flatOptions[flatOptions[option].short] = flatOptions[option];
 	});
 
 	return flatOptions;
 };
-
 
 module.exports = exports = {
 	AddShortcuts,

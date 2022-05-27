@@ -19,7 +19,6 @@ const { AddShortcuts } = require('./AddShortcuts.js');
 const { CLIOPTIONS } = require('./constants.js');
 const { Debugging } = require('./Debugging.js');
 
-
 /**
  * Parse cli arguments into a nice object
  *
@@ -28,54 +27,51 @@ const { Debugging } = require('./Debugging.js');
  *
  * @return {object}              - An object of all options with at least their default values
  */
-const ParseArgs = ( inputOptions = CLIOPTIONS, inputArgs = process.argv ) => {
+const ParseArgs = (inputOptions = CLIOPTIONS, inputArgs = process.argv) => {
 	const parsedArgs = {
-		text: inputArgs[ 2 ],
+		text: inputArgs[2],
 	};
 
 	// create defaults
-	Object.keys( inputOptions ).forEach( option => {
-		const name = option.replace( '--', '' );
+	Object.keys(inputOptions).forEach((option) => {
+		const name = option.replace('--', '');
 
-		parsedArgs[ name ] = inputOptions[ option ].default;
+		parsedArgs[name] = inputOptions[option].default;
 	});
 
-	if( inputArgs[ 2 ] === '--help' || inputArgs[ 2 ] === '-h' ) {
+	if (inputArgs[2] === '--help' || inputArgs[2] === '-h') {
 		parsedArgs.help = true;
 	}
 
-	if( inputArgs[ 2 ] === '--version' || inputArgs[ 2 ] === '-v' ) {
+	if (inputArgs[2] === '--version' || inputArgs[2] === '-v') {
 		parsedArgs.version = true;
 	}
 
-	const args = inputArgs.splice( 3 ); // the first two are node specific, the third is our text
+	const args = inputArgs.splice(3); // the first two are node specific, the third is our text
 
-	const options = AddShortcuts( inputOptions );
+	const options = AddShortcuts(inputOptions);
 
-	for( let index = 0; args.length > index; index ++ ) {
-		const option = options[ args[ index ] ];
+	for (let index = 0; args.length > index; index++) {
+		const option = options[args[index]];
 
-		if( option ) {
-			const name = option._name.replace( '--', '' );
+		if (option) {
+			const name = option._name.replace('--', '');
 
-			if( option.options !== undefined ) {
-				index ++;
-				const value = args[ index ];
+			if (option.options !== undefined) {
+				index++;
+				const value = args[index];
 
-				parsedArgs[ name ] = value;
+				parsedArgs[name] = value;
+			} else {
+				parsedArgs[name] = true;
 			}
-			else {
-				parsedArgs[ name ] = true;
-			}
-		}
-		else {
-			Debugging.report( `The cli argument ${ args[ index ] } was not found and ignored`, 2 );
+		} else {
+			Debugging.report(`The cli argument ${args[index]} was not found and ignored`, 2);
 		}
 	}
 
 	return parsedArgs;
 };
-
 
 module.exports = exports = {
 	ParseArgs,

@@ -18,7 +18,6 @@
 const { Debugging } = require('./Debugging.js');
 const { Color } = require('./Color.js');
 
-
 /**
  * Replace placeholders with color information
  *
@@ -28,30 +27,30 @@ const { Color } = require('./Color.js');
  *
  * @return {string}               - The character with color ansi escape sequences for CLI
  */
-const Colorize = ( character, fontColors, optionColors ) => {
-	Debugging.report( `Running Colorize`, 1 );
+const Colorize = (character, fontColors, optionColors) => {
+	Debugging.report(`Running Colorize`, 1);
 
-	if( character !== undefined ) {
-		if( fontColors > 1 ) {
+	if (character !== undefined) {
+		if (fontColors > 1) {
 			// we have to replace all color placeholder with ansi escape sequences
-			for( let i = 0; i < fontColors; i++ ) {
-				const color = optionColors[ i ] || 'system';
+			for (let i = 0; i < fontColors; i++) {
+				const color = optionColors[i] || 'system';
 
-				const { open: openNew, close: closeNew } = Color( color );
+				const { open: openNew, close: closeNew } = Color(color);
 
-				const open = new RegExp(`<c${ ( i + 1 ) }>`, 'g');
-				const close = new RegExp(`</c${ ( i + 1 ) }>`, 'g');
+				const open = new RegExp(`<c${i + 1}>`, 'g');
+				const close = new RegExp(`</c${i + 1}>`, 'g');
 
-				character = character.replace( open, openNew );
-				character = character.replace( close, closeNew );
+				character = character.replace(open, openNew);
+				character = character.replace(close, closeNew);
 			}
 		}
 
 		// if only one color is allowed there won't be any color placeholders in the characters
-		if( fontColors === 1 ) {
+		if (fontColors === 1) {
 			const color = optionColors[0] || 'system';
 
-			const { open: openNew, close: closeNew } = Color( color );
+			const { open: openNew, close: closeNew } = Color(color);
 
 			character = openNew + character + closeNew;
 		}
@@ -59,7 +58,6 @@ const Colorize = ( character, fontColors, optionColors ) => {
 
 	return character;
 };
-
 
 module.exports = exports = {
 	Colorize,

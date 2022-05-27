@@ -18,7 +18,6 @@
 const { Debugging } = require('./Debugging.js');
 const { Size } = require('./Size.js');
 
-
 /**
  * Calculate the spaces to be added to the left of each line to align them either center or right
  *
@@ -32,36 +31,38 @@ const { Size } = require('./Size.js');
  *
  * @return {array}                  - The output array with space added on the left for alignment
  */
-const AlignText = ( output, lineLength, characterLines, align, size = Size ) => {
-	Debugging.report( `Running AlignText`, 1 );
+const AlignText = (output, lineLength, characterLines, align, size = Size) => {
+	Debugging.report(`Running AlignText`, 1);
 
 	let space = 0;
 
-	if( align === 'center' ) { // calculate the size for center alignment
-		space = Math.ceil( ( size.width - lineLength ) / 2 );
+	if (align === 'center') {
+		// calculate the size for center alignment
+		space = Math.ceil((size.width - lineLength) / 2);
 
-		Debugging.report( `AlignText: Center lineLength: ${ lineLength }, size.width: ${ size.width }, space: ${ space }`, 2 );
+		Debugging.report(`AlignText: Center lineLength: ${lineLength}, size.width: ${size.width}, space: ${space}`, 2);
 	}
 
-	if( align === 'right' ) { // calculate the size for right alignment
+	if (align === 'right') {
+		// calculate the size for right alignment
 		space = size.width - lineLength;
 
-		Debugging.report( `AlignText: Right lineLength: ${ lineLength }, size.width: ${ size.width }, space: ${ space }`, 2 );
+		Debugging.report(`AlignText: Right lineLength: ${lineLength}, size.width: ${size.width}, space: ${space}`, 2);
 	}
 
-
-	if( space > 0 ) { // only add if there is something to add
+	if (space > 0) {
+		// only add if there is something to add
 		let lines = output.length - characterLines; // last line is characterLines tall and is located at the bottom of the output array
-		const spaces = ' '.repeat( space );
+		const spaces = ' '.repeat(space);
 
-		for( let i = lines; i < output.length; i++ ) { // iterate over last line (which can be several line breaks long)
-			output[ i ] = spaces + output[ i ];
+		for (let i = lines; i < output.length; i++) {
+			// iterate over last line (which can be several line breaks long)
+			output[i] = spaces + output[i];
 		}
 	}
 
 	return output;
 };
-
 
 module.exports = exports = {
 	AlignText,

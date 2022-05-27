@@ -19,7 +19,6 @@ const { Debugging, DEBUG } = require('./Debugging.js');
 const { Render } = require('./Render.js');
 const { Size } = require('./Size.js');
 
-
 /**
  * Print to console
  *
@@ -31,19 +30,18 @@ const { Size } = require('./Size.js');
  * @param  {number}  size.width  - The width of the terminal
  * @param  {number}  size.height - The height of the terminal
  */
-const Say = ( INPUT, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG.level, size = Size ) => {
+const Say = (INPUT, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG.level, size = Size) => {
 	Debugging.report(`Running say`, 1);
 
 	DEBUG.enabled = debug;
 	DEBUG.level = debuglevel;
 
-	const write = Render( INPUT, SETTINGS, debug, debuglevel, size );
+	const write = Render(INPUT, SETTINGS, debug, debuglevel, size);
 
-	if( write ) {
-		console.log( write.string ); // write out
+	if (write) {
+		console.log(write.string); // write out
 	}
 };
-
 
 module.exports = exports = {
 	Say,

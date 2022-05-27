@@ -17,7 +17,6 @@
 
 const { Debugging } = require('./Debugging.js');
 
-
 /**
  * Add a new line to the output array
  *
@@ -28,30 +27,28 @@ const { Debugging } = require('./Debugging.js');
  *
  * @return {array}               - The output array with new line
  */
-const AddLine = ( output, fontLines, FontBuffer, lineHeight ) => {
-	Debugging.report( `Running AddLine`, 1 );
+const AddLine = (output, fontLines, FontBuffer, lineHeight) => {
+	Debugging.report(`Running AddLine`, 1);
 
-	if( output.length === 0 ) {
+	if (output.length === 0) {
 		lineHeight = 0;
 	}
 
 	let lines = fontLines + output.length + lineHeight;
 	let length = output.length;
 
-	for( let i = length; i < lines; i++ ) {
+	for (let i = length; i < lines; i++) {
 		let index = i - length;
 
-		if( index > lineHeight ) {
-			output[ i ] = FontBuffer[ ( index - lineHeight ) ];
-		}
-		else {
-			output[ i ] = '';
+		if (index > lineHeight) {
+			output[i] = FontBuffer[index - lineHeight];
+		} else {
+			output[i] = '';
 		}
 	}
 
 	return output;
 };
-
 
 module.exports = exports = {
 	AddLine,

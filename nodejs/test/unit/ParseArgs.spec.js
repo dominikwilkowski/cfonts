@@ -4,10 +4,8 @@
  *
  **************************************************************************************************************************************************************/
 
-
 const { CLIOPTIONS } = require('../../src/constants.js');
 const { ParseArgs } = require('../../src/ParseArgs.js');
-
 
 test(`ParseArgs - Return defaults without arguments`, () => {
 	const options = {
@@ -38,33 +36,32 @@ test(`ParseArgs - Return defaults without arguments`, () => {
 	};
 
 	const defaultResult = {
-		'align': 'left',
-		'background': 'transparent',
-		'colors': 'system',
-		'debug': false,
+		align: 'left',
+		background: 'transparent',
+		colors: 'system',
+		debug: false,
 		'debug-level': 1,
-		'font': 'block',
-		'gradient': false,
+		font: 'block',
+		gradient: false,
 		'independent-gradient': false,
 		'transition-gradient': false,
-		'help': false,
+		help: false,
 		'letter-spacing': undefined,
 		'line-height': undefined,
 		'max-length': 0,
-		'spaceless': false,
-		'text': undefined,
-		'version': false,
-		'env': 'node',
+		spaceless: false,
+		text: undefined,
+		version: false,
+		env: 'node',
 	};
 
 	process.argv = ['node', 'script']; // we have to remove process.argv so args passed to our testing lib don't break our test
 
-	expect( ParseArgs( options, [ 'node', 'script' ] ) ).toEqual( result );
-	expect( ParseArgs( options, [] ) ).toEqual( result );
-	expect( ParseArgs( options ) ).toEqual( result );
-	expect( ParseArgs() ).toEqual( defaultResult );
+	expect(ParseArgs(options, ['node', 'script'])).toEqual(result);
+	expect(ParseArgs(options, [])).toEqual(result);
+	expect(ParseArgs(options)).toEqual(result);
+	expect(ParseArgs()).toEqual(defaultResult);
 });
-
 
 test(`ParseArgs - Parse out variables no matter the order`, () => {
 	const options = {
@@ -94,11 +91,10 @@ test(`ParseArgs - Parse out variables no matter the order`, () => {
 		3: true,
 	};
 
-	expect( ParseArgs( options, [ 'node', 'script', 'text', '--1', 'x', '--2', 'two', '--3' ] ) ).toEqual( result );
-	expect( ParseArgs( options, [ 'node', 'script', 'text', '--3', '--1', 'x', '--2', 'two' ] ) ).toEqual( result );
-	expect( ParseArgs( options, [ 'node', 'script', 'text', '--2', 'two', '--1', 'x', '--3' ] ) ).toEqual( result );
+	expect(ParseArgs(options, ['node', 'script', 'text', '--1', 'x', '--2', 'two', '--3'])).toEqual(result);
+	expect(ParseArgs(options, ['node', 'script', 'text', '--3', '--1', 'x', '--2', 'two'])).toEqual(result);
+	expect(ParseArgs(options, ['node', 'script', 'text', '--2', 'two', '--1', 'x', '--3'])).toEqual(result);
 });
-
 
 test(`ParseArgs - Ignore flags not in the options`, () => {
 	const options = {
@@ -128,9 +124,8 @@ test(`ParseArgs - Ignore flags not in the options`, () => {
 		3: true,
 	};
 
-	expect( ParseArgs( options, [ 'node', 'script', 'text', '--1', 'x', '--4', 'two', '--3' ] ) ).toEqual( result );
+	expect(ParseArgs(options, ['node', 'script', 'text', '--1', 'x', '--4', 'two', '--3'])).toEqual(result);
 });
-
 
 test(`ParseArgs - Help flag can be on text place`, () => {
 	const options = {
@@ -169,10 +164,9 @@ test(`ParseArgs - Help flag can be on text place`, () => {
 		help: true,
 	};
 
-	expect( ParseArgs( options, [ 'node', 'script', '--help' ] ) ).toEqual( result1 );
-	expect( ParseArgs( options, [ 'node', 'script', '-h' ] ) ).toEqual( result2 );
+	expect(ParseArgs(options, ['node', 'script', '--help'])).toEqual(result1);
+	expect(ParseArgs(options, ['node', 'script', '-h'])).toEqual(result2);
 });
-
 
 test(`ParseArgs - Version flag can be on text place`, () => {
 	const options = {
@@ -211,6 +205,6 @@ test(`ParseArgs - Version flag can be on text place`, () => {
 		version: true,
 	};
 
-	expect( ParseArgs( options, [ 'node', 'script', '--version' ] ) ).toEqual( result1 );
-	expect( ParseArgs( options, [ 'node', 'script', '-v' ] ) ).toEqual( result2 );
+	expect(ParseArgs(options, ['node', 'script', '--version'])).toEqual(result1);
+	expect(ParseArgs(options, ['node', 'script', '-v'])).toEqual(result2);
 });

@@ -17,7 +17,6 @@
 
 const { Color } = require('./Color.js');
 
-
 /**
  * Logging prettiness
  *
@@ -29,13 +28,12 @@ const Log = {
 	 *
 	 * @param  {string} text - The sting you want to log
 	 */
-	error: ( text ) => {
-		text = text.replace( /(?:\r\n|\r|\n)/g, '\n       ' ); // indent each line
-		const { open, close } = Color("red");
-		console.error(`\n \u001b[1m${open}Ouch:${close}\u001b[22m ${ text }\n`);
+	error: (text) => {
+		text = text.replace(/(?:\r\n|\r|\n)/g, '\n       '); // indent each line
+		const { open, close } = Color('red');
+		console.error(`\n \u001b[1m${open}Ouch:${close}\u001b[22m ${text}\n`);
 	},
 };
-
 
 module.exports = exports = {
 	Log,

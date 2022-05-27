@@ -15,12 +15,7 @@
 
 'use strict';
 
-const {
-	COLORS,
-	BGCOLORS,
-	FONTFACES,
-} = require('./constants.js');
-
+const { COLORS, BGCOLORS, FONTFACES } = require('./constants.js');
 
 /**
  * The options store with getter and setter methods
@@ -97,65 +92,53 @@ const Options = {
 		allowedBG = BGCOLORS,
 		allowedFont = FONTFACES,
 	}) {
-		this.store.font = font !== ''
-			? allowedFont[ font.toLowerCase() ] || font
-			: this.store.font;
+		this.store.font = font !== '' ? allowedFont[font.toLowerCase()] || font : this.store.font;
 
-		this.store.align = align !== undefined
-			? align.toLowerCase()
-			: this.store.align;
+		this.store.align = align !== undefined ? align.toLowerCase() : this.store.align;
 
-		this.store.colors = Array.isArray( colors )
-			? colors.map( color => allowedColors[ color.toLowerCase() ] || color )
+		this.store.colors = Array.isArray(colors)
+			? colors.map((color) => allowedColors[color.toLowerCase()] || color)
 			: this.store.colors;
 
 		const bg = backgroundColor || background;
-		this.store.background = bg !== undefined
-			? allowedBG[ bg.toLowerCase() ] || bg
-			: this.store.background;
+		this.store.background = bg !== undefined ? allowedBG[bg.toLowerCase()] || bg : this.store.background;
 
-		this.store.letterSpacing = letterSpacing !== undefined
-			? parseInt( letterSpacing.toString() )
-			: font.toLowerCase() === 'console'
+		this.store.letterSpacing =
+			letterSpacing !== undefined
+				? parseInt(letterSpacing.toString())
+				: font.toLowerCase() === 'console'
 				? 0
 				: this.store.letterSpacing;
 
-		this.store.lineHeight = lineHeight !== undefined
-			? parseInt( lineHeight.toString() )
-			: font.toLowerCase() === 'console'
+		this.store.lineHeight =
+			lineHeight !== undefined
+				? parseInt(lineHeight.toString())
+				: font.toLowerCase() === 'console'
 				? 0
 				: this.store.lineHeight;
 
-		this.store.space = typeof space === 'boolean'
-			? space
-			: this.store.space;
+		this.store.space = typeof space === 'boolean' ? space : this.store.space;
 
-		this.store.maxLength = maxLength !== undefined
-			? maxLength
-			: this.store.maxLength;
+		this.store.maxLength = maxLength !== undefined ? maxLength : this.store.maxLength;
 
-		this.store.gradient = gradient !== undefined && typeof gradient !== 'boolean'
-			? Array.isArray( gradient )
-				? gradient
-				: gradient.split(',')
-			: gradient === false
+		this.store.gradient =
+			gradient !== undefined && typeof gradient !== 'boolean'
+				? Array.isArray(gradient)
+					? gradient
+					: gradient.split(',')
+				: gradient === false
 				? false
 				: this.store.gradient;
 
-		this.store.independentGradient = independentGradient !== undefined
-			? independentGradient
-			: this.store.independentGradient;
+		this.store.independentGradient =
+			independentGradient !== undefined ? independentGradient : this.store.independentGradient;
 
-		this.store.transitionGradient = transitionGradient !== undefined
-			? transitionGradient
-			: this.store.transitionGradient;
+		this.store.transitionGradient =
+			transitionGradient !== undefined ? transitionGradient : this.store.transitionGradient;
 
-		this.store.env = env !== undefined
-			? env
-			: this.store.env;
+		this.store.env = env !== undefined ? env : this.store.env;
 	},
 };
-
 
 module.exports = exports = {
 	Options,

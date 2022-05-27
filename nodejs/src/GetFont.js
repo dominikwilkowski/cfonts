@@ -19,7 +19,6 @@ const path = require('path');
 
 const { Debugging } = require('./Debugging.js');
 
-
 /**
  * Get a selected JSON font-file object
  *
@@ -27,24 +26,22 @@ const { Debugging } = require('./Debugging.js');
  *
  * @return {object}      - The font object of that file
  */
-const GetFont = ( font ) => {
-	Debugging.report( `Running GetFont`, 1 );
+const GetFont = (font) => {
+	Debugging.report(`Running GetFont`, 1);
 
 	// try loading the font file
 	try {
-		let FONTFACE = require(path.normalize(`../fonts/${ font }.json`)); // read font file
+		let FONTFACE = require(path.normalize(`../fonts/${font}.json`)); // read font file
 
-		Debugging.report( `GetFont: Fontface path selected: "${ font }.json"`, 2 );
+		Debugging.report(`GetFont: Fontface path selected: "${font}.json"`, 2);
 
 		return FONTFACE;
-	}
-	catch( error ) {
-		Debugging.error( `Font file for "${ font }" errored out: ${ error }`, 2 );
+	} catch (error) {
+		Debugging.error(`Font file for "${font}" errored out: ${error}`, 2);
 
 		return false;
 	}
 };
-
 
 module.exports = exports = {
 	GetFont,

@@ -15,7 +15,6 @@
 
 'use strict';
 
-
 /**
  * Return the longest line of an Array
  *
@@ -23,8 +22,8 @@
  *
  * @return {string}        - The longest string from within the array
  */
-const GetLongestLine = lines => lines.reduce( ( longestLine, line ) => ( line.length > longestLine.length && line.length !== 0 ? line : longestLine ), '' );
-
+const GetLongestLine = (lines) =>
+	lines.reduce((longestLine, line) => (line.length > longestLine.length && line.length !== 0 ? line : longestLine), '');
 
 module.exports = exports = {
 	GetLongestLine,

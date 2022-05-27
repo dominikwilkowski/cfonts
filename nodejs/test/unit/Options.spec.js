@@ -4,10 +4,7 @@
  *
  **************************************************************************************************************************************************************/
 
-
 const { Options } = require('../../src/Options.js');
-
-
 
 test(`Options - Should return default options`, () => {
 	const DEFAULTS = {
@@ -27,9 +24,8 @@ test(`Options - Should return default options`, () => {
 
 	Options.reset();
 	Options.set = {};
-	expect( Options.get ).toEqual( DEFAULTS );
+	expect(Options.get).toEqual(DEFAULTS);
 });
-
 
 test(`Options - Should be able to handle casing`, () => {
 	const COLORS = { color1: 'coLor1', color2: 'coLor2', color3: 'coLor3' };
@@ -46,10 +42,10 @@ test(`Options - Should be able to handle casing`, () => {
 		allowedFont: FONTFACES,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'fONt3',
 		align: 'left',
-		colors: [ 'coLor1', 'coLor3' ],
+		colors: ['coLor1', 'coLor3'],
 		background: 'bgCOLor2',
 		letterSpacing: 1,
 		lineHeight: 1,
@@ -61,7 +57,6 @@ test(`Options - Should be able to handle casing`, () => {
 		env: 'node',
 	});
 });
-
 
 test(`Options - Should be able to handle background and backgroundColor`, () => {
 	const COLORS = { color1: 'color1', color2: 'color2', color3: 'color3' };
@@ -76,7 +71,7 @@ test(`Options - Should be able to handle background and backgroundColor`, () => 
 		allowedFont: FONTFACES,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -92,14 +87,13 @@ test(`Options - Should be able to handle background and backgroundColor`, () => 
 	});
 });
 
-
 test(`Options - Should merge font option with defaults`, () => {
 	Options.reset();
 	Options.set = {
 		font: 'xxx',
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'xxx',
 		align: 'left',
 		colors: [],
@@ -121,7 +115,7 @@ test(`Options - Should merge align option with defaults`, () => {
 		align: 'xxx',
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'xxx',
 		colors: [],
@@ -143,7 +137,7 @@ test(`Options - Should merge colors option with defaults`, () => {
 		colors: ['xxx'],
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: ['xxx'],
@@ -165,7 +159,7 @@ test(`Options - Should merge background option with defaults`, () => {
 		background: 'xxx',
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -187,7 +181,7 @@ test(`Options - Should merge backgroundColor option with defaults`, () => {
 		backgroundColor: 'xxx',
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -209,7 +203,7 @@ test(`Options - Should merge letterSpacing option with defaults`, () => {
 		letterSpacing: 555,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -231,7 +225,7 @@ test(`Options - Should merge lineHeight option with defaults`, () => {
 		lineHeight: 555,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -253,7 +247,7 @@ test(`Options - Should merge space option with defaults`, () => {
 		space: false,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -275,7 +269,7 @@ test(`Options - Should merge maxLength option with defaults`, () => {
 		maxLength: 555,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -297,7 +291,7 @@ test(`Options - Should merge string-gradient option with defaults`, () => {
 		gradient: 'red,green',
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -316,10 +310,10 @@ test(`Options - Should merge string-gradient option with defaults`, () => {
 test(`Options - Should merge array-gradient option with defaults`, () => {
 	Options.reset();
 	Options.set = {
-		gradient: ['red','green'],
+		gradient: ['red', 'green'],
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -341,7 +335,7 @@ test(`Options - Should merge independentGradient option with defaults`, () => {
 		independentGradient: true,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -363,7 +357,7 @@ test(`Options - Should merge independentGradient option with defaults`, () => {
 		transitionGradient: true,
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],
@@ -385,7 +379,7 @@ test(`Options - Should merge env option with defaults`, () => {
 		env: 'browser',
 	};
 
-	expect( Options.get ).toEqual({
+	expect(Options.get).toEqual({
 		font: 'block',
 		align: 'left',
 		colors: [],

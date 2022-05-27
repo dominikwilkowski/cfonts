@@ -4,44 +4,42 @@
  *
  **************************************************************************************************************************************************************/
 
-
 const { AddShortcuts } = require('../../src/AddShortcuts.js');
-
 
 test(`AddShortcuts - Should flatten shortcuts into object`, () => {
 	const input = {
-		'one': {
+		one: {
 			description: 'desc value',
 			short: 'oneshort',
 		},
-		'two': {
+		two: {
 			description: 'desc value',
 			short: 'twoshort',
 		},
 	};
 
 	const output = {
-		'one': {
+		one: {
 			_name: 'one',
 			description: 'desc value',
 			short: 'oneshort',
 		},
-		'oneshort': {
+		oneshort: {
 			_name: 'one',
 			description: 'desc value',
 			short: 'oneshort',
 		},
-		'two': {
+		two: {
 			_name: 'two',
 			description: 'desc value',
 			short: 'twoshort',
 		},
-		'twoshort': {
+		twoshort: {
 			_name: 'two',
 			description: 'desc value',
 			short: 'twoshort',
 		},
 	};
 
-	expect( AddShortcuts( input ) ).toEqual( output );
+	expect(AddShortcuts(input)).toEqual(output);
 });

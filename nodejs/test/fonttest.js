@@ -16,7 +16,6 @@
 
 'use strict';
 
-
 // Dependencies
 const { CHARS: CFontsChars, FONTFACES: CFontsFontfaces } = require('../src/constants.js');
 const { Size } = require('../src/Size.js');
@@ -25,15 +24,11 @@ const Chalk = require(`chalk`);
 const Path = require('path');
 const Fs = require(`fs`);
 
-
 // global defaults
 const DEBUG = true;
 const DEBUGLEVEL = 2;
-const CHARS = CFontsChars
-	.filter( font => font !== '|' ); // we don’t need the pipe in the char-set
-const FONTFACES = Object.keys( CFontsFontfaces )
-	.map( font => CFontsFontfaces[ font ] ); // console is a font but not a font-file
-
+const CHARS = CFontsChars.filter((font) => font !== '|'); // we don’t need the pipe in the char-set
+const FONTFACES = Object.keys(CFontsFontfaces).map((font) => CFontsFontfaces[font]); // console is a font but not a font-file
 
 /**
  * Test each font for common issues
@@ -41,93 +36,90 @@ const FONTFACES = Object.keys( CFontsFontfaces )
  * @param  {array} FONTFACES - All font faces to be checked in an array
  * @param  {array} CHARS     - All characters that should be included
  */
-const FontTest = ( FONTFACES, CHARS ) => {
+const FontTest = (FONTFACES, CHARS) => {
 	Debugging.report(`Running FontTest`, 1);
 
 	let font = '';
 	let fontFile = '';
 	let FONTFACE = {};
 
-	for( let i in FONTFACES ) {
-		font = FONTFACES[ i ];
-		fontFile = Path.normalize( `${ __dirname }/../../fonts/${ font }.json` );
+	for (let i in FONTFACES) {
+		font = FONTFACES[i];
+		fontFile = Path.normalize(`${__dirname}/../../fonts/${font}.json`);
 
-		Log.headline(`${ font }`);
-		Log.check(`Checking: "${ font }" existence`);
+		Log.headline(`${font}`);
+		Log.check(`Checking: "${font}" existence`);
 
 		try {
-			FONTFACE = JSON.parse( Fs.readFileSync( fontFile, 'utf8' ) );
+			FONTFACE = JSON.parse(Fs.readFileSync(fontFile, 'utf8'));
 
 			Log.subdone(`FOUND!`);
-		}
-		catch( e ) {
-			Log.suberror(`NOT FOUND: "${ fontFile }"`);
+		} catch (e) {
+			Log.suberror(`NOT FOUND: "${fontFile}"`);
 		}
 
-		Attributes( FONTFACE );
-		Letterspace_size( FONTFACE );
-		Chars( FONTFACE, CHARS );
-		Width( FONTFACE, CHARS );
-		Lines( FONTFACE, CHARS );
+		Attributes(FONTFACE);
+		Letterspace_size(FONTFACE);
+		Chars(FONTFACE, CHARS);
+		Width(FONTFACE, CHARS);
+		Lines(FONTFACE, CHARS);
 	}
 
 	console.log(`\n`);
-	if( Log.errors > 0 ) {
+	if (Log.errors > 0) {
 		process.exit(1);
 	}
 };
-
 
 /**
  * Test the font has all attributes
  *
  * @param  {object} FONTFACE - The font object for this font
  */
-const Attributes = ( FONTFACE ) => {
+const Attributes = (FONTFACE) => {
 	Debugging.report(`Running Attributes`, 1);
-	Log.check(`Checking font attributes of "${ FONTFACE.name }"`);
+	Log.check(`Checking font attributes of "${FONTFACE.name}"`);
 	let fails = [];
 
-	if( FONTFACE.name === undefined ) {
+	if (FONTFACE.name === undefined) {
 		fails.push(`name`);
 	}
 
-	if( FONTFACE.version === undefined ) {
+	if (FONTFACE.version === undefined) {
 		fails.push(`version`);
 	}
 
-	if( FONTFACE.homepage === undefined ) {
+	if (FONTFACE.homepage === undefined) {
 		fails.push(`homepage`);
 	}
 
-	if( FONTFACE.colors === undefined ) {
+	if (FONTFACE.colors === undefined) {
 		fails.push(`colors`);
 	}
 
-	if( FONTFACE.lines === undefined ) {
+	if (FONTFACE.lines === undefined) {
 		fails.push(`lines`);
 	}
 
-	if( FONTFACE.buffer === undefined ) {
+	if (FONTFACE.buffer === undefined) {
 		fails.push(`buffer`);
 	}
 
-	if( FONTFACE.letterspace === undefined ) {
+	if (FONTFACE.letterspace === undefined) {
 		fails.push(`letterspace`);
 	}
 
-	if( FONTFACE.letterspace_size === undefined ) {
+	if (FONTFACE.letterspace_size === undefined) {
 		fails.push(`letterspace_size`);
 	}
 
-	if( FONTFACE.chars === undefined ) {
+	if (FONTFACE.chars === undefined) {
 		fails.push(`chars`);
 	}
 
-	if( fails.length > 0 ) {
-		Log.suberror(`Font has missing attributes: "${ fails.join(' ') }" in font: "${ FONTFACE.name }"`);
-	}
-	else {
+	if (fails.length > 0) {
+		Log.suberror(`Font has missing attributes: "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+	} else {
 		Log.subdone(`All THERE!`);
 	}
 };
@@ -138,27 +130,27 @@ const Attributes = ( FONTFACE ) => {
  * @param  {object} FONTFACE - The font object for this font
  * @param  {array}  CHARS    - All characters that should be included
  */
-const Letterspace_size = ( FONTFACE ) => {
+const Letterspace_size = (FONTFACE) => {
 	Debugging.report(`Running Letterspace_size`, 1);
-	Log.check(`Checking letterspace_size in "${ FONTFACE.name }"`);
+	Log.check(`Checking letterspace_size in "${FONTFACE.name}"`);
 
 	let width = 0;
-	FONTFACE.letterspace.forEach( item => {
-		let char = item.replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
+	FONTFACE.letterspace.forEach((item) => {
+		let char = item.replace(/(<([^>]+)>)/gi, ''); // get character and strip color infos
 
-		if( width < char.length ) {
+		if (width < char.length) {
 			width = char.length;
 		}
 	});
 
-	if( FONTFACE.letterspace_size !== width) {
-		Log.suberror(`Font has wrong letterspace_size attribute. Is: "${ FONTFACE.letterspace_size }" but should be "${ width }" in font: "${ FONTFACE.name }"`);
-	}
-	else {
+	if (FONTFACE.letterspace_size !== width) {
+		Log.suberror(
+			`Font has wrong letterspace_size attribute. Is: "${FONTFACE.letterspace_size}" but should be "${width}" in font: "${FONTFACE.name}"`
+		);
+	} else {
 		Log.subdone(`All CORRECT!`);
 	}
 };
-
 
 /**
  * Test the font to include all characters
@@ -166,27 +158,25 @@ const Letterspace_size = ( FONTFACE ) => {
  * @param  {object} FONTFACE - The font object for this font
  * @param  {array}  CHARS    - All characters that should be included
  */
-const Chars = ( FONTFACE, CHARS ) => {
+const Chars = (FONTFACE, CHARS) => {
 	Debugging.report(`Running Chars`, 1);
-	Log.check(`Checking all characters in "${ FONTFACE.name }"`);
+	Log.check(`Checking all characters in "${FONTFACE.name}"`);
 	let fails = [];
 
-	for( let i in CHARS ) {
-		let char = CHARS[ i ];
+	for (let i in CHARS) {
+		let char = CHARS[i];
 
-		if( FONTFACE.chars[ char ] === undefined ) {
-			fails.push( char );
+		if (FONTFACE.chars[char] === undefined) {
+			fails.push(char);
 		}
 	}
 
-	if( fails.length > 0 ) {
-		Log.suberror(`Character could not be found: "${ fails.join(' ') }" in font: "${ FONTFACE.name }"`);
-	}
-	else {
+	if (fails.length > 0) {
+		Log.suberror(`Character could not be found: "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+	} else {
 		Log.subdone(`All THERE!`);
 	}
 };
-
 
 /**
  * Test each character has the right amount of lines
@@ -194,38 +184,35 @@ const Chars = ( FONTFACE, CHARS ) => {
  * @param  {object} FONTFACE - The font object for this font
  * @param  {array}  CHARS    - All characters that should be included
  */
-const Lines = ( FONTFACE, CHARS ) => {
+const Lines = (FONTFACE, CHARS) => {
 	Debugging.report(`Running Lines`, 1);
-	Log.check(`Checking all character lines in "${ FONTFACE.name }"`);
+	Log.check(`Checking all character lines in "${FONTFACE.name}"`);
 	let fails = [];
 
-	if( FONTFACE.buffer.length !== FONTFACE.lines ) {
+	if (FONTFACE.buffer.length !== FONTFACE.lines) {
 		fails.push(`buffer`);
 	}
 
-	if( FONTFACE.letterspace.length !== FONTFACE.lines ) {
+	if (FONTFACE.letterspace.length !== FONTFACE.lines) {
 		fails.push(`letterspace`);
 	}
 
-	for( let i in CHARS ) {
-		let char = CHARS[ i ];
+	for (let i in CHARS) {
+		let char = CHARS[i];
 
-		if( FONTFACE.chars[ char ] !== undefined ) {
-
-			if( FONTFACE.chars[ char ].length !== FONTFACE.lines ) {
-				fails.push( char );
+		if (FONTFACE.chars[char] !== undefined) {
+			if (FONTFACE.chars[char].length !== FONTFACE.lines) {
+				fails.push(char);
 			}
 		}
 	}
 
-	if( fails.length > 0 ) {
-		Log.suberror(`Character lines are not correct in "${ fails.join(' ') }" in font: "${ FONTFACE.name }"`);
-	}
-	else {
+	if (fails.length > 0) {
+		Log.suberror(`Character lines are not correct in "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+	} else {
 		Log.subdone(`All CORRECT!`);
 	}
 };
-
 
 /**
  * Test each character to have the same width
@@ -233,41 +220,39 @@ const Lines = ( FONTFACE, CHARS ) => {
  * @param  {object} FONTFACE - The font object for this font
  * @param  {array}  CHARS    - All characters that should be included
  */
-const Width = ( FONTFACE, CHARS ) => {
+const Width = (FONTFACE, CHARS) => {
 	Debugging.report(`Running Width`, 1);
-	Log.check(`Checking all character widths in "${ FONTFACE.name }"`);
+	Log.check(`Checking all character widths in "${FONTFACE.name}"`);
 	let fails = [];
 
-	for( let i in CHARS ) {
-		let char = CHARS[ i ];
+	for (let i in CHARS) {
+		let char = CHARS[i];
 
-		if( FONTFACE.chars[ char ] !== undefined ) {
-			let character = FONTFACE.chars[ char ];
+		if (FONTFACE.chars[char] !== undefined) {
+			let character = FONTFACE.chars[char];
 			let width = 0;
 
-			for( let i = 0; i < character.length; i++ ) {
-				character[ i ] = character[ i ].replace(/(<([^>]+)>)/ig, '');
+			for (let i = 0; i < character.length; i++) {
+				character[i] = character[i].replace(/(<([^>]+)>)/gi, '');
 
-				if( i === 0 ) {
-					width = character[ i ].length;
+				if (i === 0) {
+					width = character[i].length;
 				}
 
-				if( width !== character[ i ].length ) {
-					fails.push(`${ char }((${ width }) ${ i }=${ character[ i ].length })`);
+				if (width !== character[i].length) {
+					fails.push(`${char}((${width}) ${i}=${character[i].length})`);
 					// break; // if we break here we fail on the first issue rather than collecting them all
 				}
-			};
+			}
 		}
 	}
 
-	if( fails.length > 0 ) {
-		Log.suberror(`Character width is not consistent in "${ fails.join(' ') }" in font: "${ FONTFACE.name }"`);
-	}
-	else {
+	if (fails.length > 0) {
+		Log.suberror(`Character width is not consistent in "${fails.join(' ')}" in font: "${FONTFACE.name}"`);
+	} else {
 		Log.subdone(`All CONSISTENT!`);
 	}
 };
-
 
 /**
  * A collection of methods to print debug message that will be logged to console if debug mode is enabled
@@ -275,18 +260,15 @@ const Width = ( FONTFACE, CHARS ) => {
  * @type {Object}
  */
 const Debugging = {
-
 	/**
 	 * Print a headline preferably at the beginning of your app
 	 *
 	 * @param  [text]  {string}  - The sting you want to log
 	 * @param  [level] {integer} - (optional) The debug level. Show equal and greater levels. Default: 99
 	 */
-	headline: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.bold(' \u2611  ') } ${ text }`)
-			);
+	headline: (text, level = 99) => {
+		if (DEBUG && level >= DEBUGLEVEL) {
+			console.log(Chalk.bgWhite(`\n${Chalk.bold(' \u2611  ')} ${text}`));
 		}
 	},
 
@@ -296,11 +278,9 @@ const Debugging = {
 	 * @param  [text]  {string}  - The sting you want to log
 	 * @param  [level] {integer} - (optional) The debug level. Show equal and greater levels. Default: 99
 	 */
-	report: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.bold.green(' \u2611  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+	report: (text, level = 99) => {
+		if (DEBUG && level >= DEBUGLEVEL) {
+			console.log(Chalk.bgWhite(`\n${Chalk.bold.green(' \u2611  ')} ${Chalk.black(`${text} `)}`));
 		}
 	},
 
@@ -310,11 +290,9 @@ const Debugging = {
 	 * @param  [text]  {string}  - The sting you want to log
 	 * @param  [level] {integer} - (optional) The debug level. Show equal and greater levels. Default: 99
 	 */
-	error: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.red(' \u2612  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+	error: (text, level = 99) => {
+		if (DEBUG && level >= DEBUGLEVEL) {
+			console.log(Chalk.bgWhite(`\n${Chalk.red(' \u2612  ')} ${Chalk.black(`${text} `)}`));
 		}
 	},
 
@@ -324,11 +302,9 @@ const Debugging = {
 	 * @param  [text]  {string}  - The sting you want to log
 	 * @param  [level] {integer} - (optional) The debug level. Show equal and greater levels. Default: 99
 	 */
-	interaction: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.blue(' \u261C  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+	interaction: (text, level = 99) => {
+		if (DEBUG && level >= DEBUGLEVEL) {
+			console.log(Chalk.bgWhite(`\n${Chalk.blue(' \u261C  ')} ${Chalk.black(`${text} `)}`));
 		}
 	},
 
@@ -338,11 +314,9 @@ const Debugging = {
 	 * @param  [text]  {string}  - The sting you want to log
 	 * @param  [level] {integer} - (optional) The debug level. Show equal and greater levels. Default: 99
 	 */
-	send: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.bold.cyan(' \u219D  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+	send: (text, level = 99) => {
+		if (DEBUG && level >= DEBUGLEVEL) {
+			console.log(Chalk.bgWhite(`\n${Chalk.bold.cyan(' \u219D  ')} ${Chalk.black(`${text} `)}`));
 		}
 	},
 
@@ -352,15 +326,12 @@ const Debugging = {
 	 * @param  [text]  {string}  - The sting you want to log
 	 * @param  [level] {integer} - (optional) The debug level. Show equal and greater levels. Default: 99
 	 */
-	received: ( text, level = 99 ) => {
-		if( DEBUG && level >= DEBUGLEVEL ) {
-			console.log(
-				Chalk.bgWhite(`\n${ Chalk.bold.cyan(' \u219C  ') } ${ Chalk.black(`${ text } `) }`)
-			);
+	received: (text, level = 99) => {
+		if (DEBUG && level >= DEBUGLEVEL) {
+			console.log(Chalk.bgWhite(`\n${Chalk.bold.cyan(' \u219C  ')} ${Chalk.black(`${text} `)}`));
 		}
-	}
+	},
 };
-
 
 /**
  * A collection of methods to print messages to console
@@ -375,13 +346,13 @@ const Log = {
 	 *
 	 * @param  {string} text - The name of the test
 	 */
-	headline: ( text ) => {
-		let space = Math.floor( ( Size.width - text.length - 6 ) / 2 );
-		if( space < 0 ) {
+	headline: (text) => {
+		let space = Math.floor((Size.width - text.length - 6) / 2);
+		if (space < 0) {
 			space = 1;
 		}
 
-		console.log(`\n${ Chalk.bgWhite.black(`\n${ ' '.repeat( space ) }══ ${ text } ══`) }`);
+		console.log(`\n${Chalk.bgWhite.black(`\n${' '.repeat(space)}══ ${text} ══`)}`);
 	},
 
 	/**
@@ -389,11 +360,11 @@ const Log = {
 	 *
 	 * @param  {string} text - The sting you want to log
 	 */
-	check: ( text ) => {
-		let prefix = `${ Chalk.bold.green(' \u231B     ') } ${ Chalk.bold.black('Testing:') } `;
+	check: (text) => {
+		let prefix = `${Chalk.bold.green(' \u231B     ')} ${Chalk.bold.black('Testing:')} `;
 
-		text = text.replace(/(?:\r\n|\r|\n)/g, `\n${ ' '.repeat( prefix.length ) }`);
-		process.stdout.write(`\n${ Chalk.bgWhite(`${ prefix }${ Chalk.black( text ) }`) }`);
+		text = text.replace(/(?:\r\n|\r|\n)/g, `\n${' '.repeat(prefix.length)}`);
+		process.stdout.write(`\n${Chalk.bgWhite(`${prefix}${Chalk.black(text)}`)}`);
 	},
 
 	/**
@@ -401,12 +372,12 @@ const Log = {
 	 *
 	 * @param  {string} text - Success message (not logged)
 	 */
-	subdone: ( text ) => {
-		let prefix = ` ${ Chalk.bold.black('OK') } `;
-		text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${ ' '.repeat( prefix.length ) }`);
+	subdone: (text) => {
+		let prefix = ` ${Chalk.bold.black('OK')} `;
+		text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${' '.repeat(prefix.length)}`);
 
-		Readline.cursorTo( process.stdout, 0 );
-		console.log(`${ Chalk.bgGreen(` ${ prefix }`) }`);
+		Readline.cursorTo(process.stdout, 0);
+		console.log(`${Chalk.bgGreen(` ${prefix}`)}`);
 		// console.log(`${ Chalk.bgGreen(`   ${ Chalk.black( text ) }`) }`); // not outputting message will keep things cleaner
 	},
 
@@ -415,17 +386,16 @@ const Log = {
 	 *
 	 * @param  {string} text - Error message
 	 */
-	suberror: ( text ) => {
-		Log.errors ++;
+	suberror: (text) => {
+		Log.errors++;
 
-		let prefix = ` ${ Chalk.bold.black('FAIL') } `;
-		text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${ ' '.repeat( prefix.length ) }`);
+		let prefix = ` ${Chalk.bold.black('FAIL')} `;
+		text = text.replace(/(?:\r\n|\r|\n)/g, `\n   ${' '.repeat(prefix.length)}`);
 
-		Readline.cursorTo( process.stdout, 0 );
-		console.log(`${ Chalk.bgRed(` ${ prefix }`) }`);
-		console.log(`${ Chalk.bgRed(`   ${ Chalk.black( text ) }`) }`);
+		Readline.cursorTo(process.stdout, 0);
+		console.log(`${Chalk.bgRed(` ${prefix}`)}`);
+		console.log(`${Chalk.bgRed(`   ${Chalk.black(text)}`)}`);
 	},
 };
 
-
-FontTest( FONTFACES, CHARS );
+FontTest(FONTFACES, CHARS);

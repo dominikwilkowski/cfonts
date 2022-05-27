@@ -15,7 +15,6 @@
 
 'use strict';
 
-
 /**
  * Upper case the first character of an input string.
  *
@@ -25,10 +24,7 @@
  *
  * @return {string}       - A string with the first letter in upper case
  */
-const UpperCaseFirst = input => typeof input === 'string'
-	? input.charAt(0).toUpperCase() + input.substr(1)
-	: input;
-
+const UpperCaseFirst = (input) => (typeof input === 'string' ? input.charAt(0).toUpperCase() + input.substr(1) : input);
 
 module.exports = exports = {
 	UpperCaseFirst,

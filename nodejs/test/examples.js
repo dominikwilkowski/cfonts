@@ -50,29 +50,32 @@ CFonts.say('Hello|world!', {
 	colors: ['red'],
 });
 
-CFonts.say(`Hello
-world\nagain|!`, {
-	font: 'simple',
-	align: 'center',
-	colors: ['red'],
+CFonts.say(
+	`Hello
+world\nagain|!`,
+	{
+		font: 'simple',
+		align: 'center',
+		colors: ['red'],
+	}
+);
+
+CFonts.say('Hi|world!', {
+	gradient: ['red', 'green'],
 });
 
 CFonts.say('Hi|world!', {
-	gradient: ['red','green'],
-});
-
-CFonts.say('Hi|world!', {
-	gradient: ['red','green'],
+	gradient: ['red', 'green'],
 	independentGradient: true,
 });
 
 CFonts.say('Hi|world!', {
-	gradient: ['red','green'],
+	gradient: ['red', 'green'],
 	transitionGradient: true,
 });
 
 CFonts.say('Hi|world!', {
-	gradient: ['red','green'],
+	gradient: ['red', 'green'],
 	independentGradient: true,
 	transitionGradient: true,
 });
@@ -129,20 +132,21 @@ const html = `
 <body style="background:#f1f1f1">
 <h1>CFonts browser test</h1>
 <h2>Font one</h2>
-${ prettyFont2.string }
+${prettyFont2.string}
 <h2>Font two</h2>
-${ prettyFont3.string }
+${prettyFont3.string}
 <h2>Font three</h2>
-${ prettyFont4.string }
+${prettyFont4.string}
 <h2>Font four</h2>
-${ prettyFont5.string }
+${prettyFont5.string}
 </body>
 </html>
 `;
 
-const check = fs.writeFileSync( path.normalize(`${ __dirname }/test.html`), html, { encoding: 'utf8' } );
-
+const check = fs.writeFileSync(path.normalize(`${__dirname}/test.html`), html, { encoding: 'utf8' });
 
 // for issue #13
-Array.prototype.foo = () => { return 0; };
-CFonts.say('Hello', { colors: [ 'green' ] });
+Array.prototype.foo = () => {
+	return 0;
+};
+CFonts.say('Hello', { colors: ['green'] });

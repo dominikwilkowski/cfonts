@@ -17,25 +17,15 @@
 
 const WinSize = require('window-size');
 
-
 /**
  * Abstraction for windows size
  *
  * @type {object}
  */
 const Size = {
-	width: WinSize
-		? WinSize.width > 0
-			? WinSize.width
-			: 80
-		: 80,
-	height: WinSize
-		? WinSize.height > 0
-			? WinSize.height
-			: 24
-		: 24,
+	width: WinSize ? (WinSize.width > 0 ? WinSize.width : 80) : 80,
+	height: WinSize ? (WinSize.height > 0 ? WinSize.height : 24) : 24,
 };
-
 
 module.exports = exports = {
 	Size,

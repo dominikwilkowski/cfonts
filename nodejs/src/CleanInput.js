@@ -17,7 +17,6 @@
 
 const { CHARS } = require('./constants.js');
 
-
 /**
  * Filter only allowed character
  *
@@ -26,21 +25,18 @@ const { CHARS } = require('./constants.js');
  *
  * @return {string}       - The filtered input text
  */
-const CleanInput = ( INPUT, chars = CHARS ) => {
-	if( typeof INPUT === 'string' ) {
-		const clean = INPUT
-			.replace(/(?:\r\n|\r|\n)/g, '|')
+const CleanInput = (INPUT, chars = CHARS) => {
+	if (typeof INPUT === 'string') {
+		const clean = INPUT.replace(/(?:\r\n|\r|\n)/g, '|')
 			.split('')
-			.filter( char => chars.includes( char.toUpperCase() ) )
+			.filter((char) => chars.includes(char.toUpperCase()))
 			.join('');
 
 		return clean;
-	}
-	else {
+	} else {
 		return '';
 	}
 };
-
 
 module.exports = exports = {
 	CleanInput,

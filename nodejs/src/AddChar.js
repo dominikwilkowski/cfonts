@@ -18,7 +18,6 @@
 const { Debugging } = require('./Debugging.js');
 const { Colorize } = require('./Colorize.js');
 
-
 /**
  * Add a new character to the output array
  *
@@ -31,20 +30,20 @@ const { Colorize } = require('./Colorize.js');
  *
  * @return {array}              - The output array with new line
  */
-const AddChar = ( CHAR, output, fontLines, fontChars, fontColors, colors ) => {
-	Debugging.report( `Running AddChar with "${ CHAR }"`, 1 );
+const AddChar = (CHAR, output, fontLines, fontChars, fontColors, colors) => {
+	Debugging.report(`Running AddChar with "${CHAR}"`, 1);
 
 	let lines = output.length - fontLines; // last line is fontLines tall and is located at the bottom of the output array
 
-	for( let i = lines; i < output.length; i++ ) { // iterate over last line
+	for (let i = lines; i < output.length; i++) {
+		// iterate over last line
 		let index = i - lines;
 
-		output[ i ] += Colorize( fontChars[ CHAR ][ index ], fontColors, colors );
+		output[i] += Colorize(fontChars[CHAR][index], fontColors, colors);
 	}
 
 	return output;
 };
-
 
 module.exports = exports = {
 	AddChar,

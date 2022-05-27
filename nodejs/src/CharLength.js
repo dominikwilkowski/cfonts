@@ -17,7 +17,6 @@
 
 const { Debugging } = require('./Debugging.js');
 
-
 /**
  * Return the max width of a character by looking at its longest line
  *
@@ -27,28 +26,27 @@ const { Debugging } = require('./Debugging.js');
  *
  * @return {number}                - The length of a longest line in a character
  */
-const CharLength = ( character, fontLines, letterSpacing ) => {
-	Debugging.report( `Running CharLength`, 1 );
+const CharLength = (character, fontLines, letterSpacing) => {
+	Debugging.report(`Running CharLength`, 1);
 
 	let charWidth = 0;
 
-	for( let i = 0; i < fontLines; i++ ) {
-		let char = character[ i ].replace( /(<([^>]+)>)/ig, '' ); // get character and strip color infos
+	for (let i = 0; i < fontLines; i++) {
+		let char = character[i].replace(/(<([^>]+)>)/gi, ''); // get character and strip color infos
 
-		if( char.length > charWidth ) {
+		if (char.length > charWidth) {
 			charWidth = char.length; // assign only largest
 		}
 	}
 
-	if( charWidth === 0 && letterSpacing > 0 ) {
-		Debugging.report( `CharLength: Adding space to letter spacing`, 1 );
+	if (charWidth === 0 && letterSpacing > 0) {
+		Debugging.report(`CharLength: Adding space to letter spacing`, 1);
 
 		charWidth = 1;
 	}
 
 	return charWidth;
 };
-
 
 module.exports = exports = {
 	CharLength,

@@ -17,7 +17,6 @@
 
 const { Color } = require('./Color.js');
 
-
 /**
  * DEBUG object for tracking debug mode and level
  *
@@ -29,7 +28,7 @@ const DEBUG = {
 		level: 2,
 	},
 
-	set enabled( value ) {
+	set enabled(value) {
 		this.store.enabled = value;
 	},
 
@@ -37,7 +36,7 @@ const DEBUG = {
 		return this.store.enabled;
 	},
 
-	set level( value ) {
+	set level(value) {
 		this.store.level = value;
 	},
 
@@ -60,10 +59,10 @@ const Debugging = {
 	 * @param  {boolean} debug      - Global debug mode on/off
 	 * @param  {number}  debuglevel - Global debug level
 	 */
-	headline: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
-		if( debug && level >= debuglevel ) {
-			const { open, close } = Color("black", true);
-			console.log(`${open}\n\u001b[1m \u2611  \u001b[22m ${ text }${close}`);
+	headline: (text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level) => {
+		if (debug && level >= debuglevel) {
+			const { open, close } = Color('black', true);
+			console.log(`${open}\n\u001b[1m \u2611  \u001b[22m ${text}${close}`);
 		}
 	},
 
@@ -75,12 +74,14 @@ const Debugging = {
 	 * @param  {boolean} debug      - Global debug mode on/off
 	 * @param  {number}  debuglevel - Global debug level
 	 */
-	report: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
-		if( debug && level >= debuglevel ) {
-			const { open: blackbg_open, close: blackbg_close } = Color("black", true);
-			const { open: green_open, close: green_close } = Color("green");
-			const { open: white_open, close: white_close } = Color("white");
-			console.log(`${blackbg_open}\n\u001b[1m${green_open} \u2611  ${green_close}\u001b[22m ${white_open}${ text }${white_close}${blackbg_close}`);
+	report: (text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level) => {
+		if (debug && level >= debuglevel) {
+			const { open: blackbg_open, close: blackbg_close } = Color('black', true);
+			const { open: green_open, close: green_close } = Color('green');
+			const { open: white_open, close: white_close } = Color('white');
+			console.log(
+				`${blackbg_open}\n\u001b[1m${green_open} \u2611  ${green_close}\u001b[22m ${white_open}${text}${white_close}${blackbg_close}`
+			);
 		}
 	},
 
@@ -92,16 +93,17 @@ const Debugging = {
 	 * @param  {boolean} debug      - Global debug mode on/off
 	 * @param  {number}  debuglevel - Global debug level
 	 */
-	error: ( text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level ) => {
-		if( debug && level >= debuglevel ) {
-			const { open: blackbg_open, close: blackbg_close } = Color("black", true);
-			const { open: red_open, close: red_close } = Color("red");
-			const { open: white_open, close: white_close } = Color("white");
-			console.error(`${blackbg_open}\n${red_open} \u2612  ${red_close} ${white_open}${ text }${white_close}${blackbg_close}`);
+	error: (text, level = 99, debug = DEBUG.enabled, debuglevel = DEBUG.level) => {
+		if (debug && level >= debuglevel) {
+			const { open: blackbg_open, close: blackbg_close } = Color('black', true);
+			const { open: red_open, close: red_close } = Color('red');
+			const { open: white_open, close: white_close } = Color('white');
+			console.error(
+				`${blackbg_open}\n${red_open} \u2612  ${red_close} ${white_open}${text}${white_close}${blackbg_close}`
+			);
 		}
 	},
 };
-
 
 module.exports = exports = {
 	DEBUG,
