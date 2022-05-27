@@ -7,7 +7,7 @@
      ╚═════╝ ╚═╝       ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝    ╝╚╝ ╚═╝ ═╩╝ ╚═╝ ╚╝ ╚═╝
 ```
 
-![cfont styles](./img/example1.png)
+![cfont styles](../img/example1.png)
 
 <p align="center"><img src="../img/example2.png" alt="api example"></p>
 <p align="center">
