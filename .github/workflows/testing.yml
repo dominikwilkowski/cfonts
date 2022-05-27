@@ -1,0 +1,219 @@
+name: Testing
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  push:
+    branches:
+      - 'released'
+    tags:
+      - '!v*'
+  pull_request:
+    branches:
+      - 'released'
+
+jobs:
+  # ---------------------------------| RUST |--------------------------------- #
+  # ***********
+  # RUST - linting
+  # ***********
+  lint-rust:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./rust
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          args: --manifest-path ./rust/Cargo.toml
+
+      - name: Run Makefile
+        run: make
+
+      - name: Tree files
+        run: |
+          sudo apt-get -y install tree & which tree
+          tree -I "node_modules*|.git*"
+
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path ./rust/Cargo.toml -- --check
+
+      - name: Annotate commit with clippy warnings
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --manifest-path ./rust/Cargo.toml
+
+      # disabled until https://github.com/actions-rs/audit-check/issues/194 is fixed
+      # - name: Security audit
+      #   uses: actions-rs/audit-check@v1
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ***********
+  # RUST - testing
+  # ***********
+  test-rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      OS: ${{ matrix.OS }}
+    defaults:
+      run:
+        working-directory: ./rust
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Run Makefile
+        run: make
+
+      - name: Run cargo tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-fail-fast --manifest-path ./rust/Cargo.toml -- --nocapture
+
+      - name: Run build
+        run: cargo build --release --verbose
+
+      - name: Install dependencies in node folder for end-to-end tests
+        run: cd ../nodejs && yarn install --frozen-lockfile && yarn build
+
+      - name: Run end-to-end test
+        run: node tests/end-to-end/index.js
+
+  # ---------------------------------| NODE |--------------------------------- #
+  # ***********
+  # NODEJS - testing
+  # ***********
+  test-nodejs:
+    strategy:
+      matrix:
+        node: [ 12, 14, 16 ]
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macOS-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./nodejs
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Get yarn cache
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Node version
+        run: node --version
+
+      - name: npm version
+        run: npm --version
+
+      - name: Yarn version
+        run: yarn --version
+
+      - name: Yarn install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build files
+        run: yarn build
+
+      - name: Tree files
+        run: npx tree-cli -l 5 --ignore "node_modules/, .git/"
+
+      - name: Yarn test
+        run: yarn test
+
+
+  coverage-nodejs:
+    needs: test-nodejs
+    strategy:
+      matrix:
+        node: [16]
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./nodejs
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Get yarn cache
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Yarn install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build files
+        run: yarn build
+
+      - name: Produce Coverage
+        run: yarn jest --coverage
+
+      - name: Upload to coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./nodejs/coverage/lcov.info

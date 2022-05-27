@@ -1,0 +1,28 @@
+[package]
+name = "cfonts"
+version = "1.0.0"
+edition = "2021"
+authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
+license = "GPL-3.0"
+description = "Sexy fonts for the console"
+readme = "../README.md"
+homepage = "https://github.com/dominikwilkowski/cfonts"
+repository = "https://github.com/dominikwilkowski/cfonts"
+documentation = "https://docs.rs/cfonts/"
+keywords = ["fonts", "color", "console", "ascii", "ANSI"]
+categories = ["command-line-interface", "command-line-utilities", "graphics"]
+include = ["/fonts", "/src", "!.DS_Store"]
+
+[dependencies]
+exitcode = "1.1.2"
+strum = "0.24"
+strum_macros = "0.24"
+enable-ansi-support = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand = "0.8.5"
+terminal_size = "0.1.17"
+supports-color = "1"
+
+[dev-dependencies]
+temp-env = "0.2.0"

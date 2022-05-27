@@ -1,6 +1,5 @@
 coverage
 .DS_Store
-*.sublime-project
 *.sublime-workspace
 codekit-config.json
 *.codekit
@@ -15,3 +14,6 @@ bin/
 lib/
 package-lock.json
 .coveralls.yml
+nodejs/fonts
+rust/fonts
+rust/target

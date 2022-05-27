@@ -1,0 +1,133 @@
+{
+	"name": "cfonts",
+	"description": "Sexy fonts for the console",
+	"version": "3.0.0",
+	"homepage": "https://github.com/dominikwilkowski/cfonts",
+	"author": {
+		"name": "Dominik Wilkowski",
+		"email": "Hi@Dominik-Wilkowski.com",
+		"url": "http://dominik-wilkowski.com/"
+	},
+	"contributors": {
+		"name": "Dominik Wilkowski",
+		"email": "Hi@Dominik-Wilkowski.com",
+		"url": "http://dominik-wilkowski.com/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/dominikwilkowski/cfonts.git"
+	},
+	"bugs": {
+		"url": "https://github.com/dominikwilkowski/cfonts/issues"
+	},
+	"engines": {
+		"node": ">=10"
+	},
+	"scripts": {
+		"test": "yarn format && yarn build && yarn test:unit && yarn test:lint && yarn test:types && yarn test:fonts",
+		"test:fonts": "node ./test/fonttest.js",
+		"test:watch": "jest --watchAll --coverage",
+		"test:unit": "npx cross-env FORCE_COLOR=3 jest",
+		"test:types": "yarn types:clean && tsc -p tsconfig.json",
+		"test:lint": "eslint src/",
+		"test:format": "prettier --list-different \"**/*.{js,json}\"",
+		"format": "prettier --write \"**/*.{js,json}\"",
+		"build": "yarn build:lib && yarn build:bin && yarn build:fonts",
+		"build:bin": "npx mkdirp bin && mv lib/bin.js bin/index.js",
+		"build:lib": "npx mkdirp lib && babel src --out-dir lib",
+		"build:fonts": "npx mkdirp fonts && npx cpy-cli \"../fonts/*\" \"./fonts/\"",
+		"types:clean": "npx trash-cli \"lib/*.d.ts\"",
+		"watch": "yarn build:lib && onchange 'src/**/*' -- yarn build:lib",
+		"coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
+		"nuke": "rm -rf lib && rm -rf node_modules && rm yarn.lock"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.17.6",
+		"@babel/core": "^7.17.8",
+		"@babel/preset-env": "^7.16.11",
+		"@types/node": "latest",
+		"coveralls": "^3.1.1",
+		"eslint": "^8.12.0",
+		"jest-cli": "^27.5.1",
+		"onchange": "^7.1.0",
+		"prettier": "^2.6.2",
+		"typescript": "^4.6.3"
+	},
+	"peerDependencies": {},
+	"dependencies": {
+		"supports-color": "^8",
+		"window-size": "^1.1.1"
+	},
+	"jest": {
+		"displayName": "CFonts",
+		"testEnvironment": "node",
+		"testRegex": "\\.spec.js$",
+		"collectCoverageFrom": [
+			"src/*.js"
+		],
+		"setupFiles": [
+			"<rootDir>/test/env.js"
+		],
+		"coverageThreshold": {
+			"global": {
+				"branches": 95,
+				"functions": 100,
+				"lines": 95,
+				"statements": 95
+			}
+		}
+	},
+	"eslintConfig": {
+		"env": {
+			"node": true,
+			"commonjs": true,
+			"es6": true
+		},
+		"extends": "eslint:recommended",
+		"globals": {
+			"Atomics": "readonly",
+			"SharedArrayBuffer": "readonly"
+		},
+		"parserOptions": {
+			"ecmaVersion": 2018
+		},
+		"rules": {
+			"no-async-promise-executor": "off",
+			"no-console": "off",
+			"no-unused-vars": [
+				"error",
+				{
+					"argsIgnorePattern": "_"
+				}
+			]
+		}
+	},
+	"browserslist": [
+		"node >= 10"
+	],
+	"keywords": [
+		"font",
+		"banner",
+		"logo",
+		"CLI",
+		"console",
+		"ascii",
+		"pretty"
+	],
+	"files": [
+		"lib/*.js",
+		"bin/*",
+		"fonts/*"
+	],
+	"main": "lib/index.js",
+	"bin": {
+		"cfonts": "./bin/index.js"
+	},
+	"licenses": [
+		{
+			"type": "GPL-3.0",
+			"url": "https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE"
+		}
+	],
+	"license": "GPL-3.0"
+}

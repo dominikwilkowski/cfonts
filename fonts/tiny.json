@@ -1,6 +1,6 @@
 {
 	"name": "tiny",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"colors": 1,
 	"lines": 2,
@@ -11,7 +11,8 @@
 	"letterspace": [
 		" ",
 		" "
-		],
+	],
+	"letterspace_size": 1,
 	"chars": {
 		"A": [
 			"▄▀█",
