@@ -1,4 +1,4 @@
-```shell
+```sh
      ██████╗ ███████╗  ██████╗  ███╗   ██╗ ████████╗ ███████╗
     ██╔════╝ ██╔════╝ ██╔═══██╗ ████╗  ██║ ╚══██╔══╝ ██╔════╝
     ██║      █████╗   ██║   ██║ ██╔██╗ ██║    ██║    ███████╗
@@ -20,19 +20,25 @@
 
 ## Installing
 
-To install the CLI app, simply NPM install it globally.
+### [npm](https://www.npmjs.com/package/cfonts)
 
-```shell
-$ npm install cfonts -g
+```sh
+npm i cfonts -g
+```
+
+### [yarn](https://yarnpkg.com/package/cfonts)
+
+```sh
+yarn global add cfonts
 ```
 
 To use it in your shell:
 
-```shell
+```sh
 $ cfonts "Hello|World\!"
 ```
 
-_Remember to escape the `!` character with `\` in the shell_
+_💡  Remember to escape the `!` character with `\` in the shell_
 
 Or use it in your project:
 
@@ -97,7 +103,7 @@ This package is tested on the below platform and node combinations as part of ou
 The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/released/test/unit) that aim to cover 100% of the code base.
 For more details about the code coverage check out [coveralls](https://coveralls.io/github/dominikwilkowski/cfonts?branch=released).
 
-```shell
+```sh
 npm run test:unit
 ```
 
@@ -107,7 +113,7 @@ Since the code base uses [JSDocs](https://jsdoc.app/) we use [typescript](https:
 Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our
 [test](https://github.com/dominikwilkowski/cfonts/blob/released/nodejs/package.json#L37).
 
-```shell
+```sh
 npm run test:types
 ```
 
@@ -115,7 +121,7 @@ npm run test:types
 
 There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/released/nodejs/test/fonttest.js) for font files.
 
-```shell
+```sh
 npm run test:fonts
 ```
 
@@ -131,7 +137,7 @@ This tool checks:
 
 Run all tests via:
 
-```shell
+```sh
 npm run test
 ```
 
@@ -141,13 +147,13 @@ npm run test
 To build the repo install dependencies via:  
 _(Since we ship a `yarn.lock` file please use [`yarn`](https://yarnpkg.com/) for development.)_
 
-```shell
+```sh
 yarn
 ```
 
 and run the watch to continuously transpile the code.
 
-```shell
+```sh
 yarn watch
 ```
 

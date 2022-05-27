@@ -1,4 +1,4 @@
-```shell
+```sh
      ██████╗ ███████╗  ██████╗  ███╗   ██╗ ████████╗ ███████╗
     ██╔════╝ ██╔════╝ ██╔═══██╗ ████╗  ██║ ╚══██╔══╝ ██╔════╝
     ██║      █████╗   ██║   ██║ ██╔██╗ ██║    ██║    ███████╗
@@ -30,6 +30,83 @@ Read more in the [Rust folder](./rust).
 
 Read more in the [Nodejs folder](./nodejs).
 
+
+## Install
+<!--
+<details>
+<summary><h3>Unix<h3></summary>
+
+#### [snapcraft](https://snapcraft.io/cfonts)
+
+```sh
+sudo snap install cfonts
+```
+
+#### [MacPorts](https://ports.macports.org/port/cfonts/)
+
+```sh
+sudo port install cfonts
+```
+
+#### [Alpine Linux repository](https://pkgs.alpinelinux.org/packages?name=cfonts)
+
+_💡  The correct repository (see above link for the most up-to-date information) should be enabled before `apk add`._
+
+```sh
+sudo apk add cfonts
+```
+
+#### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
+
+```sh
+sudo pacman -S cfonts
+```
+
+#### [Scoop](https://scoop.sh/)
+
+```sh
+scoop install cfonts
+```
+
+#### Fedora
+
+```sh
+sudo dnf install cfonts
+```
+
+#### RPM
+
+```sh
+TODO
+```
+
+</details>
+
+### [homebrew](https://formulae.brew.sh/formula/cfonts)
+
+```sh
+brew install cfonts
+```
+-->
+### [cargo](https://crates.io/crates/cfonts)
+
+```sh
+cargo install cfonts
+```
+
+### [npm](https://www.npmjs.com/package/cfonts)
+
+```sh
+npm i cfonts -g
+```
+
+### [yarn](https://yarnpkg.com/package/cfonts)
+
+```sh
+yarn global add cfonts
+```
+
+
 ## Usage
 
 Using the CLI is easy.
@@ -41,7 +118,7 @@ Usage: cfonts  "<value>" [option1] <input1> [option2] <input1>,<input2> [option3
 At any point you can run the *help* command to get a full list of commands and
 how to use them.
 
-```shell
+```sh
 $ cfonts --help
 ```
 
@@ -77,7 +154,7 @@ Default value: `none`
 
 This shows a list of all available options.
 
-```shell
+```sh
 $ cfonts --help
 ```
 
@@ -90,7 +167,7 @@ Default value: `none`
 
 This shows the installed version.
 
-```shell
+```sh
 $ cfonts --version
 ```
 
@@ -104,7 +181,7 @@ Default value: `""`
 This is the "text input" to be converted into a nice font.  
 The `|` character will be replaced with a line break.
 
-```shell
+```sh
 $ cfonts "Hello world"
 ```
 
@@ -117,7 +194,7 @@ Default value: `"block"`
 
 This is the font face you want to use. So far this plugin ships with with following font faces:
 
-```shell
+```sh
 $ cfonts "text" --font "chrome"
 ```
 
@@ -163,7 +240,7 @@ You can align your text in the terminal with this option. Use the keywords below
 - `top` _(Will be ignored if used with the spaceless option)_
 - `bottom` _(Will be ignored if used with the spaceless option)_
 
-```shell
+```sh
 $ cfonts "text" --align "center"
 ```
 
@@ -202,7 +279,7 @@ The `system` color falls back to the system color of your terminal.
 - `#ff8800` _(any valid hex color)_
 - `#f80` _(short form is supported as well)_
 
-```shell
+```sh
 $ cfonts "text" --colors white,"#f80"
 ```
 
@@ -234,7 +311,7 @@ If you use a hex color make sure you include the `#` prefix. _(In the terminal w
 - `#ff8800` _(any valid hex color)_
 - `#f80` _(short form is supported as well)_
 
-```shell
+```sh
 $ cfonts "text" --gradient red,"#f80"
 ```
 
@@ -248,7 +325,7 @@ Default value: `false`
 Set this option to re-calculate the gradient colors for each new line.  
 Only works in combination with the [gradient](#-g---gradient) option.
 
-```shell
+```sh
 $ cfonts "text|next line" --gradient red,"#f80" --independent-gradient
 ```
 
@@ -264,7 +341,7 @@ Each color set in the gradient option will then be transitioned to directly.
 This option allows you to specify more than just two colors for your gradient.  
 Only works in combination with the [gradient](#-g---gradient) option.
 
-```shell
+```sh
 $ cfonts "text" --gradient red,"#f80",green,blue --transition-gradient
 ```
 
@@ -298,7 +375,7 @@ Provide the background color from the below supported list, eg: 'white'
 - `#ff8800` _(any valid hex color)_
 - `#f80` _(short form is supported as well)_
 
-```shell
+```sh
 $ cfonts "text" --background "Green"
 ```
 
@@ -311,7 +388,7 @@ Default value: `1`
 
 Set this option to widen the space between characters.
 
-```shell
+```sh
 $ cfonts "text" --letter-spacing 2
 ```
 
@@ -324,7 +401,7 @@ Default value: `1`
 
 Set this option to widen the space between lines.
 
-```shell
+```sh
 $ cfonts "text" --line-height 2
 ```
 
@@ -337,7 +414,7 @@ Default value: `false`
 
 Set this option to false if you don't want the plugin to insert two empty lines on top and on the bottom of the output.
 
-```shell
+```sh
 $ cfonts "text" --spaceless
 ```
 
@@ -352,7 +429,7 @@ This option sets the maximum characters that will be printed on one line.
 `cfonts` detects the size of your terminal but you can opt out and determine your own max width.  
 `0` means no max width and the text will break at the edge of the terminal window.
 
-```shell
+```sh
 $ cfonts "text" --max-length 15
 ```
 
@@ -378,13 +455,13 @@ $ cfonts "text" --env browser
 It sets a level of support automatically.
 In `cfonts` you can override this by passing in the `FORCE_COLOR` environment variable.
 
-```shell
+```sh
 FORCE_COLOR=3 cfonts "hello world" -c "#0088ff"
 ```
 
 You can also use the `NO_COLOR` environment variable to set no color output for environments like CI.
 
-```shell
+```sh
 NO_COLOR="" cfonts "hello world" -c "#0088ff"
 ```
 

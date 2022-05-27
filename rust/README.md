@@ -1,4 +1,4 @@
-```shell
+```sh
      ██████╗ ███████╗  ██████╗  ███╗   ██╗ ████████╗ ███████╗
     ██╔════╝ ██╔════╝ ██╔═══██╗ ████╗  ██║ ╚══██╔══╝ ██╔════╝
     ██║      █████╗   ██║   ██║ ██╔██╗ ██║    ██║    ███████╗
@@ -23,19 +23,19 @@
 
 ## Installing
 
-To install the CLI app you can choose from the below package managers:
+### [cargo](https://crates.io/crates/cfonts)
 
-```shell
-$ cargo install cfonts
+```sh
+cargo install cfonts
 ```
 
 To use it in your shell:
 
-```shell
+```sh
 $ cfonts "Hello|World\!"
 ```
 
-_Remember to escape the `!` character with `\` in most shells_
+_💡  Remember to escape the `!` character with `\` in most shells_
 
 Or use it in your project:
 
