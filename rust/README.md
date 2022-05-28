@@ -7,9 +7,9 @@
      ╚═════╝ ╚═╝       ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝    ╩╚═ ╚═╝ ╚═╝  ╩
 ```
 
-![cfont styles](../img/example1.png)
+![cfont styles](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/example1.png)
 
-<p align="center"><img src="../img/example2.png" alt="api example"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/example2.png" alt="api example"></p>
 <p align="center">
 	<a href="https://crates.io/crates/cfonts"><img src="https://img.shields.io/crates/v/cfonts.svg" alt="crates badge"></a>
 	<a href="https://crates.io/crates/cfonts"><img src="https://docs.rs/cfonts/badge.svg" alt="crates docs tests"></a>
@@ -112,7 +112,7 @@ fn main() {
 
 ## CLI Usage
 
-Read more in the [root repo](../).
+Read more in the [root repo](https://github.com/dominikwilkowski/cfonts).
 
 
 ## Tests
