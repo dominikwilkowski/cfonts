@@ -7,9 +7,9 @@
      ╚═════╝ ╚═╝       ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝
 ```
 
-![cfont styles](./img/example1.png)
+![cfont styles](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/example1.png)
 
-<p align="center"><img src="./img/example2.png" alt="api example"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/example2.png" alt="api example"></p>
 <p align="center">
 	<a href="https://crates.io/crates/cfonts"><img src="https://img.shields.io/crates/v/cfonts.svg" alt="crates badge"></a>
 	<a href="https://crates.io/crates/cfonts"><img src="https://docs.rs/cfonts/badge.svg" alt="crates docs tests"></a>
@@ -24,11 +24,11 @@
 
 ### Rust
 
-Read more in the [Rust folder](./rust).
+Read more in the [Rust folder](https://github.com/dominikwilkowski/cfonts/tree/released/rust).
 
 ### Nodejs
 
-Read more in the [Nodejs folder](./nodejs).
+Read more in the [Nodejs folder](https://github.com/dominikwilkowski/cfonts/tree/released/nodejs).
 
 
 ## Install
@@ -158,7 +158,7 @@ This shows a list of all available options.
 $ cfonts --help
 ```
 
-![Help command](./img/help.png)
+![Help command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/help.png)
 
 
 #### -V, --version
@@ -171,7 +171,7 @@ This shows the installed version.
 $ cfonts --version
 ```
 
-![Version command](./img/version.png)
+![Version command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/version.png)
 
 
 #### text
@@ -185,7 +185,7 @@ The `|` character will be replaced with a line break.
 $ cfonts "Hello world"
 ```
 
-![Text command](./img/text.png)
+![Text command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/text.png)
 
 
 #### -f, --font
@@ -198,34 +198,34 @@ This is the font face you want to use. So far this plugin ships with with follow
 $ cfonts "text" --font "chrome"
 ```
 
-![Font command](./img/font.png)
+![Font command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/font.png)
 
 - `block`       [colors: 2] _(default)_
-	![block font style](./img/block.png)
+	![block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/block.png)
 - `slick`       [colors: 2]
-	![slick font style](./img/slick.png)
+	![slick font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/slick.png)
 - `tiny`        [colors: 1]
-	![tiny font style](./img/tiny.png)
+	![tiny font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/tiny.png)
 - `grid`        [colors: 2]
-	![grid font style](./img/grid.png)
+	![grid font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/grid.png)
 - `pallet`      [colors: 2]
-	![pallet font style](./img/pallet.png)
+	![pallet font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/pallet.png)
 - `shade`       [colors: 2]
-	![shade font style](./img/shade.png)
+	![shade font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/shade.png)
 - `chrome`      [colors: 3]
-	![chrome font style](./img/chrome.png)
+	![chrome font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/chrome.png)
 - `simple`      [colors: 1]
-	![simple font style](./img/simple.png)
+	![simple font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/simple.png)
 - `simpleBlock` [colors: 1]
-	![simple-block font style](./img/simple-block.png)
+	![simple-block font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/simple-block.png)
 - `3d`          [colors: 2]
-	![3d font style](./img/3d.png)
+	![3d font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/3d.png)
 - `simple3d`    [colors: 1]
-	![simple-3d font style](./img/simple-3d.png)
+	![simple-3d font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/simple-3d.png)
 - `huge`        [colors: 2]
-	![huge font style](./img/huge.png)
+	![huge font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/huge.png)
 - `console`     [colors: 1]
-	![console font style](./img/console.png)
+	![console font style](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/console.png)
 
 
 #### -a, --align
@@ -244,7 +244,7 @@ You can align your text in the terminal with this option. Use the keywords below
 $ cfonts "text" --align "center"
 ```
 
-![Align command](./img/align.png)
+![Align command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
 
 
 #### -c, --colors
@@ -283,7 +283,7 @@ The `system` color falls back to the system color of your terminal.
 $ cfonts "text" --colors white,"#f80"
 ```
 
-![Colors command](./img/colors.png)
+![Colors command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/colors.png)
 
 
 #### -g, --gradient
@@ -315,7 +315,7 @@ If you use a hex color make sure you include the `#` prefix. _(In the terminal w
 $ cfonts "text" --gradient red,"#f80"
 ```
 
-![Gradient command](./img/gradient.png)
+![Gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/gradient.png)
 
 
 #### -i, --independent-gradient
@@ -329,7 +329,7 @@ Only works in combination with the [gradient](#-g---gradient) option.
 $ cfonts "text|next line" --gradient red,"#f80" --independent-gradient
 ```
 
-![Independent gradient command](./img/independent-gradient.png)
+![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/independent-gradient.png)
 
 
 #### -t, --transition-gradient
@@ -345,7 +345,7 @@ Only works in combination with the [gradient](#-g---gradient) option.
 $ cfonts "text" --gradient red,"#f80",green,blue --transition-gradient
 ```
 
-![Independent gradient command](./img/transition-gradient.png)
+![Independent gradient command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/transition-gradient.png)
 
 
 #### -b, --background
@@ -379,7 +379,7 @@ Provide the background color from the below supported list, eg: 'white'
 $ cfonts "text" --background "Green"
 ```
 
-![Background command](./img/background.png)
+![Background command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/background.png)
 
 
 #### -l, --letter-spacing
@@ -392,7 +392,7 @@ Set this option to widen the space between characters.
 $ cfonts "text" --letter-spacing 2
 ```
 
-![Letter spacing command](./img/letter-spacing.png)
+![Letter spacing command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/letter-spacing.png)
 
 
 #### -z, --line-height
@@ -405,7 +405,7 @@ Set this option to widen the space between lines.
 $ cfonts "text" --line-height 2
 ```
 
-![Line height command](./img/line-height.png)
+![Line height command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/line-height.png)
 
 
 #### -s, --spaceless
@@ -418,7 +418,7 @@ Set this option to false if you don't want the plugin to insert two empty lines 
 $ cfonts "text" --spaceless
 ```
 
-![Spaceless command](./img/spaceless.png)
+![Spaceless command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/spaceless.png)
 
 
 #### -m, --max-length
@@ -433,7 +433,7 @@ This option sets the maximum characters that will be printed on one line.
 $ cfonts "text" --max-length 15
 ```
 
-![Max length command](./img/max-length.png)
+![Max length command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/max-length.png)
 
 
 #### -e, --env
@@ -447,7 +447,7 @@ Note that `max-length` will be set to very large.
 $ cfonts "text" --env browser
 ```
 
-![Max length command](./img/env.png)
+![Max length command](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
 
 
 ## Consistency
@@ -467,7 +467,7 @@ NO_COLOR="" cfonts "hello world" -c "#0088ff"
 
 💡  `FORCE_COLOR` overrides `NO_COLOR` if both are set.
 
-![Color consistency via env vars](./img/color-consistency.png)
+![Color consistency via env vars](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/color-consistency.png)
 
 
 ## License

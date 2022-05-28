@@ -1,6 +1,6 @@
 [package]
 name = "cfonts"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
@@ -11,7 +11,6 @@ repository = "https://github.com/dominikwilkowski/cfonts"
 documentation = "https://docs.rs/cfonts/"
 keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
-include = ["/fonts", "/src", "!.DS_Store"]
 
 [dependencies]
 exitcode = "1.1.2"

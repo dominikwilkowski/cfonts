@@ -3,8 +3,6 @@ extern crate serde_json;
 use serde::Deserialize;
 
 use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::path::Path;
 
 use crate::color::color;
 use crate::config::{Colors, Fonts, Options};
@@ -33,18 +31,79 @@ pub struct Font {
 	pub chars: HashMap<String, Vec<String>>,
 }
 
+/// Function to embed the data of our font files into our binary
+///
+/// ```rust
+/// extern crate cfonts;
+///
+/// use cfonts::{ Options, Fonts };
+/// use cfonts::font::{load_all_fonts, get};
+///
+/// let mut options = Options::default();
+/// options.font = Fonts::FontChrome;
+///
+/// let fonts = load_all_fonts(); // our HashMap of all font files content
+/// let this_font = get(&fonts, &options);
+/// assert_eq!(this_font.name, String::from("chrome"));
+/// ```
+pub fn load_all_fonts() -> HashMap<Fonts, &'static str> {
+	let mut fonts = HashMap::new();
+
+	let font_content = include_str!("../fonts/console.json");
+	fonts.insert(Fonts::FontConsole, font_content);
+
+	let font_content = include_str!("../fonts/block.json");
+	fonts.insert(Fonts::FontBlock, font_content);
+
+	let font_content = include_str!("../fonts/simpleBlock.json");
+	fonts.insert(Fonts::FontSimpleBlock, font_content);
+
+	let font_content = include_str!("../fonts/simple.json");
+	fonts.insert(Fonts::FontSimple, font_content);
+
+	let font_content = include_str!("../fonts/3d.json");
+	fonts.insert(Fonts::Font3d, font_content);
+
+	let font_content = include_str!("../fonts/simple3d.json");
+	fonts.insert(Fonts::FontSimple3d, font_content);
+
+	let font_content = include_str!("../fonts/chrome.json");
+	fonts.insert(Fonts::FontChrome, font_content);
+
+	let font_content = include_str!("../fonts/huge.json");
+	fonts.insert(Fonts::FontHuge, font_content);
+
+	let font_content = include_str!("../fonts/shade.json");
+	fonts.insert(Fonts::FontShade, font_content);
+
+	let font_content = include_str!("../fonts/slick.json");
+	fonts.insert(Fonts::FontSlick, font_content);
+
+	let font_content = include_str!("../fonts/grid.json");
+	fonts.insert(Fonts::FontGrid, font_content);
+
+	let font_content = include_str!("../fonts/pallet.json");
+	fonts.insert(Fonts::FontPallet, font_content);
+
+	let font_content = include_str!("../fonts/tiny.json");
+	fonts.insert(Fonts::FontTiny, font_content);
+
+	fonts
+}
+
 /// Function to get the data of the font chosen
 ///
 /// ```rust
 /// extern crate cfonts;
 ///
 /// use cfonts::{ Options, Fonts };
-/// use cfonts::font::get;
+/// use cfonts::font::{load_all_fonts, get};
 ///
 /// let mut options = Options::default();
 /// options.font = Fonts::FontChrome;
 ///
-/// let this_font = get(&options);
+/// let fonts = load_all_fonts();
+/// let this_font = get(&fonts, &options);
 /// assert_eq!(this_font.name, String::from("chrome"));
 /// ```
 ///
@@ -54,40 +113,24 @@ pub struct Font {
 /// extern crate cfonts;
 ///
 /// use cfonts::{ Options, Fonts };
-/// use cfonts::font::get;
+/// use cfonts::font::{load_all_fonts, get};
 ///
 /// let mut options = Options::default();
 /// options.font = Fonts::FontConsole;
 ///
-/// let this_font = get(&options);
+/// let fonts = load_all_fonts();
+/// let this_font = get(&fonts, &options);
 /// assert_eq!(this_font.chars.get("D").unwrap(), &vec![String::from("d")]);
 /// ```
-pub fn get(options: &Options) -> Font {
+pub fn get(fonts: &HashMap<Fonts, &'static str>, options: &Options) -> Font {
 	d("font::get()", 5, Dt::Head, options, &mut std::io::stdout());
 	d(&format!("font::get()\noptions.font{:?}", options.font), 5, Dt::Log, options, &mut std::io::stdout());
-	let filename = match options.font {
-		Fonts::FontBlock => "./fonts/block.json",
-		Fonts::FontSimpleBlock => "./fonts/simpleBlock.json",
-		Fonts::FontSimple => "./fonts/simple.json",
-		Fonts::Font3d => "./fonts/3d.json",
-		Fonts::FontSimple3d => "./fonts/simple3d.json",
-		Fonts::FontChrome => "./fonts/chrome.json",
-		Fonts::FontHuge => "./fonts/huge.json",
-		Fonts::FontShade => "./fonts/shade.json",
-		Fonts::FontSlick => "./fonts/slick.json",
-		Fonts::FontGrid => "./fonts/grid.json",
-		Fonts::FontPallet => "./fonts/pallet.json",
-		Fonts::FontTiny => "./fonts/tiny.json",
-		Fonts::FontConsole => "./fonts/console.json",
-	};
-	d(&format!("font::get() read font file at \"{}\"", filename), 5, Dt::Log, options, &mut std::io::stdout());
+	let data = fonts.get(&options.font).unwrap();
 
-	let data = read_to_string(Path::new(filename).as_os_str())
-		.unwrap_or(format!("Unable to read file \"{}\"", color(filename, Colors::Red)));
-	serde_json::from_str(&data).unwrap_or_else(|error| {
+	serde_json::from_str(data).unwrap_or_else(|error| {
 		panic!(
 			"JSON parsing error encountered for: \"{}\"\nError: {}",
-			color(filename, Colors::Red),
+			color(&format!("{:?}", options.font), Colors::Red),
 			color(&format!("{}", error), Colors::Yellow)
 		)
 	})
