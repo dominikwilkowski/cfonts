@@ -134,6 +134,7 @@ We also have an [end-to-end test script](./tests/end-to-end/index.js) setup that
 
 ## Release History
 
+* 1.0.1  -  Fixed font loading
 * 1.0.0  -  Public release of rust API
 * 0.1.0  -  alpha test
 
