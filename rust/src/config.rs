@@ -9,7 +9,7 @@ use crate::helpers::first_letter_to_lowercase;
 /// The `Fonts` enum includes all font options you have for the cfonts output
 ///
 /// Find out more about what each font looks like in the [`Readme`](https://github.com/dominikwilkowski/cfonts/blob/released/README.md)
-#[derive(EnumIter, Debug, Clone, PartialEq)]
+#[derive(EnumIter, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Fonts {
 	/// ![The "console" cfonts font](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/console.png)
 	FontConsole,

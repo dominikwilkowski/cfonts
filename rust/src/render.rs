@@ -77,7 +77,8 @@ pub fn render(options: Options) -> RenderedString {
 	};
 	d(&format!("render()\nterminal_width:{:?}", terminal_width), 1, Dt::Log, &options, &mut std::io::stdout());
 
-	let mut font = font::get(&options);
+	let fonts = font::load_all_fonts();
+	let mut font = font::get(&fonts, &options);
 	let mut line_length = 0;
 	let mut letter_count = 0;
 	let mut lines = 0;
