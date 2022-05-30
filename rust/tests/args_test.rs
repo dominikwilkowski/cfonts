@@ -91,6 +91,28 @@ mod args {
 	}
 
 	#[test]
+	fn args_parse_version_flags() {
+		let mut options = Options::default();
+		options.version = true;
+		options.text = String::from("-v");
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "-v".to_string()]).unwrap(), options);
+		options.text = String::from("-V");
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "-V".to_string()]).unwrap(), options);
+		options.text = String::from("--version");
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "--version".to_string()]).unwrap(), options);
+	}
+
+	#[test]
+	fn args_parse_help_flags() {
+		let mut options = Options::default();
+		options.help = true;
+		options.text = String::from("-h");
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "-h".to_string()]).unwrap(), options);
+		options.text = String::from("--help");
+		assert_eq!(parse(vec!["path/to/bin".to_string(), "--help".to_string()]).unwrap(), options);
+	}
+
+	#[test]
 	fn args_parse_boolean_flags() {
 		let mut options = Options::default();
 		options.text = String::from("my text");

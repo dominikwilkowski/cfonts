@@ -28,6 +28,9 @@ const AddShortcuts = (options) => {
 	Object.keys(flatOptions).forEach((option) => {
 		flatOptions[option]._name = option;
 		flatOptions[flatOptions[option].short] = flatOptions[option];
+		if (flatOptions[option].fallback_shortcut) {
+			flatOptions[flatOptions[option].fallback_shortcut] = flatOptions[option];
+		}
 	});
 
 	return flatOptions;
