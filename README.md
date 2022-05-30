@@ -20,7 +20,7 @@
 
 <p align="center">This is a silly little command line tool for sexy fonts in the console. <strong>Give your cli some love.</strong></p>
 
-## Platforms
+## Implementations
 
 ### Rust
 

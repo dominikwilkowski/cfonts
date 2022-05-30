@@ -28,26 +28,44 @@ beforeEach(() => {
 });
 
 const options = {
+	'--version': {
+		_name: 'version',
+		short: '-v',
+		fallback_shortcut: '-V',
+	},
+	'--help': {
+		_name: 'help',
+		short: '-h',
+		fallback_shortcut: false,
+	},
 	'--1': {
+		_name: '--1',
 		description: 'desc value 1',
 		short: '-1',
+		fallback_shortcut: false,
 		options: true,
 		default: '2',
 	},
 	'--2': {
+		_name: '--2',
 		description: 'desc value 2',
 		short: '-2',
+		fallback_shortcut: false,
 		options: ['one', 'two', 'three'],
 		default: 'one',
 	},
 	'--3': {
+		_name: '--3',
 		description: 'desc value 3',
 		short: '-3',
+		fallback_shortcut: false,
 		default: false,
 	},
 	'--colors': {
+		_name: '--colors',
 		description: 'desc colors',
 		short: '-c',
+		fallback_shortcut: false,
 		options: true,
 		default: 'system',
 	},

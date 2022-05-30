@@ -162,6 +162,7 @@ Please look at the coding style and work with it, not against it ;)
 
 ## Release History
 
+* 3.1.0  -  Added support for -V flag fallback
 * 3.0.0  -  Added rust library port, aligned APIs, added hex background colors, fixed minor alignment bugs, updated license from GPLv2 to GPLv3
 * 2.10.1 -  bumped dependencies
 * 2.10.0 -  bumped dependencies, added typescript definitions into npm bundle

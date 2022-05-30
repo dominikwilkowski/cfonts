@@ -39,17 +39,27 @@ const ParseArgs = (inputOptions = CLIOPTIONS, inputArgs = process.argv) => {
 		parsedArgs[name] = inputOptions[option].default;
 	});
 
-	if (inputArgs[2] === '--help' || inputArgs[2] === '-h') {
-		parsedArgs.help = true;
-	}
-
-	if (inputArgs[2] === '--version' || inputArgs[2] === '-v') {
-		parsedArgs.version = true;
-	}
-
 	const args = inputArgs.splice(3); // the first two are node specific, the third is our text
 
 	const options = AddShortcuts(inputOptions);
+
+	const version_options = options['-v'];
+	if (
+		inputArgs[2] === version_options._name ||
+		inputArgs[2] === version_options.short ||
+		inputArgs[2] === version_options.fallback_shortcut
+	) {
+		parsedArgs.version = true;
+	}
+
+	const help_options = options['-h'];
+	if (
+		inputArgs[2] === help_options._name ||
+		inputArgs[2] === help_options.short ||
+		inputArgs[2] === help_options.fallback_shortcut
+	) {
+		parsedArgs.help = true;
+	}
 
 	for (let index = 0; args.length > index; index++) {
 		const option = options[args[index]];

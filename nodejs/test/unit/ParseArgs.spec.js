@@ -9,6 +9,16 @@ const { ParseArgs } = require('../../src/ParseArgs.js');
 
 test(`ParseArgs - Return defaults without arguments`, () => {
 	const options = {
+		'--version': {
+			_name: 'version',
+			short: '-v',
+			fallback_shortcut: '-V',
+		},
+		'--help': {
+			_name: 'help',
+			short: '-h',
+			fallback_shortcut: false,
+		},
 		'--1': {
 			description: 'desc value 1',
 			short: '-1',
@@ -65,6 +75,16 @@ test(`ParseArgs - Return defaults without arguments`, () => {
 
 test(`ParseArgs - Parse out variables no matter the order`, () => {
 	const options = {
+		'--version': {
+			_name: 'version',
+			short: '-v',
+			fallback_shortcut: '-V',
+		},
+		'--help': {
+			_name: 'help',
+			short: '-h',
+			fallback_shortcut: false,
+		},
 		'--1': {
 			description: 'desc value 1',
 			short: '-1',
@@ -98,6 +118,16 @@ test(`ParseArgs - Parse out variables no matter the order`, () => {
 
 test(`ParseArgs - Ignore flags not in the options`, () => {
 	const options = {
+		'--version': {
+			_name: 'version',
+			short: '-v',
+			fallback_shortcut: '-V',
+		},
+		'--help': {
+			_name: 'help',
+			short: '-h',
+			fallback_shortcut: false,
+		},
 		'--1': {
 			description: 'desc value 1',
 			short: '-1',
@@ -129,6 +159,16 @@ test(`ParseArgs - Ignore flags not in the options`, () => {
 
 test(`ParseArgs - Help flag can be on text place`, () => {
 	const options = {
+		'--version': {
+			_name: 'version',
+			short: '-v',
+			fallback_shortcut: '-V',
+		},
+		'--help': {
+			_name: 'help',
+			short: '-h',
+			fallback_shortcut: false,
+		},
 		'--1': {
 			description: 'desc value 1',
 			short: '-1',
@@ -170,6 +210,16 @@ test(`ParseArgs - Help flag can be on text place`, () => {
 
 test(`ParseArgs - Version flag can be on text place`, () => {
 	const options = {
+		'--version': {
+			_name: 'version',
+			short: '-v',
+			fallback_shortcut: '-V',
+		},
+		'--help': {
+			_name: 'help',
+			short: '-h',
+			fallback_shortcut: false,
+		},
 		'--1': {
 			description: 'desc value 1',
 			short: '-1',
