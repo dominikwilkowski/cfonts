@@ -172,6 +172,19 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 		));
 	}
 
+	let version_options = options_lookup.get("-v").unwrap();
+	if my_args[1] == *version_options.shortcut.to_string()
+		|| my_args[1] == *version_options.name.to_string()
+		|| my_args[1] == *version_options.fallback_shortcut.to_string()
+	{
+		options.version = true;
+	}
+
+	let help_options = options_lookup.get("-h").unwrap();
+	if my_args[1] == *help_options.shortcut.to_string() || my_args[1] == *help_options.name.to_string() {
+		options.help = true;
+	}
+
 	// our text to be converted
 	options.text = my_args[1].clone();
 
