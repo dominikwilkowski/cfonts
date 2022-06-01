@@ -85,11 +85,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -97,20 +92,14 @@ jobs:
       - name: Run Makefile
         run: make
 
+      - name: Run build
+        run: cargo build --release --verbose
+
       - name: Run cargo tests
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --no-fail-fast --manifest-path ./rust/Cargo.toml -- --nocapture
-
-      - name: Run build
-        run: cargo build --release --verbose
-
-      - name: Install dependencies in node folder for end-to-end tests
-        run: cd ../nodejs && yarn install --frozen-lockfile && yarn build
-
-      - name: Run end-to-end test
-        run: node tests/end-to-end/index.js
 
   # ---------------------------------| NODE |--------------------------------- #
   # ***********

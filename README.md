@@ -42,12 +42,6 @@ Read more in the [Nodejs folder](https://github.com/dominikwilkowski/cfonts/tree
 sudo snap install cfonts
 ```
 
-#### [MacPorts](https://ports.macports.org/port/cfonts/)
-
-```sh
-sudo port install cfonts
-```
-
 #### [Alpine Linux repository](https://pkgs.alpinelinux.org/packages?name=cfonts)
 
 _💡  The correct repository (see above link for the most up-to-date information) should be enabled before `apk add`._
@@ -88,19 +82,29 @@ TODO
 brew install cfonts
 ```
 -->
-### [cargo](https://crates.io/crates/cfonts)
+### Rust
+
+#### [MacPorts](https://ports.macports.org/port/cfonts/)
+
+```sh
+sudo port install cfonts
+```
+
+#### [cargo](https://crates.io/crates/cfonts)
 
 ```sh
 cargo install cfonts
 ```
 
-### [npm](https://www.npmjs.com/package/cfonts)
+#### [npm](https://www.npmjs.com/package/cfonts)
+
+### NodeJs
 
 ```sh
 npm i cfonts -g
 ```
 
-### [yarn](https://yarnpkg.com/package/cfonts)
+#### [yarn](https://yarnpkg.com/package/cfonts)
 
 ```sh
 yarn global add cfonts
