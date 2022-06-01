@@ -92,6 +92,9 @@ jobs:
       - name: Run Makefile
         run: make
 
+      - name: Run build
+        run: cargo build --release --verbose
+
       - name: Run cargo tests
         uses: actions-rs/cargo@v1
         with:
