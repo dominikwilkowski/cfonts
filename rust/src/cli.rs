@@ -1,5 +1,7 @@
 //! The contents of this module is all about cli specific functionality
-use crate::color::color;
+use std::env;
+
+use crate::color::{color, get_term_color_support, TermColorSupport};
 use crate::config::{Align, BgColors, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
 use crate::debug::{d, Dt};
 use crate::render::render;
@@ -47,24 +49,31 @@ pub fn help(options: &Options) -> String {
 		..Options::default()
 	});
 
+	let (bold_start, bold_end) = if get_term_color_support() == TermColorSupport::NoColor {
+		(String::from(""), String::from(""))
+	} else {
+		(String::from("\x1b[1m"), String::from("\x1b[22m"))
+	};
+
 	output += "\n\n";
 	output += &render_options.text;
 	output += "\n\n";
 	output += "This is a tool for sexy fonts in the console. Give your cli some love.\n";
 	output += "\n";
 	output += "Usage: cfonts \"<value>\" [option1] <input1> [option2] <input1>,<input2> [option3]\n";
-	output += "Example: \x1b[1m$ cfonts \"sexy font\" -f chrome -a center -c red,green,gray\x1b[22m\n";
+	output +=
+		&format!("Example: {}$ cfonts \"sexy font\" -f chrome -a center -c red,green,gray{}\n", bold_start, bold_end);
 	output += "\n";
 	output += "Options:\n";
 
 	for option in CLIOPTIONS {
-		output += &format!("\n\x1b[1m{}, {}", option.name, option.shortcut);
+		output += &format!("\n{}{}, {}", bold_start, option.name, option.shortcut);
 		if !option.fallback_shortcut.is_empty() {
 			output += &format!(", {}", option.fallback_shortcut);
 		}
-		output += "\x1b[22m\n";
+		output += &format!("{}\n", bold_end);
 		output += &format!("{}\n", option.description);
-		output += &format!("\x1b[1m$\x1b[22m cfonts {}", option.example);
+		output += &format!("{}${} cfonts {}", bold_start, bold_end, option.example);
 		match option.kind {
 			OptionType::Font => {
 				output += &color(&format!(" [ {} ]", Fonts::list()), Colors::Green).to_string();
