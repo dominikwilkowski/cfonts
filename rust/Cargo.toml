@@ -26,3 +26,4 @@ supports-color = "1"
 
 [dev-dependencies]
 temp-env = "0.2.0"
+assert_cmd = "2.0.4"
