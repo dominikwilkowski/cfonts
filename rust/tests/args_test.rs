@@ -91,6 +91,11 @@ mod args {
 	}
 
 	#[test]
+	fn args_parse_errors_without_args_options() {
+		assert!(parse(vec!["path/to/bin".to_string()]).is_err());
+	}
+
+	#[test]
 	fn args_parse_version_flags() {
 		let mut options = Options::default();
 		options.version = true;
@@ -212,6 +217,18 @@ mod args {
 
 		// stacked flags
 		assert_eq!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-hd".to_string(),]).unwrap(), options);
+	}
+
+	#[test]
+	fn args_parse_number_errors_without_number() {
+		assert!(parse(vec!["path/to/bin".to_string(), "my text".to_string(), "-l".to_string()]).is_err());
+		assert!(parse(vec![
+			"path/to/bin".to_string(),
+			"my text".to_string(),
+			"-l".to_string(),
+			"-1".to_string()
+		])
+		.is_err());
 	}
 
 	#[test]
@@ -735,6 +752,13 @@ mod args {
 			"gRaY",
 			"GRAY",
 			background,
+			BgColors::Gray,
+			"-b",
+			"--background",
+			"grey",
+			"gReY",
+			"GREY",
+			background,
 			BgColors::RedBright,
 			"-b",
 			"--background",
@@ -1042,6 +1066,13 @@ mod args {
 			"gRaY",
 			"GRAY",
 			colors,
+			vec![Colors::Gray],
+			"-c",
+			"--colors",
+			"grey",
+			"gReY",
+			"GREY",
+			colors,
 			vec![Colors::RedBright],
 			"-c",
 			"--colors",
@@ -1090,6 +1121,13 @@ mod args {
 			"whitebright",
 			"wHiTeBrIgHt",
 			"WHITEBRIGHT",
+			colors,
+			vec![Colors::Candy],
+			"-c",
+			"--colors",
+			"candy",
+			"CaNdY",
+			"CANDY",
 		);
 
 		color_test!(
@@ -1163,6 +1201,13 @@ mod args {
 			"blue,#888,gray",
 			"bLuE,#888888,gRaY",
 			"BLUE,#888,GRAY",
+			colors,
+			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::Gray],
+			"-c",
+			"--colors",
+			"blue,#888,grey",
+			"bLuE,#888888,gReY",
+			"BLUE,#888,GREY",
 			colors,
 			vec![Colors::Blue, Colors::Rgb(Rgb::Val(136, 136, 136)), Colors::RedBright],
 			"-c",
@@ -1715,6 +1760,21 @@ mod args {
 				"my text".to_string(),
 				"-g".to_string(),
 				"trans".to_string()
+			])
+			.unwrap(),
+			options
+		);
+	}
+
+	#[test]
+	fn args_parse_ignored_unknown_arguments() {
+		let options = Options::default();
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"".to_string(),
+				"-u".to_string(),
+				"--unknown".to_string()
 			])
 			.unwrap(),
 			options

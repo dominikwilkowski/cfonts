@@ -9,7 +9,7 @@ use crate::config::{Colors, Fonts, Options};
 use crate::debug::{d, Dt};
 
 /// The shape of our font data
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Font {
 	/// The name of our font
 	pub name: String,

@@ -12,7 +12,7 @@ mod tests {
 	extern crate temp_env;
 
 	use super::*;
-	use std::path::Path;
+	use assert_cmd::prelude::*;
 	use std::process::Command;
 
 	#[test]
@@ -30,10 +30,8 @@ mod tests {
 			let no_color_val = if test.no_color { Some(appendix) } else { None };
 
 			temp_env::with_vars(vec![("FORCE_COLOR", force_color_val), ("NO_COLOR", no_color_val)], || {
-				let output = Command::new(Path::new("target/release/cfonts").as_os_str())
-					.args(&test.args)
-					.output()
-					.expect("failed to execute process");
+				let output =
+					Command::cargo_bin("cfonts").unwrap().args(&test.args).output().expect("failed to execute process");
 
 				assert_eq!(String::from_utf8_lossy(&output.stdout).to_string() + appendix, test.fixture.clone() + appendix);
 			});

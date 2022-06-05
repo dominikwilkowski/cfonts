@@ -123,6 +123,13 @@ mod color {
 	}
 
 	#[test]
+	#[should_panic]
+	fn hex2rgb_should_panic() {
+		let options = Options::default();
+		hex2rgb("#", &options);
+	}
+
+	#[test]
 	fn hsv2rsv_works() {
 		let options = Options::default();
 		assert_eq!(hsv2rsv(&Hsv::Val(0.0, 0.0, 0.0), &options), Rsv::Val(0.0, 0.0, 0.0));
@@ -163,15 +170,62 @@ mod color {
 	#[test]
 	fn color2hex_works() {
 		let options = Options::default();
-		assert_eq!(color2hex(&Colors::Red, &options), "#ea3223".to_string());
-		assert_eq!(color2hex(&Colors::Rgb(Rgb::Val(255, 0, 0)), &options), "#ff0000".to_string());
+		assert_eq!(color2hex(&Colors::System, &options), String::from("transparent"));
+		assert_eq!(color2hex(&Colors::Black, &options), String::from("#000000"));
+		assert_eq!(color2hex(&Colors::Red, &options), String::from("#ea3223"));
+		assert_eq!(color2hex(&Colors::Green, &options), String::from("#377d22"));
+		assert_eq!(color2hex(&Colors::Yellow, &options), String::from("#fffd54"));
+		assert_eq!(color2hex(&Colors::Blue, &options), String::from("#0020f5"));
+		assert_eq!(color2hex(&Colors::Magenta, &options), String::from("#ea3df7"));
+		assert_eq!(color2hex(&Colors::Cyan, &options), String::from("#74fbfd"));
+		assert_eq!(color2hex(&Colors::White, &options), String::from("#ffffff"));
+		assert_eq!(color2hex(&Colors::Gray, &options), String::from("#808080"));
+		assert_eq!(color2hex(&Colors::RedBright, &options), String::from("#ee776d"));
+		assert_eq!(color2hex(&Colors::GreenBright, &options), String::from("#8cf57b"));
+		assert_eq!(color2hex(&Colors::YellowBright, &options), String::from("#fffb7f"));
+		assert_eq!(color2hex(&Colors::BlueBright, &options), String::from("#6974f6"));
+		assert_eq!(color2hex(&Colors::MagentaBright, &options), String::from("#ee82f8"));
+		assert_eq!(color2hex(&Colors::CyanBright, &options), String::from("#8dfafd"));
+
+		assert_eq!(color2hex(&Colors::Rgb(Rgb::Val(255, 0, 0)), &options), String::from("#ff0000"));
+
+		let candy_color = [
+			String::from("#ea3223"),
+			String::from("#377d22"),
+			String::from("#fffd54"),
+			String::from("#ea3df7"),
+			String::from("#74fbfd"),
+			String::from("#ee776d"),
+			String::from("#8cf57b"),
+			String::from("#fffb7f"),
+			String::from("#6974f6"),
+			String::from("#ee82f8"),
+			String::from("#8dfafd"),
+		];
+		assert!(candy_color.contains(&color2hex(&Colors::Candy, &options)));
 	}
 
 	#[test]
 	fn bgcolor2hex_works() {
 		let options = Options::default();
+		assert_eq!(bgcolor2hex(&BgColors::Rgb(Rgb::Val(255, 0, 0)), &options), String::from("#ff0000"));
+
+		assert_eq!(bgcolor2hex(&BgColors::Transparent, &options), "transparent".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Black, &options), "#000000".to_string());
 		assert_eq!(bgcolor2hex(&BgColors::Red, &options), "#ea3223".to_string());
-		assert_eq!(bgcolor2hex(&BgColors::Rgb(Rgb::Val(255, 0, 0)), &options), "#ff0000".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Green, &options), "#377d22".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Yellow, &options), "#fffd54".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Blue, &options), "#0020f5".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Magenta, &options), "#ea3df7".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Cyan, &options), "#74fbfd".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::White, &options), "#ffffff".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::Gray, &options), "#808080".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::RedBright, &options), "#ee776d".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::GreenBright, &options), "#8cf57b".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::YellowBright, &options), "#fffb7f".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::BlueBright, &options), "#6974f6".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::MagentaBright, &options), "#ee82f8".to_string());
+		assert_eq!(bgcolor2hex(&BgColors::CyanBright, &options), "#8dfafd".to_string());
 	}
 
 	#[test]
@@ -190,8 +244,8 @@ mod color {
 	#[test]
 	fn rgb_u8_2ansi_256_works() {
 		assert_eq!(rgb_u8_2ansi_256(100, 200, 100), 114);
-		assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 16);
-		assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 231);
+		assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 231);
+		assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 16);
 		assert_eq!(rgb_u8_2ansi_256(167, 5, 98), 126);
 	}
 
@@ -199,12 +253,12 @@ mod color {
 	fn rgb2ansi_256_works() {
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[38;5;196m".to_string());
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[38;5;226m".to_string());
-		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;16m".to_string());
+		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;231m".to_string());
 		assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;126m".to_string());
 
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[48;5;196m".to_string());
 		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[48;5;226m".to_string());
-		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;16m".to_string());
+		assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;231m".to_string());
 		assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;126m".to_string());
 	}
 
@@ -212,12 +266,12 @@ mod color {
 	fn rgb2ansi_16_works() {
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[91m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[93m".to_string());
-		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[0m".to_string());
+		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[97m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[31m".to_string());
 
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[101m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[103m".to_string());
-		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[10m".to_string());
+		assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[107m".to_string());
 		assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[41m".to_string());
 	}
 
@@ -239,6 +293,21 @@ mod color {
 			assert_eq!(get_foreground_color(&Colors::Red), (String::from("\x1b[31m"), String::from("\x1b[39m")));
 			assert_eq!(get_foreground_color(&Colors::Green), (String::from("\x1b[32m"), String::from("\x1b[39m")));
 			assert_eq!(get_foreground_color(&Colors::Blue), (String::from("\x1b[34m"), String::from("\x1b[39m")));
+
+			let candy_color = [
+				String::from("\x1b[31m"),
+				String::from("\x1b[32m"),
+				String::from("\x1b[33m"),
+				String::from("\x1b[35m"),
+				String::from("\x1b[36m"),
+				String::from("\x1b[91m"),
+				String::from("\x1b[92m"),
+				String::from("\x1b[93m"),
+				String::from("\x1b[94m"),
+				String::from("\x1b[95m"),
+				String::from("\x1b[96m"),
+			];
+			assert!(candy_color.contains(&get_foreground_color(&Colors::Candy).0));
 		});
 	}
 
