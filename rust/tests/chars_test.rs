@@ -253,6 +253,19 @@ mod chars {
 		assert_eq!(paint_letter(&letter, 2, &options), output);
 
 		letter = vec![
+			String::from("<c1>red</c1><c2>green</c2><c1>red</c1>"),
+			String::from(""),
+			String::from("no color"),
+		];
+		options.colors = vec![Colors::Red];
+		output = vec![
+			String::from("\x1b[31mred\x1b[39mgreen\x1b[31mred\x1b[39m"),
+			String::from(""),
+			String::from("no color"),
+		];
+		assert_eq!(paint_letter(&letter, 2, &options), output);
+
+		letter = vec![
 			String::from("<c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1><c1>red</c1>"),
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
 			String::from("no color"),
@@ -302,11 +315,36 @@ mod chars {
 		assert_eq!(paint_letter(&letter, 4, &options), output);
 
 		letter = vec![
+			String::from("nothing"),
+			String::from("<c2>green</c2> <c1>red</c1>"),
+			String::from("<c1>red</c1>"),
+		];
+		options.colors = vec![Colors::Red, Colors::Blue];
+		options.gradient = vec![String::from("#ff8800"), String::from("#0088ff")];
+		output = vec![String::from("nothing"), String::from("green red"), String::from("red")];
+		assert_eq!(paint_letter(&letter, 2, &options), output);
+		options.gradient = Vec::new();
+
+		letter = vec![
 			String::from("<c1>red</c1>"),
 			String::from("no color"),
 			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
 		];
 		options.colors = vec![Colors::Red, Colors::Green, Colors::Blue];
+		options.env = Env::Browser;
+		output = vec![
+			String::from("<span style=\"color:#ea3223\">red</span>"),
+			String::from("no color"),
+			String::from("<span style=\"color:#ea3223\">red</span><span style=\"color:#377d22\">green</span><span style=\"color:#ea3223\">red</span><span style=\"color:#0020f5\">blue</span>"),
+		];
+		assert_eq!(paint_letter(&letter, 3, &options), output);
+
+		letter = vec![
+			String::from("<c1>red</c1>"),
+			String::from("no color"),
+			String::from("<c1>red</c1><c2>green</c2><c1>red</c1><c3>blue</c3>"),
+		];
+		options.colors = vec![Colors::Red, Colors::Green, Colors::Blue, Colors::Magenta];
 		options.env = Env::Browser;
 		output = vec![
 			String::from("<span style=\"color:#ea3223\">red</span>"),

@@ -511,8 +511,8 @@ pub fn rgb2ansi_16m(rgb: &Rgb, layer: ColorLayer) -> String {
 /// use cfonts::color::{rgb_u8_2ansi_256,};
 ///
 /// assert_eq!(rgb_u8_2ansi_256(100, 200, 100), 114);
-/// assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 16);
-/// assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 231);
+/// assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 231);
+/// assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 16);
 /// assert_eq!(rgb_u8_2ansi_256(167, 5, 98), 126);
 /// ```
 pub fn rgb_u8_2ansi_256(r: u8, g: u8, b: u8) -> u8 {
@@ -521,7 +521,7 @@ pub fn rgb_u8_2ansi_256(r: u8, g: u8, b: u8) -> u8 {
 	let blue = b as f64;
 
 	if r == g && g == b {
-		if red > 8.0 {
+		if red < 8.0 {
 			return 16;
 		}
 		if red > 248.0 {
@@ -548,12 +548,12 @@ pub fn rgb_u8_2ansi_256(r: u8, g: u8, b: u8) -> u8 {
 ///
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[38;5;196m".to_string());
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[38;5;226m".to_string());
-/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;16m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[38;5;231m".to_string());
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[38;5;126m".to_string());
 ///
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[48;5;196m".to_string());
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[48;5;226m".to_string());
-/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;16m".to_string());
+/// assert_eq!(rgb2ansi_256(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[48;5;231m".to_string());
 /// assert_eq!(rgb2ansi_256(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[48;5;126m".to_string());
 /// ```
 pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
@@ -578,12 +578,12 @@ pub fn rgb2ansi_256(rgb: &Rgb, layer: ColorLayer) -> String {
 ///
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Foreground), "\x1b[91m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Foreground), "\x1b[93m".to_string());
-/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[0m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Foreground), "\x1b[97m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Foreground), "\x1b[31m".to_string());
 ///
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 0, 0), ColorLayer::Background), "\x1b[101m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 0), ColorLayer::Background), "\x1b[103m".to_string());
-/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[10m".to_string());
+/// assert_eq!(rgb2ansi_16(&Rgb::Val(255, 255, 255), ColorLayer::Background), "\x1b[107m".to_string());
 /// assert_eq!(rgb2ansi_16(&Rgb::Val(157, 5, 98), ColorLayer::Background), "\x1b[41m".to_string());
 /// ```
 pub fn rgb2ansi_16(rgb: &Rgb, layer: ColorLayer) -> String {
