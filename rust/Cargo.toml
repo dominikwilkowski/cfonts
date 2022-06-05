@@ -1,6 +1,6 @@
 [package]
 name = "cfonts"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2021"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
