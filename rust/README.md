@@ -16,11 +16,23 @@
 	<a href="https://github.com/dominikwilkowski/cfonts/actions/workflows/testing.yml"><img src="https://github.com/dominikwilkowski/cfonts/actions/workflows/testing.yml/badge.svg" alt="build status"></a>
 </p>
 
-<p align="center">This is a silly little command line tool for sexy fonts in the console. <strong>Give your cli some love.</strong></p>
+<p align="center">This is a silly little command line tool for sexy ANSI fonts in the console. <strong>Give your cli some love.</strong></p>
 
 **Read the [docs over at docs.rs](https://docs.rs/cfonts/).**
 
 ## Installing
+
+### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
+
+```sh
+sudo pacman -S cfonts
+```
+
+### [MacPorts](https://ports.macports.org/port/cfonts/)
+
+```sh
+sudo port install cfonts
+```
 
 ### [cargo](https://crates.io/crates/cfonts)
 
