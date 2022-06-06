@@ -18,7 +18,7 @@
 	<a href='https://coveralls.io/github/dominikwilkowski/cfonts?branch=released'><img src='https://coveralls.io/repos/github/dominikwilkowski/cfonts/badge.svg?branch=released' alt='cfonts Coverage Status' /></a>
 </p>
 
-<p align="center">This is a silly little command line tool for sexy fonts in the console. <strong>Give your cli some love.</strong></p>
+<p align="center">This is a silly little command line tool for sexy ANSI fonts in the console. <strong>Give your cli some love.</strong></p>
 
 ## Implementations
 
@@ -50,12 +50,6 @@ _💡  The correct repository (see above link for the most up-to-date informatio
 sudo apk add cfonts
 ```
 
-#### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
-
-```sh
-sudo pacman -S cfonts
-```
-
 #### [Scoop](https://scoop.sh/)
 
 ```sh
@@ -83,6 +77,12 @@ brew install cfonts
 ```
 -->
 ### Rust
+
+#### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
+
+```sh
+sudo pacman -S cfonts
+```
 
 #### [MacPorts](https://ports.macports.org/port/cfonts/)
 
