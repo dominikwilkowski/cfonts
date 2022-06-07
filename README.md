@@ -261,7 +261,7 @@ Provide colors in a comma-separated string, eg: `red,blue`. _(no spaces)_
 If you use a hex color make sure you include the `#` prefix. _(In most terminals wrap the hex in quotes)_  
 The `system` color falls back to the system color of your terminal.
 
-💡  There are [environment variables](#consistency) that can effect the display of colors in your terminal.
+💡  There are [environment variables](#consistency) that can affect the display of colors in your terminal.
 
 - `system` _(default)_
 - `black`
