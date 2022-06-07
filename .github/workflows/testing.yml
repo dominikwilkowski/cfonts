@@ -254,7 +254,9 @@ jobs:
           base-path: ./rust
 
   coverage-finish:
-    needs: [coverage-nodejs, coverage-rust]
+    needs:
+      - coverage-nodejs
+      - coverage-rust
     steps:
       - name: Coveralls Parallel Build Finished
         uses: coverallsapp/github-action@v1.1.0
