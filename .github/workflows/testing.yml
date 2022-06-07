@@ -255,6 +255,11 @@ jobs:
 
   coverage-finish:
     needs: [coverage-nodejs, coverage-rust]
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Coveralls Parallel Build Finished
         uses: coverallsapp/github-action@v1.1.0
