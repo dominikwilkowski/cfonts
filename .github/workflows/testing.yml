@@ -210,7 +210,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./nodejs/coverage/lcov.info
           parallel: true
-          base-path: ./nodejs
 
   coverage-rust:
     needs: test-rust
@@ -251,7 +250,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./rust/lcov.info
           parallel: true
-          base-path: ./rust
 
   coverage-finish:
     needs: [coverage-nodejs, coverage-rust]
