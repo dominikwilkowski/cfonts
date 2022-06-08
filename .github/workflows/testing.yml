@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - 'released'
-    tags:
-      - '!v*'
   pull_request:
     branches:
       - 'released'
