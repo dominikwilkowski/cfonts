@@ -70,13 +70,14 @@ TODO
 
 </details>
 
-### [homebrew](https://formulae.brew.sh/formula/cfonts)
+-->
+### Rust
+
+#### [homebrew](https://formulae.brew.sh/formula/cfonts)
 
 ```sh
 brew install cfonts
 ```
--->
-### Rust
 
 #### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
 

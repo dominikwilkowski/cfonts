@@ -22,6 +22,12 @@
 
 ## Installing
 
+### [homebrew](https://formulae.brew.sh/formula/cfonts)
+
+```sh
+brew install cfonts
+```
+
 ### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
 
 ```sh
