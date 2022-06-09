@@ -213,7 +213,7 @@ jobs:
           parallel: true
           base-path: ./nodejs
         env:
-          NODE_COVERALLS_DEBUG=1
+          NODE_COVERALLS_DEBUG: 1
 
   # ***********
   # COVERAGE - rust
@@ -258,7 +258,7 @@ jobs:
           path-to-lcov: ./rust/lcov.info
           parallel: true
         env:
-          NODE_COVERALLS_DEBUG=1
+          NODE_COVERALLS_DEBUG: 1
 
   # ***********
   # COVERAGE - finalizing
@@ -277,4 +277,4 @@ jobs:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
         env:
-          NODE_COVERALLS_DEBUG=1
+          NODE_COVERALLS_DEBUG: 1
