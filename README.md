@@ -79,7 +79,7 @@ TODO
 brew install cfonts
 ```
 
-#### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
+#### [Arch User Repository](https://aur.archlinux.org/packages/cfonts)
 
 ```sh
 sudo pacman -S cfonts
