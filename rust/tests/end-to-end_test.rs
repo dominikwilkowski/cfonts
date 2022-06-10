@@ -30,10 +30,20 @@ mod tests {
 			let no_color_val = if test.no_color { Some(appendix) } else { None };
 
 			temp_env::with_vars(vec![("FORCE_COLOR", force_color_val), ("NO_COLOR", no_color_val)], || {
-				let output =
-					Command::cargo_bin("cfonts").unwrap().args(&test.args).output().expect("failed to execute process");
+				let rust_output =
+					Command::cargo_bin("cfonts").unwrap().args(&test.args).output().expect("failed to execute rust process");
+				let mut nodejs_args = test.args.clone();
+				nodejs_args.insert(0, "../nodejs/bin/index.js".to_string());
+				let nodejs_output = Command::new("node").args(nodejs_args).output().expect("failed to execute nodejs process");
 
-				assert_eq!(String::from_utf8_lossy(&output.stdout).to_string() + appendix, test.fixture.clone() + appendix);
+				assert_eq!(
+					String::from_utf8_lossy(&rust_output.stdout).to_string() + appendix,
+					test.fixture.clone() + appendix
+				);
+				assert_eq!(
+					String::from_utf8_lossy(&nodejs_output.stdout).to_string() + appendix,
+					test.fixture.clone() + appendix
+				);
 			});
 		}
 	}
