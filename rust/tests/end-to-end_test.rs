@@ -13,6 +13,7 @@ mod tests {
 
 	use super::*;
 	use assert_cmd::prelude::*;
+	use std::collections::HashMap;
 	use std::process::Command;
 
 	#[test]
@@ -30,10 +31,29 @@ mod tests {
 			let no_color_val = if test.no_color { Some(appendix) } else { None };
 
 			temp_env::with_vars(vec![("FORCE_COLOR", force_color_val), ("NO_COLOR", no_color_val)], || {
-				let output =
-					Command::cargo_bin("cfonts").unwrap().args(&test.args).output().expect("failed to execute process");
+				let rust_output =
+					Command::cargo_bin("cfonts").unwrap().args(&test.args).output().expect("failed to execute rust process");
+				let mut nodejs_args = test.args.clone();
+				nodejs_args.insert(0, "../nodejs/bin/index.js".to_string());
 
-				assert_eq!(String::from_utf8_lossy(&output.stdout).to_string() + appendix, test.fixture.clone() + appendix);
+				let mut nodejs_env: HashMap<String, String> = HashMap::new();
+				if !test.force_color.is_empty() {
+					nodejs_env.insert(String::from("FORCE_COLOR"), test.force_color.clone());
+				}
+				if test.no_color {
+					nodejs_env.insert(String::from("NO_COLOR"), appendix.to_owned());
+				}
+				let nodejs_output =
+					Command::new("node").envs(nodejs_env).args(nodejs_args).output().expect("failed to execute nodejs process");
+
+				assert_eq!(
+					String::from_utf8_lossy(&rust_output.stdout).to_string() + appendix,
+					test.fixture.clone() + appendix
+				);
+				assert_eq!(
+					String::from_utf8_lossy(&nodejs_output.stdout).to_string() + appendix,
+					test.fixture.clone() + appendix
+				);
 			});
 		}
 	}
@@ -122,7 +142,7 @@ fn get_all_tests() -> Vec<Test> {
 				"\n\x1B[49m\n"
 			)
 			.to_string(),
-			force_color: String::from(""),
+			force_color: String::from("3"),
 			no_color: false,
 		},
 		Test {
@@ -436,7 +456,7 @@ fn get_all_tests() -> Vec<Test> {
 				" \x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;28m \x1B[39m\x1B[38;2;255;0;56m \x1B[39m\x1B[38;2;255;0;84m█\x1B[39m\x1B[38;2;255;0;113m█\x1B[39m\x1B[38;2;255;0;141m║\x1B[39m\x1B[38;2;255;0;170m \x1B[39m\x1B[38;2;255;0;198m \x1B[39m\x1B[38;2;255;0;226m \x1B[39m\x1B[38;2;255;0;255m \x1B[39m\x1B[38;2;226;0;255m█\x1B[39m\x1B[38;2;198;0;255m█\x1B[39m\x1B[38;2;170;0;255m█\x1B[39m\x1B[38;2;141;0;255m█\x1B[39m\x1B[38;2;113;0;255m█\x1B[39m\x1B[38;2;84;0;255m█\x1B[39m\x1B[38;2;56;0;255m█\x1B[39m\x1B[38;2;28;0;255m╗\x1B[39m\x1B[38;2;0;0;255m \x1B[39m\x1B[38;2;0;28;255m█\x1B[39m\x1B[38;2;0;56;255m█\x1B[39m\x1B[38;2;0;85;255m█\x1B[39m\x1B[38;2;0;113;255m█\x1B[39m\x1B[38;2;0;141;255m█\x1B[39m\x1B[38;2;0;169;255m█\x1B[39m\x1B[38;2;0;198;255m█\x1B[39m\x1B[38;2;0;226;255m║\x1B[39m\x1B[38;2;0;255;255m \x1B[39m\x1B[38;2;0;255;226m \x1B[39m\x1B[38;2;0;255;198m \x1B[39m\x1B[38;2;0;255;169m \x1B[39m\x1B[38;2;0;255;141m█\x1B[39m\x1B[38;2;0;255;113m█\x1B[39m\x1B[38;2;0;255;85m║\x1B[39m\x1B[38;2;0;255;56m \x1B[39m\x1B[38;2;0;255;28m \x1B[39m\x1B[38;2;0;255;0m \x1B[39m\n",
 				" \x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;28m \x1B[39m\x1B[38;2;255;0;56m \x1B[39m\x1B[38;2;255;0;84m╚\x1B[39m\x1B[38;2;255;0;113m═\x1B[39m\x1B[38;2;255;0;141m╝\x1B[39m\x1B[38;2;255;0;170m \x1B[39m\x1B[38;2;255;0;198m \x1B[39m\x1B[38;2;255;0;226m \x1B[39m\x1B[38;2;255;0;255m \x1B[39m\x1B[38;2;226;0;255m╚\x1B[39m\x1B[38;2;198;0;255m═\x1B[39m\x1B[38;2;170;0;255m═\x1B[39m\x1B[38;2;141;0;255m═\x1B[39m\x1B[38;2;113;0;255m═\x1B[39m\x1B[38;2;84;0;255m═\x1B[39m\x1B[38;2;56;0;255m═\x1B[39m\x1B[38;2;28;0;255m╝\x1B[39m\x1B[38;2;0;0;255m \x1B[39m\x1B[38;2;0;28;255m╚\x1B[39m\x1B[38;2;0;56;255m═\x1B[39m\x1B[38;2;0;85;255m═\x1B[39m\x1B[38;2;0;113;255m═\x1B[39m\x1B[38;2;0;141;255m═\x1B[39m\x1B[38;2;0;169;255m═\x1B[39m\x1B[38;2;0;198;255m═\x1B[39m\x1B[38;2;0;226;255m╝\x1B[39m\x1B[38;2;0;255;255m \x1B[39m\x1B[38;2;0;255;226m \x1B[39m\x1B[38;2;0;255;198m \x1B[39m\x1B[38;2;0;255;169m \x1B[39m\x1B[38;2;0;255;141m╚\x1B[39m\x1B[38;2;0;255;113m═\x1B[39m\x1B[38;2;0;255;85m╝\x1B[39m\x1B[38;2;0;255;56m \x1B[39m\x1B[38;2;0;255;28m \x1B[39m\x1B[38;2;0;255;0m \x1B[39m\n",
 				"\n\n").to_string(),
-			force_color: String::from(""),
+			force_color: String::from("3"),
 			no_color: false,
 		},
 		Test {
@@ -457,7 +477,7 @@ fn get_all_tests() -> Vec<Test> {
 				" \x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;145m█\x1B[39m\x1B[38;2;218;0;255m╔\x1B[39m\x1B[38;2;72;0;255m╝\x1B[39m\x1B[38;2;0;72;255m \x1B[39m\x1B[38;2;0;218;255m█\x1B[39m\x1B[38;2;0;255;145m█\x1B[39m\x1B[38;2;0;255;0m╗\x1B[39m\n",
 				" \x1B[38;2;255;0;0m╚\x1B[39m\x1B[38;2;255;0;145m═\x1B[39m\x1B[38;2;218;0;255m╝\x1B[39m\x1B[38;2;72;0;255m \x1B[39m\x1B[38;2;0;72;255m \x1B[39m\x1B[38;2;0;218;255m╚\x1B[39m\x1B[38;2;0;255;145m═\x1B[39m\x1B[38;2;0;255;0m╝\x1B[39m\n",
 				"\n\n").to_string(),
-			force_color: String::from(""),
+			force_color: String::from("3"),
 			no_color: false,
 		},
 		Test {
@@ -471,7 +491,7 @@ fn get_all_tests() -> Vec<Test> {
 				" \x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;3;0m \x1B[39m\x1B[38;2;255;7;0m \x1B[39m\x1B[38;2;255;11;0m█\x1B[39m\x1B[38;2;255;15;0m█\x1B[39m\x1B[38;2;255;18;0m║\x1B[39m\x1B[38;2;255;22;0m \x1B[39m\x1B[38;2;255;26;0m \x1B[39m\x1B[38;2;255;30;0m \x1B[39m\x1B[38;2;255;34;0m \x1B[39m\x1B[38;2;255;37;0m█\x1B[39m\x1B[38;2;255;41;0m█\x1B[39m\x1B[38;2;255;45;0m█\x1B[39m\x1B[38;2;255;49;0m█\x1B[39m\x1B[38;2;255;52;0m█\x1B[39m\x1B[38;2;255;56;0m█\x1B[39m\x1B[38;2;255;60;0m█\x1B[39m\x1B[38;2;255;64;0m╗\x1B[39m\x1B[38;2;255;68;0m \x1B[39m\x1B[38;2;255;71;0m█\x1B[39m\x1B[38;2;255;75;0m█\x1B[39m\x1B[38;2;255;79;0m█\x1B[39m\x1B[38;2;255;83;0m█\x1B[39m\x1B[38;2;255;86;0m█\x1B[39m\x1B[38;2;255;90;0m█\x1B[39m\x1B[38;2;255;94;0m█\x1B[39m\x1B[38;2;255;98;0m║\x1B[39m\x1B[38;2;255;102;0m \x1B[39m\x1B[38;2;255;105;0m \x1B[39m\x1B[38;2;255;109;0m \x1B[39m\x1B[38;2;255;113;0m \x1B[39m\x1B[38;2;255;117;0m█\x1B[39m\x1B[38;2;255;120;0m█\x1B[39m\x1B[38;2;255;124;0m║\x1B[39m\x1B[38;2;255;128;0m \x1B[39m\x1B[38;2;255;132;0m \x1B[39m\x1B[38;2;255;136;0m \x1B[39m\n",
 				" \x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;3;0m \x1B[39m\x1B[38;2;255;7;0m \x1B[39m\x1B[38;2;255;11;0m╚\x1B[39m\x1B[38;2;255;15;0m═\x1B[39m\x1B[38;2;255;18;0m╝\x1B[39m\x1B[38;2;255;22;0m \x1B[39m\x1B[38;2;255;26;0m \x1B[39m\x1B[38;2;255;30;0m \x1B[39m\x1B[38;2;255;34;0m \x1B[39m\x1B[38;2;255;37;0m╚\x1B[39m\x1B[38;2;255;41;0m═\x1B[39m\x1B[38;2;255;45;0m═\x1B[39m\x1B[38;2;255;49;0m═\x1B[39m\x1B[38;2;255;52;0m═\x1B[39m\x1B[38;2;255;56;0m═\x1B[39m\x1B[38;2;255;60;0m═\x1B[39m\x1B[38;2;255;64;0m╝\x1B[39m\x1B[38;2;255;68;0m \x1B[39m\x1B[38;2;255;71;0m╚\x1B[39m\x1B[38;2;255;75;0m═\x1B[39m\x1B[38;2;255;79;0m═\x1B[39m\x1B[38;2;255;83;0m═\x1B[39m\x1B[38;2;255;86;0m═\x1B[39m\x1B[38;2;255;90;0m═\x1B[39m\x1B[38;2;255;94;0m═\x1B[39m\x1B[38;2;255;98;0m╝\x1B[39m\x1B[38;2;255;102;0m \x1B[39m\x1B[38;2;255;105;0m \x1B[39m\x1B[38;2;255;109;0m \x1B[39m\x1B[38;2;255;113;0m \x1B[39m\x1B[38;2;255;117;0m╚\x1B[39m\x1B[38;2;255;120;0m═\x1B[39m\x1B[38;2;255;124;0m╝\x1B[39m\x1B[38;2;255;128;0m \x1B[39m\x1B[38;2;255;132;0m \x1B[39m\x1B[38;2;255;136;0m \x1B[39m\n",
 				"\n\n").to_string(),
-			force_color: String::from(""),
+			force_color: String::from("3"),
 			no_color: false,
 		},
 		Test {
@@ -485,7 +505,7 @@ fn get_all_tests() -> Vec<Test> {
 				" \x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;15;0m \x1B[39m\x1B[38;2;255;30;0m \x1B[39m\x1B[38;2;255;45;0m█\x1B[39m\x1B[38;2;255;60;0m█\x1B[39m\x1B[38;2;255;75;0m║\x1B[39m\x1B[38;2;255;90;0m \x1B[39m\x1B[38;2;255;105;0m \x1B[39m\x1B[38;2;255;120;0m \x1B[39m\x1B[38;2;255;136;0m \x1B[39m\x1B[38;2;226;120;28m█\x1B[39m\x1B[38;2;198;105;56m█\x1B[39m\x1B[38;2;170;90;85m█\x1B[39m\x1B[38;2;141;75;113m█\x1B[39m\x1B[38;2;113;60;141m█\x1B[39m\x1B[38;2;85;45;170m█\x1B[39m\x1B[38;2;56;30;198m█\x1B[39m\x1B[38;2;28;15;226m╗\x1B[39m\x1B[38;2;0;0;255m \x1B[39m\x1B[38;2;28;0;226m█\x1B[39m\x1B[38;2;56;0;198m█\x1B[39m\x1B[38;2;85;0;170m█\x1B[39m\x1B[38;2;113;0;141m█\x1B[39m\x1B[38;2;141;0;113m█\x1B[39m\x1B[38;2;170;0;85m█\x1B[39m\x1B[38;2;198;0;56m█\x1B[39m\x1B[38;2;226;0;28m║\x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m█\x1B[39m\x1B[38;2;255;0;0m║\x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\n",
 				" \x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;15;0m \x1B[39m\x1B[38;2;255;30;0m \x1B[39m\x1B[38;2;255;45;0m╚\x1B[39m\x1B[38;2;255;60;0m═\x1B[39m\x1B[38;2;255;75;0m╝\x1B[39m\x1B[38;2;255;90;0m \x1B[39m\x1B[38;2;255;105;0m \x1B[39m\x1B[38;2;255;120;0m \x1B[39m\x1B[38;2;255;136;0m \x1B[39m\x1B[38;2;226;120;28m╚\x1B[39m\x1B[38;2;198;105;56m═\x1B[39m\x1B[38;2;170;90;85m═\x1B[39m\x1B[38;2;141;75;113m═\x1B[39m\x1B[38;2;113;60;141m═\x1B[39m\x1B[38;2;85;45;170m═\x1B[39m\x1B[38;2;56;30;198m═\x1B[39m\x1B[38;2;28;15;226m╝\x1B[39m\x1B[38;2;0;0;255m \x1B[39m\x1B[38;2;28;0;226m╚\x1B[39m\x1B[38;2;56;0;198m═\x1B[39m\x1B[38;2;85;0;170m═\x1B[39m\x1B[38;2;113;0;141m═\x1B[39m\x1B[38;2;141;0;113m═\x1B[39m\x1B[38;2;170;0;85m═\x1B[39m\x1B[38;2;198;0;56m═\x1B[39m\x1B[38;2;226;0;28m╝\x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m╚\x1B[39m\x1B[38;2;255;0;0m═\x1B[39m\x1B[38;2;255;0;0m╝\x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\x1B[38;2;255;0;0m \x1B[39m\n",
 				"\n\n").to_string(),
-			force_color: String::from(""),
+			force_color: String::from("3"),
 			no_color: false,
 		},
 		Test {

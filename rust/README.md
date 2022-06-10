@@ -22,7 +22,13 @@
 
 ## Installing
 
-### [Arch Linus User repository](https://aur.archlinux.org/packages/cfonts)
+### [homebrew](https://formulae.brew.sh/formula/cfonts)
+
+```sh
+brew install cfonts
+```
+
+### [Arch User Repository](https://aur.archlinux.org/packages/cfonts)
 
 ```sh
 sudo pacman -S cfonts
