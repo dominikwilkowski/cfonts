@@ -13,6 +13,7 @@ mod tests {
 
 	use super::*;
 	use assert_cmd::prelude::*;
+	use std::collections::HashMap;
 	use std::process::Command;
 
 	#[test]
@@ -34,7 +35,16 @@ mod tests {
 					Command::cargo_bin("cfonts").unwrap().args(&test.args).output().expect("failed to execute rust process");
 				let mut nodejs_args = test.args.clone();
 				nodejs_args.insert(0, "../nodejs/bin/index.js".to_string());
-				let nodejs_output = Command::new("node").args(nodejs_args).output().expect("failed to execute nodejs process");
+
+				let mut nodejs_env: HashMap<String, String> = HashMap::new();
+				if !test.force_color.is_empty() {
+					nodejs_env.insert(String::from("FORCE_COLOR"), test.force_color.clone());
+				}
+				if test.no_color {
+					nodejs_env.insert(String::from("NO_COLOR"), appendix.to_owned());
+				}
+				let nodejs_output =
+					Command::new("node").envs(nodejs_env).args(nodejs_args).output().expect("failed to execute nodejs process");
 
 				assert_eq!(
 					String::from_utf8_lossy(&rust_output.stdout).to_string() + appendix,
