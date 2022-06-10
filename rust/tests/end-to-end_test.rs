@@ -142,7 +142,7 @@ fn get_all_tests() -> Vec<Test> {
 				"\n\x1B[49m\n"
 			)
 			.to_string(),
-			force_color: String::from(""),
+			force_color: String::from("3"),
 			no_color: false,
 		},
 		Test {
