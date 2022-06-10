@@ -244,6 +244,14 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Instal dependencies and build nodejs files
+        run: cd ../nodejs && yarn && yarn build
+
       - name: Run Makefile
         run: make
 
