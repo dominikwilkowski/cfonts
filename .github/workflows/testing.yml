@@ -94,8 +94,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Build nodejs files
-        run: cd ../nodejs && yarn build
+      - name: Instal dependencies and build nodejs files
+        run: cd ../nodejs && yarn && yarn build
 
       - name: Run Makefile
         run: make
