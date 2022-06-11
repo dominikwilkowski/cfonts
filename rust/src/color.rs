@@ -8,7 +8,7 @@ use crate::config::{BgColors, Colors};
 use crate::debug::{d, Dt};
 
 /// An enum to list the available ANSI color support in the consumers console/terminal
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub enum TermColorSupport {
 	/// 16 million colors via truecolor RGB
 	Ansi16m,
@@ -21,7 +21,6 @@ pub enum TermColorSupport {
 }
 
 /// An enum to list the two color layers: foreground and background
-#[derive(Debug)]
 pub enum ColorLayer {
 	Foreground,
 	Background,
