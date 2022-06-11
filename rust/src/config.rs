@@ -306,7 +306,7 @@ impl Options {
 }
 
 /// The type of options our [`CLIOPTIONS`] can have
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum OptionType {
 	/// There is only one text option which is for the text
 	Text,
@@ -329,7 +329,7 @@ pub enum OptionType {
 }
 
 /// The struct of a single option inside our [`CLIOPTIONS`]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct CliOption<'a> {
 	/// The key of this option so we can address it later
 	pub key: &'a str,
