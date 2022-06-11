@@ -245,6 +245,7 @@ mod color {
 	fn rgb_u8_2ansi_256_works() {
 		assert_eq!(rgb_u8_2ansi_256(100, 200, 100), 114);
 		assert_eq!(rgb_u8_2ansi_256(255, 255, 255), 231);
+		assert_eq!(rgb_u8_2ansi_256(100, 100, 100), 241);
 		assert_eq!(rgb_u8_2ansi_256(0, 0, 0), 16);
 		assert_eq!(rgb_u8_2ansi_256(167, 5, 98), 126);
 	}
