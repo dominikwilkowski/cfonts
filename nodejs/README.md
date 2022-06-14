@@ -91,16 +91,16 @@ This package is tested on the below platform and node combinations as part of ou
 | Linux    | v12  |
 | Linux    | v14  |
 | Linux    | v16  |
-| OSX      | v10  |
-| OSX      | v12  |
-| OSX      | v16  |
-| Windows  | v10  |
+| MacOS    | v12  |
+| MacOS    | v14  |
+| MacOS    | v16  |
 | Windows  | v12  |
+| Windows  | v14  |
 | Windows  | v16  |
 
 ### Unit tests
 
-The package comes with a bunch of [unit tests](https://github.com/dominikwilkowski/cfonts/tree/released/test/unit) that aim to cover 100% of the code base.
+The package comes with a bunch of [unit tests](./test/unit) that aim to cover 100% of the code base.
 For more details about the code coverage check out [coveralls](https://coveralls.io/github/dominikwilkowski/cfonts?branch=released).
 
 ```sh
@@ -110,8 +110,7 @@ npm run test:unit
 ### Type tests
 
 Since the code base uses [JSDocs](https://jsdoc.app/) we use [typescript](https://www.typescriptlang.org/) to test the inferred types from those comments.
-Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our
-[test](https://github.com/dominikwilkowski/cfonts/blob/released/nodejs/package.json#L37).
+Typescript [supports JSDocs](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html#supported-jsdoc) and we use it in our [test](./package.json#L37).
 
 ```sh
 npm run test:types
@@ -119,7 +118,7 @@ npm run test:types
 
 ### Font file test
 
-There is also a [test suite](https://github.com/dominikwilkowski/cfonts/blob/released/nodejs/test/fonttest.js) for font files.
+There is also a [test suite](./test/fonttest.js) for font files.
 
 ```sh
 npm run test:fonts

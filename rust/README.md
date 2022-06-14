@@ -135,20 +135,19 @@ Read more in the [root repo](https://github.com/dominikwilkowski/cfonts).
 
 ## Tests
 
-All tests are run via for the below platforms with our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.github/workflows/testing.yml).
+All tests are run on the below platforms with our [CI](https://github.com/dominikwilkowski/cfonts/tree/released/.github/workflows/testing.yml).
 
 | Platform |
 |----------|
 | Linux    |
-| OSX      |
+| MacOS    |
 | Windows  |
 
 ### Unit tests
 
-There are some unit tests and some integration tests within the `./tests` folder.
+There are some [unit tests and integration tests](./tests) within the `./tests` folder.
 
-We also have an [end-to-end test script](./tests/end-to-end/index.js) setup that runs on the binaries (on all platforms) and compares its output against fixtures and the output of the node implementation.
-
+We also have an [end-to-end test script](./tests/end-to-end_test.rs) setup that runs on the binaries (on all platforms) and compares its output against fixtures and the output of the node implementation.
 
 ## Release History
 
