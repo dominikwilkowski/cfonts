@@ -145,9 +145,9 @@ All tests are run on the below platforms with our [CI](https://github.com/domini
 
 ### Unit tests
 
-There are some [unit tests and integration tests](./tests) within the `./tests` folder.
+There are some [unit tests and integration tests](https://github.com/dominikwilkowski/cfonts/blob/released/rust/tests) within the `tests` folder.
 
-We also have an [end-to-end test script](./tests/end-to-end_test.rs) setup that runs on the binaries (on all platforms) and compares its output against fixtures and the output of the node implementation.
+We also have an [end-to-end test script](https://github.com/dominikwilkowski/cfonts/blob/released/rust/tests/end-to-end_test.rs) setup that runs on the binaries (on all platforms) and compares its output against fixtures and the output of the node implementation.
 
 ## Release History
 
