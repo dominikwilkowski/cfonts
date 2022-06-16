@@ -218,6 +218,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./nodejs/coverage/lcov.info
+          flag-name: nodejs
           parallel: true
           base-path: ./nodejs
         env:
@@ -272,6 +273,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./rust/lcov.info
+          flag-name: rust
           parallel: true
         env:
           NODE_COVERALLS_DEBUG: 1
