@@ -205,6 +205,11 @@ test(`Color - ansi_2562ansi_16 - Convert RGB to ANSI256 correctly`, () => {
 	expect(inspect(ansi_2562ansi_16(240))).toEqual(inspect('\x1B[90m'));
 	expect(inspect(ansi_2562ansi_16(247))).toEqual(inspect('\x1B[37m'));
 
+	for (let i = 0; i <= 255; i++) {
+		expect(`${inspect(ansi_2562ansi_16(i)) !== "'\\x1B[undefinedm'"}${i}`).toEqual(`true${i}`);
+		expect(`${inspect(ansi_2562ansi_16(i)) !== "'\\x1B[NaNdm'"}${i}`).toEqual(`true${i}`);
+	}
+
 	expect(inspect(ansi_2562ansi_16(52, true))).toEqual(inspect('\x1B[41m'));
 });
 

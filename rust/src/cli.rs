@@ -1,5 +1,6 @@
 //! The contents of this module is all about cli specific functionality
 use std::env;
+use std::fmt::Write as _;
 
 use crate::color::{color, get_term_color_support, TermColorSupport};
 use crate::config::{Align, BgColors, Colors, Env, Fonts, OptionType, Options, CLIOPTIONS};
@@ -61,19 +62,19 @@ pub fn help(options: &Options) -> String {
 	output += "This is a tool for sexy fonts in the console. Give your cli some love.\n";
 	output += "\n";
 	output += "Usage: cfonts \"<value>\" [option1] <input1> [option2] <input1>,<input2> [option3]\n";
-	output +=
-		&format!("Example: {}$ cfonts \"sexy font\" -f chrome -a center -c red,green,gray{}\n", bold_start, bold_end);
+	let _ =
+		writeln!(output, "Example: {}$ cfonts \"sexy font\" -f chrome -a center -c red,green,gray{}", bold_start, bold_end);
 	output += "\n";
 	output += "Options:\n";
 
 	for option in CLIOPTIONS {
-		output += &format!("\n{}{}, {}", bold_start, option.name, option.shortcut);
+		let _ = write!(output, "\n{}{}, {}", bold_start, option.name, option.shortcut);
 		if !option.fallback_shortcut.is_empty() {
-			output += &format!(", {}", option.fallback_shortcut);
+			let _ = write!(output, ", {}", option.fallback_shortcut);
 		}
-		output += &format!("{}\n", bold_end);
-		output += &format!("{}\n", option.description);
-		output += &format!("{}${} cfonts {}", bold_start, bold_end, option.example);
+		let _ = writeln!(output, "{}", bold_end);
+		let _ = writeln!(output, "{}", option.description);
+		let _ = write!(output, "{}${} cfonts {}", bold_start, bold_end, option.example);
 		match option.kind {
 			OptionType::Font => {
 				output += &color(&format!(" [ {} ]", Fonts::list()), Colors::Green).to_string();

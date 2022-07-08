@@ -264,6 +264,186 @@ fn get_all_tests() -> Vec<Test> {
 			no_color: true,
 		},
 		Test {
+			name: String::from("Color output for black with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"black,black".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[0mt\x1B[39m\x1B[0me\x1B[39m\x1B[0ms\x1B[39m\x1B[0mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for red with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"red,red".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[91mt\x1B[39m\x1B[94me\x1B[39m\x1B[92ms\x1B[39m\x1B[91mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for green with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"green,green".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[92mt\x1B[39m\x1B[91me\x1B[39m\x1B[94ms\x1B[39m\x1B[92mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for yellow with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"yellow,yellow".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[93mt\x1B[39m\x1B[95me\x1B[39m\x1B[96ms\x1B[39m\x1B[93mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for blue with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"blue,blue".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[94mt\x1B[39m\x1B[92me\x1B[39m\x1B[91ms\x1B[39m\x1B[94mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for magenta with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"magenta,magenta".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[95mt\x1B[39m\x1B[96me\x1B[39m\x1B[93ms\x1B[39m\x1B[95mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for cyan with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"cyan,cyan".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[96mt\x1B[39m\x1B[93me\x1B[39m\x1B[95ms\x1B[39m\x1B[96mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for white with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"white,white".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[97mt\x1B[39m\x1B[97me\x1B[39m\x1B[97ms\x1B[39m\x1B[97mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for gray with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"gray,gray".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[90mt\x1B[39m\x1B[90me\x1B[39m\x1B[90ms\x1B[39m\x1B[90mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
+			name: String::from("Color output for grey with FORCE_COLOR 1"),
+			args: vec![
+				"test".to_string(),
+				"-g".to_string(),
+				"grey,grey".to_string(),
+				"-f".to_string(),
+				"console".to_string(),
+			],
+			fixture: concat!(
+				"\n\n",
+				"\x1B[90mt\x1B[39m\x1B[90me\x1B[39m\x1B[90ms\x1B[39m\x1B[90mt\x1B[39m\n",
+				"\n\n"
+			)
+			.to_string(),
+			force_color: String::from("1"),
+			no_color: false,
+		},
+		Test {
 			name: String::from("Align center"),
 			args: vec!["test".to_string(), "-a".to_string() ,"center".to_string()],
 			fixture: concat!("\n\n",
@@ -651,7 +831,7 @@ fn get_all_tests() -> Vec<Test> {
 			name: String::from("Font test: \"console\" - with color"),
 			args: vec![supported_characters.clone(), "--font".to_string(), "console".to_string(), "-c".to_string(), "red".to_string()],
 			fixture: concat!("\n\n",
-				"\u{1b}[31ma\u{1b}[39m\u{1b}[31mb\u{1b}[39m\u{1b}[31mc\u{1b}[39m\u{1b}[31md\u{1b}[39m\u{1b}[31me\u{1b}[39m\u{1b}[31mf\u{1b}[39m\u{1b}[31mg\u{1b}[39m\u{1b}[31mh\u{1b}[39m\u{1b}[31mi\u{1b}[39m\u{1b}[31mj\u{1b}[39m\u{1b}[31mk\u{1b}[39m\u{1b}[31ml\u{1b}[39m\u{1b}[31mm\u{1b}[39m\u{1b}[31mn\u{1b}[39m\u{1b}[31mo\u{1b}[39m\u{1b}[31mp\u{1b}[39m\u{1b}[31mq\u{1b}[39m\u{1b}[31mr\u{1b}[39m\u{1b}[31ms\u{1b}[39m\u{1b}[31mt\u{1b}[39m\u{1b}[31mu\u{1b}[39m\u{1b}[31mv\u{1b}[39m\u{1b}[31mw\u{1b}[39m\u{1b}[31mx\u{1b}[39m\u{1b}[31my\u{1b}[39m\u{1b}[31mz\u{1b}[39m\u{1b}[31m0\u{1b}[39m\u{1b}[31m1\u{1b}[39m\u{1b}[31m2\u{1b}[39m\u{1b}[31m3\u{1b}[39m\u{1b}[31m4\u{1b}[39m\u{1b}[31m5\u{1b}[39m\u{1b}[31m6\u{1b}[39m\u{1b}[31m7\u{1b}[39m\u{1b}[31m8\u{1b}[39m\u{1b}[31m9\u{1b}[39m\u{1b}[31m!\u{1b}[39m\u{1b}[31m?\u{1b}[39m\u{1b}[31m.\u{1b}[39m\u{1b}[31m+\u{1b}[39m\u{1b}[31m-\u{1b}[39m\u{1b}[31m_\u{1b}[39m\u{1b}[31m=\u{1b}[39m\u{1b}[31m@\u{1b}[39m\u{1b}[31m#\u{1b}[39m\u{1b}[31m$\u{1b}[39m\u{1b}[31m%\u{1b}[39m\u{1b}[31m&\u{1b}[39m\u{1b}[31m(\u{1b}[39m\u{1b}[31m)\u{1b}[39m\u{1b}[31m/\u{1b}[39m\u{1b}[31m:\u{1b}[39m\u{1b}[31m;\u{1b}[39m\u{1b}[31m,\u{1b}[39m\u{1b}[31m'\u{1b}[39m\u{1b}[31m\"\u{1b}[39m\n",
+				"\x1B[31ma\x1B[39m\x1B[31mb\x1B[39m\x1B[31mc\x1B[39m\x1B[31md\x1B[39m\x1B[31me\x1B[39m\x1B[31mf\x1B[39m\x1B[31mg\x1B[39m\x1B[31mh\x1B[39m\x1B[31mi\x1B[39m\x1B[31mj\x1B[39m\x1B[31mk\x1B[39m\x1B[31ml\x1B[39m\x1B[31mm\x1B[39m\x1B[31mn\x1B[39m\x1B[31mo\x1B[39m\x1B[31mp\x1B[39m\x1B[31mq\x1B[39m\x1B[31mr\x1B[39m\x1B[31ms\x1B[39m\x1B[31mt\x1B[39m\x1B[31mu\x1B[39m\x1B[31mv\x1B[39m\x1B[31mw\x1B[39m\x1B[31mx\x1B[39m\x1B[31my\x1B[39m\x1B[31mz\x1B[39m\x1B[31m0\x1B[39m\x1B[31m1\x1B[39m\x1B[31m2\x1B[39m\x1B[31m3\x1B[39m\x1B[31m4\x1B[39m\x1B[31m5\x1B[39m\x1B[31m6\x1B[39m\x1B[31m7\x1B[39m\x1B[31m8\x1B[39m\x1B[31m9\x1B[39m\x1B[31m!\x1B[39m\x1B[31m?\x1B[39m\x1B[31m.\x1B[39m\x1B[31m+\x1B[39m\x1B[31m-\x1B[39m\x1B[31m_\x1B[39m\x1B[31m=\x1B[39m\x1B[31m@\x1B[39m\x1B[31m#\x1B[39m\x1B[31m$\x1B[39m\x1B[31m%\x1B[39m\x1B[31m&\x1B[39m\x1B[31m(\x1B[39m\x1B[31m)\x1B[39m\x1B[31m/\x1B[39m\x1B[31m:\x1B[39m\x1B[31m;\x1B[39m\x1B[31m,\x1B[39m\x1B[31m'\x1B[39m\x1B[31m\"\x1B[39m\n",
 				"\n\n").to_string(),
 			force_color: String::from(""),
 			no_color: false,

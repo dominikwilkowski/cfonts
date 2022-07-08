@@ -37,15 +37,15 @@ mod tests {
 
 			d("test", 1, Dt::Head, &options, &mut output);
 			let mut stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "\u{1b}[43m\n  \u{1b}[30mtest\u{1b}[39m \u{1b}[49m\n");
+			assert_eq!(stdout, "\x1B[43m\n  \x1B[30mtest\x1B[39m \x1B[49m\n");
 
 			d("test", 1, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "\u{1b}[43m\n  \u{1b}[30mtest\u{1b}[39m \u{1b}[49m\n  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "\x1B[43m\n  \x1B[30mtest\x1B[39m \x1B[49m\n  \x1B[33mtest\x1B[39m\n");
 
 			d("test", 1, Dt::Error, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "\u{1b}[43m\n  \u{1b}[30mtest\u{1b}[39m \u{1b}[49m\n  \u{1b}[33mtest\u{1b}[39m\n\u{1b}[41m\u{1b}[37m ERROR \u{1b}[39m\u{1b}[49m \u{1b}[31mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "\x1B[43m\n  \x1B[30mtest\x1B[39m \x1B[49m\n  \x1B[33mtest\x1B[39m\n\x1B[41m\x1B[37m ERROR \x1B[39m\x1B[49m \x1B[31mtest\x1B[39m\n");
 		});
 	}
 
@@ -69,7 +69,7 @@ mod tests {
 
 			d("test", 1, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "  \x1B[33mtest\x1B[39m\n");
 			output = Vec::new();
 
 			options.debug_level = 2;
@@ -80,28 +80,28 @@ mod tests {
 
 			d("test", 2, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "  \x1B[33mtest\x1B[39m\n");
 			output = Vec::new();
 
 			d("test", 1, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "  \x1B[33mtest\x1B[39m\n");
 			output = Vec::new();
 
 			options.debug_level = 3;
 			d("test", 3, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "  \x1B[33mtest\x1B[39m\n");
 			output = Vec::new();
 
 			d("test", 2, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "  \x1B[33mtest\x1B[39m\n");
 			output = Vec::new();
 
 			d("test", 1, Dt::Log, &options, &mut output);
 			stdout = String::from_utf8(output.clone()).expect("Input not UTF-8");
-			assert_eq!(stdout, "  \u{1b}[33mtest\u{1b}[39m\n");
+			assert_eq!(stdout, "  \x1B[33mtest\x1B[39m\n");
 		});
 	}
 }

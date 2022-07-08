@@ -410,6 +410,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								"red" => Ok(String::from("#ff0000")),
 								"green" => Ok(String::from("#00ff00")),
 								"blue" => Ok(String::from("#0000ff")),
+								"yellow" => Ok(String::from("#ffff00")),
 								"magenta" => Ok(String::from("#ff00ff")),
 								"cyan" => Ok(String::from("#00ffff")),
 								"white" => Ok(String::from("#ffffff")),
@@ -419,7 +420,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 										// parsing hex round trip to make sure it's in a good format
 										Ok(rgb2hex(&hex2rgb(unknown, &options), &options))
 									} else {
-										Err(format!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, magenta, cyan, white, gray, grey", color(unknown, Colors::Green)))
+										Err(format!("The gradient color \"{}\" is not supported.\nAllowed options are: black, red, green, blue, yellow, magenta, cyan, white, gray, grey", color(unknown, Colors::Green)))
 									}
 								}
 							}).collect::<Result<Vec<String>,String>>()?;

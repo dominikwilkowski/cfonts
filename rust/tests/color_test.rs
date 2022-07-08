@@ -467,23 +467,20 @@ mod color {
 		});
 
 		temp_env::with_var("FORCE_COLOR", Some("1"), || {
-			assert_eq!(
-				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[91m testing \u{1b}[39m")
-			);
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))), String::from("\x1B[91m testing \x1B[39m"));
 		});
 
 		temp_env::with_var("FORCE_COLOR", Some("2"), || {
 			assert_eq!(
 				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[38;5;211m testing \u{1b}[39m")
+				String::from("\x1B[38;5;211m testing \x1B[39m")
 			);
 		});
 
 		temp_env::with_var("FORCE_COLOR", Some("3"), || {
 			assert_eq!(
 				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[38;2;243;79;168m testing \u{1b}[39m")
+				String::from("\x1B[38;2;243;79;168m testing \x1B[39m")
 			);
 		});
 	}
@@ -497,21 +494,21 @@ mod color {
 		temp_env::with_var("FORCE_COLOR", Some("1"), || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[101m testing \u{1b}[49m")
+				String::from("\x1B[101m testing \x1B[49m")
 			);
 		});
 
 		temp_env::with_var("FORCE_COLOR", Some("2"), || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[48;5;211m testing \u{1b}[49m")
+				String::from("\x1B[48;5;211m testing \x1B[49m")
 			);
 		});
 
 		temp_env::with_var("FORCE_COLOR", Some("3"), || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[48;2;243;79;168m testing \u{1b}[49m")
+				String::from("\x1B[48;2;243;79;168m testing \x1B[49m")
 			);
 		});
 	}
@@ -523,23 +520,20 @@ mod color {
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("1")), ("NO_COLOR", Some(""))], || {
-			assert_eq!(
-				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[91m testing \u{1b}[39m")
-			);
+			assert_eq!(color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))), String::from("\x1B[91m testing \x1B[39m"));
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[38;5;211m testing \u{1b}[39m")
+				String::from("\x1B[38;5;211m testing \x1B[39m")
 			);
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("3")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				color(" testing ", Colors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[38;2;243;79;168m testing \u{1b}[39m")
+				String::from("\x1B[38;2;243;79;168m testing \x1B[39m")
 			);
 		});
 	}
@@ -553,21 +547,21 @@ mod color {
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("1")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[101m testing \u{1b}[49m")
+				String::from("\x1B[101m testing \x1B[49m")
 			);
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("2")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[48;5;211m testing \u{1b}[49m")
+				String::from("\x1B[48;5;211m testing \x1B[49m")
 			);
 		});
 
 		temp_env::with_vars(vec![("FORCE_COLOR", Some("3")), ("NO_COLOR", Some(""))], || {
 			assert_eq!(
 				bg_color(" testing ", BgColors::Rgb(Rgb::Val(243, 79, 168))),
-				String::from("\u{1b}[48;2;243;79;168m testing \u{1b}[49m")
+				String::from("\x1B[48;2;243;79;168m testing \x1B[49m")
 			);
 		});
 	}
