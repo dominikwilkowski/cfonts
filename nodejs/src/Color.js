@@ -382,7 +382,7 @@ function ansi_2562ansi_16(code, bg = false) {
 		(code >= 132 && code <= 135) ||
 		(code >= 139 && code <= 141) ||
 		(code >= 145 && code <= 147) ||
-		(code >= 196 && code <= 171) ||
+		(code >= 169 && code <= 171) ||
 		(code >= 175 && code <= 177)
 	) {
 		ansi_16_code = 35;
@@ -393,7 +393,7 @@ function ansi_2562ansi_16(code, bg = false) {
 	if (
 		(code >= 164 && code <= 165) ||
 		(code >= 182 && code <= 183) ||
-		(code >= 200 && code <= 200) ||
+		(code >= 200 && code <= 201) ||
 		(code >= 218 && code <= 219)
 	) {
 		ansi_16_code = 95;

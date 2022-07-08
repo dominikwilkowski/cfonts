@@ -151,6 +151,7 @@ We also have an [end-to-end test script](https://github.com/dominikwilkowski/cfo
 
 ## Release History
 
+* 1.1.0  -  Added `yellow` to the gradient colors
 * 1.0.4  -  Fixed NO_COLOR not being respected in help, fixed color conversion rgb to ansi_256
 * 1.0.3  -  Fixed NO_COLOR support when run without FORCE_COLOR
 * 1.0.2  -  Fixed help and version flags in first position

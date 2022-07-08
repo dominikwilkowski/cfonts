@@ -307,10 +307,10 @@ mod chars {
 		];
 		options.colors = vec![Colors::Red, Colors::Blue];
 		output = vec![
-			String::from("\u{1b}[34mgreen\u{1b}[39m \u{1b}[31mred\u{1b}[39m blue \u{1b}[31mred\u{1b}[39m nothing"),
+			String::from("\x1B[34mgreen\x1B[39m \x1B[31mred\x1B[39m blue \x1B[31mred\x1B[39m nothing"),
 			String::from("color"),
 			String::from("nothing"),
-			String::from("\u{1b}[31mred\u{1b}[39m blue"),
+			String::from("\x1B[31mred\x1B[39m blue"),
 		];
 		assert_eq!(paint_letter(&letter, 4, &options), output);
 

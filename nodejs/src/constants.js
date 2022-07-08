@@ -134,6 +134,8 @@ const GRADIENTCOLORS = {
 	magenta: 'magenta',
 	cyan: 'cyan',
 	white: 'white',
+	gray: 'gray',
+	grey: 'grey',
 };
 
 const GRADIENTS = {
