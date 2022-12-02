@@ -8,7 +8,7 @@ use crate::config::{BgColors, Colors};
 use crate::debug::{d, Dt};
 
 /// An enum to list the available ANSI color support in the consumers console/terminal
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum TermColorSupport {
 	/// 16 million colors via truecolor RGB
 	Ansi16m,
@@ -27,7 +27,7 @@ pub enum ColorLayer {
 }
 
 /// The `Rgb` enum is being used to store [RGB](https://en.wikipedia.org/wiki/RGB_color_model) values
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Rgb {
 	Val(u8, u8, u8),
 }
@@ -256,7 +256,7 @@ pub fn hex2rgb(hex: &str, options: &Options) -> Rgb {
 				&clean_hex[2..3]
 			)
 		}
-		i if i >= 6 => (&clean_hex[0..6]).to_string(),
+		i if i >= 6 => (clean_hex[0..6]).to_string(),
 		i => {
 			panic!("The input type of hex2rgb is hex and a hex color cannot be of length {}", i);
 		}

@@ -45,7 +45,7 @@ pub enum Fonts {
 ///
 /// > 💡  Ansi color support is automatically detected and down-scaled if needed.
 /// Colors also respect both `NO_COLOR` and `FORCE_COLOR` env vars.
-#[derive(EnumIter, Debug, Clone, PartialEq)]
+#[derive(EnumIter, Debug, Clone, PartialEq, Eq)]
 pub enum Colors {
 	/// Uses the system font defined by your console
 	System,
@@ -78,7 +78,7 @@ pub enum Colors {
 ///
 /// > 💡  Ansi color support is automatically detected and down-scaled if needed.
 /// Colors also respect both `NO_COLOR` and `FORCE_COLOR` env vars.
-#[derive(EnumIter, Debug, Clone, PartialEq)]
+#[derive(EnumIter, Debug, Clone, PartialEq, Eq)]
 pub enum BgColors {
 	/// Use the system background defined in your console
 	Transparent,
@@ -106,7 +106,7 @@ pub enum BgColors {
 /// The `Env` enum includes all supported environment options.
 ///
 /// ![The env option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
-#[derive(EnumIter, Debug, Clone, PartialEq)]
+#[derive(EnumIter, Debug, Clone, PartialEq, Eq)]
 pub enum Env {
 	/// A cli environment means we render colors as ansi escape sequences
 	Cli,
@@ -118,7 +118,7 @@ pub enum Env {
 /// The `Align` enum includes all supported alignment options.
 ///
 /// ![The align option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
-#[derive(EnumIter, Debug, Clone, PartialEq)]
+#[derive(EnumIter, Debug, Clone, PartialEq, Eq)]
 pub enum Align {
 	Left,
 	Center,
@@ -228,7 +228,7 @@ pub const GRADIENTS_POLYSEXUAL: [&str; 3] = ["#f61cb9", "#07d569", "#1c92f6"];
 pub const GRADIENTS_TRANSGENDER: [&str; 5] = ["#5bcefa", "#f5a9b8", "#ffffff", "#f5a9b8", "#5bcefa"];
 
 /// The `Options` struct includes all options cfonts takes to control it's output
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Options {
 	/// The text to be converted
 	pub text: String,
@@ -306,7 +306,7 @@ impl Options {
 }
 
 /// The type of options our [`CLIOPTIONS`] can have
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum OptionType {
 	/// There is only one text option which is for the text
 	Text,
@@ -329,7 +329,7 @@ pub enum OptionType {
 }
 
 /// The struct of a single option inside our [`CLIOPTIONS`]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct CliOption<'a> {
 	/// The key of this option so we can address it later
 	pub key: &'a str,
