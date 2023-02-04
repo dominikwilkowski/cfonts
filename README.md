@@ -82,7 +82,7 @@ brew install cfonts
 #### [Arch User Repository](https://aur.archlinux.org/packages/cfonts)
 
 ```sh
-sudo pacman -S cfonts
+yay -S cfonts
 ```
 
 #### [MacPorts](https://ports.macports.org/port/cfonts/)
