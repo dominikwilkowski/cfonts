@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy ANSI fonts for the console",
-	"version": "3.1.1",
+	"version": "3.2.0",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -32,7 +32,7 @@
 		"test:lint": "eslint src/",
 		"test:format": "prettier --list-different \"**/*.{js,json}\"",
 		"format": "prettier --write \"**/*.{js,json}\"",
-		"build": "yarn build:lib && yarn build:bin && yarn build:fonts && yarn test:types",
+		"build": "yarn build:lib && yarn build:bin && yarn build:fonts",
 		"build:bin": "npx mkdirp bin && mv lib/bin.js bin/index.js",
 		"build:lib": "npx mkdirp lib && babel src --out-dir lib",
 		"build:fonts": "npx mkdirp fonts && npx cpy-cli \"../fonts/*\" \"./fonts/\"",
