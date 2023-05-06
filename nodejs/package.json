@@ -32,7 +32,7 @@
 		"test:lint": "eslint src/",
 		"test:format": "prettier --list-different \"**/*.{js,json}\"",
 		"format": "prettier --write \"**/*.{js,json}\"",
-		"build": "yarn build:lib && yarn build:bin && yarn build:fonts",
+		"build": "yarn build:lib && yarn build:bin && yarn build:fonts && yarn test:types",
 		"build:bin": "npx mkdirp bin && mv lib/bin.js bin/index.js",
 		"build:lib": "npx mkdirp lib && babel src --out-dir lib",
 		"build:fonts": "npx mkdirp fonts && npx cpy-cli \"../fonts/*\" \"./fonts/\"",
@@ -115,11 +115,12 @@
 		"pretty"
 	],
 	"files": [
-		"lib/*.js",
+		"lib/*",
 		"bin/*",
 		"fonts/*"
 	],
 	"main": "lib/index.js",
+	"types": "lib/index.d.ts",
 	"bin": {
 		"cfonts": "./bin/index.js"
 	},
