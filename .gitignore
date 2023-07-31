@@ -15,6 +15,7 @@ lib/
 package-lock.json
 .coveralls.yml
 nodejs/fonts
+nodejs/LICENSE
 rust/fonts
 rust/target
 rust/LICENSE

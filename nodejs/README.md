@@ -91,12 +91,15 @@ This package is tested on the below platform and node combinations as part of ou
 | Linux    | v12  |
 | Linux    | v14  |
 | Linux    | v16  |
+| Linux    | v18  |
 | MacOS    | v12  |
 | MacOS    | v14  |
 | MacOS    | v16  |
+| MacOS    | v18  |
 | Windows  | v12  |
 | Windows  | v14  |
 | Windows  | v16  |
+| Windows  | v18  |
 
 ### Unit tests
 
