@@ -44,7 +44,7 @@ Repo: https://aur.archlinux.org/cfonts.git
 
 Reference: https://wiki.archlinux.org/title/PKGBUILD
 
-Download the release zip from GitHub (`https://github.com/dominikwilkowski/cfonts/archive/refs/tags/v${pkgver}.tar.gz`) and run:
+Download the release zip from GitHub (`https://github.com/dominikwilkowski/cfonts/archive/refs/tags/v[version].tar.gz`) and run:
 
 ```sh
 λ openssl dgst -sha256 path/to/zip
@@ -112,7 +112,7 @@ checksums           ${distfiles} \
 +                     size    3315389
 ```
 
-To get checksums download the zip from `https://codeload.github.com/DominikWilkowski/cfonts/legacy.tar.gz/v1.0.4rust?dummy=` and run:
+To get checksums download the zip from `https://codeload.github.com/DominikWilkowski/cfonts/legacy.tar.gz/v[version]rust?dummy=` and run:
 
 ```sh
 λ openssl dgst -rmd160 path/to/zip
