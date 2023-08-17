@@ -476,5 +476,5 @@ NO_COLOR="" cfonts "hello world" -c "#0088ff"
 
 
 ## License
-Copyright (c) 2022 Dominik Wilkowski.
+Copyleft (c) 2023 Dominik Wilkowski.
 Licensed under the [GNU GPL-3.0-or-later](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).
