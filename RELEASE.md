@@ -32,10 +32,14 @@ We have to use the flag `--allow-dirty` since we include build artifacts like `f
 
 https://docs.brew.sh/Manpage#bump-formula-pr-options-formula
 
+Fork https://github.com/Homebrew/homebrew-core and push a new version.
+
+`cd` into the folder and run below command.
+
 Download the `tar.gz` file from the GitHub release tag and run `openssl dgst -sha256 [filepath].tar.gz` and copy the checksum.
 
 ```sh
-λ brew bump-formula-pr cfonts --url=https://github.com/dominikwilkowski/cfonts/archive/refs/tags/[version].tar.gz --sha256=[checksum] --dry-run
+λ brew bump-formula-pr cfonts --url=https://github.com/dominikwilkowski/cfonts/archive/refs/tags/v[version]rust.tar.gz --sha256=[checksum] --dry-run
 ```
 
 ### AUR
@@ -109,7 +113,7 @@ checksums           ${distfiles} \
 -                     size    3313925
 +                     rmd160  cd1099abdbf581dd4bd3a1a0bd156ee3f9a6e953 \
 +                     sha256  edd9a1f4ce246eee3f10f084d72e4e650bd68539d8bc8f9e4eca61f2f9c79293 \
-+                     size    3315389
++                     size    3323439
 ```
 
 To get checksums download the zip from `https://codeload.github.com/DominikWilkowski/cfonts/legacy.tar.gz/v[version]rust?dummy=` and run:
@@ -117,6 +121,7 @@ To get checksums download the zip from `https://codeload.github.com/DominikWilko
 ```sh
 λ openssl dgst -rmd160 path/to/zip
 λ openssl dgst -sha256 path/to/zip
+λ stat -f%z path/to/zip
 ```
 
 Lint the Portfile via:
