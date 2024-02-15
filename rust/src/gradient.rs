@@ -303,7 +303,7 @@ pub fn get_transition_steps(colors: &[String], steps: usize, options: &Options) 
 	// steps left over to be distributed
 	let rest = (steps as i8 - (colors.len() as i8 + transition_steps * (colors.len() as i8 - 1))) as usize;
 	// the gaps array has one less items than our points (cause it's gaps between each of the points)
-	let mut gaps = vec![transition_steps as i8; colors.len() - 1];
+	let mut gaps = vec![transition_steps; colors.len() - 1];
 	let len = gaps.len();
 
 	for i in 0..rest {

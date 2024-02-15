@@ -288,6 +288,7 @@ mod args {
 		);
 
 		options.font = Fonts::FontConsole;
+		options.line_height = 0;
 		assert_eq!(
 			parse(vec![
 				"path/to/bin".to_string(),
@@ -298,6 +299,33 @@ mod args {
 			.unwrap(),
 			options
 		);
+		options.line_height = 2;
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-f".to_string(),
+				"Console".to_string(),
+				"-z".to_string(),
+				"2".to_string(),
+			])
+			.unwrap(),
+			options
+		);
+		options.line_height = 1;
+		assert_eq!(
+			parse(vec![
+				"path/to/bin".to_string(),
+				"my text".to_string(),
+				"-f".to_string(),
+				"Console".to_string(),
+				"-z".to_string(),
+				"1".to_string(),
+			])
+			.unwrap(),
+			options
+		);
+
 		options.font = Fonts::FontBlock;
 		assert_eq!(
 			parse(vec![

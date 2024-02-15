@@ -7,7 +7,7 @@ use crate::chars::{
 	add_letter, add_line, add_line_height, align_last_line, get_letter_length, get_letter_space, paint_letter,
 };
 use crate::color::{bgcolor2hex, get_background_color};
-use crate::config::{Align, BgColors, Env, Fonts, Options};
+use crate::config::{Align, BgColors, Env, Options};
 use crate::debug::{d, Dt};
 use crate::font;
 use crate::gradient::add_gradient_colors;
@@ -92,14 +92,6 @@ pub fn render(options: Options) -> RenderedString {
 	};
 	d(&format!("render()\nletter_spacing:{:?}", letter_spacing), 1, Dt::Log, &options, &mut std::io::stdout());
 
-	// the console font is special in that it has less line height space
-	let line_height = if options.font == Fonts::FontConsole && options.line_height > 0 {
-		options.line_height - 1
-	} else {
-		options.line_height
-	};
-	d(&format!("render()\nline_height:{:?}", line_height), 1, Dt::Log, &options, &mut std::io::stdout());
-
 	let letter_space = get_letter_space(&font.letterspace, letter_spacing, &options);
 	let letter_space_len = get_letter_length(&letter_space, font.colors, &options);
 	let painted_letter_space = paint_letter(&letter_space, font.colors, &options);
@@ -155,7 +147,7 @@ pub fn render(options: Options) -> RenderedString {
 					d("render() aligned last line", 1, Dt::Log, &options, &mut std::io::stdout());
 					add_line(&mut output, font.lines, &options);
 					d("render() added new line", 1, Dt::Log, &options, &mut std::io::stdout());
-					add_line_height(&mut output, line_height, &options);
+					add_line_height(&mut output, options.line_height, &options);
 					d("render() added line_height", 1, Dt::Log, &options, &mut std::io::stdout());
 					add_letter(&mut output, &font.buffer, &options);
 					d("render() added buffer", 1, Dt::Log, &options, &mut std::io::stdout());
