@@ -203,7 +203,7 @@ pub fn rgb2hex(rgb: &Rgb, options: &Options) -> String {
 	d(&format!("color::rgb2hex()\nrgb:{:?}", rgb), 5, Dt::Log, options, &mut std::io::stdout());
 
 	let (r, g, b) = rgb.get_value();
-	let result = format!("#{:0>2x}{:0>2x}{:0>2x}", r as u8, g as u8, b as u8);
+	let result = format!("#{:0>2x}{:0>2x}{:0>2x}", r, g, b);
 
 	d(&format!("color::rgb2hex() {:?} -> {:?}", rgb, result), 5, Dt::Log, options, &mut std::io::stdout());
 	result
