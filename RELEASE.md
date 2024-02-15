@@ -32,7 +32,9 @@ We have to use the flag `--allow-dirty` since we include build artifacts like `f
 
 https://docs.brew.sh/Manpage#bump-formula-pr-options-formula
 
-Fork https://github.com/Homebrew/homebrew-core and push a new version.
+_(💡  New versions are automatically added as PRs. Check repo for PRs or use `--dry-run` which will report an already open PR)_
+
+Fork https://github.com/Homebrew/homebrew-core.
 
 `cd` into the folder and run below command.
 
@@ -80,9 +82,13 @@ Edit the `.SRCINFO` file:
 
 Note: `pkgrel` starts with `1`
 
+### Fedora
+
+New versions are added automatically.
+
 ### Macports
 
-Fork https://github.com/macports/macports-ports and push a new version.
+Fork https://github.com/macports/macports-ports.
 Reference PR: https://github.com/macports/macports-ports/pull/15303 and https://github.com/macports/macports-ports/pull/15130
 
 Run `cargo2port` in the rust folder of the cfonts repo:

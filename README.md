@@ -56,12 +56,6 @@ sudo apk add cfonts
 scoop install cfonts
 ```
 
-#### Fedora
-
-```sh
-sudo dnf install cfonts
-```
-
 #### RPM
 
 ```sh
@@ -83,6 +77,12 @@ brew install cfonts
 
 ```sh
 yay -S cfonts
+```
+
+#### [Fedora](https://src.fedoraproject.org/rpms/rust-cfonts)
+
+```sh
+sudo dnf install cfonts
 ```
 
 #### [MacPorts](https://ports.macports.org/port/cfonts/)
