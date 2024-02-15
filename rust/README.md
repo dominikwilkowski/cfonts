@@ -151,6 +151,8 @@ We also have an [end-to-end test script](https://github.com/dominikwilkowski/cfo
 
 ## Release History
 
+* 1.1.3  -  Fixed #75, bumped dependencies and fixed some clippy warnings
+* 1.1.2  -  Added `LICENSE` into the published version
 * 1.1.1  -  Updated dependencies, bumped `terminal_size` to `0.2.3`
 * 1.1.0  -  Added `yellow` to the gradient colors
 * 1.0.4  -  Fixed NO_COLOR not being respected in help, fixed color conversion rgb to ansi_256

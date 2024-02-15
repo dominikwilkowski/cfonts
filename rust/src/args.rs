@@ -161,6 +161,11 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 		options.debug = true;
 	}
 
+	// we check for the line_height flag to make sure we don't override it with the console font
+	let line_height_options = options_lookup.get("-z").unwrap();
+	let line_height_changed = my_args.contains(&line_height_options.name.to_string())
+		|| my_args.contains(&line_height_options.shortcut.to_string());
+
 	d("args::parse()", 1, Dt::Head, &options, &mut std::io::stdout());
 
 	if my_args.len() < 2 {
@@ -241,6 +246,10 @@ pub fn parse(args: Vec<String>) -> Result<Options, String> {
 								));
 							}
 						};
+
+						if options.font == Fonts::FontConsole && !line_height_changed {
+							options.line_height = 0;
+						}
 					}
 					OptionType::Align => {
 						i += 1;
