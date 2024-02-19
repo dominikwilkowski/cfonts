@@ -97,9 +97,16 @@ sudo port install cfonts
 cargo install cfonts
 ```
 
-#### [npm](https://www.npmjs.com/package/cfonts)
+#### NixOS
+
+``` sh
+nix-env -iA nixos.cfonts
+```
+
 
 ### NodeJs
+
+#### [npm](https://www.npmjs.com/package/cfonts)
 
 ```sh
 npm i cfonts -g
