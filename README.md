@@ -97,7 +97,7 @@ sudo port install cfonts
 cargo install cfonts
 ```
 
-#### NixOS
+#### [NixOS](https://search.nixos.org/packages?show=cfonts)
 
 ``` sh
 nix-env -iA nixos.cfonts
