@@ -85,6 +85,12 @@ yay -S cfonts
 sudo dnf install cfonts
 ```
 
+#### [NixOS](https://search.nixos.org/packages?show=cfonts)
+
+``` sh
+nix-env -iA nixos.cfonts
+```
+
 #### [MacPorts](https://ports.macports.org/port/cfonts/)
 
 ```sh
@@ -96,13 +102,6 @@ sudo port install cfonts
 ```sh
 cargo install cfonts
 ```
-
-#### [NixOS](https://search.nixos.org/packages?show=cfonts)
-
-``` sh
-nix-env -iA nixos.cfonts
-```
-
 
 ### NodeJs
 
