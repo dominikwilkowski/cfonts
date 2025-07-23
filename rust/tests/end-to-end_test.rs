@@ -17,6 +17,39 @@ mod tests {
 	use std::process::Command;
 
 	#[test]
+	fn pipe_test() {
+		let output =
+			Command::new("sh").arg("-c").arg("echo \"t\" | cargo run").output().expect("failed to execute rust process");
+
+		assert_eq!(
+			String::from_utf8_lossy(&output.stdout).to_string(),
+			concat!(
+				"\n\n",
+				" ████████╗\n",
+				" ╚══██╔══╝\n",
+				"    ██║   \n",
+				"    ██║   \n",
+				"    ██║   \n",
+				"    ╚═╝   \n",
+				"\n\n"
+			)
+			.to_string()
+		);
+	}
+
+	#[test]
+	fn pipe_overwrite_test() {
+		let output =
+			Command::new("sh").arg("-c").arg("echo \"t\" | cargo run e").output().expect("failed to execute rust process");
+
+		assert_eq!(
+			String::from_utf8_lossy(&output.stdout).to_string(),
+			concat!("\n\n", " ███████╗\n", " ██╔════╝\n", " █████╗  \n", " ██╔══╝  \n", " ███████╗\n", " ╚══════╝\n", "\n\n")
+				.to_string()
+		);
+	}
+
+	#[test]
 	fn running_all_e2e_tests() {
 		let tests = get_all_tests();
 		for test in tests {

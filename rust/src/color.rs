@@ -1,5 +1,5 @@
 //! The contents of this module is all about colors, color-transformation and color-conversion
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use std::env;
 use supports_color::Stream;
 
@@ -417,7 +417,7 @@ pub fn color2hex(color: &Colors, options: &Options) -> String {
 				"#ea3223", "#377d22", "#fffd54", "#ea3df7", "#74fbfd", "#ee776d", "#8cf57b", "#fffb7f", "#6974f6", "#ee82f8",
 				"#8dfafd",
 			];
-			String::from(*colors.choose(&mut rand::thread_rng()).unwrap())
+			String::from(*colors.choose(&mut rand::rng()).unwrap())
 		}
 		Colors::Rgb(rgb) => {
 			let (r, g, b) = rgb.get_value();
@@ -721,7 +721,7 @@ pub fn get_foreground_color(color: &Colors) -> (String, String) {
 				"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[35m", "\x1b[36m", "\x1b[91m", "\x1b[92m", "\x1b[93m", "\x1b[94m",
 				"\x1b[95m", "\x1b[96m",
 			];
-			String::from(*colors.choose(&mut rand::thread_rng()).unwrap())
+			String::from(*colors.choose(&mut rand::rng()).unwrap())
 		}
 		Colors::Rgb(rgb) => match color_support {
 			TermColorSupport::NoColor => String::from(""),

@@ -37,7 +37,10 @@
 //! **Learn more by reading the [README](https://github.com/dominikwilkowski/cfonts)**
 extern crate exitcode;
 
-use std::env::args;
+use std::{
+	env,
+	io::{self, IsTerminal, Read},
+};
 
 pub mod args;
 pub mod chars;
@@ -54,7 +57,22 @@ use debug::{d, Dt};
 use render::render;
 
 fn main() {
-	let options = match args::parse(args().collect::<Vec<String>>()) {
+	let piped_text = if !io::stdin().is_terminal() {
+		let mut buffer = String::new();
+		io::stdin().read_to_string(&mut buffer).ok().map(|_| String::from(buffer.trim()))
+	} else {
+		None
+	};
+
+	let mut args = env::args().collect::<Vec<String>>();
+
+	if let Some(text) = piped_text {
+		if args.len() == 1 || (args.len() > 1 && args[1].starts_with('-')) {
+			args.insert(1, text);
+		}
+	}
+
+	let options = match args::parse(args) {
 		Ok(options) => options,
 		Err(msg) => {
 			println!("{}", msg);
@@ -63,7 +81,13 @@ fn main() {
 	};
 
 	d("main()", 1, Dt::Head, &options, &mut std::io::stdout());
-	d(&format!("main()\nCLI args:{:#?}", args().collect::<Vec<String>>()), 1, Dt::Log, &options, &mut std::io::stdout());
+	d(
+		&format!("main()\nCLI args:{:#?}", env::args().collect::<Vec<String>>()),
+		1,
+		Dt::Log,
+		&options,
+		&mut std::io::stdout(),
+	);
 
 	if options.version {
 		println!("{}", cli::version(&options));
