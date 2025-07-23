@@ -27,3 +27,8 @@ supports-color = "3"
 [dev-dependencies]
 temp-env = "0.3"
 assert_cmd = "2"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
