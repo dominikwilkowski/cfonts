@@ -152,6 +152,7 @@ We also have an [end-to-end test script](https://github.com/dominikwilkowski/cfo
 
 ## Release History
 
+* 1.3.0  -  Added support for piping, enabled link time optimizations, bumped dependencies
 * 1.2.0  -  Added raw-mode flag, bumped dependencies
 * 1.1.4  -  Fixed lock file
 * 1.1.3  -  Fixed #75, bumped dependencies and fixed some clippy warnings
@@ -168,5 +169,5 @@ We also have an [end-to-end test script](https://github.com/dominikwilkowski/cfo
 
 ## License
 
-Copyleft (c) 2023 Dominik Wilkowski.
+Copyleft (c) Dominik Wilkowski.
 Licensed under the [GNU GPL-3.0-or-later](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).

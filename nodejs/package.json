@@ -8,11 +8,13 @@
 		"email": "Hi@Dominik-Wilkowski.com",
 		"url": "http://dominik-wilkowski.com/"
 	},
-	"contributors": {
-		"name": "Dominik Wilkowski",
-		"email": "Hi@Dominik-Wilkowski.com",
-		"url": "http://dominik-wilkowski.com/"
-	},
+	"contributors": [
+		{
+			"name": "Dominik Wilkowski",
+			"email": "Hi@Dominik-Wilkowski.com",
+			"url": "http://dominik-wilkowski.com/"
+		}
+	],
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/dominikwilkowski/cfonts.git"

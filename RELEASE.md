@@ -147,5 +147,5 @@ And finally test it all via:
 Make sure you format the git message as `cfonts: update to 1.1.0`.
 
 
-Copyleft (c) 2023 Dominik Wilkowski.
+Copyleft (c) Dominik Wilkowski.
 Licensed under the [GNU GPL-3.0-or-later](https://github.com/dominikwilkowski/cfonts/blob/released/LICENSE).
