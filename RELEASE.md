@@ -32,6 +32,8 @@ We have to use the flag `--allow-dirty` since we include build artifacts like `f
 
 https://docs.brew.sh/Manpage#bump-formula-pr-options-formula
 
+> The cfonts formula has its version update pull requests automatically opened by `BrewTestBot` every ~3 hours!
+
 _(💡  New versions are automatically added as PRs. Check repo for PRs or use `--dry-run` which will report an already open PR)_
 
 Fork https://github.com/Homebrew/homebrew-core.
