@@ -6,6 +6,9 @@
 
 ## NodeJS
 
+https://www.npmjs.com/package/cfonts
+https://yarnpkg.com/package?name=cfonts
+
 Just publish via npm:
 
 ```sh
@@ -22,6 +25,9 @@ Make sure you tag each release with `vx.x.xrust`.
 
 ### Crates.io
 
+https://crates.io/crates/cfonts
+https://docs.rs/cfonts/latest/cfonts/index.html
+
 We have to use the flag `--allow-dirty` since we include build artifacts like `fonts/*` and `/LICENSE`
 
 ```sh
@@ -29,6 +35,8 @@ We have to use the flag `--allow-dirty` since we include build artifacts like `f
 ```
 
 ### Homebrew
+
+https://formulae.brew.sh/formula/cfonts
 
 https://docs.brew.sh/Manpage#bump-formula-pr-options-formula
 
@@ -47,6 +55,8 @@ Download the `tar.gz` file from the GitHub release tag and run `openssl dgst -sh
 ```
 
 ### AUR
+
+https://aur.archlinux.org/packages/cfonts
 
 Repo: https://aur.archlinux.org/cfonts.git
 
@@ -86,9 +96,13 @@ Note: `pkgrel` starts with `1`
 
 ### Fedora
 
+https://packages.fedoraproject.org/pkgs/rust-cfonts/cfonts/
+
 New versions are added automatically.
 
 ### Macports
+
+https://ports.macports.org/port/cfonts/
 
 Fork https://github.com/macports/macports-ports.
 Reference PR: https://github.com/macports/macports-ports/pull/15303 and https://github.com/macports/macports-ports/pull/15130
