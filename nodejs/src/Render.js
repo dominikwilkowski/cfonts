@@ -42,13 +42,13 @@ const { Log } = require('./Log.js');
  * @param  {number}  size.width  - The width of the terminal
  * @param  {number}  size.height - The height of the terminal
  *
- * @typedef  {(object|boolean)} ReturnObject
- *   @property {string}  string  - The pure string for output with all line breaks
- *   @property {array}   array   - Each line of output in an array
- *   @property {number}  lines   - The number of lines
- *   @property {object}  options - All options used
+ * @typedef  {object} ReturnObject
+ *   @property {string}        string  - The pure string for output with all line breaks
+ *   @property {Array<string>} array   - Each line of output in an array
+ *   @property {number}        lines   - The number of lines
+ *   @property {object}        options - All options used
  *
- * @return {ReturnObject}        - CLI output of INPUT to be consoled out
+ * @return {ReturnObject|false}        - CLI output of INPUT to be consoled out
  */
 const Render = (input, SETTINGS = {}, debug = DEBUG.enabled, debuglevel = DEBUG.level, size = Size) => {
 	Debugging.report(`Running render`, 1);
