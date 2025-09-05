@@ -50,7 +50,7 @@
 		"@types/node": "^20",
 		"coveralls": "^3",
 		"eslint": "^8",
-		"jest-cli": "^30",
+		"jest-cli": "^27",
 		"onchange": "^7",
 		"prettier": "^3",
 		"typescript": "5"
