@@ -49,7 +49,7 @@
 		"@babel/preset-env": "^7",
 		"@types/node": "^20",
 		"coveralls": "^3",
-		"eslint": "^9",
+		"eslint": "^8",
 		"jest-cli": "^30",
 		"onchange": "^7",
 		"prettier": "^3",
