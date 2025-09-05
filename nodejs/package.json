@@ -52,7 +52,7 @@
 		"eslint": "^8",
 		"jest-cli": "^27",
 		"onchange": "^7",
-		"prettier": "^3",
+		"prettier": "^2",
 		"typescript": "5"
 	},
 	"peerDependencies": {},

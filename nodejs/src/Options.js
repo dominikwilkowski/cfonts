@@ -110,15 +110,15 @@ const Options = {
 			letterSpacing !== undefined
 				? parseInt(letterSpacing.toString())
 				: font.toLowerCase() === 'console'
-					? 0
-					: this.store.letterSpacing;
+				? 0
+				: this.store.letterSpacing;
 
 		this.store.lineHeight =
 			lineHeight !== undefined
 				? parseInt(lineHeight.toString())
 				: font.toLowerCase() === 'console'
-					? 0
-					: this.store.lineHeight;
+				? 0
+				: this.store.lineHeight;
 
 		this.store.spaceless = typeof spaceless === 'boolean' ? spaceless : this.store.spaceless;
 
@@ -130,8 +130,8 @@ const Options = {
 					? gradient
 					: gradient.split(',')
 				: gradient === false
-					? false
-					: this.store.gradient;
+				? false
+				: this.store.gradient;
 
 		this.store.independentGradient =
 			independentGradient !== undefined ? independentGradient : this.store.independentGradient;
