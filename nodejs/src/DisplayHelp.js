@@ -26,7 +26,7 @@ const DisplayHelp = () => {
 	const { string: headline } = Render('cfonts', {
 		align: 'left',
 		gradient: ['red', 'green'],
-	});
+	}) || { string: 'cfonts' };
 
 	console.log(
 		` ${headline}` +
