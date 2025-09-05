@@ -1,7 +1,7 @@
 {
 	"name": "cfonts",
 	"description": "Sexy ANSI fonts for the console",
-	"version": "3.3.0",
+	"version": "3.3.1",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -49,11 +49,11 @@
 		"@babel/preset-env": "^7",
 		"@types/node": "^20",
 		"coveralls": "^3",
-		"eslint": "^8",
-		"jest-cli": "^27",
+		"eslint": "^9",
+		"jest-cli": "^30",
 		"onchange": "^7",
-		"prettier": "^2",
-		"typescript": "5.0"
+		"prettier": "^3",
+		"typescript": "5"
 	},
 	"peerDependencies": {},
 	"dependencies": {
@@ -77,31 +77,6 @@
 				"lines": 95,
 				"statements": 95
 			}
-		}
-	},
-	"eslintConfig": {
-		"env": {
-			"node": true,
-			"commonjs": true,
-			"es6": true
-		},
-		"extends": "eslint:recommended",
-		"globals": {
-			"Atomics": "readonly",
-			"SharedArrayBuffer": "readonly"
-		},
-		"parserOptions": {
-			"ecmaVersion": 2018
-		},
-		"rules": {
-			"no-async-promise-executor": "off",
-			"no-console": "off",
-			"no-unused-vars": [
-				"error",
-				{
-					"argsIgnorePattern": "_"
-				}
-			]
 		}
 	},
 	"browserslist": [
