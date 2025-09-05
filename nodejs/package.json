@@ -53,7 +53,7 @@
 		"jest-cli": "^27",
 		"onchange": "^7",
 		"prettier": "^2",
-		"typescript": "5"
+		"typescript": "5.0"
 	},
 	"peerDependencies": {},
 	"dependencies": {
