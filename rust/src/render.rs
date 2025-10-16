@@ -1,5 +1,5 @@
 //! The contents of this module is all about composing all functions together to render our output
-extern crate enable_ansi_support;
+#[cfg(windows)]
 use enable_ansi_support::enable_ansi_support;
 use terminal_size::{terminal_size, Width};
 
@@ -60,6 +60,7 @@ pub fn render(options: Options) -> RenderedString {
 	d(&format!("render() Options\n{:#?}", options), 1, Dt::Log, &options, &mut std::io::stdout());
 
 	// enable ansi support in windows 10
+	#[cfg(windows)]
 	if let Ok(()) = enable_ansi_support() {
 		d("render() enabled ansi support in windows", 2, Dt::Log, &options, &mut std::io::stdout());
 	}
