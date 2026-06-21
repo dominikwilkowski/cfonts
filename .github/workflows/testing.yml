@@ -13,19 +13,12 @@ on:
       - "released"
 
 jobs:
-  # ---------------------------------| RUST |--------------------------------- #
-  # ***********
-  # RUST - linting
-  # ***********
-  lint-rust:
+  lint:
     strategy:
       matrix:
         os:
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./rust
 
     steps:
       - uses: actions/checkout@v4
@@ -36,9 +29,6 @@ jobs:
           components: rustfmt, clippy
           args: --manifest-path ./rust/Cargo.toml
 
-      - name: Run Makefile
-        run: make
-
       - name: Tree files
         run: |
           sudo apt-get -y install tree & which tree
@@ -48,24 +38,14 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --manifest-path ./rust/Cargo.toml -- --check
 
       - name: Annotate commit with clippy warnings
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path ./rust/Cargo.toml
+          args: --all-features
 
-      # disabled until https://github.com/actions-rs/audit-check/issues/194 is fixed
-      # - name: Security audit
-      #   uses: actions-rs/audit-check@v1
-      #   with:
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-
-  # ***********
-  # RUST - testing
-  # ***********
-  test-rust:
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -76,9 +56,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       OS: ${{ matrix.OS }}
-    defaults:
-      run:
-        working-directory: ./rust
 
     steps:
       - uses: actions/checkout@v4
@@ -86,17 +63,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Instal dependencies and build nodejs files
-        run: cd ../nodejs && yarn && yarn build
-
-      - name: Run Makefile
-        run: make
 
       - name: Run build
         run: cargo build --release --verbose
@@ -105,177 +71,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-fail-fast --manifest-path ./rust/Cargo.toml -- --nocapture
-
-  # ---------------------------------| NODE |--------------------------------- #
-  # ***********
-  # NODEJS - testing
-  # ***********
-  test-nodejs:
-    strategy:
-      matrix:
-        os-node:
-          - os: ubuntu-latest
-            node: 12
-          - os: ubuntu-latest
-            node: 14
-          - os: ubuntu-latest
-            node: 16
-          - os: ubuntu-latest
-            node: 18
-          - os: ubuntu-latest
-            node: 20
-          - os: ubuntu-latest
-            node: 22
-
-          # - os: macOS-latest
-          #   node: 12
-          # Not available for ARM
-          # - os: macOS-latest
-          #   node: 14
-          # Not available for ARM
-          - os: macOS-latest
-            node: 16
-          - os: macOS-latest
-            node: 18
-          - os: macOS-latest
-            node: 20
-          - os: macOS-latest
-            node: 22
-
-          - os: windows-latest
-            node: 12
-          - os: windows-latest
-            node: 14
-          - os: windows-latest
-            node: 16
-          - os: windows-latest
-            node: 18
-          - os: windows-latest
-            node: 20
-          - os: windows-latest
-            node: 22
-
-    runs-on: ${{ matrix.os-node.os }}
-
-    steps:
-      - if: matrix.os-node.os == 'windows-latest'
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.os-node.node }}
-
-      - name: Get yarn cache
-        id: yarn-cache
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.yarn-cache.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Node version
-        run: node --version
-
-      - name: npm version
-        run: npm --version
-
-      - name: Yarn version
-        run: yarn --version
-
-      - name: Yarn install dependencies
-        run: cd nodejs && yarn install --frozen-lockfile
-
-      - name: Build files
-        run: cd nodejs && yarn build
-
-      - name: Tree files
-        run: npx tree-cli -l 5 --ignore "node_modules/, .git/"
-
-      - name: Yarn test
-        run: cd nodejs && yarn test
-
-  # -------------------------------| COVERAGE |------------------------------- #
-  # ***********
-  # COVERAGE - nodejs
-  # ***********
-  coverage-nodejs:
-    needs: test-nodejs
-    strategy:
-      matrix:
-        node: [16]
-        os:
-          - ubuntu-latest
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./nodejs
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Get yarn cache
-        id: yarn-cache
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.yarn-cache.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Yarn install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build files
-        run: yarn build
-
-      - name: Produce Coverage
-        run: yarn jest --coverage
-
-      - name: Print last few lines of lcov.info
-        run: tail ./coverage/lcov.info
-
-      - name: Upload to coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./nodejs/coverage/lcov.info
-          flag-name: nodejs
-          parallel: true
-          base-path: ./nodejs
-        env:
-          NODE_COVERALLS_DEBUG: 1
+          args: --no-fail-fast -- --nocapture
 
   # ***********
-  # COVERAGE - rust
+  # COVERAGE
   # ***********
-  coverage-rust:
-    needs: test-rust
+  coverage:
+    needs: test
     strategy:
       matrix:
         os:
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./rust
 
     steps:
       - uses: actions/checkout@v4
@@ -283,17 +90,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Instal dependencies and build nodejs files
-        run: cd ../nodejs && yarn && yarn build
-
-      - name: Run Makefile
-        run: make
 
       - name: Install Rust
         run: rustup toolchain install stable --component llvm-tools-preview
@@ -311,7 +107,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./rust/lcov.info
+          path-to-lcov: ./lcov.info
           flag-name: rust
           parallel: true
         env:
@@ -321,7 +117,7 @@ jobs:
   # COVERAGE - finalizing
   # ***********
   coverage-finish:
-    needs: [coverage-nodejs, coverage-rust]
+    needs: coverage
     strategy:
       matrix:
         os:

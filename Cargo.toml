@@ -1,0 +1,14 @@
+[package]
+name = "cfonts"
+version = "2.0.0"
+edition = "2024"
+authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
+license = "GPL-3.0-or-later"
+description = "Sexy ANSI fonts for the console"
+homepage = "https://github.com/dominikwilkowski/cfonts"
+repository = "https://github.com/dominikwilkowski/cfonts"
+documentation = "https://docs.rs/cfonts/"
+keywords = ["fonts", "color", "console", "ascii", "ANSI"]
+categories = ["command-line-interface", "command-line-utilities", "graphics"]
+
+[dependencies]
