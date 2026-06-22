@@ -550,10 +550,15 @@ pub const FONT_SIMPLEBLOCK: Font<7> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::assert_supported;
+	use crate::fonts::{assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn simpleblock_test_all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_SIMPLEBLOCK);
+	}
+
+	#[test]
+	fn simpleblock_test_slots_within_color_count() {
+		assert_slots_within_colors(&super::FONT_SIMPLEBLOCK);
 	}
 }

@@ -550,10 +550,15 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::assert_supported;
+	use crate::fonts::{assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn simple3d_test_all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_SIMPLE3D);
+	}
+
+	#[test]
+	fn simple3d_test_slots_within_color_count() {
+		assert_slots_within_colors(&super::FONT_SIMPLE3D);
 	}
 }

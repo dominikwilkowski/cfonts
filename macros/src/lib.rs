@@ -105,9 +105,8 @@ fn expand_glyph_rows(rows: &[String]) -> Result<String, String> {
 
 /// Turn one marker row into a source expression of type `&'static [Segment]`
 ///
-/// The per-row `const ROW: &[Segment]` is the coercion site that turns each
-/// fixed-size segment array into a slice before all rows enter the outer array
-/// This allows rows to have different segment counts
+/// The per-row `const ROW: &[Segment]` is the coercion site that turns each fixed-size segment array into a slice
+/// before all rows enter the outer array. This allows rows to have different segment counts
 fn expand_row(row: &str) -> Result<String, String> {
 	let segments: Vec<GlyphSegment> = parse_row(row)?;
 	Ok(emit_row(&segments))

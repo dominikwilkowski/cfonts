@@ -44,23 +44,6 @@ impl<const LINES: usize> Font<LINES> {
 		}
 	}
 
-	// pub fn get_colored_glyph(&self, character: char, colors: &[Color]) -> Option<&'static [GlyphRow; LINES]> {
-	// 	let Some(row) = self.get_glyph(character) else {
-	// 		return None;
-	// 	};
-
-	// 	for seg in row {
-	// 		match seg {
-	// 			Seg::Plain(t) => target.write_str(t),
-	// 			Seg::Colored { slot, text } => {
-	// 				target.open_color(options.colors[*slot as usize]);
-	// 				target.write_str(text);
-	// 				target.close_color();
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	pub const fn lines(&self) -> usize {
 		LINES
 	}
@@ -78,4 +61,30 @@ pub(crate) fn assert_supported<const LINES: usize>(font: &Font<LINES>) {
 	let missing = SUPPORTED.into_iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
 
 	assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
+}
+
+/// Assert every colored segment refers to a slot the font actually defines.
+#[cfg(test)]
+pub(crate) fn assert_slots_within_colors<const LINES: usize>(font: &Font<LINES>) {
+	for (code_point, glyph) in font.glyphs.iter().enumerate() {
+		let Some(rows) = glyph else {
+			continue;
+		};
+
+		for (line, row) in rows.iter().enumerate() {
+			for segment in row.iter() {
+				if let Segment::Colored { slot, .. } = segment {
+					assert!(
+						*slot < font.colors,
+						"font \"{}\": glyph {:?} (line {}) uses color <c{}> but the font only defines {} colors",
+						font.name,
+						char::from_u32(code_point as u32).unwrap_or('?'),
+						line,
+						slot + 1,
+						font.colors,
+					);
+				}
+			}
+		}
+	}
 }
