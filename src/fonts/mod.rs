@@ -11,18 +11,28 @@ pub mod simple_block;
 pub mod slick;
 pub mod tiny;
 
+/// The parsed representation of one glyph, with all rows validated to the same width
+pub struct Glyph {
+	pub rows: &'static [GlyphRow],
+	pub width: usize,
+}
+
+/// One row of a glyph: an ordered run of plain/colored segments
+pub struct GlyphRow {
+	pub segments: &'static [Segment],
+}
+
 /// One run of cells within a glyph row
 #[derive(Clone, Copy)]
 pub enum Segment {
 	/// Rendered as-is, no color
 	Plain(&'static str),
+
 	/// Painted with a color slot, 0-based index into the font's color set
 	Colored { slot: usize, text: &'static str },
 }
 
-/// One row of a glyph: an ordered run of plain/colored segments
-pub type GlyphRow = &'static [Segment];
-
+/// A parsed font, consisting of a set of glyphs and color/size information
 pub struct Font<const LINES: usize> {
 	pub name: &'static str,
 	pub version: &'static str,
@@ -31,11 +41,11 @@ pub struct Font<const LINES: usize> {
 	pub buffer: [&'static str; LINES],
 	pub letterspace: [&'static str; LINES],
 	pub letterspace_size: usize,
-	glyphs: [Option<&'static [GlyphRow; LINES]>; 128],
+	glyphs: [Option<&'static Glyph>; 128],
 }
 
 impl<const LINES: usize> Font<LINES> {
-	pub fn get_glyph(&self, character: char) -> Option<&'static [GlyphRow; LINES]> {
+	pub fn get_glyph(&self, character: char) -> Option<&'static Glyph> {
 		let index = character as usize;
 		if index < self.glyphs.len() {
 			self.glyphs[index]
@@ -66,20 +76,19 @@ pub(crate) fn assert_supported<const LINES: usize>(font: &Font<LINES>) {
 /// Assert every colored segment refers to a slot the font actually defines.
 #[cfg(test)]
 pub(crate) fn assert_slots_within_colors<const LINES: usize>(font: &Font<LINES>) {
-	for (code_point, glyph) in font.glyphs.iter().enumerate() {
-		let Some(rows) = glyph else {
+	for (code_point, character) in font.glyphs.iter().enumerate() {
+		let Some(glyph) = character else {
 			continue;
 		};
 
-		for (line, row) in rows.iter().enumerate() {
-			for segment in row.iter() {
+		for (line, row) in glyph.rows.iter().enumerate() {
+			for segment in row.segments.iter() {
 				if let Segment::Colored { slot, .. } = segment {
 					assert!(
 						*slot < font.colors,
-						"font \"{}\": glyph {:?} (line {}) uses color <c{}> but the font only defines {} colors",
+						"font \"{}\": glyph {:?} (line {line}) uses color <c{}> but the font only defines {} colors",
 						font.name,
 						char::from_u32(code_point as u32).unwrap_or('?'),
-						line,
 						slot + 1,
 						font.colors,
 					);

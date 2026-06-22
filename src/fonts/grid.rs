@@ -1,4 +1,4 @@
-use crate::fonts::{Font, Segment};
+use crate::fonts::{Font, Glyph, GlyphRow, Segment};
 use cfonts_macros::glyph;
 
 pub const FONT_GRID: Font<6> = Font {

@@ -94,22 +94,52 @@ fn parse_input(input: TokenStream) -> Result<Vec<String>, String> {
 
 /// Turn raw marker rows into the outer glyph expression
 fn expand_glyph_rows(rows: &[String]) -> Result<String, String> {
-	let mut expanded: Vec<String> = Vec::with_capacity(rows.len());
+	let parsed_rows: Vec<Vec<GlyphSegment>> =
+		rows.iter().map(|row| parse_row(row)).collect::<Result<Vec<Vec<GlyphSegment>>, String>>()?;
 
-	for row in rows {
-		expanded.push(expand_row(row)?);
-	}
+	let width: usize = glyph_width(&parsed_rows)?;
 
-	Ok(format!("&[{}]", expanded.join(", ")))
+	let emitted_rows: Vec<String> = parsed_rows.iter().map(|segments| emit_row(segments)).collect();
+
+	Ok(format!("&Glyph {{ rows: &[{}], width: {width} }}", emitted_rows.join(", "),))
 }
 
-/// Turn one marker row into a source expression of type `&'static [Segment]`
+fn glyph_width(rows: &[Vec<GlyphSegment>]) -> Result<usize, String> {
+	let Some(first_row) = rows.first() else {
+		return Err(String::from("expected at least one row"));
+	};
+
+	let expected_width: usize = row_width(first_row);
+
+	for (row_index, row) in rows.iter().enumerate().skip(1) {
+		let width: usize = row_width(row);
+
+		if width != expected_width {
+			return Err(format!(
+				"row {} has width {width} but row 1 has width {expected_width}; every row in a glyph must have the same width",
+				row_index + 1,
+			));
+		}
+	}
+
+	Ok(expected_width)
+}
+
+/// Visible width of a row: number of columns, i.e. char count of every segment
 ///
-/// The per-row `const ROW: &[Segment]` is the coercion site that turns each fixed-size segment array into a slice
-/// before all rows enter the outer array. This allows rows to have different segment counts
-fn expand_row(row: &str) -> Result<String, String> {
-	let segments: Vec<GlyphSegment> = parse_row(row)?;
-	Ok(emit_row(&segments))
+/// Assumes one char == one terminal column, which holds for the box-drawing and
+/// block glyphs cfonts ships; wide (CJK) or combining chars would break it
+fn row_width(segments: &[GlyphSegment]) -> usize {
+	segments.iter().map(GlyphSegment::text).map(|text| text.chars().count()).sum()
+}
+
+impl GlyphSegment {
+	fn text(&self) -> &str {
+		match self {
+			GlyphSegment::Plain(text) => text,
+			GlyphSegment::Colored { text, .. } => text,
+		}
+	}
 }
 
 /// Parse one marker row into typed segments
@@ -183,10 +213,9 @@ fn push_segment(segments: &mut Vec<GlyphSegment>, text: &mut String, slot: Optio
 	segments.push(segment);
 }
 
-/// Recognise `<cN>` or `</cN>` at the start of `input`
+/// Recognize `<cN>` or `</cN>` at the start of `input`
 ///
-/// Anything else beginning with `<` is treated as plain text, unless it starts
-/// like a color marker and is malformed
+/// Anything else beginning with `<` is treated as plain text, unless it starts like a color marker and is malformed
 fn parse_marker(input: &str) -> Result<Option<(Marker, &str)>, String> {
 	if let Some(after_prefix) = input.strip_prefix("<c") {
 		let (slot, rest): (usize, &str) = parse_marker_slot(after_prefix, "<cN>")?;
@@ -228,11 +257,11 @@ fn parse_marker_slot<'a>(input: &'a str, marker_name: &str) -> Result<(usize, &'
 	Ok((one_based_slot - 1, &after_digits[1..]))
 }
 
-/// Emit a row as a `&'static [Segment]`
+/// Emit a row as a concrete `GlyphRow`
 fn emit_row(segments: &[GlyphSegment]) -> String {
 	let emitted: Vec<String> = segments.iter().map(emit_segment).collect();
 
-	format!("{{ const ROW: &[Segment] = &[{}]; ROW }}", emitted.join(", "))
+	format!("GlyphRow {{ segments: &[{}] }}", emitted.join(", "))
 }
 
 /// Emit one typed segment as Rust source
@@ -290,6 +319,12 @@ fn compile_error(message: &str) -> TokenStream {
 mod macro_glyph {
 	use super::*;
 
+	/// Drive the real entry point with `&str` rows, the way `glyph!` feeds it
+	fn expand(rows: &[&str]) -> Result<String, String> {
+		let owned: Vec<String> = rows.iter().map(|row| String::from(*row)).collect();
+		expand_glyph_rows(&owned)
+	}
+
 	#[test]
 	fn parses_opening_markers() {
 		assert_eq!(parse_marker("<c1>rest").unwrap(), Some((Marker::Open(0), "rest")));
@@ -322,80 +357,107 @@ mod macro_glyph {
 
 	#[test]
 	fn expands_a_plain_row() {
-		assert_eq!(expand_row("AB").unwrap(), r#"{ const ROW: &[Segment] = &[Segment::Plain("AB")]; ROW }"#,);
+		assert_eq!(
+			expand(&["AB"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Plain("AB")] }], width: 2 }"#,
+		);
 	}
 
 	#[test]
 	fn expands_a_colored_row() {
 		assert_eq!(
-			expand_row("<c1>██</c1><c2>╗</c2>").unwrap(),
-			r#"{ const ROW: &[Segment] = &[Segment::Colored { slot: 0, text: "██" }, Segment::Colored { slot: 1, text: "╗" }]; ROW }"#,
+			expand(&["<c1>██</c1><c2>╗</c2>"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Colored { slot: 0, text: "██" }, Segment::Colored { slot: 1, text: "╗" }] }], width: 3 }"#,
 		);
 	}
 
 	#[test]
 	fn keeps_leading_and_trailing_plain_text() {
 		assert_eq!(
-			expand_row(" <c1>X</c1> ").unwrap(),
-			r#"{ const ROW: &[Segment] = &[Segment::Plain(" "), Segment::Colored { slot: 0, text: "X" }, Segment::Plain(" ")]; ROW }"#,
+			expand(&[" <c1>X</c1> "]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Plain(" "), Segment::Colored { slot: 0, text: "X" }, Segment::Plain(" ")] }], width: 3 }"#,
 		);
 	}
 
 	#[test]
 	fn skips_empty_runs_between_adjacent_markers() {
 		assert_eq!(
-			expand_row("<c1>A</c1><c2>B</c2>").unwrap(),
-			r#"{ const ROW: &[Segment] = &[Segment::Colored { slot: 0, text: "A" }, Segment::Colored { slot: 1, text: "B" }]; ROW }"#,
+			expand(&["<c1>A</c1><c2>B</c2>"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Colored { slot: 0, text: "A" }, Segment::Colored { slot: 1, text: "B" }] }], width: 2 }"#,
 		);
 	}
 
 	#[test]
 	fn reuses_the_same_slot_multiple_times() {
 		assert_eq!(
-			expand_row("<c1>A</c1><c2>B</c2><c1>C</c1>").unwrap(),
-			r#"{ const ROW: &[Segment] = &[Segment::Colored { slot: 0, text: "A" }, Segment::Colored { slot: 1, text: "B" }, Segment::Colored { slot: 0, text: "C" }]; ROW }"#,
+			expand(&["<c1>A</c1><c2>B</c2><c1>C</c1>"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Colored { slot: 0, text: "A" }, Segment::Colored { slot: 1, text: "B" }, Segment::Colored { slot: 0, text: "C" }] }], width: 3 }"#,
 		);
 	}
 
 	#[test]
 	fn treats_a_lone_angle_bracket_as_plain() {
-		assert_eq!(expand_row("a<b").unwrap(), r#"{ const ROW: &[Segment] = &[Segment::Plain("a<b")]; ROW }"#,);
+		assert_eq!(
+			expand(&["a<b"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Plain("a<b")] }], width: 3 }"#,
+		);
+	}
+
+	#[test]
+	fn width_counts_chars_not_bytes() {
+		assert_eq!(
+			expand(&["<c1>███</c1>"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Colored { slot: 0, text: "███" }] }], width: 3 }"#,
+		);
+	}
+
+	#[test]
+	fn expands_a_multi_row_glyph() {
+		assert_eq!(
+			expand(&["<c1>A</c1>", " "]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Colored { slot: 0, text: "A" }] }, GlyphRow { segments: &[Segment::Plain(" ")] }], width: 1 }"#,
+		);
+	}
+
+	#[test]
+	fn accepts_rows_of_equal_width_with_different_segment_counts() {
+		assert!(expand(&["<c1>AB</c1>", "<c1>A</c1><c2>B</c2>"]).is_ok());
+	}
+
+	#[test]
+	fn accepts_segments_of_different_width_inside_the_same_row() {
+		assert!(expand(&["<c1>A</c1><c2>BC</c2>", "XYZ"]).is_ok());
+	}
+
+	#[test]
+	fn rejects_rows_of_unequal_width() {
+		assert!(expand(&["AB", "A"]).is_err());
 	}
 
 	#[test]
 	fn rejects_mismatched_closing_marker() {
-		assert!(expand_row("<c1>A</c2>").is_err());
+		assert!(expand(&["<c1>A</c2>"]).is_err());
 	}
 
 	#[test]
 	fn rejects_unclosed_marker() {
-		assert!(expand_row("<c1>A").is_err());
+		assert!(expand(&["<c1>A"]).is_err());
 	}
 
 	#[test]
 	fn rejects_orphan_closing_marker() {
-		assert!(expand_row("</c1>A").is_err());
+		assert!(expand(&["</c1>A"]).is_err());
 	}
 
 	#[test]
 	fn rejects_nested_markers() {
-		assert!(expand_row("<c1>A<c2>B</c2></c1>").is_err());
+		assert!(expand(&["<c1>A<c2>B</c2></c1>"]).is_err());
 	}
 
 	#[test]
 	fn emits_valid_rust_string_literals() {
 		assert_eq!(rust_string_literal("a\"b\\c"), r#""a\"b\\c""#);
 		assert_eq!(rust_string_literal("a\nb"), r#""a\nb""#);
-	}
-
-	#[test]
-	fn expands_a_full_glyph() {
-		let rows: Vec<String> = vec![String::from("<c1>A</c1>"), String::from(" ")];
-
-		assert_eq!(
-			expand_glyph_rows(&rows).unwrap(),
-			r#"&[{ const ROW: &[Segment] = &[Segment::Colored { slot: 0, text: "A" }]; ROW }, { const ROW: &[Segment] = &[Segment::Plain(" ")]; ROW }]"#,
-		);
 	}
 
 	#[test]
