@@ -12,3 +12,9 @@ keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 
 [dependencies]
+cfonts-macros = { path = "macros", version = "1" }
+
+[workspace]
+members = [".", "macros"]
+default-members = [".", "macros"]
+resolver = "3"

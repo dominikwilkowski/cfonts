@@ -1,4 +1,5 @@
-use crate::fonts::Font;
+use crate::fonts::{Font, Segment};
+use cfonts_macros::glyph;
 
 pub const FONT_SIMPLE3D: Font<7> = Font {
 	name: "simple3d",
@@ -29,7 +30,7 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
-		table['A' as usize] = Some(&[
+		table['A' as usize] = Some(glyph!(
 			r"          ",
 			r"   __     ",
 			r" /'__`\   ",
@@ -37,8 +38,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \__/.\_\",
 			r" \/__/\/_/",
 			r"          ",
-		]);
-		table['B' as usize] = Some(&[
+		));
+		table['B' as usize] = Some(glyph!(
 			r" __       ",
 			r"/\ \      ",
 			r"\ \ \____ ",
@@ -46,8 +47,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \ \____/",
 			r"   \/___/ ",
 			r"          ",
-		]);
-		table['C' as usize] = Some(&[
+		));
+		table['C' as usize] = Some(glyph!(
 			r"        ",
 			r"  ___   ",
 			r" /'___\ ",
@@ -55,8 +56,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \____\",
 			r" \/____/",
 			r"        ",
-		]);
-		table['D' as usize] = Some(&[
+		));
+		table['D' as usize] = Some(glyph!(
 			r"  __    ",
 			r" /\ \   ",
 			r" \_\ \  ",
@@ -64,8 +65,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \____\",
 			r" \/___ /",
 			r"        ",
-		]);
-		table['E' as usize] = Some(&[
+		));
+		table['E' as usize] = Some(glyph!(
 			r"        ",
 			r"   __   ",
 			r" / ,.`\ ",
@@ -73,8 +74,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \____\",
 			r" \/____/",
 			r"        ",
-		]);
-		table['F' as usize] = Some(&[
+		));
+		table['F' as usize] = Some(glyph!(
 			r"   ___  ",
 			r" /'___\ ",
 			r"/\ \__/ ",
@@ -82,8 +83,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \_\_/",
 			r"  \/_/  ",
 			r"        ",
-		]);
-		table['G' as usize] = Some(&[
+		));
+		table['G' as usize] = Some(glyph!(
 			r"   __     ",
 			r" / _ `\   ",
 			r"/\ \_\ \  ",
@@ -91,8 +92,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \/___/\ \",
 			r"   /\____/",
 			r"   \_/__/ ",
-		]);
-		table['H' as usize] = Some(&[
+		));
+		table['H' as usize] = Some(glyph!(
 			r" __        ",
 			r"/\ \       ",
 			r"\ \ \___   ",
@@ -100,8 +101,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \ \_\ \_\",
 			r"   \/_/\/_/",
 			r"           ",
-		]);
-		table['I' as usize] = Some(&[
+		));
+		table['I' as usize] = Some(glyph!(
 			r"      ",
 			r" __   ",
 			r"/\_\  ",
@@ -109,8 +110,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \ \",
 			r"  \/_/",
 			r"      ",
-		]);
-		table['J' as usize] = Some(&[
+		));
+		table['J' as usize] = Some(glyph!(
 			r"  __    ",
 			r" /\_\   ",
 			r" \/\ \  ",
@@ -118,8 +119,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"/\ \_\ \",
 			r"\ \____/",
 			r" \/___/ ",
-		]);
-		table['K' as usize] = Some(&[
+		));
+		table['K' as usize] = Some(glyph!(
 			r"  __  __    ",
 			r" /\ \/  \   ",
 			r" \ \    <   ",
@@ -127,8 +128,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"   \ \_\ \_\",
 			r"    \/_/\/_/",
 			r"            ",
-		]);
-		table['L' as usize] = Some(&[
+		));
+		table['L' as usize] = Some(glyph!(
 			r" ___     ",
 			r"/\_ \    ",
 			r"\//\ \   ",
@@ -136,8 +137,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\____\",
 			r"  \/____/",
 			r"         ",
-		]);
-		table['M' as usize] = Some(&[
+		));
+		table['M' as usize] = Some(glyph!(
 			r"             ",
 			r"  ___ ___    ",
 			r"/' __` __`\  ",
@@ -145,8 +146,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \_\ \_\ \_\",
 			r" \/_/\/_/\/_/",
 			r"             ",
-		]);
-		table['N' as usize] = Some(&[
+		));
+		table['N' as usize] = Some(glyph!(
 			r"         ",
 			r"  ___    ",
 			r"/' _ `\  ",
@@ -154,8 +155,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \_\ \_\",
 			r" \/_/\/_/",
 			r"         ",
-		]);
-		table['O' as usize] = Some(&[
+		));
+		table['O' as usize] = Some(glyph!(
 			r"        ",
 			r"  ___   ",
 			r" / __`\ ",
@@ -163,8 +164,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \____/",
 			r" \/___/ ",
 			r"        ",
-		]);
-		table['P' as usize] = Some(&[
+		));
+		table['P' as usize] = Some(glyph!(
 			r"         ",
 			r" _____   ",
 			r"/\ '__`\ ",
@@ -172,8 +173,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \ ,__/",
 			r"  \ \ \/ ",
 			r"   \/_/  ",
-		]);
-		table['Q' as usize] = Some(&[
+		));
+		table['Q' as usize] = Some(glyph!(
 			r"          ",
 			r"   __     ",
 			r" /'__`\   ",
@@ -181,8 +182,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \___, \ ",
 			r" \/___/\_\",
 			r"      \/_/",
-		]);
-		table['R' as usize] = Some(&[
+		));
+		table['R' as usize] = Some(glyph!(
 			r"       ",
 			r" _ __  ",
 			r"/\` __\",
@@ -190,8 +191,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \_\ ",
 			r"  \/_/ ",
 			r"       ",
-		]);
-		table['S' as usize] = Some(&[
+		));
+		table['S' as usize] = Some(glyph!(
 			r"        ",
 			r"  ____  ",
 			r" / ,__\ ",
@@ -199,8 +200,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\/\____/",
 			r" \/___/ ",
 			r"        ",
-		]);
-		table['T' as usize] = Some(&[
+		));
+		table['T' as usize] = Some(glyph!(
 			r" __      ",
 			r"/\ \__   ",
 			r"\ \ ,_\  ",
@@ -208,8 +209,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \ \ \_ ",
 			r"   \ \__\",
 			r"    \/__/",
-		]);
-		table['U' as usize] = Some(&[
+		));
+		table['U' as usize] = Some(glyph!(
 			r"         ",
 			r" __  __  ",
 			r"/\ \/\ \ ",
@@ -217,8 +218,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \____/",
 			r"  \/___/ ",
 			r"         ",
-		]);
-		table['V' as usize] = Some(&[
+		));
+		table['V' as usize] = Some(glyph!(
 			r"        ",
 			r" __  __ ",
 			r"/\ \/\ \",
@@ -226,8 +227,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \___/",
 			r"  \/__/ ",
 			r"        ",
-		]);
-		table['W' as usize] = Some(&[
+		));
+		table['W' as usize] = Some(glyph!(
 			r"             ",
 			r" __  __  __  ",
 			r"/\ \/\ \/\ \ ",
@@ -235,8 +236,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \___^___/'",
 			r"  \/__//__/  ",
 			r"             ",
-		]);
-		table['X' as usize] = Some(&[
+		));
+		table['X' as usize] = Some(glyph!(
 			r"        ",
 			r" __  _  ",
 			r"/\ \/'\ ",
@@ -244,8 +245,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" /\_/\_\",
 			r" \//\/_/",
 			r"        ",
-		]);
-		table['Y' as usize] = Some(&[
+		));
+		table['Y' as usize] = Some(glyph!(
 			r"           ",
 			r"  __  __   ",
 			r" /\ \_\ \  ",
@@ -253,8 +254,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  `/___/> \",
 			r"     /\___/",
 			r"     \/__/ ",
-		]);
-		table['Z' as usize] = Some(&[
+		));
+		table['Z' as usize] = Some(glyph!(
 			r"         ",
 			r" ____    ",
 			r"/\_ ,`\  ",
@@ -262,8 +263,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\____\",
 			r"  \/____/",
 			r"         ",
-		]);
-		table['0' as usize] = Some(&[
+		));
+		table['0' as usize] = Some(glyph!(
 			r"   __     ",
 			r" /'__`\   ",
 			r"/\ \/\ \  ",
@@ -271,8 +272,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \ \_\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
-		]);
-		table['1' as usize] = Some(&[
+		));
+		table['1' as usize] = Some(glyph!(
 			r"   _     ",
 			r" /' \    ",
 			r"/\_, \   ",
@@ -280,8 +281,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"   \ \ \ ",
 			r"    \ \_\",
 			r"     \/_/",
-		]);
-		table['2' as usize] = Some(&[
+		));
+		table['2' as usize] = Some(glyph!(
 			r"   ___     ",
 			r" /'___`\   ",
 			r"/\_\ /\ \  ",
@@ -289,8 +290,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"   // /_\ \",
 			r"  /\______/",
 			r"  \/_____/ ",
-		]);
-		table['3' as usize] = Some(&[
+		));
+		table['3' as usize] = Some(glyph!(
 			r"   __     ",
 			r" /'__`\   ",
 			r"/\_\L\ \  ",
@@ -298,8 +299,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\ \L\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
-		]);
-		table['4' as usize] = Some(&[
+		));
+		table['4' as usize] = Some(glyph!(
 			r" __ __      ",
 			r"/\ \\ \     ",
 			r"\ \ \\ \    ",
@@ -307,8 +308,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \ \__ ,__\",
 			r"   \/_/\_\_/",
 			r"      \/_/  ",
-		]);
-		table['5' as usize] = Some(&[
+		));
+		table['5' as usize] = Some(glyph!(
 			r" ______    ",
 			r"/\  ___\   ",
 			r"\ \ \__/   ",
@@ -316,8 +317,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \/\ \L\ \",
 			r"   \ \____/",
 			r"    \/___/ ",
-		]);
-		table['6' as usize] = Some(&[
+		));
+		table['6' as usize] = Some(glyph!(
 			r"  ____    ",
 			r" /'___\   ",
 			r"/\ \__/   ",
@@ -325,8 +326,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \ \L\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
-		]);
-		table['7' as usize] = Some(&[
+		));
+		table['7' as usize] = Some(glyph!(
 			r" ________ ",
 			r"/\____   \",
 			r"\/___/' /'",
@@ -334,8 +335,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"   /' /'  ",
 			r"  /\_/    ",
 			r"  \//     ",
-		]);
-		table['8' as usize] = Some(&[
+		));
+		table['8' as usize] = Some(glyph!(
 			r"   __     ",
 			r" /' _`\   ",
 			r"/\ \L\ \  ",
@@ -343,8 +344,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\ \L\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
-		]);
-		table['9' as usize] = Some(&[
+		));
+		table['9' as usize] = Some(glyph!(
 			r"   __      ",
 			r" /'_ `\    ",
 			r"/\ \L\ \   ",
@@ -352,8 +353,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \/__,/\ \ ",
 			r"      \ \_\",
 			r"       \/_/",
-		]);
-		table['!' as usize] = Some(&[
+		));
+		table['!' as usize] = Some(glyph!(
 			r" __     ",
 			r"/\ \    ",
 			r"\ \ \   ",
@@ -361,8 +362,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \ \_\ ",
 			r"   \/\_\",
 			r"    \/_/",
-		]);
-		table['?' as usize] = Some(&[
+		));
+		table['?' as usize] = Some(glyph!(
 			r"   _    ",
 			r" /'_`\  ",
 			r"/\_\/\`\",
@@ -370,8 +371,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"   /\_\ ",
 			r"   \/\_\",
 			r"    \/_/",
-		]);
-		table['.' as usize] = Some(&[
+		));
+		table['.' as usize] = Some(glyph!(
 			r"    ",
 			r"    ",
 			r"    ",
@@ -379,8 +380,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" __ ",
 			r"/\_\",
 			r"\/_/",
-		]);
-		table['+' as usize] = Some(&[
+		));
+		table['+' as usize] = Some(glyph!(
 			r"  __      ",
 			r" /\ \     ",
 			r" \_\ \___ ",
@@ -388,8 +389,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\/__/\ \_/",
 			r"    \ \_\ ",
 			r"     \/_/ ",
-		]);
-		table['-' as usize] = Some(&[
+		));
+		table['-' as usize] = Some(glyph!(
 			r"         ",
 			r"         ",
 			r" _______ ",
@@ -397,8 +398,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\/______/",
 			r"         ",
 			r"         ",
-		]);
-		table['_' as usize] = Some(&[
+		));
+		table['_' as usize] = Some(glyph!(
 			r"          ",
 			r"          ",
 			r"          ",
@@ -406,8 +407,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  _______ ",
 			r" /\______\",
 			r" \/______/",
-		]);
-		table['=' as usize] = Some(&[
+		));
+		table['=' as usize] = Some(glyph!(
 			r"           ",
 			r" _______   ",
 			r"/\______\  ",
@@ -415,8 +416,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\______\",
 			r"  \/______/",
 			r"           ",
-		]);
-		table['@' as usize] = Some(&[
+		));
+		table['@' as usize] = Some(glyph!(
 			r"   __      ",
 			r"  /'_`\_   ",
 			r" /'/'_` \  ",
@@ -424,8 +425,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"\ \ `\__,_\",
 			r" \ `\_____\",
 			r"  `\/_____/",
-		]);
-		table['#' as usize] = Some(&[
+		));
+		table['#' as usize] = Some(glyph!(
 			r"  __ __      ",
 			r" _\ \\ \__   ",
 			r"/\__  _  _\  ",
@@ -433,8 +434,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\_   _  _\",
 			r"  \/_/\_\\_\/",
 			r"     \/_//_/ ",
-		]);
-		table['$' as usize] = Some(&[
+		));
+		table['$' as usize] = Some(glyph!(
 			r"    _     ",
 			r"  /|_\_   ",
 			r" /'  _ `\ ",
@@ -442,8 +443,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  \ `\_ _/",
 			r"   `\_/\_\",
 			r"      \/_/",
-		]);
-		table['%' as usize] = Some(&[
+		));
+		table['%' as usize] = Some(glyph!(
 			r" __    __    ",
 			r"/\_\  /\_\   ",
 			r"\/_/ / / /   ",
@@ -451,8 +452,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"   / / /  __ ",
 			r"  / / /  /\_\",
 			r"  \/_/   \/_/",
-		]);
-		table['&' as usize] = Some(&[
+		));
+		table['&' as usize] = Some(glyph!(
 			r"   ____     ",
 			r" /|  _ \    ",
 			r" |/\ ` |    ",
@@ -460,8 +461,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" /|  \L>  <_",
 			r" | \_____/\/",
 			r"  \/____/\/ ",
-		]);
-		table['(' as usize] = Some(&[
+		));
+		table['(' as usize] = Some(glyph!(
 			r"   _     ",
 			r" /' \    ",
 			r"/\ ,/    ",
@@ -469,8 +470,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" \ \ `\  ",
 			r"  \ `\__\",
 			r"   `\/_/ ",
-		]);
-		table[')' as usize] = Some(&[
+		));
+		table[')' as usize] = Some(glyph!(
 			r" __     ",
 			r"/\ `\   ",
 			r"\`\  \  ",
@@ -478,8 +479,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  `\/' \",
 			r"   /\__/",
 			r"   \/_/ ",
-		]);
-		table['/' as usize] = Some(&[
+		));
+		table['/' as usize] = Some(glyph!(
 			r"     __ ",
 			r"    /\_\",
 			r"   / / /",
@@ -487,8 +488,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" / / /  ",
 			r"/ / /   ",
 			r"\/_/    ",
-		]);
-		table[':' as usize] = Some(&[
+		));
+		table[':' as usize] = Some(glyph!(
 			r"      ",
 			r" __   ",
 			r"/\_\  ",
@@ -496,8 +497,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\_\",
 			r"  \/_/",
 			r"      ",
-		]);
-		table[';' as usize] = Some(&[
+		));
+		table[';' as usize] = Some(glyph!(
 			r"      ",
 			r" __   ",
 			r"/\_\  ",
@@ -505,8 +506,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"  /\ \",
 			r"  \ \/",
 			r"   \/ ",
-		]);
-		table[',' as usize] = Some(&[
+		));
+		table[',' as usize] = Some(glyph!(
 			r"     ",
 			r"     ",
 			r"     ",
@@ -514,8 +515,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r" /\ \",
 			r" \ \/",
 			r"  \/ ",
-		]);
-		table['\'' as usize] = Some(&[
+		));
+		table['\'' as usize] = Some(glyph!(
 			r"  _  ",
 			r"/\ \ ",
 			r"\ \/ ",
@@ -523,8 +524,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"     ",
 			r"     ",
 			r"     ",
-		]);
-		table['"' as usize] = Some(&[
+		));
+		table['"' as usize] = Some(glyph!(
 			r"  _   _  ",
 			r"/\ \/\ \ ",
 			r"\ \/\ \/ ",
@@ -532,8 +533,8 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"         ",
 			r"         ",
 			r"         ",
-		]);
-		table[' ' as usize] = Some(&[
+		));
+		table[' ' as usize] = Some(glyph!(
 			r"       ",
 			r"       ",
 			r"       ",
@@ -541,7 +542,7 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 			r"       ",
 			r"       ",
 			r"       ",
-		]);
+		));
 
 		table
 	},

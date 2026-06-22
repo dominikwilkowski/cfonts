@@ -1,0 +1,12 @@
+[package]
+name = "cfonts-macros"
+version = "1.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "Internal proc-macros for cfonts"
+repository = "https://github.com/dominikwilkowski/cfonts"
+
+[dependencies]
+
+[lib]
+proc-macro = true

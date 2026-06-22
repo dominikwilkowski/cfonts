@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "cfonts"
 version = "2.0.0"
+dependencies = [
+ "cfonts-macros",
+]
+
+[[package]]
+name = "cfonts-macros"
+version = "1.0.0"

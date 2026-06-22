@@ -1,4 +1,5 @@
-use crate::fonts::Font;
+use crate::fonts::{Font, Segment};
+use cfonts_macros::glyph;
 
 pub const FONT_CONSOLE: Font<1> = Font {
 	name: "console",
@@ -17,177 +18,177 @@ pub const FONT_CONSOLE: Font<1> = Font {
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
-		table['A' as usize] = Some(&[
+		table['A' as usize] = Some(glyph!(
 			r"a",
-		]);
-		table['B' as usize] = Some(&[
+		));
+		table['B' as usize] = Some(glyph!(
 			r"b",
-		]);
-		table['C' as usize] = Some(&[
+		));
+		table['C' as usize] = Some(glyph!(
 			r"c",
-		]);
-		table['D' as usize] = Some(&[
+		));
+		table['D' as usize] = Some(glyph!(
 			r"d",
-		]);
-		table['E' as usize] = Some(&[
+		));
+		table['E' as usize] = Some(glyph!(
 			r"e",
-		]);
-		table['F' as usize] = Some(&[
+		));
+		table['F' as usize] = Some(glyph!(
 			r"f",
-		]);
-		table['G' as usize] = Some(&[
+		));
+		table['G' as usize] = Some(glyph!(
 			r"g",
-		]);
-		table['H' as usize] = Some(&[
+		));
+		table['H' as usize] = Some(glyph!(
 			r"h",
-		]);
-		table['I' as usize] = Some(&[
+		));
+		table['I' as usize] = Some(glyph!(
 			r"i",
-		]);
-		table['J' as usize] = Some(&[
+		));
+		table['J' as usize] = Some(glyph!(
 			r"j",
-		]);
-		table['K' as usize] = Some(&[
+		));
+		table['K' as usize] = Some(glyph!(
 			r"k",
-		]);
-		table['L' as usize] = Some(&[
+		));
+		table['L' as usize] = Some(glyph!(
 			r"l",
-		]);
-		table['M' as usize] = Some(&[
+		));
+		table['M' as usize] = Some(glyph!(
 			r"m",
-		]);
-		table['N' as usize] = Some(&[
+		));
+		table['N' as usize] = Some(glyph!(
 			r"n",
-		]);
-		table['O' as usize] = Some(&[
+		));
+		table['O' as usize] = Some(glyph!(
 			r"o",
-		]);
-		table['P' as usize] = Some(&[
+		));
+		table['P' as usize] = Some(glyph!(
 			r"p",
-		]);
-		table['Q' as usize] = Some(&[
+		));
+		table['Q' as usize] = Some(glyph!(
 			r"q",
-		]);
-		table['R' as usize] = Some(&[
+		));
+		table['R' as usize] = Some(glyph!(
 			r"r",
-		]);
-		table['S' as usize] = Some(&[
+		));
+		table['S' as usize] = Some(glyph!(
 			r"s",
-		]);
-		table['T' as usize] = Some(&[
+		));
+		table['T' as usize] = Some(glyph!(
 			r"t",
-		]);
-		table['U' as usize] = Some(&[
+		));
+		table['U' as usize] = Some(glyph!(
 			r"u",
-		]);
-		table['V' as usize] = Some(&[
+		));
+		table['V' as usize] = Some(glyph!(
 			r"v",
-		]);
-		table['W' as usize] = Some(&[
+		));
+		table['W' as usize] = Some(glyph!(
 			r"w",
-		]);
-		table['X' as usize] = Some(&[
+		));
+		table['X' as usize] = Some(glyph!(
 			r"x",
-		]);
-		table['Y' as usize] = Some(&[
+		));
+		table['Y' as usize] = Some(glyph!(
 			r"y",
-		]);
-		table['Z' as usize] = Some(&[
+		));
+		table['Z' as usize] = Some(glyph!(
 			r"z",
-		]);
-		table['0' as usize] = Some(&[
+		));
+		table['0' as usize] = Some(glyph!(
 			r"0",
-		]);
-		table['1' as usize] = Some(&[
+		));
+		table['1' as usize] = Some(glyph!(
 			r"1",
-		]);
-		table['2' as usize] = Some(&[
+		));
+		table['2' as usize] = Some(glyph!(
 			r"2",
-		]);
-		table['3' as usize] = Some(&[
+		));
+		table['3' as usize] = Some(glyph!(
 			r"3",
-		]);
-		table['4' as usize] = Some(&[
+		));
+		table['4' as usize] = Some(glyph!(
 			r"4",
-		]);
-		table['5' as usize] = Some(&[
+		));
+		table['5' as usize] = Some(glyph!(
 			r"5",
-		]);
-		table['6' as usize] = Some(&[
+		));
+		table['6' as usize] = Some(glyph!(
 			r"6",
-		]);
-		table['7' as usize] = Some(&[
+		));
+		table['7' as usize] = Some(glyph!(
 			r"7",
-		]);
-		table['8' as usize] = Some(&[
+		));
+		table['8' as usize] = Some(glyph!(
 			r"8",
-		]);
-		table['9' as usize] = Some(&[
+		));
+		table['9' as usize] = Some(glyph!(
 			r"9",
-		]);
-		table['!' as usize] = Some(&[
+		));
+		table['!' as usize] = Some(glyph!(
 			r"!",
-		]);
-		table['?' as usize] = Some(&[
+		));
+		table['?' as usize] = Some(glyph!(
 			r"?",
-		]);
-		table['.' as usize] = Some(&[
+		));
+		table['.' as usize] = Some(glyph!(
 			r".",
-		]);
-		table['+' as usize] = Some(&[
+		));
+		table['+' as usize] = Some(glyph!(
 			r"+",
-		]);
-		table['-' as usize] = Some(&[
+		));
+		table['-' as usize] = Some(glyph!(
 			r"-",
-		]);
-		table['_' as usize] = Some(&[
+		));
+		table['_' as usize] = Some(glyph!(
 			r"_",
-		]);
-		table['=' as usize] = Some(&[
+		));
+		table['=' as usize] = Some(glyph!(
 			r"=",
-		]);
-		table['@' as usize] = Some(&[
+		));
+		table['@' as usize] = Some(glyph!(
 			r"@",
-		]);
-		table['#' as usize] = Some(&[
+		));
+		table['#' as usize] = Some(glyph!(
 			r"#",
-		]);
-		table['$' as usize] = Some(&[
+		));
+		table['$' as usize] = Some(glyph!(
 			r"$",
-		]);
-		table['%' as usize] = Some(&[
+		));
+		table['%' as usize] = Some(glyph!(
 			r"%",
-		]);
-		table['&' as usize] = Some(&[
+		));
+		table['&' as usize] = Some(glyph!(
 			r"&",
-		]);
-		table['(' as usize] = Some(&[
+		));
+		table['(' as usize] = Some(glyph!(
 			r"(",
-		]);
-		table[')' as usize] = Some(&[
+		));
+		table[')' as usize] = Some(glyph!(
 			r")",
-		]);
-		table['/' as usize] = Some(&[
+		));
+		table['/' as usize] = Some(glyph!(
 			r"/",
-		]);
-		table[':' as usize] = Some(&[
+		));
+		table[':' as usize] = Some(glyph!(
 			r":",
-		]);
-		table[';' as usize] = Some(&[
+		));
+		table[';' as usize] = Some(glyph!(
 			r";",
-		]);
-		table[',' as usize] = Some(&[
+		));
+		table[',' as usize] = Some(glyph!(
 			r",",
-		]);
-		table['\'' as usize] = Some(&[
+		));
+		table['\'' as usize] = Some(glyph!(
 			r"'",
-		]);
-		table['"' as usize] = Some(&[
+		));
+		table['"' as usize] = Some(glyph!(
 			r#"""#,
-		]);
-		table[' ' as usize] = Some(&[
+		));
+		table[' ' as usize] = Some(glyph!(
 			r" ",
-		]);
+		));
 
 		table
 	},

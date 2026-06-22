@@ -1,4 +1,5 @@
-use crate::fonts::Font;
+use crate::fonts::{Font, Segment};
+use cfonts_macros::glyph;
 
 pub const FONT_HUGE: Font<11> = Font {
 	name: "huge",
@@ -37,7 +38,7 @@ pub const FONT_HUGE: Font<11> = Font {
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
-		table['A' as usize] = Some(&[
+		table['A' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -49,8 +50,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▀         ▀</c1> ",
-		]);
-		table['B' as usize] = Some(&[
+		));
+		table['B' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄</c1>  ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -62,8 +63,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌</c1> ",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀</c1>  ",
-		]);
-		table['C' as usize] = Some(&[
+		));
+		table['C' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -75,8 +76,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['D' as usize] = Some(&[
+		));
+		table['D' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄</c1>  ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -88,8 +89,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌</c1> ",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀</c1>  ",
-		]);
-		table['E' as usize] = Some(&[
+		));
+		table['E' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -101,8 +102,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['F' as usize] = Some(&[
+		));
+		table['F' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -114,8 +115,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>          ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>          ",
 			r" <c1>▀</c1>           ",
-		]);
-		table['G' as usize] = Some(&[
+		));
+		table['G' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -127,8 +128,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['H' as usize] = Some(&[
+		));
+		table['H' as usize] = Some(glyph!(
 			r" <c1>▄         ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -140,8 +141,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▀         ▀</c1> ",
-		]);
-		table['I' as usize] = Some(&[
+		));
+		table['I' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀▀</c1> ",
@@ -153,8 +154,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄█</c1><c2>░</c2><c1>█▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['J' as usize] = Some(&[
+		));
+		table['J' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀</c1> ",
@@ -166,8 +167,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>    ",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌</c1>    ",
 			r" <c1>▀▀▀▀▀▀▀</c1>     ",
-		]);
-		table['K' as usize] = Some(&[
+		));
+		table['K' as usize] = Some(glyph!(
 			r" <c1>▄    ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌  ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌ ▐</c1><c2>░</c2><c1>▌</c1> ",
@@ -179,8 +180,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌ ▐</c1><c2>░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌  ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▀    ▀</c1> ",
-		]);
-		table['L' as usize] = Some(&[
+		));
+		table['L' as usize] = Some(glyph!(
 			r" <c1>▄</c1>           ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>          ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>          ",
@@ -192,8 +193,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['M' as usize] = Some(&[
+		));
+		table['M' as usize] = Some(glyph!(
 			r" <c1>▄▄       ▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌     ▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>",
@@ -205,8 +206,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▀         ▀</c1> ",
-		]);
-		table['N' as usize] = Some(&[
+		));
+		table['N' as usize] = Some(glyph!(
 			r" <c1>▄▄        ▄</c1> ",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌      ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -218,8 +219,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌      ▐</c1><c2>░░</c2><c1>▌</c1>",
 			r" <c1>▀        ▀▀</c1> ",
-		]);
-		table['O' as usize] = Some(&[
+		));
+		table['O' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -231,8 +232,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['P' as usize] = Some(&[
+		));
+		table['P' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -244,8 +245,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>          ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>          ",
 			r" <c1>▀</c1>           ",
-		]);
-		table['Q' as usize] = Some(&[
+		));
+		table['Q' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -257,8 +258,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▀▀▀▀▀▀█</c1><c2>░</c2><c1>█▀▀</c1> ",
 			r"        <c1>▐</c1><c2>░</c2><c1>▌</c1>  ",
 			r"         <c1>▀</c1>   ",
-		]);
-		table['R' as usize] = Some(&[
+		));
+		table['R' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -270,8 +271,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌      ▐</c1><c2>░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▀         ▀</c1> ",
-		]);
-		table['S' as usize] = Some(&[
+		));
+		table['S' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -283,8 +284,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['T' as usize] = Some(&[
+		));
+		table['T' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀▀</c1> ",
@@ -296,8 +297,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"     <c1>▐</c1><c2>░</c2><c1>▌</c1>     ",
 			r"     <c1>▐</c1><c2>░</c2><c1>▌</c1>     ",
 			r"      <c1>▀</c1>      ",
-		]);
-		table['U' as usize] = Some(&[
+		));
+		table['U' as usize] = Some(glyph!(
 			r" <c1>▄         ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -309,8 +310,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['V' as usize] = Some(&[
+		));
+		table['V' as usize] = Some(glyph!(
 			r" <c1>▄               ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌             ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▐</c1><c2>░</c2><c1>▌           ▐</c1><c2>░</c2><c1>▌</c1> ",
@@ -322,8 +323,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"       <c1>▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>       ",
 			r"        <c1>▐</c1><c2>░</c2><c1>▌</c1>        ",
 			r"         <c1>▀</c1>         ",
-		]);
-		table['W' as usize] = Some(&[
+		));
+		table['W' as usize] = Some(glyph!(
 			r" <c1>▄         ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -335,8 +336,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌     ▐</c1><c2>░░</c2><c1>▌</c1>",
 			r" <c1>▀▀       ▀▀</c1> ",
-		]);
-		table['X' as usize] = Some(&[
+		));
+		table['X' as usize] = Some(glyph!(
 			r" <c1>▄       ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌</c1> ",
@@ -348,8 +349,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▀       ▀</c1> ",
-		]);
-		table['Y' as usize] = Some(&[
+		));
+		table['Y' as usize] = Some(glyph!(
 			r" <c1>▄         ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -361,8 +362,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"     <c1>▐</c1><c2>░</c2><c1>▌</c1>     ",
 			r"     <c1>▐</c1><c2>░</c2><c1>▌</c1>     ",
 			r"      <c1>▀</c1>      ",
-		]);
-		table['Z' as usize] = Some(&[
+		));
+		table['Z' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -374,8 +375,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['0' as usize] = Some(&[
+		));
+		table['0' as usize] = Some(glyph!(
 			r"  <c1>▄▄▄▄▄▄▄▄▄</c1>  ",
 			r" <c1>▐</c1><c2>░░░░░░░░░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>█</c1><c2>░</c2><c1>█▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -387,8 +388,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄█</c1><c2>░</c2><c1>█</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▐</c1><c2>░░░░░░░░░</c2><c1>▌</c1> ",
 			r"  <c1>▀▀▀▀▀▀▀▀▀</c1>  ",
-		]);
-		table['1' as usize] = Some(&[
+		));
+		table['1' as usize] = Some(glyph!(
 			r"    <c1>▄▄▄▄</c1>     ",
 			r"  <c1>▄█</c1><c2>░░░░</c2><c1>▌</c1>    ",
 			r" <c1>▐</c1><c2>░░</c2><c1>▌▐</c1><c2>░░</c2><c1>▌</c1>    ",
@@ -400,8 +401,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄█</c1><c2>░░</c2><c1>█▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['2' as usize] = Some(&[
+		));
+		table['2' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -413,8 +414,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['3' as usize] = Some(&[
+		));
+		table['3' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -426,8 +427,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['4' as usize] = Some(&[
+		));
+		table['4' as usize] = Some(glyph!(
 			r" <c1>▄         ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -439,8 +440,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"          <c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"          <c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"           <c1>▀</c1> ",
-		]);
-		table['5' as usize] = Some(&[
+		));
+		table['5' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -452,8 +453,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['6' as usize] = Some(&[
+		));
+		table['6' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀</c1> ",
@@ -465,8 +466,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['7' as usize] = Some(&[
+		));
+		table['7' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -478,8 +479,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"    <c1>▐</c1><c2>░</c2><c1>▌</c1>      ",
 			r"   <c1>▐</c1><c2>░</c2><c1>▌</c1>       ",
 			r"    <c1>▀</c1>        ",
-		]);
-		table['8' as usize] = Some(&[
+		));
+		table['8' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -491,8 +492,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['9' as usize] = Some(&[
+		));
+		table['9' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -504,8 +505,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['!' as usize] = Some(&[
+		));
+		table['!' as usize] = Some(glyph!(
 			r" <c1>▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
@@ -517,8 +518,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r" <c1>▀▀</c1> ",
-		]);
-		table['?' as usize] = Some(&[
+		));
+		table['?' as usize] = Some(glyph!(
 			r"    <c1>▄▄▄▄▄▄▄</c1>  ",
 			r"  <c1>▄█</c1><c2>░░░░░░</c2><c1>█▄</c1> ",
 			r" <c1>▐</c1><c2>░░</c2><c1>▌▀▀▀▀█</c1><c2>░░</c2><c1>▌</c1>",
@@ -530,8 +531,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"    <c1>▄▄</c1>       ",
 			r"   <c1>▐</c1><c2>░░</c2><c1>▌</c1>      ",
 			r"    <c1>▀▀</c1>       ",
-		]);
-		table['.' as usize] = Some(&[
+		));
+		table['.' as usize] = Some(glyph!(
 			r"    ",
 			r"    ",
 			r"    ",
@@ -543,8 +544,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r" <c1>▀▀</c1> ",
-		]);
-		table['+' as usize] = Some(&[
+		));
+		table['+' as usize] = Some(glyph!(
 			r"          ",
 			r"          ",
 			r"    <c1>▄▄</c1>    ",
@@ -556,8 +557,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"    <c1>▀▀</c1>    ",
 			r"          ",
 			r"          ",
-		]);
-		table['-' as usize] = Some(&[
+		));
+		table['-' as usize] = Some(glyph!(
 			r"       ",
 			r"       ",
 			r"       ",
@@ -569,8 +570,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"       ",
 			r"       ",
 			r"       ",
-		]);
-		table['_' as usize] = Some(&[
+		));
+		table['_' as usize] = Some(glyph!(
 			r"       ",
 			r"       ",
 			r"       ",
@@ -582,8 +583,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀</c1> ",
 			r"       ",
-		]);
-		table['=' as usize] = Some(&[
+		));
+		table['=' as usize] = Some(glyph!(
 			r"       ",
 			r"       ",
 			r" <c1>▄▄▄▄▄</c1> ",
@@ -595,8 +596,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▀▀▀▀▀</c1> ",
 			r"       ",
 			r"       ",
-		]);
-		table['@' as usize] = Some(&[
+		));
+		table['@' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄▄▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -608,8 +609,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>▌▄▄███████</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀▀▀▀▀▀▀▀▀</c1> ",
-		]);
-		table['#' as usize] = Some(&[
+		));
+		table['#' as usize] = Some(glyph!(
 			r"   <c1>▄         ▄</c1>   ",
 			r"  <c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>  ",
 			r" <c1>▄█</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>█▄</c1> ",
@@ -621,8 +622,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▀█</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>█▀</c1> ",
 			r"  <c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>  ",
 			r"   <c1>▀         ▀</c1>   ",
-		]);
-		table['$' as usize] = Some(&[
+		));
+		table['$' as usize] = Some(glyph!(
 			r"      <c1>▄</c1>      ",
 			r" <c1>▄▄▄▄█</c1><c2>░</c2><c1>█▄▄▄▄</c1> ",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
@@ -634,8 +635,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r" <c1>▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀▀</c1> ",
 			r"      <c1>▀</c1>      ",
-		]);
-		table['%' as usize] = Some(&[
+		));
+		table['%' as usize] = Some(glyph!(
 			r"         <c1>▄</c1> ",
 			r"  <c1>▄     ▐</c1><c2>░</c2><c1>▌</c1>",
 			r" <c1>▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌</c1> ",
@@ -647,8 +648,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▀</c1>  ",
 			r" <c1>▀</c1>         ",
-		]);
-		table['&' as usize] = Some(&[
+		));
+		table['&' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄▄▄</c1>     ",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌</c1>    ",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀█</c1><c2>░</c2><c1>▌</c1>    ",
@@ -660,8 +661,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>   ",
 			r"<c1>▐</c1><c2>░░░░░░</c2><c1>▌▐</c1><c2>░</c2><c1>▌</c1>  ",
 			r" <c1>▀▀▀▀▀▀  ▀</c1>   ",
-		]);
-		table['(' as usize] = Some(&[
+		));
+		table['(' as usize] = Some(glyph!(
 			r"  <c1>▄▄▄▄▄</c1> ",
 			r" <c1>▐</c1><c2>░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>█▀▀▀</c1> ",
@@ -673,8 +674,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░░</c2><c1>█▄▄▄</c1> ",
 			r" <c1>▐</c1><c2>░░░░░</c2><c1>▌</c1>",
 			r"  <c1>▀▀▀▀▀</c1> ",
-		]);
-		table[')' as usize] = Some(&[
+		));
+		table[')' as usize] = Some(glyph!(
 			r" <c1>▄▄▄▄▄</c1>  ",
 			r"<c1>▐</c1><c2>░░░░░</c2><c1>▌</c1> ",
 			r" <c1>▀▀▀█</c1><c2>░░</c2><c1>▌</c1>",
@@ -686,8 +687,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▄▄▄█</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░</c2><c1>▌</c1> ",
 			r" <c1>▀▀▀▀▀</c1>  ",
-		]);
-		table['/' as usize] = Some(&[
+		));
+		table['/' as usize] = Some(glyph!(
 			r"         <c1>▄</c1> ",
 			r"        <c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"       <c1>▐</c1><c2>░</c2><c1>▌</c1> ",
@@ -699,8 +700,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▐</c1><c2>░</c2><c1>▌</c1>       ",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>        ",
 			r" <c1>▀</c1>         ",
-		]);
-		table[':' as usize] = Some(&[
+		));
+		table[':' as usize] = Some(glyph!(
 			r"    ",
 			r"    ",
 			r" <c1>▄▄</c1> ",
@@ -712,8 +713,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▀▀</c1> ",
 			r"    ",
 			r"    ",
-		]);
-		table[';' as usize] = Some(&[
+		));
+		table[';' as usize] = Some(glyph!(
 			r"    ",
 			r"    ",
 			r" <c1>▄▄</c1> ",
@@ -725,8 +726,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r" <c1>▀▌</c1> ",
 			r" <c1>▀</c1>  ",
 			r"    ",
-		]);
-		table[',' as usize] = Some(&[
+		));
+		table[',' as usize] = Some(glyph!(
 			r"    ",
 			r"    ",
 			r"    ",
@@ -738,8 +739,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r" <c1>▀▌</c1> ",
 			r" <c1>▀</c1>  ",
-		]);
-		table['\'' as usize] = Some(&[
+		));
+		table['\'' as usize] = Some(glyph!(
 			r" <c1>▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▐</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▐</c1>",
@@ -751,8 +752,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"   ",
 			r"   ",
 			r"   ",
-		]);
-		table['"' as usize] = Some(&[
+		));
+		table['"' as usize] = Some(glyph!(
 			r" <c1>▄  ▄</c1> ",
 			r"<c1>▐</c1><c2>░</c2><c1>▐▐</c1><c2>░</c2><c1>▐</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▐▐</c1><c2>░</c2><c1>▐</c1>",
@@ -764,8 +765,8 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"      ",
 			r"      ",
 			r"      ",
-		]);
-		table[' ' as usize] = Some(&[
+		));
+		table[' ' as usize] = Some(glyph!(
 			r"    ",
 			r"    ",
 			r"    ",
@@ -777,7 +778,7 @@ pub const FONT_HUGE: Font<11> = Font {
 			r"    ",
 			r"    ",
 			r"    ",
-		]);
+		));
 
 		table
 	},
