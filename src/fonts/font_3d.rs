@@ -17,7 +17,7 @@ pub const FONT_3D: Font<9> = Font {
 		r"        ",
 	],
 	#[rustfmt::skip]
-	letterspace: [
+	letter_space: [
 		r"<c2>_</c2>",
 		r"<c2>_</c2>",
 		r"<c2>_</c2>",
@@ -28,7 +28,7 @@ pub const FONT_3D: Font<9> = Font {
 		r"<c2>_</c2>",
 		r"<c2>_</c2>",
 	],
-	letterspace_size: 1,
+	letter_space_size: 1,
 	colors: 2,
 	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
@@ -668,7 +668,7 @@ pub const FONT_3D: Font<9> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn font_3d_test_all_supported_glyphs_defined() {
@@ -678,5 +678,10 @@ mod tests {
 	#[test]
 	fn font_3d_test_slots_within_color_count() {
 		assert_slots_within_colors(&super::FONT_3D);
+	}
+
+	#[test]
+	fn font_3d_test_colors_all_used() {
+		assert_colors_all_used(&super::FONT_3D);
 	}
 }

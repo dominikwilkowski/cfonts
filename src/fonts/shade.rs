@@ -16,7 +16,7 @@ pub const FONT_SHADE: Font<8> = Font {
 		r"",
 	],
 	#[rustfmt::skip]
-	letterspace: [
+	letter_space: [
 		r"<c2>░</c2>",
 		r"<c2>░</c2>",
 		r"<c2>░</c2>",
@@ -26,7 +26,7 @@ pub const FONT_SHADE: Font<8> = Font {
 		r"<c2>░</c2>",
 		r"<c2>░</c2>",
 	],
-	letterspace_size: 1,
+	letter_space_size: 1,
 	colors: 2,
 	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
@@ -609,7 +609,7 @@ pub const FONT_SHADE: Font<8> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn shade_test_all_supported_glyphs_defined() {
@@ -619,5 +619,10 @@ mod tests {
 	#[test]
 	fn shade_test_slots_within_color_count() {
 		assert_slots_within_colors(&super::FONT_SHADE);
+	}
+
+	#[test]
+	fn shade_test_colors_all_used() {
+		assert_colors_all_used(&super::FONT_SHADE);
 	}
 }

@@ -15,7 +15,7 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 		r"",
 	],
 	#[rustfmt::skip]
-	letterspace: [
+	letter_space: [
 		r"",
 		r"",
 		r"",
@@ -24,7 +24,7 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 		r"",
 		r"",
 	],
-	letterspace_size: 0,
+	letter_space_size: 0,
 	colors: 1,
 	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
@@ -550,7 +550,7 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn simple3d_test_all_supported_glyphs_defined() {
@@ -560,5 +560,10 @@ mod tests {
 	#[test]
 	fn simple3d_test_slots_within_color_count() {
 		assert_slots_within_colors(&super::FONT_SIMPLE3D);
+	}
+
+	#[test]
+	fn simple3d_test_colors_all_used() {
+		assert_colors_all_used(&super::FONT_SIMPLE3D);
 	}
 }
