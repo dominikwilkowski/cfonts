@@ -9,9 +9,9 @@ pub const FONT_CONSOLE: Font<1> = Font {
 		r"",
 	],
 	#[rustfmt::skip]
-	letter_space: [
+	letter_space: glyph!(
 		r"",
-	],
+	),
 	letter_space_size: 0,
 	colors: 1,
 	homepage: "https://github.com/dominikwilkowski/cfonts",
@@ -196,7 +196,7 @@ pub const FONT_CONSOLE: Font<1> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_colors_all_used, assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn console_test_all_supported_glyphs_defined() {
@@ -211,5 +211,10 @@ mod tests {
 	#[test]
 	fn console_test_colors_all_used() {
 		assert_colors_all_used(&super::FONT_CONSOLE);
+	}
+
+	#[test]
+	fn console_test_letter_space_size() {
+		assert_letter_space_size(&super::FONT_CONSOLE);
 	}
 }

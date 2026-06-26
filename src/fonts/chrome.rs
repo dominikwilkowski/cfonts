@@ -11,11 +11,11 @@ pub const FONT_CHROME: Font<3> = Font {
 		r"",
 	],
 	#[rustfmt::skip]
-	letter_space: [
+	letter_space: glyph!(
 		r" ",
 		r" ",
 		r" ",
-	],
+	),
 	letter_space_size: 1,
 	colors: 3,
 	homepage: "https://github.com/dominikwilkowski/cfonts",
@@ -314,7 +314,7 @@ pub const FONT_CHROME: Font<3> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_colors_all_used, assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_slots_within_colors, assert_supported};
 
 	#[test]
 	fn chrome_test_all_supported_glyphs_defined() {
@@ -329,5 +329,10 @@ mod tests {
 	#[test]
 	fn chrome_test_colors_all_used() {
 		assert_colors_all_used(&super::FONT_CHROME);
+	}
+
+	#[test]
+	fn chrome_test_letter_space_size() {
+		assert_letter_space_size(&super::FONT_CHROME);
 	}
 }
