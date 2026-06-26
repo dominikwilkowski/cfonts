@@ -314,16 +314,11 @@ pub const FONT_CHROME: Font<3> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_supported};
 
 	#[test]
 	fn chrome_test_all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_CHROME);
-	}
-
-	#[test]
-	fn chrome_test_slots_within_color_count() {
-		assert_slots_within_colors(&super::FONT_CHROME);
 	}
 
 	#[test]

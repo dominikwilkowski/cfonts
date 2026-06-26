@@ -668,16 +668,11 @@ pub const FONT_3D: Font<9> = Font {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_slots_within_colors, assert_supported};
+	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_supported};
 
 	#[test]
 	fn font_3d_test_all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_3D);
-	}
-
-	#[test]
-	fn font_3d_test_slots_within_color_count() {
-		assert_slots_within_colors(&super::FONT_3D);
 	}
 
 	#[test]

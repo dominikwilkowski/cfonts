@@ -88,31 +88,6 @@ pub(crate) fn assert_supported<const LINES: usize>(font: &Font<LINES>) {
 	assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
 }
 
-/// Assert every colored segment refers to a slot the font actually defines.
-#[cfg(test)]
-pub(crate) fn assert_slots_within_colors<const LINES: usize>(font: &Font<LINES>) {
-	for (code_point, glyph) in font.glyphs.iter().enumerate() {
-		let Some(glyph) = glyph else {
-			continue;
-		};
-
-		for (line, row) in glyph.rows.iter().enumerate() {
-			for segment in row.segments {
-				if let Segment::Colored { slot, .. } = segment {
-					assert!(
-						*slot < font.colors,
-						"font \"{}\": glyph {:?} (line {line}) uses color <c{}> but the font only declares {} colors",
-						font.name,
-						char::from_u32(code_point as u32).unwrap_or('?'),
-						slot + 1,
-						font.colors,
-					);
-				}
-			}
-		}
-	}
-}
-
 /// Assert the font uses every color it declares: the highest slot used must be `colors - 1`.
 /// Catches a `.colors` that's set too high, or a glyph where a color was forgotten.
 #[cfg(test)]
@@ -184,11 +159,7 @@ pub(crate) fn assert_colors_all_used<const LINES: usize>(font: &Font<LINES>) {
 					highest + 1,
 				),
 				None => {
-					assert_eq!(
-						font.colors, 0,
-						"font \"{}\" declares {} colors but no glyph uses any color",
-						font.name, font.colors,
-					)
+					panic!("font \"{}\" declares {} colors but no glyph uses any color", font.name, font.colors,)
 				}
 			}
 		}
