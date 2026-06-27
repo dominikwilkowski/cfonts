@@ -1,9 +1,8 @@
-use crate::fonts::{Font, Glyph, GlyphRow, Segment};
+use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
 use cfonts_macros::glyph;
 
-pub const FONT_3D: Font<9> = Font {
+pub static FONT_3D: FontFile<9> = FontFile {
 	name: "3D",
-	version: "2.0.0",
 	#[rustfmt::skip]
 	buffer: [
 		r"",
@@ -30,7 +29,6 @@ pub const FONT_3D: Font<9> = Font {
 	),
 	letter_space_size: 1,
 	colors: 2,
-	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

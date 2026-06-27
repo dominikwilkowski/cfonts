@@ -1,9 +1,8 @@
-use crate::fonts::{Font, Glyph, GlyphRow, Segment};
+use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
 use cfonts_macros::glyph;
 
-pub const FONT_CHROME: Font<3> = Font {
+pub static FONT_CHROME: FontFile<3> = FontFile {
 	name: "chrome",
-	version: "2.0.0",
 	#[rustfmt::skip]
 	buffer: [
 		r"",
@@ -18,7 +17,6 @@ pub const FONT_CHROME: Font<3> = Font {
 	),
 	letter_space_size: 1,
 	colors: 3,
-	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

@@ -1,9 +1,8 @@
-use crate::fonts::{Font, Glyph, GlyphRow, Segment};
+use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
 use cfonts_macros::glyph;
 
-pub const FONT_SIMPLE3D: Font<7> = Font {
+pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 	name: "simple3d",
-	version: "2.0.0",
 	#[rustfmt::skip]
 	buffer: [
 		r"",
@@ -26,7 +25,6 @@ pub const FONT_SIMPLE3D: Font<7> = Font {
 	),
 	letter_space_size: 0,
 	colors: 1,
-	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
@@ -553,17 +551,17 @@ mod tests {
 	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_supported};
 
 	#[test]
-	fn simple3d_test_all_supported_glyphs_defined() {
-		assert_supported(&super::FONT_SIMPLE3D);
+	fn simple_3d_test_all_supported_glyphs_defined() {
+		assert_supported(&super::FONT_SIMPLE_3D);
 	}
 
 	#[test]
-	fn simple3d_test_colors_all_used() {
-		assert_colors_all_used(&super::FONT_SIMPLE3D);
+	fn simple_3d_test_colors_all_used() {
+		assert_colors_all_used(&super::FONT_SIMPLE_3D);
 	}
 
 	#[test]
-	fn simple3d_test_letter_space_size() {
-		assert_letter_space_size(&super::FONT_SIMPLE3D);
+	fn simple_3d_test_letter_space_size() {
+		assert_letter_space_size(&super::FONT_SIMPLE_3D);
 	}
 }

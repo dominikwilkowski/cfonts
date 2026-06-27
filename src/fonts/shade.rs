@@ -1,9 +1,8 @@
-use crate::fonts::{Font, Glyph, GlyphRow, Segment};
+use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
 use cfonts_macros::glyph;
 
-pub const FONT_SHADE: Font<8> = Font {
+pub static FONT_SHADE: FontFile<8> = FontFile {
 	name: "shade",
-	version: "2.0.0",
 	#[rustfmt::skip]
 	buffer: [
 		r"",
@@ -28,7 +27,6 @@ pub const FONT_SHADE: Font<8> = Font {
 	),
 	letter_space_size: 1,
 	colors: 2,
-	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

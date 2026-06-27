@@ -1,9 +1,8 @@
-use crate::fonts::{Font, Glyph, GlyphRow, Segment};
+use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
 use cfonts_macros::glyph;
 
-pub const FONT_BLOCK: Font<6> = Font {
+pub static FONT_BLOCK: FontFile<6> = FontFile {
 	name: "block",
-	version: "2.0.0",
 	#[rustfmt::skip]
 	buffer: [
 		r"",
@@ -24,7 +23,6 @@ pub const FONT_BLOCK: Font<6> = Font {
 	),
 	letter_space_size: 1,
 	colors: 2,
-	homepage: "https://github.com/dominikwilkowski/cfonts",
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
