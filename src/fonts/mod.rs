@@ -187,102 +187,135 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 }
 
 #[cfg(test)]
-pub const SUPPORTED: &[char] = &[
-	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-	'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '?', '.', '+', '-', '_', '=', '@', '#', '$',
-	'%', '&', '(', ')', '/', ':', ';', ',', '\'', '"', ' ',
-];
+mod tests {
+	use super::*;
 
-#[cfg(test)]
-pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
-	let missing = SUPPORTED.into_iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
+	pub const SUPPORTED: &[char] = &[
+		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+		'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '?', '.', '+', '-', '_', '=', '@', '#', '$',
+		'%', '&', '(', ')', '/', ':', ';', ',', '\'', '"', ' ',
+	];
 
-	assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
-}
+	pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
+		let missing =
+			SUPPORTED.into_iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
 
-/// Assert the font uses every color it declares: the highest slot used must be `colors - 1`.
-/// Catches a `.colors` that's set too high, or a glyph where a color was forgotten.
-#[cfg(test)]
-pub(crate) fn assert_colors_all_used<const ROWS: usize>(font: &FontFile<ROWS>) {
-	match font.colors {
-		0 => {
-			panic!("font \"{}\" declares 0 colors; a font must declare at least one color", font.name);
-		}
-		1 => {
-			// Single-color fonts are wrapped wholesale at render time, so no `<c*>`
-			// tags belong in the data — a tag here is almost always a leftover from
-			// converting a multi-color font.
-			for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
-			{
-				let Some(glyph) = glyph else {
-					continue;
-				};
+		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
+	}
 
-				let glyph_name = if code_point == font.glyphs.len() {
-					String::from("letter_space")
-				} else {
-					format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
-				};
-
-				for (line, row) in glyph.rows.iter().enumerate() {
-					for segment in row.segments {
-						assert!(
-							!matches!(segment, Segment::Colored { .. }),
-							"font \"{}\" declares {} color but glyph {glyph_name} (line {line}) uses a color tag; single-color fonts must not tag colors",
-							font.name,
-							font.colors,
-						);
-					}
-				}
+	/// Assert the font uses every color it declares: the highest slot used must be `colors - 1`.
+	/// Catches a `.colors` that's set too high, or a glyph where a color was forgotten
+	pub(crate) fn assert_colors_all_used<const ROWS: usize>(font: &FontFile<ROWS>) {
+		match font.colors {
+			0 => {
+				panic!("font \"{}\" declares 0 colors; a font must declare at least one color", font.name);
 			}
-		}
-		_ => {
-			let mut highest_used: Option<(usize, String, usize)> = None;
-			for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
-			{
-				let Some(glyph) = glyph else {
-					continue;
-				};
+			1 => {
+				// Single-color fonts are wrapped wholesale at render time, so no `<c*>`
+				// tags belong in the data — a tag here is almost always a leftover from
+				// converting a multi-color font
+				for (code_point, glyph) in
+					font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
+				{
+					let Some(glyph) = glyph else {
+						continue;
+					};
 
-				for (line, row) in glyph.rows.iter().enumerate() {
-					for segment in row.segments {
-						if let Segment::Colored { slot, .. } = segment
-							&& highest_used.as_ref().is_none_or(|(highest_slot, _, _)| *slot > *highest_slot)
-						{
-							let glyph_name = if code_point == font.glyphs.len() {
-								String::from("letter_space")
-							} else {
-								format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
-							};
+					let glyph_name = if code_point == font.glyphs.len() {
+						String::from("letter_space")
+					} else {
+						format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
+					};
 
-							highest_used = Some((*slot, glyph_name, line));
+					for (line, row) in glyph.rows.iter().enumerate() {
+						for segment in row.segments {
+							assert!(
+								!matches!(segment, Segment::Colored { .. }),
+								"font \"{}\" declares {} color but glyph {glyph_name} (line {line}) uses a color tag; single-color fonts must not tag colors",
+								font.name,
+								font.colors,
+							);
 						}
 					}
 				}
 			}
+			_ => {
+				let mut highest_used: Option<(usize, String, usize)> = None;
+				for (code_point, glyph) in
+					font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
+				{
+					let Some(glyph) = glyph else {
+						continue;
+					};
 
-			match highest_used {
-				Some((highest, glyph_name, line)) => assert_eq!(
-					highest + 1,
-					font.colors,
-					"font \"{}\" declares {} colors but the highest used is <c{}> in glyph {glyph_name} on line {line}",
-					font.name,
-					font.colors,
-					highest + 1,
-				),
-				None => {
-					panic!("font \"{}\" declares {} colors but no glyph uses any color", font.name, font.colors,)
+					for (line, row) in glyph.rows.iter().enumerate() {
+						for segment in row.segments {
+							if let Segment::Colored { slot, .. } = segment
+								&& highest_used.as_ref().is_none_or(|(highest_slot, _, _)| *slot > *highest_slot)
+							{
+								let glyph_name = if code_point == font.glyphs.len() {
+									String::from("letter_space")
+								} else {
+									format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
+								};
+
+								highest_used = Some((*slot, glyph_name, line));
+							}
+						}
+					}
+				}
+
+				match highest_used {
+					Some((highest, glyph_name, line)) => assert_eq!(
+						highest + 1,
+						font.colors,
+						"font \"{}\" declares {} colors but the highest used is <c{}> in glyph {glyph_name} on line {line}",
+						font.name,
+						font.colors,
+						highest + 1,
+					),
+					None => {
+						panic!("font \"{}\" declares {} colors but no glyph uses any color", font.name, font.colors,)
+					}
 				}
 			}
 		}
 	}
-}
 
-#[cfg(test)]
-pub(crate) fn assert_letter_space_size<const ROWS: usize>(font: &FontFile<ROWS>) {
-	assert_eq!(
-		font.letter_space.width, font.letter_space_size,
-		"font \"{}\": letter_space_size is {} but the letter_space glyph is {} columns wide",
-		font.name, font.letter_space_size, font.letter_space.width,
-	);
+	pub(crate) fn assert_letter_space_size<const ROWS: usize>(font: &FontFile<ROWS>) {
+		assert_eq!(
+			font.letter_space.width, font.letter_space_size,
+			"font \"{}\": letter_space_size is {} but the letter_space glyph is {} columns wide",
+			font.name, font.letter_space_size, font.letter_space.width,
+		);
+	}
+
+	/// Column width of a single row: the char count across all its segments
+	fn row_width(row: &GlyphRow) -> usize {
+		row
+			.segments
+			.iter()
+			.map(|segment| match segment {
+				Segment::Plain(text) | Segment::Colored { text, .. } => text.chars().count(),
+			})
+			.sum()
+	}
+
+	/// Assert `buffer_size` matches the widest row of a buffer
+	/// `buffer_size` describes the column width the buffer occupies, which is its widest row
+	fn assert_buffer_size(name: &str, label: &str, buffer: &[GlyphRow], buffer_size: usize) {
+		let widest = buffer.iter().map(row_width).max().unwrap_or(0);
+		assert_eq!(
+			widest, buffer_size,
+			"font \"{name}\": buffer_size is {buffer_size} but the widest row of {label} is {widest} columns wide",
+		);
+	}
+
+	pub(crate) fn assert_buffer_start_size<const ROWS: usize>(font: &FontFile<ROWS>) {
+		assert_buffer_size(font.name, "buffer_start", font.buffer_start, font.buffer_size);
+	}
+
+	pub(crate) fn assert_buffer_end_size<const ROWS: usize>(font: &FontFile<ROWS>) {
+		assert_buffer_size(font.name, "buffer_end", font.buffer_end, font.buffer_size);
+	}
 }

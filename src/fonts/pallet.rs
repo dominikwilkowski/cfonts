@@ -499,7 +499,10 @@ pub static FONT_PALLET: FontFile<6> = FontFile {
 
 #[cfg(test)]
 mod tests {
-	use crate::fonts::{assert_colors_all_used, assert_letter_space_size, assert_supported};
+	use crate::fonts::tests::{
+		assert_buffer_end_size, assert_buffer_start_size, assert_colors_all_used, assert_letter_space_size,
+		assert_supported,
+	};
 
 	#[test]
 	fn pallet_test_all_supported_glyphs_defined() {
@@ -514,5 +517,15 @@ mod tests {
 	#[test]
 	fn pallet_test_letter_space_size() {
 		assert_letter_space_size(&super::FONT_PALLET);
+	}
+
+	#[test]
+	fn pallet_test_buffer_start_size() {
+		assert_buffer_start_size(&super::FONT_PALLET);
+	}
+
+	#[test]
+	fn pallet_test_buffer_end_size() {
+		assert_buffer_end_size(&super::FONT_PALLET);
 	}
 }

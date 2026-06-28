@@ -57,8 +57,8 @@ fn main() {
 				word_wrap: false,
 			},
 			crate::options::BlockOptions {
-				text: String::from("test"),
-				font: crate::fonts::Font::Font3D,
+				text: String::from("world"),
+				font: crate::fonts::Font::Tiny,
 				colors: false,
 				background: false,
 				gradient: false,
@@ -70,7 +70,7 @@ fn main() {
 			},
 			crate::options::BlockOptions {
 				text: String::from("ending"),
-				font: crate::fonts::Font::Block,
+				font: crate::fonts::Font::Font3D,
 				colors: false,
 				background: false,
 				gradient: false,

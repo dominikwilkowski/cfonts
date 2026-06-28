@@ -50,18 +50,19 @@ impl<'a> Renderer<'a> {
 
 	pub fn start(&mut self) -> &Vec<LayoutGlyph> {
 		let terminal_width = 80; // TODO: get from terminal
+		let mut prev_font: Option<Font> = None;
 
-		for (i, block) in self.options.blocks.iter().enumerate() {
+		for block in self.options.blocks.iter() {
 			let font = block.font.get_font();
 			self.current_font_rows = font.rows();
 
 			// We're between blocks so we need to push the end buffer
-			if i > 0 {
-				let prev_font = self.options.blocks[i - 1].font.get_font();
+			if let Some(prev) = prev_font {
+				let prev_font = prev.get_font();
 				self.line.push(LayoutGlyph {
 					rows: prev_font.buffer_end(),
 					width: prev_font.buffer_size(),
-					font: self.options.blocks[i - 1].font,
+					font: prev,
 				});
 			}
 
@@ -101,6 +102,8 @@ impl<'a> Renderer<'a> {
 					font: block.font,
 				});
 			}
+
+			prev_font = Some(block.font);
 		}
 		self.flush_line(); // Flushing the last line
 
@@ -125,14 +128,15 @@ impl<'a> Renderer<'a> {
 
 		for row in 0..rows_to_push {
 			for glyph in self.line.iter() {
-				if current_font != Some(&glyph.font) {
-					let extra = self.line_max_rows - glyph.rows.len();
+				// TODO: add letter spacing
+				if current_font != Some(glyph.font) {
+					let extra = rows_to_push - glyph.rows.len();
 					padding = match self.options.valign {
 						Valign::Top => 0,
 						Valign::Middle => extra / 2,
 						Valign::Bottom => extra,
 					};
-					current_font = Some(&glyph.font);
+					current_font = Some(glyph.font);
 				}
 
 				let entry = if row < padding || row >= padding + glyph.rows.len() {
