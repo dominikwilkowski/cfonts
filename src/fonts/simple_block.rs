@@ -4,15 +4,26 @@ use cfonts_macros::glyph;
 pub static FONT_SIMPLE_BLOCK: FontFile<7> = FontFile {
 	name: "simpleBlock",
 	#[rustfmt::skip]
-	buffer: [
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
+	buffer_start: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
 	],
+	#[rustfmt::skip]
+	buffer_end: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+	],
+	buffer_size: 0,
 	#[rustfmt::skip]
 	letter_space: glyph!(
 		r" ",

@@ -1,5 +1,13 @@
 use crate::fonts::Font;
 
+#[derive(Debug)]
+pub enum Valign {
+	Top,
+	Middle,
+	Bottom,
+}
+
+#[derive(Debug)]
 pub struct BlockOptions {
 	pub text: String,
 	pub font: Font,
@@ -13,9 +21,10 @@ pub struct BlockOptions {
 	pub word_wrap: bool,
 }
 
+#[derive(Debug)]
 pub struct Options {
 	pub align: bool,
-	pub valign: bool,
+	pub valign: Valign,
 	pub spaceless: bool,
 	pub env: bool,
 	pub max_length: usize,

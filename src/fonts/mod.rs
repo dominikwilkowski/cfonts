@@ -41,8 +41,8 @@ pub struct GlyphRow {
 
 /// The parsed representation of one glyph, with all rows validated to the same width, with generic type-level safety
 #[derive(Debug)]
-pub struct Glyph<const LINES: usize> {
-	pub rows: &'static [GlyphRow; LINES],
+pub struct Glyph<const ROWS: usize> {
+	pub rows: &'static [GlyphRow; ROWS],
 	pub width: usize,
 }
 
@@ -54,8 +54,8 @@ pub struct GlyphRef {
 	pub width: usize,
 }
 
-impl<const LINES: usize> From<&'static Glyph<LINES>> for GlyphRef {
-	fn from(glyph: &'static Glyph<LINES>) -> Self {
+impl<const ROWS: usize> From<&'static Glyph<ROWS>> for GlyphRef {
+	fn from(glyph: &'static Glyph<ROWS>) -> Self {
 		Self {
 			rows: &glyph.rows[..],
 			width: glyph.width,
@@ -65,12 +65,31 @@ impl<const LINES: usize> From<&'static Glyph<LINES>> for GlyphRef {
 
 // A trait for font data, providing access to font properties and glyphs without the const generic
 pub trait FontData {
+	/// Returns the name of the font
 	fn name(&self) -> &'static str;
+
+	/// Returns the number of colors supported by the font
 	fn colors(&self) -> usize;
-	fn lines(&self) -> usize;
-	fn buffer(&self) -> &[&'static str];
+
+	/// Returns the number of rows of each glyph in a font (height of the font in the terminal)
+	fn rows(&self) -> usize;
+
+	/// Returns the buffer start glyph of this font (for the start of the font to align each row)
+	fn buffer_start(&self) -> &'static [GlyphRow];
+
+	/// Returns the buffer end glyph of this font (for the end of the font to align each row)
+	fn buffer_end(&self) -> &'static [GlyphRow];
+
+	/// Returns the size (width) of the buffer glyph
+	fn buffer_size(&self) -> usize;
+
+	/// Returns the letter space glyph for the font
 	fn letter_space(&self) -> GlyphRef;
+
+	/// Returns the size (width) of the letter space glyph
 	fn letter_space_size(&self) -> usize;
+
+	/// Returns the glyph for a given character, if it exists
 	fn get_glyph(&self, character: char) -> Option<GlyphRef>;
 }
 
@@ -113,16 +132,18 @@ impl Font {
 
 /// A font consisting of a set of glyphs and color/size information
 #[derive(Debug)]
-pub struct FontFile<const LINES: usize> {
+pub struct FontFile<const ROWS: usize> {
 	pub name: &'static str,
 	pub colors: usize,
-	pub buffer: [&'static str; LINES],
-	pub letter_space: &'static Glyph<LINES>,
+	pub buffer_start: &'static [GlyphRow],
+	pub buffer_end: &'static [GlyphRow],
+	pub buffer_size: usize,
+	pub letter_space: &'static Glyph<ROWS>,
 	pub letter_space_size: usize,
-	glyphs: [Option<&'static Glyph<LINES>>; 128],
+	glyphs: [Option<&'static Glyph<ROWS>>; 128],
 }
 
-impl<const LINES: usize> FontData for FontFile<LINES> {
+impl<const ROWS: usize> FontData for FontFile<ROWS> {
 	fn name(&self) -> &'static str {
 		self.name
 	}
@@ -131,12 +152,20 @@ impl<const LINES: usize> FontData for FontFile<LINES> {
 		self.colors
 	}
 
-	fn lines(&self) -> usize {
-		LINES
+	fn rows(&self) -> usize {
+		ROWS
 	}
 
-	fn buffer(&self) -> &[&'static str] {
-		&self.buffer
+	fn buffer_start(&self) -> &'static [GlyphRow] {
+		&self.buffer_start
+	}
+
+	fn buffer_end(&self) -> &'static [GlyphRow] {
+		&self.buffer_end
+	}
+
+	fn buffer_size(&self) -> usize {
+		self.buffer_size
 	}
 
 	fn letter_space(&self) -> GlyphRef {
@@ -165,7 +194,7 @@ pub const SUPPORTED: &[char] = &[
 ];
 
 #[cfg(test)]
-pub(crate) fn assert_supported<const LINES: usize>(font: &FontFile<LINES>) {
+pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
 	let missing = SUPPORTED.into_iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
 
 	assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
@@ -174,7 +203,7 @@ pub(crate) fn assert_supported<const LINES: usize>(font: &FontFile<LINES>) {
 /// Assert the font uses every color it declares: the highest slot used must be `colors - 1`.
 /// Catches a `.colors` that's set too high, or a glyph where a color was forgotten.
 #[cfg(test)]
-pub(crate) fn assert_colors_all_used<const LINES: usize>(font: &FontFile<LINES>) {
+pub(crate) fn assert_colors_all_used<const ROWS: usize>(font: &FontFile<ROWS>) {
 	match font.colors {
 		0 => {
 			panic!("font \"{}\" declares 0 colors; a font must declare at least one color", font.name);
@@ -250,7 +279,7 @@ pub(crate) fn assert_colors_all_used<const LINES: usize>(font: &FontFile<LINES>)
 }
 
 #[cfg(test)]
-pub(crate) fn assert_letter_space_size<const LINES: usize>(font: &FontFile<LINES>) {
+pub(crate) fn assert_letter_space_size<const ROWS: usize>(font: &FontFile<ROWS>) {
 	assert_eq!(
 		font.letter_space.width, font.letter_space_size,
 		"font \"{}\": letter_space_size is {} but the letter_space glyph is {} columns wide",

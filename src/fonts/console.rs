@@ -4,9 +4,14 @@ use cfonts_macros::glyph;
 pub static FONT_CONSOLE: FontFile<1> = FontFile {
 	name: "console",
 	#[rustfmt::skip]
-	buffer: [
-		r"",
+	buffer_start: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
 	],
+	#[rustfmt::skip]
+	buffer_end: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+	],
+	buffer_size: 0,
 	#[rustfmt::skip]
 	letter_space: glyph!(
 		r"",

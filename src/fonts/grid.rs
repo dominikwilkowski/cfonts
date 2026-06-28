@@ -4,14 +4,24 @@ use cfonts_macros::glyph;
 pub static FONT_GRID: FontFile<6> = FontFile {
 	name: "grid",
 	#[rustfmt::skip]
-	buffer: [
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
+	buffer_start: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
 	],
+	#[rustfmt::skip]
+	buffer_end: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+	],
+	buffer_size: 0,
 	#[rustfmt::skip]
 	letter_space: glyph!(
 		r"<c2>╋</c2>",

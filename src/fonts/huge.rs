@@ -4,19 +4,34 @@ use cfonts_macros::glyph;
 pub static FONT_HUGE: FontFile<11> = FontFile {
 	name: "huge",
 	#[rustfmt::skip]
-	buffer: [
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
-		r"",
+	buffer_start: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
 	],
+	#[rustfmt::skip]
+	buffer_end: &[
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+		GlyphRow { segments: &[Segment::Plain("")] },
+	],
+	buffer_size: 0,
 	#[rustfmt::skip]
 	letter_space: glyph!(
 		r" ",

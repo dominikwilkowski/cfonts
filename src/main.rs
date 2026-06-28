@@ -31,9 +31,11 @@ fn main() {
 	// }
 
 	// config will come from the cli ags parser above
+	let mut input = args[0].clone();
+	input.make_ascii_uppercase();
 	let options = crate::options::Options {
 		align: false,
-		valign: false,
+		valign: crate::options::Valign::Middle,
 		spaceless: false,
 		env: false,
 		max_length: 20,
@@ -41,22 +43,46 @@ fn main() {
 		debug: false,
 		debug_level: false,
 		version: false,
-		blocks: vec![crate::options::BlockOptions {
-			text: args[0].clone(),
-			font: crate::fonts::Font::Block,
-			colors: false,
-			background: false,
-			gradient: false,
-			independent_gradient: false,
-			transition_gradient: false,
-			letter_spacing: false,
-			line_height: false,
-			word_wrap: false,
-		}],
+		blocks: vec![
+			crate::options::BlockOptions {
+				text: input,
+				font: crate::fonts::Font::Block,
+				colors: false,
+				background: false,
+				gradient: false,
+				independent_gradient: false,
+				transition_gradient: false,
+				letter_spacing: false,
+				line_height: false,
+				word_wrap: false,
+			},
+			crate::options::BlockOptions {
+				text: String::from("test"),
+				font: crate::fonts::Font::Font3D,
+				colors: false,
+				background: false,
+				gradient: false,
+				independent_gradient: false,
+				transition_gradient: false,
+				letter_spacing: false,
+				line_height: false,
+				word_wrap: false,
+			},
+			crate::options::BlockOptions {
+				text: String::from("ending"),
+				font: crate::fonts::Font::Block,
+				colors: false,
+				background: false,
+				gradient: false,
+				independent_gradient: false,
+				transition_gradient: false,
+				letter_spacing: false,
+				line_height: false,
+				word_wrap: false,
+			},
+		],
 	};
 
-	let mut renderer = crate::renderer::Renderer::new();
-	let font = options.blocks[0].font.get_font();
-	// will pass full config so renderer can loop over each config block
-	let _ = renderer.start(font, &options.blocks[0].text, options.max_length);
+	let mut renderer = crate::renderer::Renderer::new(&options);
+	let _ = renderer.start();
 }
