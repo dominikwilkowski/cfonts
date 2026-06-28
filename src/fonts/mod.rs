@@ -135,8 +135,8 @@ impl Font {
 pub struct FontFile<const ROWS: usize> {
 	pub name: &'static str,
 	pub colors: usize,
-	pub buffer_start: &'static [GlyphRow],
-	pub buffer_end: &'static [GlyphRow],
+	pub buffer_start: &'static [GlyphRow; ROWS],
+	pub buffer_end: &'static [GlyphRow; ROWS],
 	pub buffer_size: usize,
 	pub letter_space: &'static Glyph<ROWS>,
 	pub letter_space_size: usize,
@@ -157,11 +157,11 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 	}
 
 	fn buffer_start(&self) -> &'static [GlyphRow] {
-		&self.buffer_start
+		self.buffer_start.as_slice()
 	}
 
 	fn buffer_end(&self) -> &'static [GlyphRow] {
-		&self.buffer_end
+		self.buffer_end.as_slice()
 	}
 
 	fn buffer_size(&self) -> usize {
@@ -317,5 +317,45 @@ mod tests {
 
 	pub(crate) fn assert_buffer_end_size<const ROWS: usize>(font: &FontFile<ROWS>) {
 		assert_buffer_size(font.name, "buffer_end", font.buffer_end, font.buffer_size);
+	}
+
+	pub(crate) fn assert_buffers_plain<const ROWS: usize>(font: &FontFile<ROWS>) {
+		for (label, buffer) in [
+			("buffer_start", font.buffer_start.as_slice()),
+			("buffer_end", font.buffer_end.as_slice()),
+		] {
+			for (row, glyph_row) in buffer.iter().enumerate() {
+				for segment in glyph_row.segments {
+					assert!(
+						matches!(segment, Segment::Plain(_)),
+						"font \"{}\": {label} row {row} contains a colored segment; buffers must be plain whitespace",
+						font.name,
+					);
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn font_enum_maps_to_distinct_fonts() {
+		let all = [
+			Font::Block,
+			Font::Chrome,
+			Font::Console,
+			Font::Font3D,
+			Font::Grid,
+			Font::Huge,
+			Font::Pallet,
+			Font::Shade,
+			Font::Simple3D,
+			Font::SimpleBlock,
+			Font::Slick,
+			Font::Tiny,
+		];
+		let mut names: Vec<&str> = all.iter().map(|f| f.get_font().name()).collect();
+		let count = names.len();
+		names.sort_unstable();
+		names.dedup();
+		assert_eq!(names.len(), count, "two Font variants map to the same font data");
 	}
 }

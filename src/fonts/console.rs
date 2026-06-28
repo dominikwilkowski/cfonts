@@ -200,8 +200,8 @@ pub static FONT_CONSOLE: FontFile<1> = FontFile {
 #[cfg(test)]
 mod tests {
 	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_colors_all_used, assert_letter_space_size,
-		assert_supported,
+		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used,
+		assert_letter_space_size, assert_supported,
 	};
 
 	#[test]
@@ -227,5 +227,10 @@ mod tests {
 	#[test]
 	fn console_test_buffer_end_size() {
 		assert_buffer_end_size(&super::FONT_CONSOLE);
+	}
+
+	#[test]
+	fn console_test_buffers_plain() {
+		assert_buffers_plain(&super::FONT_CONSOLE);
 	}
 }

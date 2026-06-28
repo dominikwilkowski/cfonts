@@ -32,6 +32,9 @@ pub struct Renderer<'a> {
 	/// The amount of rows of the tallest font in a line
 	line_max_rows: usize,
 
+	/// Count of printable glyphs on the current line (excludes buffers and letter-spaces)
+	line_glyph_count: usize,
+
 	/// The cfonts options including all font blocks
 	options: &'a Options,
 }
@@ -44,6 +47,7 @@ impl<'a> Renderer<'a> {
 			line_output_width: 0,
 			current_font_rows: 0,
 			line_max_rows: 0,
+			line_glyph_count: 0,
 			options,
 		}
 	}
@@ -74,6 +78,12 @@ impl<'a> Renderer<'a> {
 			};
 			self.line.push(buffer_start);
 
+			let letter_space_glyph = LayoutGlyph {
+				rows: font.letter_space().rows,
+				width: font.letter_space_size(),
+				font: block.font,
+			};
+
 			for ch in block.text.chars() {
 				// Newline character will always output a new line in the terminal, even if empty
 				if ch == '|' {
@@ -87,20 +97,34 @@ impl<'a> Renderer<'a> {
 					continue;
 				};
 
-				let next_glyph_width = font.letter_space_size() + glyph.width; // TODO: letter spacing and first glyph does not get a letter space
-				if self.line_output_width + next_glyph_width > terminal_width || self.line.len() + 1 > self.options.max_length {
-					// TODO: empty lines, word_wrap
+				let letter_spacing = if self.line_glyph_count > 0 {
+					block.letter_spacing
+				} else {
+					0
+				};
+				let next_glyph_width = font.letter_space_size() * letter_spacing + glyph.width;
+
+				if self.line_output_width + next_glyph_width > terminal_width
+					|| self.line_glyph_count + 1 > self.options.max_length
+				{
+					// TODO: word_wrap
 					self.flush_line();
 					self.line.push(buffer_start);
+					self.line_output_width += glyph.width;
+				} else {
+					self.line_output_width += next_glyph_width;
+					for _ in 0..letter_spacing {
+						self.line.push(letter_space_glyph);
+					}
 				}
 
-				self.line_output_width += next_glyph_width;
 				self.line_max_rows = self.line_max_rows.max(font.rows());
 				self.line.push(LayoutGlyph {
 					rows: glyph.rows,
 					width: glyph.width,
 					font: block.font,
 				});
+				self.line_glyph_count += 1;
 			}
 
 			prev_font = Some(block.font);
@@ -128,7 +152,6 @@ impl<'a> Renderer<'a> {
 
 		for row in 0..rows_to_push {
 			for glyph in self.line.iter() {
-				// TODO: add letter spacing
 				if current_font != Some(glyph.font) {
 					let extra = rows_to_push - glyph.rows.len();
 					padding = match self.options.valign {
@@ -140,7 +163,7 @@ impl<'a> Renderer<'a> {
 				}
 
 				let entry = if row < padding || row >= padding + glyph.rows.len() {
-					RowEntry::Blank(glyph.width) // blank padding row
+					RowEntry::Blank(glyph.width) // blank padding rows for fonts that are not as tall as another on the same line
 				} else {
 					RowEntry::Data(&glyph.rows[row - padding])
 				};
@@ -153,6 +176,7 @@ impl<'a> Renderer<'a> {
 		self.line_max_rows = 0;
 	}
 
+	// TODO: this is just the simplest function to get me to see things, will be replaced later with a render trait
 	fn render(&self) -> String {
 		self
 			.output

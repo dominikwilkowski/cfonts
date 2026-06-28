@@ -16,7 +16,7 @@ pub struct BlockOptions {
 	pub gradient: bool,
 	pub independent_gradient: bool,
 	pub transition_gradient: bool,
-	pub letter_spacing: bool,
+	pub letter_spacing: usize,
 	pub line_height: bool,
 	pub word_wrap: bool,
 }

@@ -800,8 +800,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 #[cfg(test)]
 mod tests {
 	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_colors_all_used, assert_letter_space_size,
-		assert_supported,
+		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used,
+		assert_letter_space_size, assert_supported,
 	};
 
 	#[test]
@@ -827,5 +827,10 @@ mod tests {
 	#[test]
 	fn huge_test_buffer_end_size() {
 		assert_buffer_end_size(&super::FONT_HUGE);
+	}
+
+	#[test]
+	fn huge_test_buffers_plain() {
+		assert_buffers_plain(&super::FONT_HUGE);
 	}
 }
