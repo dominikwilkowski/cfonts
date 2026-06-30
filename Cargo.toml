@@ -1,6 +1,6 @@
 [package]
 name = "cfonts"
-version = "2.0.0"
+version = "4.0.0"
 edition = "2024"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
@@ -12,10 +12,10 @@ keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 
 [dependencies]
-cfonts-macros = { path = "macros", version = "1" }
+cfonts-macros = { path = "macros", version = "=4.0.0" }
 terminal_size = "0.4"
 
 [workspace]
 members = [".", "macros"]
-default-members = [".", "macros"]
+default-members = ["."]
 resolver = "3"

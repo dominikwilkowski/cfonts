@@ -68,16 +68,15 @@ impl<'a> Renderer<'a> {
 	}
 
 	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
-		let size = terminal_size();
 		let terminal_width = match self.options.env {
 			Env::Cli => {
-				if let Some((Width(width), _)) = size {
+				if let Some((Width(width), _)) = terminal_size() {
 					width as usize
 				} else {
 					80
 				}
 			}
-			_ => 0xFFFF,
+			_ => std::usize::MAX,
 		};
 		let mut prev_font: Option<Font> = None;
 

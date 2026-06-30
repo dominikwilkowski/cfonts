@@ -10,7 +10,7 @@ checksum = "b4388bee8683e3d04af747c73422af53102d2bd24d9eadb6cbc100baef4b43f8"
 
 [[package]]
 name = "cfonts"
-version = "2.0.0"
+version = "4.0.0"
 dependencies = [
  "cfonts-macros",
  "terminal_size",
@@ -18,7 +18,7 @@ dependencies = [
 
 [[package]]
 name = "cfonts-macros"
-version = "1.0.0"
+version = "4.0.0"
 
 [[package]]
 name = "errno"
