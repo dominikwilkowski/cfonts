@@ -13,6 +13,7 @@ categories = ["command-line-interface", "command-line-utilities", "graphics"]
 
 [dependencies]
 cfonts-macros = { path = "macros", version = "1" }
+terminal_size = "0.4"
 
 [workspace]
 members = [".", "macros"]

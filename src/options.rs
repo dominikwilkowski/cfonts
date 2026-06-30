@@ -7,6 +7,23 @@ pub enum Valign {
 	Bottom,
 }
 
+/// The `Env` enum includes all supported environment options.
+///
+/// ![The env option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Env {
+	/// A CLI environment means we render colors as ansi escape sequences
+	Cli,
+
+	/// A browser environment means we render colors as hex colors and output some
+	/// outer HTML to enable us to see the right white space
+	Browser,
+
+	BrowserConsole,
+
+	Ratatui,
+}
+
 #[derive(Debug)]
 pub struct BlockOptions {
 	pub text: String,
@@ -43,7 +60,7 @@ pub struct Options {
 	pub align: bool,
 	pub valign: Valign,
 	pub spaceless: bool,
-	pub env: bool,
+	pub env: Env,
 	pub max_length: usize,
 	pub raw_mode: bool,
 	pub debug: bool,

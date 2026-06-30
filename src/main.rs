@@ -37,7 +37,7 @@ fn main() {
 		align: false,
 		valign: crate::options::Valign::Middle,
 		spaceless: false,
-		env: false,
+		env: crate::options::Env::Cli,
 		max_length: 20,
 		raw_mode: false,
 		debug: false,

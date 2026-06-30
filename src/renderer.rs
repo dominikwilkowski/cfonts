@@ -1,6 +1,8 @@
+use terminal_size::{Width, terminal_size};
+
 use crate::{
 	fonts::{Font, GlyphRow, Segment},
-	options::{Options, Valign},
+	options::{Env, Options, Valign},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -66,7 +68,17 @@ impl<'a> Renderer<'a> {
 	}
 
 	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
-		let terminal_width = 80; // TODO: get from terminal
+		let size = terminal_size();
+		let terminal_width = match self.options.env {
+			Env::Cli => {
+				if let Some((Width(width), _)) = size {
+					width as usize
+				} else {
+					80
+				}
+			}
+			_ => 0xFFFF,
+		};
 		let mut prev_font: Option<Font> = None;
 
 		for (block_index, block) in self.options.blocks.iter().enumerate() {
