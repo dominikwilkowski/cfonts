@@ -17,8 +17,25 @@ pub struct BlockOptions {
 	pub independent_gradient: bool,
 	pub transition_gradient: bool,
 	pub letter_spacing: usize,
-	pub line_height: bool,
+	pub line_height: usize,
 	pub word_wrap: bool,
+}
+
+impl Default for BlockOptions {
+	fn default() -> Self {
+		Self {
+			text: String::new(),
+			font: Font::Block,
+			colors: false,
+			background: false,
+			gradient: false,
+			independent_gradient: false,
+			transition_gradient: false,
+			letter_spacing: 1,
+			line_height: 1,
+			word_wrap: false,
+		}
+	}
 }
 
 #[derive(Debug)]

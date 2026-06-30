@@ -53,7 +53,7 @@ fn main() {
 				independent_gradient: false,
 				transition_gradient: false,
 				letter_spacing: 1,
-				line_height: false,
+				line_height: 1,
 				word_wrap: false,
 			},
 			crate::options::BlockOptions {
@@ -65,7 +65,7 @@ fn main() {
 				independent_gradient: false,
 				transition_gradient: false,
 				letter_spacing: 1,
-				line_height: false,
+				line_height: 1,
 				word_wrap: false,
 			},
 			crate::options::BlockOptions {
@@ -77,7 +77,7 @@ fn main() {
 				independent_gradient: false,
 				transition_gradient: false,
 				letter_spacing: 1,
-				line_height: false,
+				line_height: 1,
 				word_wrap: false,
 			},
 		],

@@ -7,11 +7,11 @@ use crate::{
 pub struct LayoutGlyph {
 	rows: &'static [GlyphRow],
 	width: usize,
-	font: Font,
+	block_index: usize,
 }
 
 #[derive(Debug)]
-enum RowEntry {
+pub enum RowEntry {
 	Data(&'static GlyphRow),
 	Blank(usize),
 }
@@ -35,6 +35,16 @@ pub struct Renderer<'a> {
 	/// Count of printable glyphs on the current line (excludes buffers and letter-spaces)
 	line_glyph_count: usize,
 
+	/// Whether a letter-space should precede the next glyph
+	/// (set after a glyph, cleared at line breaks and block boundaries so the first glyph of each gets none)
+	space_pending: bool,
+
+	/// The line-height to apply above the current line stored so the last glyph in the line dictates the line-height
+	current_line_height: usize,
+
+	/// The line-height of the previously flushed line
+	prev_line_height: usize,
+
 	/// The cfonts options including all font blocks
 	options: &'a Options,
 }
@@ -48,25 +58,30 @@ impl<'a> Renderer<'a> {
 			current_font_rows: 0,
 			line_max_rows: 0,
 			line_glyph_count: 0,
+			space_pending: false,
+			current_line_height: 0,
+			prev_line_height: 0,
 			options,
 		}
 	}
 
-	pub fn start(&mut self) -> &Vec<LayoutGlyph> {
+	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
 		let terminal_width = 80; // TODO: get from terminal
 		let mut prev_font: Option<Font> = None;
 
-		for block in self.options.blocks.iter() {
+		for (block_index, block) in self.options.blocks.iter().enumerate() {
 			let font = block.font.get_font();
 			self.current_font_rows = font.rows();
+			self.space_pending = false;
+			self.current_line_height = block.line_height;
 
 			// We're between blocks so we need to push the end buffer
 			if let Some(prev) = prev_font {
-				let prev_font = prev.get_font();
-				self.line.push(LayoutGlyph {
-					rows: prev_font.buffer_end(),
-					width: prev_font.buffer_size(),
-					font: prev,
+				let prev_data = prev.get_font();
+				self.push_glyph(LayoutGlyph {
+					rows: prev_data.buffer_end(),
+					width: prev_data.buffer_size(),
+					block_index: block_index - 1,
 				});
 			}
 
@@ -74,21 +89,22 @@ impl<'a> Renderer<'a> {
 			let buffer_start = LayoutGlyph {
 				rows: font.buffer_start(),
 				width: font.buffer_size(),
-				font: block.font,
+				block_index,
 			};
-			self.line.push(buffer_start);
+			self.push_glyph(buffer_start);
 
+			// We make the letter space a glyph so flush_line handles it like any other
 			let letter_space_glyph = LayoutGlyph {
 				rows: font.letter_space().rows,
 				width: font.letter_space_size(),
-				font: block.font,
+				block_index,
 			};
 
 			for ch in block.text.chars() {
 				// Newline character will always output a new line in the terminal, even if empty
 				if ch == '|' {
 					self.flush_line();
-					self.line.push(buffer_start);
+					self.push_glyph(buffer_start);
 					continue; // Skip as `|` does not print anything
 				}
 
@@ -97,69 +113,79 @@ impl<'a> Renderer<'a> {
 					continue;
 				};
 
-				let letter_spacing = if self.line_glyph_count > 0 {
-					block.letter_spacing
-				} else {
-					0
-				};
-				let next_glyph_width = font.letter_space_size() * letter_spacing + glyph.width;
+				let letter_spacing_count = if self.space_pending { block.letter_spacing } else { 0 };
+				let next_glyph_width = font.letter_space_size() * letter_spacing_count + glyph.width;
 
 				if self.line_output_width + next_glyph_width > terminal_width
 					|| self.line_glyph_count + 1 > self.options.max_length
 				{
 					// TODO: word_wrap
 					self.flush_line();
-					self.line.push(buffer_start);
-					self.line_output_width += glyph.width;
+					self.push_glyph(buffer_start);
 				} else {
-					self.line_output_width += next_glyph_width;
-					for _ in 0..letter_spacing {
-						self.line.push(letter_space_glyph);
+					for _ in 0..letter_spacing_count {
+						self.push_glyph(letter_space_glyph);
 					}
 				}
 
 				self.line_max_rows = self.line_max_rows.max(font.rows());
-				self.line.push(LayoutGlyph {
+				self.push_glyph(LayoutGlyph {
 					rows: glyph.rows,
 					width: glyph.width,
-					font: block.font,
+					block_index,
 				});
 				self.line_glyph_count += 1;
+				self.space_pending = true;
 			}
 
 			prev_font = Some(block.font);
 		}
-		self.flush_line(); // Flushing the last line
+
+		// Flushing the last line
+		if !self.options.blocks.is_empty() {
+			self.flush_line();
+		}
 
 		println!("renderer:\n{}", self.render());
 
-		&self.line
+		&self.output
+	}
+
+	fn push_glyph(&mut self, glyph: LayoutGlyph) {
+		self.line_output_width += glyph.width;
+		self.line.push(glyph);
 	}
 
 	// Flushing a complete line to our output
 	fn flush_line(&mut self) {
-		let mut current_font = None;
+		let mut current_block: Option<usize> = None;
 		let mut padding = 0;
-		let base_output_len = self.output.len();
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
 
+		// Adding line height before we store the base index
+		if !self.output.is_empty() {
+			for _ in 0..self.prev_line_height {
+				self.output.push(Vec::new());
+			}
+		}
+		let base_output_len = self.output.len();
+
 		// Adding the next rows for this line so we can push into it
 		for _ in 0..rows_to_push {
-			// TODO: add line-height handling
 			self.output.push(Vec::new());
 		}
 
 		for row in 0..rows_to_push {
 			for glyph in self.line.iter() {
-				if current_font != Some(glyph.font) {
+				if current_block != Some(glyph.block_index) {
 					let extra = rows_to_push - glyph.rows.len();
 					padding = match self.options.valign {
 						Valign::Top => 0,
 						Valign::Middle => extra / 2,
 						Valign::Bottom => extra,
 					};
-					current_font = Some(glyph.font);
+					current_block = Some(glyph.block_index);
 				}
 
 				let entry = if row < padding || row >= padding + glyph.rows.len() {
@@ -174,6 +200,9 @@ impl<'a> Renderer<'a> {
 		self.line.clear();
 		self.line_output_width = 0;
 		self.line_max_rows = 0;
+		self.line_glyph_count = 0;
+		self.space_pending = false;
+		self.prev_line_height = self.current_line_height;
 	}
 
 	// TODO: this is just the simplest function to get me to see things, will be replaced later with a render trait
