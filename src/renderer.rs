@@ -76,7 +76,7 @@ impl<'a> Renderer<'a> {
 					80
 				}
 			}
-			_ => std::usize::MAX,
+			_ => usize::MAX,
 		};
 		let mut prev_font: Option<Font> = None;
 
@@ -120,7 +120,7 @@ impl<'a> Renderer<'a> {
 				}
 
 				// Skip unknown characters
-				let Some(glyph) = font.get_glyph(ch.to_ascii_uppercase()) else {
+				let Some(glyph) = font.get_glyph(ch) else {
 					continue;
 				};
 

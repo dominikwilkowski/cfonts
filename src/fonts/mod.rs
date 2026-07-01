@@ -133,6 +133,7 @@ impl Font {
 /// A font consisting of a set of glyphs and color/size information
 #[derive(Debug)]
 pub struct FontFile<const ROWS: usize> {
+	#[cfg_attr(not(test), allow(dead_code))]
 	pub name: &'static str,
 	pub colors: usize,
 	pub buffer_start: &'static [GlyphRow; ROWS],

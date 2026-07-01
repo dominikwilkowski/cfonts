@@ -1,8 +1,10 @@
-mod fonts;
-mod options;
-mod renderer;
-
 use std::env;
+
+use cfonts::{
+	fonts::Font,
+	options::{BlockOptions, Env, Options, Valign},
+	renderer::Renderer,
+};
 
 // terminology
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
@@ -33,20 +35,20 @@ fn main() {
 	// config will come from the cli ags parser above
 	let mut input = args[0].clone();
 	input.make_ascii_uppercase();
-	let options = crate::options::Options {
+	let options = Options {
 		align: false,
-		valign: crate::options::Valign::Middle,
+		valign: Valign::Middle,
 		spaceless: false,
-		env: crate::options::Env::Cli,
+		env: Env::Cli,
 		max_length: 20,
 		raw_mode: false,
 		debug: false,
 		debug_level: false,
 		version: false,
 		blocks: vec![
-			crate::options::BlockOptions {
+			BlockOptions {
 				text: input,
-				font: crate::fonts::Font::Block,
+				font: Font::Block,
 				colors: false,
 				background: false,
 				gradient: false,
@@ -56,9 +58,9 @@ fn main() {
 				line_height: 1,
 				word_wrap: false,
 			},
-			crate::options::BlockOptions {
-				text: String::from("world"),
-				font: crate::fonts::Font::Tiny,
+			BlockOptions {
+				text: String::from("world").to_ascii_uppercase(),
+				font: Font::Tiny,
 				colors: false,
 				background: false,
 				gradient: false,
@@ -68,9 +70,9 @@ fn main() {
 				line_height: 1,
 				word_wrap: false,
 			},
-			crate::options::BlockOptions {
-				text: String::from("ending"),
-				font: crate::fonts::Font::Font3D,
+			BlockOptions {
+				text: String::from("ending").to_ascii_uppercase(),
+				font: Font::Font3D,
 				colors: false,
 				background: false,
 				gradient: false,
@@ -83,6 +85,6 @@ fn main() {
 		],
 	};
 
-	let mut renderer = crate::renderer::Renderer::new(&options);
+	let mut renderer = Renderer::new(&options);
 	let _ = renderer.start();
 }
