@@ -40,7 +40,7 @@ fn main() {
 		valign: Valign::Middle,
 		spaceless: false,
 		env: Env::Cli,
-		max_length: 20,
+		max_length: Some(20),
 		raw_mode: false,
 		debug: false,
 		debug_level: false,
@@ -59,7 +59,7 @@ fn main() {
 				word_wrap: false,
 			},
 			BlockOptions {
-				text: String::from("b").to_ascii_uppercase(),
+				text: String::from("hello").to_ascii_uppercase(),
 				font: Font::Tiny,
 				colors: false,
 				background: false,

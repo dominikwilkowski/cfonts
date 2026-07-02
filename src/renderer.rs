@@ -1,15 +1,24 @@
 use terminal_size::{Width, terminal_size};
 
 use crate::{
-	fonts::{Font, GlyphRow, Segment},
+	fonts::{Font, GlyphRef, GlyphRow, Segment},
 	options::{Env, Options, Valign},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Copy, Clone)]
 pub struct LayoutGlyph {
-	rows: &'static [GlyphRow],
-	width: usize,
+	glyph: GlyphRef,
 	block_index: usize,
+}
+
+impl LayoutGlyph {
+	fn rows(&self) -> &'static [GlyphRow] {
+		self.glyph.rows
+	}
+
+	fn width(&self) -> usize {
+		self.glyph.width
+	}
 }
 
 #[derive(Debug)]
@@ -28,7 +37,9 @@ pub struct Renderer<'a> {
 	/// The width of the output in the terminal (columns)
 	line_output_width: usize,
 
-	/// The row count of the font in the current block
+	/// The row count (font height) of the current block
+	/// This is what sets the height of lines that start mid-block (after a `|` or a wrap)
+	/// `flush_line` resets line_max_rows and no `block-start`/seam update fires again until the next block
 	current_font_rows: usize,
 
 	/// The amount of rows of the tallest font in a line
@@ -92,8 +103,13 @@ impl<'a> Renderer<'a> {
 			if let Some(prev) = prev_font {
 				let prev_data = prev.get_font();
 				self.push_glyph(LayoutGlyph {
-					rows: prev_data.buffer_end(),
-					width: 0, // the buffer_start is inverse the size of buffer_end
+					glyph: GlyphRef {
+						rows: prev_data.buffer_end().rows,
+						// `buffer_end` claims 0 columns because `buffer_start` already
+						// claims the whole `buffer_size`, and the pair's rows are complementary
+						// (see `assert_buffers_complementary`)
+						width: 0,
+					},
 					block_index: block_index - 1,
 				});
 				self.line_max_rows = self.line_max_rows.max(prev_data.rows());
@@ -101,17 +117,14 @@ impl<'a> Renderer<'a> {
 
 			// Push buffer as a glyph so flush_line handles it like any other
 			let buffer_start = LayoutGlyph {
-				rows: font.buffer_start(),
-				width: font.buffer_size(),
+				glyph: font.buffer_start(),
 				block_index,
 			};
 			self.push_glyph(buffer_start);
 
 			// We make the letter space a glyph so flush_line handles it like any other
-			let letter_space_glyph_ref = font.letter_space();
 			let letter_space_glyph = LayoutGlyph {
-				rows: letter_space_glyph_ref.rows,
-				width: letter_space_glyph_ref.width,
+				glyph: font.letter_space(),
 				block_index,
 			};
 
@@ -129,10 +142,10 @@ impl<'a> Renderer<'a> {
 				};
 
 				let letter_spacing_count = if self.space_pending { block.letter_spacing } else { 0 };
-				let next_glyph_width = font.letter_space().width * letter_spacing_count + glyph.width;
+				let next_glyph_width = letter_space_glyph.width() * letter_spacing_count + glyph.width;
 
 				if self.line_output_width + next_glyph_width > terminal_width
-					|| self.line_glyph_count + 1 > self.options.max_length
+					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length)
 				{
 					// TODO: word_wrap
 					self.flush_line();
@@ -143,11 +156,7 @@ impl<'a> Renderer<'a> {
 					}
 				}
 
-				self.push_glyph(LayoutGlyph {
-					rows: glyph.rows,
-					width: glyph.width,
-					block_index,
-				});
+				self.push_glyph(LayoutGlyph { glyph, block_index });
 				self.line_glyph_count += 1;
 				self.space_pending = true;
 			}
@@ -166,7 +175,7 @@ impl<'a> Renderer<'a> {
 	}
 
 	fn push_glyph(&mut self, glyph: LayoutGlyph) {
-		self.line_output_width += glyph.width;
+		self.line_output_width += glyph.width();
 		self.line.push(glyph);
 	}
 
@@ -177,7 +186,7 @@ impl<'a> Renderer<'a> {
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
 		debug_assert!(
-			self.line.iter().all(|glyph| glyph.rows.len() <= rows_to_push),
+			self.line.iter().all(|glyph| glyph.rows().len() <= rows_to_push),
 			"Error: `line` contains a glyph taller than `rows_to_push`; a height update at a push site was missed",
 		);
 
@@ -197,7 +206,7 @@ impl<'a> Renderer<'a> {
 		for row in 0..rows_to_push {
 			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
-					let extra = rows_to_push - glyph.rows.len();
+					let extra = rows_to_push - glyph.rows().len();
 					padding = match self.options.valign {
 						Valign::Top => 0,
 						Valign::Middle => extra / 2,
@@ -206,10 +215,10 @@ impl<'a> Renderer<'a> {
 					current_block = Some(glyph.block_index);
 				}
 
-				let entry = if row < padding || row >= padding + glyph.rows.len() {
-					RowEntry::Blank(glyph.width) // blank padding rows for fonts that are not as tall as another on the same line
+				let entry = if row < padding || row >= padding + glyph.rows().len() {
+					RowEntry::Blank(glyph.width()) // blank padding rows for fonts that are not as tall as another on the same line
 				} else {
-					RowEntry::Data(&glyph.rows[row - padding])
+					RowEntry::Data(&glyph.rows()[row - padding])
 				};
 				self.output[base_output_len + row].push(entry);
 			}

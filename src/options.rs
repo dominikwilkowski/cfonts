@@ -61,7 +61,7 @@ pub struct Options {
 	pub valign: Valign,
 	pub spaceless: bool,
 	pub env: Env,
-	pub max_length: usize,
+	pub max_length: Option<usize>,
 	pub raw_mode: bool,
 	pub debug: bool,
 	pub debug_level: bool,

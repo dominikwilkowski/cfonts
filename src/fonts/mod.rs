@@ -48,7 +48,7 @@ pub struct Glyph<const ROWS: usize> {
 
 /// Same as [Glyph] but without the generic type-level safety so we can use it at runtime without having to carry
 /// forward the generic type parameter
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct GlyphRef {
 	pub rows: &'static [GlyphRow],
 	pub width: usize,
@@ -75,13 +75,10 @@ pub trait FontData {
 	fn rows(&self) -> usize;
 
 	/// Returns the buffer start glyph of this font (for the start of the font to align each row)
-	fn buffer_start(&self) -> &'static [GlyphRow];
+	fn buffer_start(&self) -> GlyphRef;
 
 	/// Returns the buffer end glyph of this font (for the end of the font to align each row)
-	fn buffer_end(&self) -> &'static [GlyphRow];
-
-	/// Returns the size (width) of the buffer glyph
-	fn buffer_size(&self) -> usize;
+	fn buffer_end(&self) -> GlyphRef;
 
 	/// Returns the letter space glyph for the font
 	fn letter_space(&self) -> GlyphRef;
@@ -153,16 +150,18 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 		ROWS
 	}
 
-	fn buffer_start(&self) -> &'static [GlyphRow] {
-		self.buffer_start.as_slice()
+	fn buffer_start(&self) -> GlyphRef {
+		GlyphRef {
+			rows: self.buffer_start,
+			width: self.buffer_size,
+		}
 	}
 
-	fn buffer_end(&self) -> &'static [GlyphRow] {
-		self.buffer_end.as_slice()
-	}
-
-	fn buffer_size(&self) -> usize {
-		self.buffer_size
+	fn buffer_end(&self) -> GlyphRef {
+		GlyphRef {
+			rows: self.buffer_end,
+			width: self.buffer_size,
+		}
 	}
 
 	fn letter_space(&self) -> GlyphRef {
