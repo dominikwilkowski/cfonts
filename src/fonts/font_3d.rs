@@ -40,7 +40,6 @@ pub static FONT_3D: FontFile<9> = FontFile {
 		r"<c2>_</c2>",
 		r"<c2>_</c2>",
 	),
-	letter_space_size: 1,
 	colors: 2,
 	#[rustfmt::skip]
 	glyphs: {
@@ -680,8 +679,7 @@ pub static FONT_3D: FontFile<9> = FontFile {
 #[cfg(test)]
 mod tests {
 	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used,
-		assert_letter_space_size, assert_supported,
+		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used, assert_supported,
 	};
 
 	#[test]
@@ -692,11 +690,6 @@ mod tests {
 	#[test]
 	fn font_3d_test_colors_all_used() {
 		assert_colors_all_used(&super::FONT_3D);
-	}
-
-	#[test]
-	fn font_3d_test_letter_space_size() {
-		assert_letter_space_size(&super::FONT_3D);
 	}
 
 	#[test]

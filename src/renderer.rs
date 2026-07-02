@@ -69,6 +69,7 @@ impl<'a> Renderer<'a> {
 
 	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
 		let terminal_width = match self.options.env {
+			// TODO: move to render trait
 			Env::Cli => {
 				if let Some((Width(width), _)) = terminal_size() {
 					width as usize
@@ -76,7 +77,7 @@ impl<'a> Renderer<'a> {
 					80
 				}
 			}
-			_ => usize::MAX,
+			_ => usize::MAX, // TODO: make this None instead
 		};
 		let mut prev_font: Option<Font> = None;
 
@@ -85,15 +86,17 @@ impl<'a> Renderer<'a> {
 			self.current_font_rows = font.rows();
 			self.space_pending = false;
 			self.current_line_height = block.line_height;
+			self.line_max_rows = self.line_max_rows.max(font.rows());
 
 			// We're between blocks so we need to push the end buffer
 			if let Some(prev) = prev_font {
 				let prev_data = prev.get_font();
 				self.push_glyph(LayoutGlyph {
 					rows: prev_data.buffer_end(),
-					width: prev_data.buffer_size(),
+					width: 0, // the buffer_start is inverse the size of buffer_end
 					block_index: block_index - 1,
 				});
+				self.line_max_rows = self.line_max_rows.max(prev_data.rows());
 			}
 
 			// Push buffer as a glyph so flush_line handles it like any other
@@ -105,9 +108,10 @@ impl<'a> Renderer<'a> {
 			self.push_glyph(buffer_start);
 
 			// We make the letter space a glyph so flush_line handles it like any other
+			let letter_space_glyph_ref = font.letter_space();
 			let letter_space_glyph = LayoutGlyph {
-				rows: font.letter_space().rows,
-				width: font.letter_space_size(),
+				rows: letter_space_glyph_ref.rows,
+				width: letter_space_glyph_ref.width,
 				block_index,
 			};
 
@@ -125,7 +129,7 @@ impl<'a> Renderer<'a> {
 				};
 
 				let letter_spacing_count = if self.space_pending { block.letter_spacing } else { 0 };
-				let next_glyph_width = font.letter_space_size() * letter_spacing_count + glyph.width;
+				let next_glyph_width = font.letter_space().width * letter_spacing_count + glyph.width;
 
 				if self.line_output_width + next_glyph_width > terminal_width
 					|| self.line_glyph_count + 1 > self.options.max_length
@@ -139,7 +143,6 @@ impl<'a> Renderer<'a> {
 					}
 				}
 
-				self.line_max_rows = self.line_max_rows.max(font.rows());
 				self.push_glyph(LayoutGlyph {
 					rows: glyph.rows,
 					width: glyph.width,
@@ -173,6 +176,10 @@ impl<'a> Renderer<'a> {
 		let mut padding = 0;
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
+		debug_assert!(
+			self.line.iter().all(|glyph| glyph.rows.len() <= rows_to_push),
+			"Error: `line` contains a glyph taller than `rows_to_push`; a height update at a push site was missed",
+		);
 
 		// Adding line height before we store the base index
 		if !self.output.is_empty() {

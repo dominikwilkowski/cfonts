@@ -22,7 +22,6 @@ pub static FONT_CHROME: FontFile<3> = FontFile {
 		r" ",
 		r" ",
 	),
-	letter_space_size: 1,
 	colors: 3,
 	#[rustfmt::skip]
 	glyphs: {
@@ -320,8 +319,7 @@ pub static FONT_CHROME: FontFile<3> = FontFile {
 #[cfg(test)]
 mod tests {
 	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used,
-		assert_letter_space_size, assert_supported,
+		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used, assert_supported,
 	};
 
 	#[test]
@@ -332,11 +330,6 @@ mod tests {
 	#[test]
 	fn chrome_test_colors_all_used() {
 		assert_colors_all_used(&super::FONT_CHROME);
-	}
-
-	#[test]
-	fn chrome_test_letter_space_size() {
-		assert_letter_space_size(&super::FONT_CHROME);
 	}
 
 	#[test]

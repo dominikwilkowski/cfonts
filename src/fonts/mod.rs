@@ -86,9 +86,6 @@ pub trait FontData {
 	/// Returns the letter space glyph for the font
 	fn letter_space(&self) -> GlyphRef;
 
-	/// Returns the size (width) of the letter space glyph
-	fn letter_space_size(&self) -> usize;
-
 	/// Returns the glyph for a given character, if it exists
 	fn get_glyph(&self, character: char) -> Option<GlyphRef>;
 }
@@ -140,7 +137,6 @@ pub struct FontFile<const ROWS: usize> {
 	pub buffer_end: &'static [GlyphRow; ROWS],
 	pub buffer_size: usize,
 	pub letter_space: &'static Glyph<ROWS>,
-	pub letter_space_size: usize,
 	glyphs: [Option<&'static Glyph<ROWS>>; 128],
 }
 
@@ -173,10 +169,6 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 		GlyphRef::from(self.letter_space)
 	}
 
-	fn letter_space_size(&self) -> usize {
-		self.letter_space_size
-	}
-
 	fn get_glyph(&self, character: char) -> Option<GlyphRef> {
 		let index = character as usize;
 		if index < self.glyphs.len() {
@@ -198,8 +190,7 @@ mod tests {
 	];
 
 	pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
-		let missing =
-			SUPPORTED.into_iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
+		let missing = SUPPORTED.iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
 
 		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
 	}
@@ -281,14 +272,6 @@ mod tests {
 				}
 			}
 		}
-	}
-
-	pub(crate) fn assert_letter_space_size<const ROWS: usize>(font: &FontFile<ROWS>) {
-		assert_eq!(
-			font.letter_space.width, font.letter_space_size,
-			"font \"{}\": letter_space_size is {} but the letter_space glyph is {} columns wide",
-			font.name, font.letter_space_size, font.letter_space.width,
-		);
 	}
 
 	/// Column width of a single row: the char count across all its segments

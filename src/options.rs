@@ -43,7 +43,7 @@ impl Default for BlockOptions {
 		Self {
 			text: String::new(),
 			font: Font::Block,
-			colors: false,
+			colors: false, // TODO: combine colors, gradient, independent_gradient and transition_gradient into a single field
 			background: false,
 			gradient: false,
 			independent_gradient: false,
@@ -65,6 +65,6 @@ pub struct Options {
 	pub raw_mode: bool,
 	pub debug: bool,
 	pub debug_level: bool,
-	pub version: bool,
+	pub version: bool, // TODO: move to bin
 	pub blocks: Vec<BlockOptions>,
 }

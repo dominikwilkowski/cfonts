@@ -31,7 +31,6 @@ pub static FONT_BLOCK: FontFile<6> = FontFile {
 		r" ",
 		r" ",
 	),
-	letter_space_size: 1,
 	colors: 2,
 	#[rustfmt::skip]
 	glyphs: {
@@ -500,8 +499,7 @@ pub static FONT_BLOCK: FontFile<6> = FontFile {
 #[cfg(test)]
 mod tests {
 	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used,
-		assert_letter_space_size, assert_supported,
+		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used, assert_supported,
 	};
 
 	#[test]
@@ -512,11 +510,6 @@ mod tests {
 	#[test]
 	fn block_test_colors_all_used() {
 		assert_colors_all_used(&super::FONT_BLOCK);
-	}
-
-	#[test]
-	fn block_test_letter_space_size() {
-		assert_letter_space_size(&super::FONT_BLOCK);
 	}
 
 	#[test]

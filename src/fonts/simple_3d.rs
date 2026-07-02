@@ -34,7 +34,6 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 		r"",
 		r"",
 	),
-	letter_space_size: 0,
 	colors: 1,
 	#[rustfmt::skip]
 	glyphs: {
@@ -560,8 +559,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 #[cfg(test)]
 mod tests {
 	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used,
-		assert_letter_space_size, assert_supported,
+		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_plain, assert_colors_all_used, assert_supported,
 	};
 
 	#[test]
@@ -572,11 +570,6 @@ mod tests {
 	#[test]
 	fn simple_3d_test_colors_all_used() {
 		assert_colors_all_used(&super::FONT_SIMPLE_3D);
-	}
-
-	#[test]
-	fn simple_3d_test_letter_space_size() {
-		assert_letter_space_size(&super::FONT_SIMPLE_3D);
 	}
 
 	#[test]
