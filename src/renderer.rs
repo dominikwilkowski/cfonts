@@ -189,21 +189,18 @@ impl<'a> Renderer<'a> {
 			self.line.iter().all(|glyph| glyph.rows().len() <= rows_to_push),
 			"Error: `line` contains a glyph taller than `rows_to_push`; a height update at a push site was missed",
 		);
+		self.output.reserve(self.prev_line_height + rows_to_push);
 
 		// Adding line height before we store the base index
 		if !self.output.is_empty() {
 			for _ in 0..self.prev_line_height {
+				// An empty Vec doesn't allocate until its first push, and these never receive one
 				self.output.push(Vec::new());
 			}
 		}
-		let base_output_len = self.output.len();
-
-		// Adding the next rows for this line so we can push into it
-		for _ in 0..rows_to_push {
-			self.output.push(Vec::new());
-		}
 
 		for row in 0..rows_to_push {
+			let mut output_row = Vec::with_capacity(self.line.len());
 			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
 					let extra = rows_to_push - glyph.rows().len();
@@ -216,12 +213,14 @@ impl<'a> Renderer<'a> {
 				}
 
 				let entry = if row < padding || row >= padding + glyph.rows().len() {
-					RowEntry::Blank(glyph.width()) // blank padding rows for fonts that are not as tall as another on the same line
+					// Blank padding rows for fonts that are not as tall as another on the same line
+					RowEntry::Blank(glyph.width())
 				} else {
 					RowEntry::Data(&glyph.rows()[row - padding])
 				};
-				self.output[base_output_len + row].push(entry);
+				output_row.push(entry);
 			}
+			self.output.push(output_row);
 		}
 
 		self.line.clear();
