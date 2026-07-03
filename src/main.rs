@@ -56,7 +56,7 @@ fn main() {
 				transition_gradient: false,
 				letter_spacing: 1,
 				line_height: 1,
-				word_wrap: false,
+				word_wrap: true,
 			},
 			BlockOptions {
 				text: String::from("hello").to_ascii_uppercase(),
