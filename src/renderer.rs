@@ -263,8 +263,8 @@ impl<'a> Renderer<'a> {
 			return;
 		}
 
-		// Wrap only if this line already holds printable content: a word that fits no
-		// line at all starts here and gets split below instead
+		// Wrap only if this line already holds printable content:
+		// a word that fits no line at all starts here and gets split below instead
 		if !self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width) && self.line_glyph_count > 0 {
 			self.flush_line();
 			self.push_glyph(buffer_start);
@@ -286,8 +286,7 @@ impl<'a> Renderer<'a> {
 		} else {
 			// A word that fits no line: place its printables, glyph by glyph, wrapping at the edge
 			// The staged letter spaces are skipped and re-created around the splits instead,
-			// so no line ends or starts with one
-			// `stage_glyph` puts exactly `letter_spacing` letter spaces before every printable but the first,
+			// so no line ends or starts with one `stage_glyph` puts exactly `letter_spacing` letter spaces before every printable but the first,
 			// so the printables sit at every `letter_spacing + 1`th entry
 			debug_assert!(
 				self.word.len() == self.word_glyph_count + (self.word_glyph_count - 1) * letter_spacing,
