@@ -71,18 +71,22 @@ pub struct Renderer<'a> {
 	/// The line-height of the previously flushed line
 	prev_line_height: usize,
 
-	/// The printable glyphs of the word currently being staged
-	/// (with word_wrap off every glyph passes through as its own one-glyph word)
-	word: Vec<GlyphRef>,
+	/// The word currently being staged, exactly as it will land on the line:
+	/// printable glyphs with their intra-word letter spaces interleaved
+	word: Vec<LayoutGlyph>,
 
 	/// Column width of `word` including its intra-word letter spaces
 	word_width: usize,
+
+	/// Count of printable glyphs in `word` (excludes the interleaved letter spaces)
+	word_glyph_count: usize,
 
 	/// The cfonts options including all font blocks
 	options: &'a Options,
 }
 
 impl<'a> Renderer<'a> {
+	/// Creates a new renderer with the given options
 	pub fn new(options: &'a Options) -> Self {
 		Self {
 			output: Vec::new(),
@@ -96,10 +100,12 @@ impl<'a> Renderer<'a> {
 			prev_line_height: 0,
 			word: Vec::new(),
 			word_width: 0,
+			word_glyph_count: 0,
 			options,
 		}
 	}
 
+	/// Starts the rendering process, returning a reference to the output
 	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
 		let terminal_width = match self.options.env {
 			// TODO: move to render trait
@@ -154,7 +160,7 @@ impl<'a> Renderer<'a> {
 			for ch in block.text.chars() {
 				// Newline character will always output a new line in the terminal, even if empty
 				if ch == '|' {
-					self.commit_word(block_index, buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
 					self.flush_line();
 					self.push_glyph(buffer_start);
 					continue; // Skip as `|` does not print anything
@@ -167,27 +173,27 @@ impl<'a> Renderer<'a> {
 
 				// With word_wrap off every glyph is its own one-glyph word, breakable on both sides
 				let break_class = if block.word_wrap {
-					self.word_boundary(ch)
+					self.how_to_break_char(ch)
 				} else {
 					Break::Both
 				};
 
 				match break_class {
 					Break::Both => {
-						self.commit_word(block_index, buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
-						self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing);
-						self.commit_word(block_index, buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+						self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+						self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index);
+						self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
 					}
 					Break::After => {
-						self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing);
-						self.commit_word(block_index, buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+						self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index);
+						self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
 					}
-					Break::None => self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing),
+					Break::None => self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index),
 				}
 			}
 
 			// The end of a block always commits the pending word (words do not span blocks)
-			self.commit_word(block_index, buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+			self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
 
 			prev_font = Some(block.font);
 		}
@@ -203,7 +209,7 @@ impl<'a> Renderer<'a> {
 	}
 
 	/// The single place that defines where words may soft-wrap
-	fn word_boundary(&self, character: char) -> Break {
+	fn how_to_break_char(&self, character: char) -> Break {
 		match character {
 			' ' => Break::Both,
 			'-' | '/' | ')' => Break::After,
@@ -211,19 +217,43 @@ impl<'a> Renderer<'a> {
 		}
 	}
 
-	// Stage one printable glyph into the pending word
-	fn stage_glyph(&mut self, glyph: GlyphRef, letter_space_glyph: LayoutGlyph, letter_spacing: usize) {
+	/// Stage one printable glyph into the pending word, interleaving the letter spaces at insertion
+	/// so the word is exactly what will land on the line
+	fn stage_glyph(
+		&mut self,
+		glyph: GlyphRef,
+		letter_space_glyph: LayoutGlyph,
+		letter_spacing: usize,
+		block_index: usize,
+	) {
 		if !self.word.is_empty() {
-			self.word_width += letter_spacing * letter_space_glyph.width();
+			for _ in 0..letter_spacing {
+				self.word.push(letter_space_glyph);
+				self.word_width += letter_space_glyph.width();
+			}
 		}
+		self.word.push(LayoutGlyph { glyph, block_index });
 		self.word_width += glyph.width;
-		self.word.push(glyph);
+		self.word_glyph_count += 1;
 	}
 
-	// Move the pending word onto the line, wrapping first if it will not fit whole
+	/// Whether the pending word (plus its leading letter spaces) fits on the current line
+	fn word_fits(&self, letter_space_width: usize, letter_spacing: usize, terminal_width: usize) -> bool {
+		let leading = if self.space_pending {
+			letter_spacing * letter_space_width
+		} else {
+			0
+		};
+		self.line_output_width + leading + self.word_width <= terminal_width
+			&& self
+				.options
+				.max_length
+				.is_none_or(|max_length| self.line_glyph_count + self.word_glyph_count <= max_length.get())
+	}
+
+	/// Move the pending word onto the line, wrapping first if it will not fit whole
 	fn commit_word(
 		&mut self,
-		block_index: usize,
 		buffer_start: LayoutGlyph,
 		letter_space_glyph: LayoutGlyph,
 		letter_spacing: usize,
@@ -233,59 +263,71 @@ impl<'a> Renderer<'a> {
 			return;
 		}
 
-		// Look ahead: leading letter spaces + the whole word
-		let leading = if self.space_pending {
-			letter_spacing * letter_space_glyph.width()
-		} else {
-			0
-		};
-		let fits_width = self.line_output_width + leading + self.word_width <= terminal_width;
-		let fits_count =
-			self.options.max_length.is_none_or(|max_length| self.line_glyph_count + self.word.len() <= max_length);
-
 		// Wrap only if this line already holds printable content: a word that fits no
-		// line at all starts here and gets split by the placement loop below instead
-		if (!fits_width || !fits_count) && self.line_glyph_count > 0 {
+		// line at all starts here and gets split below instead
+		if !self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width) && self.line_glyph_count > 0 {
 			self.flush_line();
 			self.push_glyph(buffer_start);
 		}
 
-		// Place the word glyph by glyph; the wrap check also splits words too long for any line
-		let word = std::mem::take(&mut self.word);
-		for glyph in &word {
-			let letter_spacing_count = if self.space_pending { letter_spacing } else { 0 };
-			let next_glyph_width = letter_spacing_count * letter_space_glyph.width() + glyph.width;
-
-			if self.line_output_width + next_glyph_width > terminal_width
-				|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length)
-			{
-				self.flush_line();
-				self.push_glyph(buffer_start);
-			} else {
-				for _ in 0..letter_spacing_count {
+		if self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width) {
+			// Adding the pending space before we add the word
+			if self.space_pending {
+				for _ in 0..letter_spacing {
 					self.push_glyph(letter_space_glyph);
 				}
 			}
-
-			self.push_glyph(LayoutGlyph {
-				glyph: *glyph,
-				block_index,
-			});
-			self.line_glyph_count += 1;
+			// The word lands on this line exactly as staged
+			self.line.extend_from_slice(&self.word);
+			self.line_output_width += self.word_width;
+			self.line_glyph_count += self.word_glyph_count;
 			self.space_pending = true;
+			self.word.clear();
+		} else {
+			// A word that fits no line: place its printables, glyph by glyph, wrapping at the edge
+			// The staged letter spaces are skipped and re-created around the splits instead,
+			// so no line ends or starts with one
+			// `stage_glyph` puts exactly `letter_spacing` letter spaces before every printable but the first,
+			// so the printables sit at every `letter_spacing + 1`th entry
+			debug_assert!(
+				self.word.len() == self.word_glyph_count + (self.word_glyph_count - 1) * letter_spacing,
+				"Error: `word` is not shaped as printables interleaved with `letter_spacing` letter spaces",
+			);
+			let word = std::mem::take(&mut self.word);
+			for entry in word.iter().step_by(letter_spacing + 1) {
+				let letter_spacing_count = if self.space_pending { letter_spacing } else { 0 };
+				let next_glyph_width = letter_spacing_count * letter_space_glyph.width() + entry.width();
+
+				if self.line_output_width + next_glyph_width > terminal_width
+					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get())
+				{
+					self.flush_line();
+					self.push_glyph(buffer_start);
+				} else {
+					for _ in 0..letter_spacing_count {
+						self.push_glyph(letter_space_glyph);
+					}
+				}
+
+				self.push_glyph(*entry);
+				self.line_glyph_count += 1;
+				self.space_pending = true;
+			}
+			let mut word = word;
+			word.clear();
+			self.word = word; // hand the allocation back for the next word
 		}
-		let mut word = word;
-		word.clear();
-		self.word = word; // hand the allocation back for the next word
 		self.word_width = 0;
+		self.word_glyph_count = 0;
 	}
 
+	/// Pushes a glyph to the current line, updating the line's output width
 	fn push_glyph(&mut self, glyph: LayoutGlyph) {
 		self.line_output_width += glyph.width();
 		self.line.push(glyph);
 	}
 
-	// Flushing a complete line to our output
+	/// Flushing a complete line to our output
 	fn flush_line(&mut self) {
 		let mut current_block: Option<usize> = None;
 		let mut padding = 0;
@@ -366,6 +408,7 @@ impl<'a> Renderer<'a> {
 mod tests {
 	use super::*;
 	use crate::options::BlockOptions;
+	use std::num::NonZeroUsize;
 
 	fn options(valign: Valign, max_length: Option<usize>, blocks: Vec<BlockOptions>) -> Options {
 		Options {
@@ -373,7 +416,7 @@ mod tests {
 			valign,
 			spaceless: false,
 			env: Env::Browser, // unlimited width so tests never depend on a real terminal
-			max_length,
+			max_length: max_length.and_then(NonZeroUsize::new),
 			raw_mode: false,
 			debug: false,
 			debug_level: false,
@@ -391,7 +434,7 @@ mod tests {
 		}
 	}
 
-	/// Column width of one output row: Data counts its chars, Blank counts its claimed width
+	// Column width of one output row: Data counts its chars, Blank counts its claimed width
 	fn row_width(row: &[RowEntry]) -> usize {
 		row
 			.iter()
@@ -408,8 +451,8 @@ mod tests {
 			.sum()
 	}
 
-	/// The output grouped into lines: each group holds the column width of every row of one
-	/// line, with the empty line-height rows acting as separators between groups
+	// The output grouped into lines: each group holds the column width of every row of one
+	// line, with the empty line-height rows acting as separators between groups
 	fn line_widths(options: &Options) -> Vec<Vec<usize>> {
 		let mut renderer = Renderer::new(options);
 		let mut lines: Vec<Vec<usize>> = Vec::new();
@@ -429,18 +472,27 @@ mod tests {
 		lines
 	}
 
-	/// The structural output of a full render, for equivalence comparisons
+	// The structural output of a full render, for equivalence comparisons
 	fn output_debug(options: &Options) -> String {
 		format!("{:?}", Renderer::new(options).start())
 	}
 
-	// word_boundary
+	#[test]
+	fn cli_style_zero_max_length_means_unlimited() {
+		// `--max-length 0` parses as NonZeroUsize::new(0) == None, matching v3 semantics;
+		// Some(0) itself is unrepresentable in the options type
+		let text = "A".repeat(40);
+		let lines = line_widths(&options(Valign::Top, Some(0), vec![block(&text, Font::Tiny, false)]));
+		assert_eq!(lines.len(), 1);
+	}
+
+	// how_to_break_char
 
 	#[test]
 	fn space_is_the_only_two_sided_boundary() {
 		let options = options(Valign::Top, None, vec![]);
 		let renderer = Renderer::new(&options);
-		assert!(matches!(renderer.word_boundary(' '), Break::Both));
+		assert!(matches!(renderer.how_to_break_char(' '), Break::Both));
 	}
 
 	#[test]
@@ -450,7 +502,7 @@ mod tests {
 		for character in ['-', '/', ')'] {
 			// `)` deviates from UAX #14 (LB13 forbids a break before a following `,` or `.`);
 			// kept deliberately, see word_boundary
-			assert!(matches!(renderer.word_boundary(character), Break::After), "{character:?} must break after");
+			assert!(matches!(renderer.how_to_break_char(character), Break::After), "{character:?} must break after");
 		}
 	}
 
@@ -459,7 +511,10 @@ mod tests {
 		let options = options(Valign::Top, None, vec![]);
 		let renderer = Renderer::new(&options);
 		for character in "AZ09!?.,:;'\"($+%&_=@#".chars() {
-			assert!(matches!(renderer.word_boundary(character), Break::None), "{character:?} must not be a soft-wrap point");
+			assert!(
+				matches!(renderer.how_to_break_char(character), Break::None),
+				"{character:?} must not be a soft-wrap point"
+			);
 		}
 	}
 
@@ -476,7 +531,7 @@ mod tests {
 		};
 		let glyph = font.get_glyph('A').unwrap();
 
-		renderer.stage_glyph(glyph, letter_space, 1);
+		renderer.stage_glyph(glyph, letter_space, 1, 0);
 
 		assert_eq!(renderer.word.len(), 1);
 		assert_eq!(renderer.word_width, glyph.width);
@@ -494,11 +549,35 @@ mod tests {
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 
-		renderer.stage_glyph(glyph_a, letter_space, 2);
-		renderer.stage_glyph(glyph_b, letter_space, 2);
+		renderer.stage_glyph(glyph_a, letter_space, 2, 0);
+		renderer.stage_glyph(glyph_b, letter_space, 2, 0);
 
-		assert_eq!(renderer.word.len(), 2);
+		assert_eq!(renderer.word.len(), 4);
 		assert_eq!(renderer.word_width, glyph_a.width + 2 * letter_space.width() + glyph_b.width);
+	}
+
+	// word_fits
+
+	#[test]
+	fn word_fits_allows_an_exact_fit() {
+		let options = options(Valign::Top, None, vec![]);
+		let mut renderer = Renderer::new(&options);
+		let font = Font::Tiny.get_font();
+		let letter_space = LayoutGlyph {
+			glyph: font.letter_space(),
+			block_index: 0,
+		};
+		let glyph = font.get_glyph('A').unwrap();
+		renderer.stage_glyph(glyph, letter_space, 1, 0);
+
+		// at a line start the word needs exactly its own width
+		assert!(renderer.word_fits(letter_space.width(), 1, glyph.width));
+		assert!(!renderer.word_fits(letter_space.width(), 1, glyph.width - 1));
+
+		// after a placed glyph the leading letter spaces count too
+		renderer.space_pending = true;
+		assert!(renderer.word_fits(letter_space.width(), 1, glyph.width + letter_space.width()));
+		assert!(!renderer.word_fits(letter_space.width(), 1, glyph.width + letter_space.width() - 1));
 	}
 
 	// push_glyph
@@ -540,7 +619,7 @@ mod tests {
 			block_index: 0,
 		};
 
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
 
 		assert!(renderer.line.is_empty());
 		assert!(renderer.output.is_empty());
@@ -563,8 +642,8 @@ mod tests {
 		};
 		let glyph = font.get_glyph('A').unwrap();
 
-		renderer.stage_glyph(glyph, letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
+		renderer.stage_glyph(glyph, letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
 
 		assert_eq!(renderer.line.len(), 1); // no leading letter space at the start of a line
 		assert_eq!(renderer.line_output_width, glyph.width);
@@ -591,10 +670,10 @@ mod tests {
 			block_index: 0,
 		};
 
-		renderer.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
-		renderer.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
+		renderer.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
+		renderer.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
 
 		assert_eq!(renderer.line.len(), 3); // A, letter space, B
 		assert_eq!(renderer.line_glyph_count, 2);
@@ -617,10 +696,10 @@ mod tests {
 		};
 		renderer.push_glyph(buffer_start);
 
-		renderer.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
-		renderer.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
+		renderer.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
+		renderer.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
 
 		assert_eq!(renderer.output.len(), font.rows()); // the first line was flushed
 		assert_eq!(renderer.line_glyph_count, 1); // B alone on the new line
@@ -647,10 +726,10 @@ mod tests {
 		// wide enough for A but not for A + letter space + B
 		let canvas_width = glyph_a.width + letter_space.width() + glyph_b.width - 1;
 
-		renderer.stage_glyph(glyph_a, letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, canvas_width);
-		renderer.stage_glyph(glyph_b, letter_space, 1);
-		renderer.commit_word(0, buffer_start, letter_space, 1, canvas_width);
+		renderer.stage_glyph(glyph_a, letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, canvas_width);
+		renderer.stage_glyph(glyph_b, letter_space, 1, 0);
+		renderer.commit_word(buffer_start, letter_space, 1, canvas_width);
 
 		assert_eq!(renderer.output.len(), font.rows());
 		assert_eq!(renderer.line_output_width, glyph_b.width); // B alone, no leading letter space
@@ -674,9 +753,9 @@ mod tests {
 		renderer.push_glyph(buffer_start);
 
 		for character in ['A', 'B', 'C'] {
-			renderer.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1);
+			renderer.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
 		}
-		renderer.commit_word(0, buffer_start, letter_space, 1, 100);
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
 
 		// exactly one flush (A B), no spurious blank line before the word
 		assert_eq!(renderer.output.len(), font.rows());
@@ -684,10 +763,39 @@ mod tests {
 		assert_eq!(renderer.line_glyph_count, 1); // C on the new line
 	}
 
+	// commit_word: split path details
+
+	#[test]
+	fn word_state_resets_after_the_split_path() {
+		let options = options(Valign::Top, Some(2), vec![]);
+		let mut renderer = Renderer::new(&options);
+		let font = Font::Tiny.get_font();
+		renderer.current_font_rows = font.rows();
+		renderer.line_max_rows = font.rows();
+		let buffer_start = LayoutGlyph {
+			glyph: font.buffer_start(),
+			block_index: 0,
+		};
+		let letter_space = LayoutGlyph {
+			glyph: font.letter_space(),
+			block_index: 0,
+		};
+		renderer.push_glyph(buffer_start);
+		for character in ['A', 'B', 'C'] {
+			renderer.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
+		}
+
+		renderer.commit_word(buffer_start, letter_space, 1, 100);
+
+		assert!(renderer.word.is_empty());
+		assert_eq!(renderer.word_width, 0);
+		assert_eq!(renderer.word_glyph_count, 0);
+	}
+
 	// flush_line
 
-	/// Flush one line holding a tall Block glyph and a short Tiny glyph and return the
-	/// row indexes on which the Tiny glyph has Data (not Blank) entries
+	// Flush one line holding a tall Block glyph and a short Tiny glyph and return the
+	// row indexes on which the Tiny glyph has Data (not Blank) entries
 	fn tiny_data_rows(valign: Valign) -> Vec<usize> {
 		let options = options(valign, None, vec![]);
 		let mut renderer = Renderer::new(&options);
@@ -872,8 +980,8 @@ mod tests {
 		}
 	}
 
-	/// Word wrap must place the same glyphs as the identical text with explicit pipes:
-	/// the pipe-free input on the left wraps into exactly the lines spelled out on the right
+	// Word wrap must place the same glyphs as the identical text with explicit pipes:
+	// the pipe-free input on the left wraps into exactly the lines spelled out on the right
 	fn assert_wraps_like(text: &str, max_length: usize, piped: &str) {
 		let wrapped = options(Valign::Top, Some(max_length), vec![block(text, Font::Tiny, true)]);
 		let oracle = options(Valign::Top, Some(max_length), vec![block(piped, Font::Tiny, false)]);
@@ -925,6 +1033,161 @@ mod tests {
 		// the block seam commits the pending word, so "AB"+"CD" may wrap between the blocks
 		let lines =
 			line_widths(&options(Valign::Top, Some(3), vec![block("AB", Font::Tiny, true), block("CD", Font::Tiny, true)]));
+		assert_eq!(lines.len(), 2);
+	}
+
+	// start: empty inputs
+
+	#[test]
+	fn no_blocks_render_nothing() {
+		let lines = line_widths(&options(Valign::Top, None, vec![]));
+		assert!(lines.is_empty());
+	}
+
+	#[test]
+	fn empty_text_renders_one_blank_line() {
+		let lines = line_widths(&options(Valign::Top, None, vec![block("", Font::Tiny, false)]));
+		assert_eq!(lines, vec![vec![0, 0]]);
+	}
+
+	#[test]
+	fn leading_pipe_starts_with_a_blank_line() {
+		let lines = line_widths(&options(Valign::Top, None, vec![block("|A", Font::Tiny, false)]));
+		assert_eq!(lines.len(), 2);
+		assert_eq!(lines[0], vec![0, 0]);
+	}
+
+	// start: letter_spacing
+
+	#[test]
+	fn letter_spacing_multiplies_letter_spaces() {
+		let font = Font::Tiny.get_font();
+		let expected =
+			font.get_glyph('A').unwrap().width + 2 * font.letter_space().width + font.get_glyph('B').unwrap().width;
+		let lines = line_widths(&options(
+			Valign::Top,
+			None,
+			vec![BlockOptions {
+				text: String::from("AB"),
+				font: Font::Tiny,
+				letter_spacing: 2,
+				..Default::default()
+			}],
+		));
+		assert_eq!(lines, vec![vec![expected, expected]]);
+	}
+
+	#[test]
+	fn letter_spacing_zero_packs_glyphs() {
+		let font = Font::Tiny.get_font();
+		let expected = font.get_glyph('A').unwrap().width + font.get_glyph('B').unwrap().width;
+		let lines = line_widths(&options(
+			Valign::Top,
+			None,
+			vec![BlockOptions {
+				text: String::from("AB"),
+				font: Font::Tiny,
+				letter_spacing: 0,
+				..Default::default()
+			}],
+		));
+		assert_eq!(lines, vec![vec![expected, expected]]);
+	}
+
+	// start: line_height
+
+	#[test]
+	fn custom_line_height_inserts_gap_rows() {
+		let options = options(
+			Valign::Top,
+			None,
+			vec![BlockOptions {
+				text: String::from("A|B"),
+				font: Font::Tiny,
+				line_height: 2,
+				..Default::default()
+			}],
+		);
+		let mut renderer = Renderer::new(&options);
+		let output = renderer.start();
+		assert_eq!(output.len(), 6); // 2 rows + 2 gap rows + 2 rows
+		assert!(output[2].is_empty());
+		assert!(output[3].is_empty());
+	}
+
+	#[test]
+	fn line_height_zero_packs_lines() {
+		let options = options(
+			Valign::Top,
+			None,
+			vec![BlockOptions {
+				text: String::from("A|B"),
+				font: Font::Tiny,
+				line_height: 0,
+				..Default::default()
+			}],
+		);
+		let mut renderer = Renderer::new(&options);
+		let output = renderer.start();
+		assert_eq!(output.len(), 4);
+		assert!(output.iter().all(|row| !row.is_empty()));
+	}
+
+	// start: word wrap with non-default letter_spacing
+
+	fn spaced_block(text: &str, letter_spacing: usize, word_wrap: bool) -> BlockOptions {
+		BlockOptions {
+			text: text.into(),
+			font: Font::Tiny,
+			letter_spacing,
+			word_wrap,
+			..Default::default()
+		}
+	}
+
+	#[test]
+	fn word_wrap_changes_nothing_when_nothing_overflows_with_other_letter_spacing() {
+		for letter_spacing in [0, 2] {
+			let off = options(Valign::Top, None, vec![spaced_block("AA BB", letter_spacing, false)]);
+			let on = options(Valign::Top, None, vec![spaced_block("AA BB", letter_spacing, true)]);
+			assert_eq!(output_debug(&off), output_debug(&on), "letter_spacing {letter_spacing} changed the output");
+		}
+	}
+
+	#[test]
+	fn word_wrap_splits_respect_letter_spacing() {
+		// exercises the split path stride: printables sit at every letter_spacing + 1th entry
+		for letter_spacing in [0, 2] {
+			let wrapped = options(Valign::Top, Some(2), vec![spaced_block("AAAA", letter_spacing, true)]);
+			let oracle = options(Valign::Top, Some(2), vec![spaced_block("AA|AA", letter_spacing, false)]);
+			assert_eq!(
+				output_debug(&wrapped),
+				output_debug(&oracle),
+				"split with letter_spacing {letter_spacing} must wrap like the piped text",
+			);
+		}
+	}
+
+	#[test]
+	fn word_wrap_places_an_exactly_fitting_word() {
+		// the <= boundary of word_fits: a word that exactly fills the line stays on it
+		let off = options(Valign::Top, Some(4), vec![block("AAAA", Font::Tiny, false)]);
+		let on = options(Valign::Top, Some(4), vec![block("AAAA", Font::Tiny, true)]);
+		assert_eq!(output_debug(&off), output_debug(&on));
+		assert_eq!(line_widths(&on).len(), 1);
+	}
+
+	#[test]
+	fn leading_spaces_survive_word_wrap() {
+		let off = options(Valign::Top, None, vec![block(" AB", Font::Tiny, false)]);
+		let on = options(Valign::Top, None, vec![block(" AB", Font::Tiny, true)]);
+		assert_eq!(output_debug(&off), output_debug(&on));
+	}
+
+	#[test]
+	fn spaces_count_toward_max_length() {
+		// A, space, B fill the line of three; the second space wraps with C behind it
+		let lines = line_widths(&options(Valign::Top, Some(3), vec![block("A B C", Font::Tiny, false)]));
 		assert_eq!(lines.len(), 2);
 	}
 }

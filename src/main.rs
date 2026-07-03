@@ -40,7 +40,7 @@ fn main() {
 		valign: Valign::Middle,
 		spaceless: false,
 		env: Env::Cli,
-		max_length: Some(20),
+		max_length: std::num::NonZeroUsize::new(20),
 		raw_mode: false,
 		debug: false,
 		debug_level: false,

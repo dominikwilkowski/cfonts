@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use crate::fonts::Font;
 
 #[derive(Debug)]
@@ -61,7 +63,7 @@ pub struct Options {
 	pub valign: Valign,
 	pub spaceless: bool,
 	pub env: Env,
-	pub max_length: Option<usize>,
+	pub max_length: Option<NonZeroUsize>,
 	pub raw_mode: bool,
 	pub debug: bool,
 	pub debug_level: bool,
