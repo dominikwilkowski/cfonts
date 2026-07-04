@@ -2,7 +2,7 @@ use std::num::NonZeroUsize;
 
 use crate::fonts::Font;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Valign {
 	Top,
 	Middle,
