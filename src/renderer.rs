@@ -173,7 +173,7 @@ impl<'a> Renderer<'a> {
 
 				// With word_wrap off every glyph is its own one-glyph word, breakable on both sides
 				let break_class = if block.word_wrap {
-					self.how_to_break_char(ch)
+					Self::how_to_break_char(ch)
 				} else {
 					Break::Both
 				};
@@ -203,13 +203,13 @@ impl<'a> Renderer<'a> {
 			self.flush_line();
 		}
 
-		println!("renderer:\n{}", self.render());
+		println!("renderer:\n{}", self.render()); // TODO: remove this
 
-		&self.output
+		&self.output // TODO: fix the return type
 	}
 
 	/// The single place that defines where words may soft-wrap
-	fn how_to_break_char(&self, character: char) -> Break {
+	fn how_to_break_char(character: char) -> Break {
 		match character {
 			' ' => Break::Both,
 			'-' | '/' | ')' => Break::After,
@@ -489,29 +489,23 @@ mod tests {
 
 	#[test]
 	fn space_is_the_only_two_sided_boundary() {
-		let options = options(Valign::Top, None, vec![]);
-		let renderer = Renderer::new(&options);
-		assert!(matches!(renderer.how_to_break_char(' '), Break::Both));
+		assert!(matches!(Renderer::how_to_break_char(' '), Break::Both));
 	}
 
 	#[test]
 	fn hyphen_slash_and_closing_paren_break_after() {
-		let options = options(Valign::Top, None, vec![]);
-		let renderer = Renderer::new(&options);
 		for character in ['-', '/', ')'] {
 			// `)` deviates from UAX #14 (LB13 forbids a break before a following `,` or `.`);
 			// kept deliberately, see word_boundary
-			assert!(matches!(renderer.how_to_break_char(character), Break::After), "{character:?} must break after");
+			assert!(matches!(Renderer::how_to_break_char(character), Break::After), "{character:?} must break after");
 		}
 	}
 
 	#[test]
 	fn all_other_supported_glyphs_glue() {
-		let options = options(Valign::Top, None, vec![]);
-		let renderer = Renderer::new(&options);
 		for character in "AZ09!?.,:;'\"($+%&_=@#".chars() {
 			assert!(
-				matches!(renderer.how_to_break_char(character), Break::None),
+				matches!(Renderer::how_to_break_char(character), Break::None),
 				"{character:?} must not be a soft-wrap point"
 			);
 		}

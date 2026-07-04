@@ -21,20 +21,20 @@ pub enum Env {
 	/// outer HTML to enable us to see the right white space
 	Browser,
 
-	BrowserConsole,
+	BrowserConsole, // TODO: support new target
 
-	Ratatui,
+	Ratatui, // TODO: support new target
 }
 
 #[derive(Debug)]
 pub struct BlockOptions {
 	pub text: String,
 	pub font: Font,
-	pub colors: bool,
-	pub background: bool,
-	pub gradient: bool,
-	pub independent_gradient: bool,
-	pub transition_gradient: bool,
+	pub colors: bool, // TODO: combine colors, gradient, independent_gradient and transition_gradient into a single field
+	pub background: bool, // TODO: implement
+	pub gradient: bool, // TODO: remove
+	pub independent_gradient: bool, // TODO: remove
+	pub transition_gradient: bool, // TODO: remove
 	pub letter_spacing: usize,
 	pub line_height: usize,
 	pub word_wrap: bool,
@@ -45,7 +45,7 @@ impl Default for BlockOptions {
 		Self {
 			text: String::new(),
 			font: Font::Block,
-			colors: false, // TODO: combine colors, gradient, independent_gradient and transition_gradient into a single field
+			colors: false,
 			background: false,
 			gradient: false,
 			independent_gradient: false,
@@ -59,14 +59,14 @@ impl Default for BlockOptions {
 
 #[derive(Debug)]
 pub struct Options {
-	pub align: bool,
+	pub align: bool, // TODO: implement
 	pub valign: Valign,
-	pub spaceless: bool,
+	pub spaceless: bool, // TODO: implement
 	pub env: Env,
 	pub max_length: Option<NonZeroUsize>,
-	pub raw_mode: bool,
-	pub debug: bool,
-	pub debug_level: bool,
-	pub version: bool, // TODO: move to bin
+	pub raw_mode: bool,    // TODO: implement
+	pub debug: bool,       // TODO: implement
+	pub debug_level: bool, // TODO: implement?
+	pub version: bool,     // TODO: move to bin
 	pub blocks: Vec<BlockOptions>,
 }
