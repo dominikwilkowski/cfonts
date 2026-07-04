@@ -321,7 +321,7 @@ mod tests {
 
 	/// Buffers may be ragged, that's their purpose (slant lead-in/lead-out) but the
 	/// pair must be complementary: on every row, buffer_start + buffer_end together
-	/// occupy exactly buffer_size columns. The renderer relies on this: it records
+	/// occupy exactly buffer_size columns. The layout relies on this: it records
 	/// buffer_size as the width of buffer_start and 0 for buffer_end, so everything
 	/// after the pair stays column-aligned on valign padding rows
 	pub(crate) fn assert_buffers_complementary<const ROWS: usize>(font: &FontFile<ROWS>) {

@@ -40,7 +40,7 @@ enum Break {
 	Both,
 }
 
-pub struct Renderer<'a> {
+pub struct Layout<'a> {
 	/// The full output of all lines being built
 	output: Vec<Vec<RowEntry>>,
 
@@ -85,8 +85,8 @@ pub struct Renderer<'a> {
 	options: &'a Options,
 }
 
-impl<'a> Renderer<'a> {
-	/// Creates a new renderer with the given options
+impl<'a> Layout<'a> {
+	/// Creates a new layout with the given options
 	pub fn new(options: &'a Options) -> Self {
 		Self {
 			output: Vec::new(),
@@ -395,13 +395,13 @@ impl<'a> Renderer<'a> {
 		self.prev_line_height = self.current_line_height;
 	}
 
-	/// Starts the rendering process, returning a reference to the output
+	/// Lays out all blocks, returning a reference to the output
 	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
 		let terminal_width = self.terminal_width();
 
 		self.layout(terminal_width);
 
-		println!("renderer:\n{}", self.render()); // TODO: remove this
+		println!("layout:\n{}", self.render()); // TODO: remove this
 
 		&self.output // TODO: fix the return type
 	}
@@ -509,44 +509,44 @@ mod tests {
 		lines
 	}
 
-	// The line widths of a full render through start()
+	// The line widths of a full run through start()
 	fn line_widths(options: &Options) -> Vec<Vec<usize>> {
-		let mut renderer = Renderer::new(options);
-		renderer.start();
-		group_lines(&renderer.output)
+		let mut layout = Layout::new(options);
+		layout.start();
+		group_lines(&layout.output)
 	}
 
 	// The line widths of a layout at an explicit canvas width, bypassing env detection
 	fn layout_lines(options: &Options, terminal_width: Option<usize>) -> Vec<Vec<usize>> {
-		let mut renderer = Renderer::new(options);
-		renderer.layout(terminal_width);
-		group_lines(&renderer.output)
+		let mut layout = Layout::new(options);
+		layout.layout(terminal_width);
+		group_lines(&layout.output)
 	}
 
-	// The structural output of a full render, for equivalence comparisons
+	// The structural output of a full layout, for equivalence comparisons
 	fn output_debug(options: &Options) -> String {
-		format!("{:?}", Renderer::new(options).start())
+		format!("{:?}", Layout::new(options).start())
 	}
 
 	// Flush one line holding a tall Block glyph and a short Tiny glyph and return the
 	// row indexes on which the Tiny glyph has Data (not Blank) entries
 	fn tiny_data_rows(valign: Valign) -> Vec<usize> {
 		let options = options(valign, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let block_font = Font::Block.get_font();
 		let tiny_font = Font::Tiny.get_font();
-		renderer.current_font_rows = block_font.rows();
-		renderer.line_max_rows = block_font.rows();
-		renderer.push_glyph(LayoutGlyph {
+		layout.current_font_rows = block_font.rows();
+		layout.line_max_rows = block_font.rows();
+		layout.push_glyph(LayoutGlyph {
 			glyph: block_font.get_glyph('A').unwrap(),
 			block_index: 0,
 		});
-		renderer.push_glyph(LayoutGlyph {
+		layout.push_glyph(LayoutGlyph {
 			glyph: tiny_font.get_glyph('B').unwrap(),
 			block_index: 1,
 		});
-		renderer.flush_line();
-		renderer
+		layout.flush_line();
+		layout
 			.output
 			.iter()
 			.enumerate()
@@ -571,7 +571,7 @@ mod tests {
 	#[test]
 	fn browser_env_has_no_terminal_width() {
 		let options = options(Valign::Top, None, vec![]);
-		assert_eq!(Renderer::new(&options).terminal_width(), None);
+		assert_eq!(Layout::new(&options).terminal_width(), None);
 	}
 
 	#[test]
@@ -579,7 +579,7 @@ mod tests {
 		let mut options = options(Valign::Top, None, vec![]);
 		options.env = Env::Cli;
 		// a real terminal reports its size and a pipe falls back to 80: either way it is Some
-		assert!(Renderer::new(&options).terminal_width().is_some());
+		assert!(Layout::new(&options).terminal_width().is_some());
 	}
 
 	// layout
@@ -612,45 +612,45 @@ mod tests {
 	#[test]
 	fn layout_block_seams_blocks_with_their_buffers() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let first = block("A", Font::Tiny, false);
 		let second = block("B", Font::Tiny, false);
 
-		renderer.layout_block(0, &first, None, None);
-		let entries_after_first = renderer.line.len();
-		renderer.layout_block(1, &second, Some(Font::Tiny), None);
+		layout.layout_block(0, &first, None, None);
+		let entries_after_first = layout.line.len();
+		layout.layout_block(1, &second, Some(Font::Tiny), None);
 
 		assert_eq!(entries_after_first, 2); // buffer_start + A
 		// + buffer_end of the first block, buffer_start of the second, B
-		assert_eq!(renderer.line.len(), entries_after_first + 3);
+		assert_eq!(layout.line.len(), entries_after_first + 3);
 	}
 
 	// vertical_padding
 
 	#[test]
 	fn vertical_padding_distributes_extra_rows() {
-		assert_eq!(Renderer::vertical_padding(Valign::Top, 6, 2), 0);
-		assert_eq!(Renderer::vertical_padding(Valign::Middle, 6, 2), 2);
-		assert_eq!(Renderer::vertical_padding(Valign::Bottom, 6, 2), 4);
+		assert_eq!(Layout::vertical_padding(Valign::Top, 6, 2), 0);
+		assert_eq!(Layout::vertical_padding(Valign::Middle, 6, 2), 2);
+		assert_eq!(Layout::vertical_padding(Valign::Bottom, 6, 2), 4);
 		// odd extra rows: Middle rounds the top padding down, the glyph sits above center
-		assert_eq!(Renderer::vertical_padding(Valign::Middle, 7, 2), 2);
+		assert_eq!(Layout::vertical_padding(Valign::Middle, 7, 2), 2);
 		// a glyph as tall as the line needs no padding under any valign
-		assert_eq!(Renderer::vertical_padding(Valign::Bottom, 6, 6), 0);
+		assert_eq!(Layout::vertical_padding(Valign::Bottom, 6, 6), 0);
 	}
 
 	// how_to_break_char
 
 	#[test]
 	fn space_is_the_only_two_sided_boundary() {
-		assert!(matches!(Renderer::how_to_break_char(' ', true), Break::Both));
+		assert!(matches!(Layout::how_to_break_char(' ', true), Break::Both));
 	}
 
 	#[test]
 	fn no_word_wrap_treats_every_glyph_as_its_own_word() {
-		assert!(matches!(Renderer::how_to_break_char('x', false), Break::Both));
-		assert!(matches!(Renderer::how_to_break_char('-', false), Break::Both));
-		assert!(matches!(Renderer::how_to_break_char('/', false), Break::Both));
-		assert!(matches!(Renderer::how_to_break_char(')', false), Break::Both));
+		assert!(matches!(Layout::how_to_break_char('x', false), Break::Both));
+		assert!(matches!(Layout::how_to_break_char('-', false), Break::Both));
+		assert!(matches!(Layout::how_to_break_char('/', false), Break::Both));
+		assert!(matches!(Layout::how_to_break_char(')', false), Break::Both));
 	}
 
 	#[test]
@@ -658,7 +658,7 @@ mod tests {
 		for character in ['-', '/', ')'] {
 			// `)` deviates from UAX #14 (LB13 forbids a break before a following `,` or `.`);
 			// kept deliberately, see how_to_break_char
-			assert!(matches!(Renderer::how_to_break_char(character, true), Break::After), "{character:?} must break after");
+			assert!(matches!(Layout::how_to_break_char(character, true), Break::After), "{character:?} must break after");
 		}
 	}
 
@@ -666,7 +666,7 @@ mod tests {
 	fn all_other_supported_glyphs_glue() {
 		for character in "AZ09!?.,:;'\"($+%&_=@#".chars() {
 			assert!(
-				matches!(Renderer::how_to_break_char(character, true), Break::None),
+				matches!(Layout::how_to_break_char(character, true), Break::None),
 				"{character:?} must not be a soft-wrap point"
 			);
 		}
@@ -677,7 +677,7 @@ mod tests {
 	#[test]
 	fn stage_glyph_has_no_leading_letter_space() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
@@ -685,16 +685,16 @@ mod tests {
 		};
 		let glyph = font.get_glyph('A').unwrap();
 
-		renderer.stage_glyph(glyph, letter_space, 1, 0);
+		layout.stage_glyph(glyph, letter_space, 1, 0);
 
-		assert_eq!(renderer.word.len(), 1);
-		assert_eq!(renderer.word_width, glyph.width);
+		assert_eq!(layout.word.len(), 1);
+		assert_eq!(layout.word_width, glyph.width);
 	}
 
 	#[test]
 	fn stage_glyph_counts_intra_word_letter_spaces() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
@@ -703,11 +703,11 @@ mod tests {
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 
-		renderer.stage_glyph(glyph_a, letter_space, 2, 0);
-		renderer.stage_glyph(glyph_b, letter_space, 2, 0);
+		layout.stage_glyph(glyph_a, letter_space, 2, 0);
+		layout.stage_glyph(glyph_b, letter_space, 2, 0);
 
-		assert_eq!(renderer.word.len(), 4);
-		assert_eq!(renderer.word_width, glyph_a.width + 2 * letter_space.width() + glyph_b.width);
+		assert_eq!(layout.word.len(), 4);
+		assert_eq!(layout.word_width, glyph_a.width + 2 * letter_space.width() + glyph_b.width);
 	}
 
 	// word_fits
@@ -715,23 +715,23 @@ mod tests {
 	#[test]
 	fn word_fits_allows_an_exact_fit() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
 		};
 		let glyph = font.get_glyph('A').unwrap();
-		renderer.stage_glyph(glyph, letter_space, 1, 0);
+		layout.stage_glyph(glyph, letter_space, 1, 0);
 
 		// at a line start the word needs exactly its own width
-		assert!(renderer.word_fits(letter_space.width(), 1, Some(glyph.width)));
-		assert!(!renderer.word_fits(letter_space.width(), 1, Some(glyph.width - 1)));
+		assert!(layout.word_fits(letter_space.width(), 1, Some(glyph.width)));
+		assert!(!layout.word_fits(letter_space.width(), 1, Some(glyph.width - 1)));
 
 		// after a placed glyph the leading letter spaces count too
-		renderer.space_pending = true;
-		assert!(renderer.word_fits(letter_space.width(), 1, Some(glyph.width + letter_space.width())));
-		assert!(!renderer.word_fits(letter_space.width(), 1, Some(glyph.width + letter_space.width() - 1)));
+		layout.space_pending = true;
+		assert!(layout.word_fits(letter_space.width(), 1, Some(glyph.width + letter_space.width())));
+		assert!(!layout.word_fits(letter_space.width(), 1, Some(glyph.width + letter_space.width() - 1)));
 	}
 
 	// commit_word
@@ -739,7 +739,7 @@ mod tests {
 	#[test]
 	fn commit_word_with_no_word_is_a_noop() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
@@ -750,19 +750,19 @@ mod tests {
 			block_index: 0,
 		};
 
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
 
-		assert!(renderer.line.is_empty());
-		assert!(renderer.output.is_empty());
+		assert!(layout.line.is_empty());
+		assert!(layout.output.is_empty());
 	}
 
 	#[test]
 	fn commit_word_places_a_fitting_word_on_the_current_line() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
@@ -773,25 +773,25 @@ mod tests {
 		};
 		let glyph = font.get_glyph('A').unwrap();
 
-		renderer.stage_glyph(glyph, letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(glyph, letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
 
-		assert_eq!(renderer.line.len(), 1); // no leading letter space at the start of a line
-		assert_eq!(renderer.line_output_width, glyph.width);
-		assert_eq!(renderer.line_glyph_count, 1);
-		assert!(renderer.space_pending);
-		assert!(renderer.word.is_empty());
-		assert_eq!(renderer.word_width, 0);
-		assert!(renderer.output.is_empty()); // nothing was flushed
+		assert_eq!(layout.line.len(), 1); // no leading letter space at the start of a line
+		assert_eq!(layout.line_output_width, glyph.width);
+		assert_eq!(layout.line_glyph_count, 1);
+		assert!(layout.space_pending);
+		assert!(layout.word.is_empty());
+		assert_eq!(layout.word_width, 0);
+		assert!(layout.output.is_empty()); // nothing was flushed
 	}
 
 	#[test]
 	fn commit_word_adds_leading_letter_spaces_after_a_placed_glyph() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
@@ -801,22 +801,22 @@ mod tests {
 			block_index: 0,
 		};
 
-		renderer.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
-		renderer.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
 
-		assert_eq!(renderer.line.len(), 3); // A, letter space, B
-		assert_eq!(renderer.line_glyph_count, 2);
+		assert_eq!(layout.line.len(), 3); // A, letter space, B
+		assert_eq!(layout.line_glyph_count, 2);
 	}
 
 	#[test]
 	fn commit_word_wraps_when_the_word_exceeds_max_length() {
 		let options = options(Valign::Top, Some(1), vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
@@ -825,24 +825,24 @@ mod tests {
 			glyph: font.letter_space(),
 			block_index: 0,
 		};
-		renderer.push_glyph(buffer_start);
+		layout.push_glyph(buffer_start);
 
-		renderer.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
-		renderer.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
 
-		assert_eq!(renderer.output.len(), font.rows()); // the first line was flushed
-		assert_eq!(renderer.line_glyph_count, 1); // B alone on the new line
+		assert_eq!(layout.output.len(), font.rows()); // the first line was flushed
+		assert_eq!(layout.line_glyph_count, 1); // B alone on the new line
 	}
 
 	#[test]
 	fn commit_word_wraps_when_the_word_exceeds_the_canvas_width() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
@@ -851,28 +851,28 @@ mod tests {
 			glyph: font.letter_space(),
 			block_index: 0,
 		};
-		renderer.push_glyph(buffer_start);
+		layout.push_glyph(buffer_start);
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 		// wide enough for A but not for A + letter space + B
 		let canvas_width = glyph_a.width + letter_space.width() + glyph_b.width - 1;
 
-		renderer.stage_glyph(glyph_a, letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
-		renderer.stage_glyph(glyph_b, letter_space, 1, 0);
-		renderer.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
+		layout.stage_glyph(glyph_a, letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
+		layout.stage_glyph(glyph_b, letter_space, 1, 0);
+		layout.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
 
-		assert_eq!(renderer.output.len(), font.rows());
-		assert_eq!(renderer.line_output_width, glyph_b.width); // B alone, no leading letter space
+		assert_eq!(layout.output.len(), font.rows());
+		assert_eq!(layout.line_output_width, glyph_b.width); // B alone, no leading letter space
 	}
 
 	#[test]
 	fn commit_word_splits_a_word_that_fits_no_line_without_wrapping_first() {
 		let options = options(Valign::Top, Some(2), vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
@@ -881,17 +881,17 @@ mod tests {
 			glyph: font.letter_space(),
 			block_index: 0,
 		};
-		renderer.push_glyph(buffer_start);
+		layout.push_glyph(buffer_start);
 
 		for character in ['A', 'B', 'C'] {
-			renderer.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
+			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
 		}
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
 
 		// exactly one flush (A B), no spurious blank line before the word
-		assert_eq!(renderer.output.len(), font.rows());
-		assert!(row_width(&renderer.output[0]) > 0);
-		assert_eq!(renderer.line_glyph_count, 1); // C on the new line
+		assert_eq!(layout.output.len(), font.rows());
+		assert!(row_width(&layout.output[0]) > 0);
+		assert_eq!(layout.line_glyph_count, 1); // C on the new line
 	}
 
 	// commit_word: split path details
@@ -899,10 +899,10 @@ mod tests {
 	#[test]
 	fn word_state_resets_after_the_split_path() {
 		let options = options(Valign::Top, Some(2), vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
@@ -911,16 +911,16 @@ mod tests {
 			glyph: font.letter_space(),
 			block_index: 0,
 		};
-		renderer.push_glyph(buffer_start);
+		layout.push_glyph(buffer_start);
 		for character in ['A', 'B', 'C'] {
-			renderer.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
+			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
 		}
 
-		renderer.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, 1, Some(100));
 
-		assert!(renderer.word.is_empty());
-		assert_eq!(renderer.word_width, 0);
-		assert_eq!(renderer.word_glyph_count, 0);
+		assert!(layout.word.is_empty());
+		assert_eq!(layout.word_width, 0);
+		assert_eq!(layout.word_glyph_count, 0);
 	}
 
 	// push_glyph
@@ -928,22 +928,22 @@ mod tests {
 	#[test]
 	fn push_glyph_accumulates_line_width() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 
-		renderer.push_glyph(LayoutGlyph {
+		layout.push_glyph(LayoutGlyph {
 			glyph: glyph_a,
 			block_index: 0,
 		});
-		renderer.push_glyph(LayoutGlyph {
+		layout.push_glyph(LayoutGlyph {
 			glyph: glyph_b,
 			block_index: 0,
 		});
 
-		assert_eq!(renderer.line.len(), 2);
-		assert_eq!(renderer.line_output_width, glyph_a.width + glyph_b.width);
+		assert_eq!(layout.line.len(), 2);
+		assert_eq!(layout.line_output_width, glyph_a.width + glyph_b.width);
 	}
 
 	// flush_line
@@ -958,51 +958,51 @@ mod tests {
 	#[test]
 	fn flush_line_pads_shorter_blocks_with_their_width() {
 		let options = options(Valign::Bottom, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let block_font = Font::Block.get_font();
 		let tiny_font = Font::Tiny.get_font();
-		renderer.current_font_rows = block_font.rows();
-		renderer.line_max_rows = block_font.rows();
+		layout.current_font_rows = block_font.rows();
+		layout.line_max_rows = block_font.rows();
 		let tiny_glyph = tiny_font.get_glyph('B').unwrap();
-		renderer.push_glyph(LayoutGlyph {
+		layout.push_glyph(LayoutGlyph {
 			glyph: block_font.get_glyph('A').unwrap(),
 			block_index: 0,
 		});
-		renderer.push_glyph(LayoutGlyph {
+		layout.push_glyph(LayoutGlyph {
 			glyph: tiny_glyph,
 			block_index: 1,
 		});
-		renderer.flush_line();
+		layout.flush_line();
 
 		// every row spans the same columns: Blank rows claim exactly the glyph width
-		let widths: Vec<usize> = renderer.output.iter().map(|row| row_width(row)).collect();
+		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(row)).collect();
 		assert!(widths.iter().all(|width| *width == widths[0]));
-		assert!(matches!(renderer.output[0][1], RowEntry::Blank(width) if width == tiny_glyph.width));
+		assert!(matches!(layout.output[0][1], RowEntry::Blank(width) if width == tiny_glyph.width));
 	}
 
 	#[test]
 	fn flush_line_resets_line_state() {
 		let options = options(Valign::Top, None, vec![]);
-		let mut renderer = Renderer::new(&options);
+		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		renderer.current_font_rows = font.rows();
-		renderer.line_max_rows = font.rows();
-		renderer.current_line_height = 3;
-		renderer.space_pending = true;
-		renderer.line_glyph_count = 1;
-		renderer.push_glyph(LayoutGlyph {
+		layout.current_font_rows = font.rows();
+		layout.line_max_rows = font.rows();
+		layout.current_line_height = 3;
+		layout.space_pending = true;
+		layout.line_glyph_count = 1;
+		layout.push_glyph(LayoutGlyph {
 			glyph: font.get_glyph('A').unwrap(),
 			block_index: 0,
 		});
 
-		renderer.flush_line();
+		layout.flush_line();
 
-		assert!(renderer.line.is_empty());
-		assert_eq!(renderer.line_output_width, 0);
-		assert_eq!(renderer.line_max_rows, 0);
-		assert_eq!(renderer.line_glyph_count, 0);
-		assert!(!renderer.space_pending);
-		assert_eq!(renderer.prev_line_height, 3); // the flushed line dictates the next gap
+		assert!(layout.line.is_empty());
+		assert_eq!(layout.line_output_width, 0);
+		assert_eq!(layout.line_max_rows, 0);
+		assert_eq!(layout.line_glyph_count, 0);
+		assert!(!layout.space_pending);
+		assert_eq!(layout.prev_line_height, 3); // the flushed line dictates the next gap
 	}
 
 	// start: line and block mechanics
@@ -1010,8 +1010,8 @@ mod tests {
 	#[test]
 	fn line_height_rows_separate_lines() {
 		let options = options(Valign::Top, None, vec![block("A|B", Font::Tiny, false)]);
-		let mut renderer = Renderer::new(&options);
-		let output = renderer.start();
+		let mut layout = Layout::new(&options);
+		let output = layout.start();
 		assert_eq!(output.len(), 5); // 2 rows + 1 line-height row + 2 rows
 		assert!(output[2].is_empty());
 	}
@@ -1051,7 +1051,7 @@ mod tests {
 	}
 
 	#[test]
-	fn lowercase_input_renders_blank() {
+	fn lowercase_input_produces_blank_output() {
 		// the library does not change case; a public uppercasing entry point will
 		let lines = line_widths(&options(Valign::Top, None, vec![block("hello", Font::Block, false)]));
 		assert_eq!(lines, vec![vec![0; 6]]);
@@ -1175,13 +1175,13 @@ mod tests {
 	// start: empty inputs
 
 	#[test]
-	fn no_blocks_render_nothing() {
+	fn no_blocks_produce_no_output() {
 		let lines = line_widths(&options(Valign::Top, None, vec![]));
 		assert!(lines.is_empty());
 	}
 
 	#[test]
-	fn empty_text_renders_one_blank_line() {
+	fn empty_text_produces_one_blank_line() {
 		let lines = line_widths(&options(Valign::Top, None, vec![block("", Font::Tiny, false)]));
 		assert_eq!(lines, vec![vec![0, 0]]);
 	}
@@ -1244,8 +1244,8 @@ mod tests {
 				..Default::default()
 			}],
 		);
-		let mut renderer = Renderer::new(&options);
-		let output = renderer.start();
+		let mut layout = Layout::new(&options);
+		let output = layout.start();
 		assert_eq!(output.len(), 6); // 2 rows + 2 gap rows + 2 rows
 		assert!(output[2].is_empty());
 		assert!(output[3].is_empty());
@@ -1263,8 +1263,8 @@ mod tests {
 				..Default::default()
 			}],
 		);
-		let mut renderer = Renderer::new(&options);
-		let output = renderer.start();
+		let mut layout = Layout::new(&options);
+		let output = layout.start();
 		assert_eq!(output.len(), 4);
 		assert!(output.iter().all(|row| !row.is_empty()));
 	}

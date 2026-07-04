@@ -2,8 +2,8 @@ use std::env;
 
 use cfonts::{
 	fonts::Font,
+	layout::Layout,
 	options::{BlockOptions, Env, Options, Valign},
-	renderer::Renderer,
 };
 
 // terminology
@@ -85,6 +85,6 @@ fn main() {
 		],
 	};
 
-	let mut renderer = Renderer::new(&options);
-	let _ = renderer.start();
+	let mut layout = Layout::new(&options);
+	let _ = layout.start();
 }
