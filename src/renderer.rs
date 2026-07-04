@@ -171,13 +171,7 @@ impl<'a> Renderer<'a> {
 					continue;
 				};
 
-				// With word_wrap off every glyph is its own one-glyph word, breakable on both sides
-				let break_class = if block.word_wrap {
-					Self::how_to_break_char(ch)
-				} else {
-					Break::Both
-				};
-
+				let break_class = Self::how_to_break_char(ch, block.word_wrap);
 				match break_class {
 					Break::Both => {
 						self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
@@ -209,7 +203,12 @@ impl<'a> Renderer<'a> {
 	}
 
 	/// The single place that defines where words may soft-wrap
-	fn how_to_break_char(character: char) -> Break {
+	fn how_to_break_char(character: char, word_wrap: bool) -> Break {
+		// With word_wrap off every glyph is its own one-glyph word, breakable on both sides
+		if !word_wrap {
+			return Break::Both;
+		}
+
 		match character {
 			' ' => Break::Both,
 			'-' | '/' | ')' => Break::After,
@@ -489,7 +488,15 @@ mod tests {
 
 	#[test]
 	fn space_is_the_only_two_sided_boundary() {
-		assert!(matches!(Renderer::how_to_break_char(' '), Break::Both));
+		assert!(matches!(Renderer::how_to_break_char(' ', true), Break::Both));
+	}
+
+	#[test]
+	fn word_wrap_always_breaks() {
+		assert!(matches!(Renderer::how_to_break_char('x', false), Break::Both));
+		assert!(matches!(Renderer::how_to_break_char('-', false), Break::Both));
+		assert!(matches!(Renderer::how_to_break_char('/', false), Break::Both));
+		assert!(matches!(Renderer::how_to_break_char(')', false), Break::Both));
 	}
 
 	#[test]
@@ -497,7 +504,7 @@ mod tests {
 		for character in ['-', '/', ')'] {
 			// `)` deviates from UAX #14 (LB13 forbids a break before a following `,` or `.`);
 			// kept deliberately, see word_boundary
-			assert!(matches!(Renderer::how_to_break_char(character), Break::After), "{character:?} must break after");
+			assert!(matches!(Renderer::how_to_break_char(character, true), Break::After), "{character:?} must break after");
 		}
 	}
 
@@ -505,7 +512,7 @@ mod tests {
 	fn all_other_supported_glyphs_glue() {
 		for character in "AZ09!?.,:;'\"($+%&_=@#".chars() {
 			assert!(
-				matches!(Renderer::how_to_break_char(character), Break::None),
+				matches!(Renderer::how_to_break_char(character, true), Break::None),
 				"{character:?} must not be a soft-wrap point"
 			);
 		}
