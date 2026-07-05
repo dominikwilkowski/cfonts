@@ -12,122 +12,132 @@ on:
     branches:
       - "released"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   lint:
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-    runs-on: ${{ matrix.os }}
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout files
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          toolchain: stable
-          components: rustfmt, clippy
-          args: --manifest-path ./rust/Cargo.toml
+          persist-credentials: false
 
-      - name: Tree files
-        run: |
-          sudo apt-get -y install tree & which tree
-          tree -I "node_modules*|.git*"
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: 1.96.1
+          components: rustfmt, clippy
+          cache: true
+          cache-targets: true
+          cache-bin: false
+          cache-on-failure: false
+          cache-all-crates: false
+          cache-workspace-crates: false
+          cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+      # - name: Tree files for debugging
+      #   run: |
+      #     sudo apt-get -y install tree && which tree
+      #     tree -I "node_modules*|.git*"
 
       - name: Check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
+        run: cargo fmt --all -- --check
 
-      - name: Annotate commit with clippy warnings
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+      - name: Check Clippy
+        run: cargo clippy --locked --workspace --all-features --tests --all-targets -- -D warnings
 
   test:
+    name: Test
     strategy:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+          - ubuntu-24.04
+          - macos-15
+          - windows-2025
     runs-on: ${{ matrix.os }}
-    env:
-      OS: ${{ matrix.OS }}
+    timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout files
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          toolchain: stable
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: 1.96.1
+          cache: true
+          cache-targets: true
+          cache-bin: false
+          cache-on-failure: false
+          cache-all-crates: false
+          cache-workspace-crates: false
+          cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Run build
-        run: cargo build --release --verbose
+        run: cargo build --workspace --all-targets --all-features --release --locked
 
       - name: Run cargo tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-fail-fast -- --nocapture
+        run: cargo test --workspace --all-targets --all-features --locked --no-fail-fast
 
-  # ***********
-  # COVERAGE
-  # ***********
+      - name: Run cargo doc tests
+        run: cargo test --doc --workspace --all-features --locked --no-fail-fast
+
   coverage:
+    name: Coverage
     needs: test
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout files
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          toolchain: stable
+          persist-credentials: false
 
-      - name: Install Rust
-        run: rustup toolchain install stable --component llvm-tools-preview
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: 1.96.1
+          components: llvm-tools-preview
+          cache: true
+          cache-targets: false
+          cache-bin: false
+          cache-on-failure: false
+          cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
+        uses: taiki-e/install-action@c93ccc03e00cd0e08e494f5fd058a6c55a6a1907 # v2.82.8
+        with:
+          tool: cargo-llvm-cov@0.8.7
+          fallback: none
+          checksum: true
 
       - name: Generate code coverage
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --locked --all-features --workspace --lcov --output-path lcov.info
 
       - name: Print last few lines of lcov.info
         run: tail ./lcov.info
 
       - name: Upload to coveralls
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./lcov.info
+          file: lcov.info
+          format: lcov
           flag-name: rust
-          parallel: true
-        env:
-          NODE_COVERALLS_DEBUG: 1
-
-  # ***********
-  # COVERAGE - finalizing
-  # ***********
-  coverage-finish:
-    needs: coverage
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Coveralls Parallel Build Finished
-        uses: coverallsapp/github-action@v1.1.0
-        with:
-          github-token: ${{ secrets.github_token }}
-          parallel-finished: true
-        env:
-          NODE_COVERALLS_DEBUG: 1
+          coverage-reporter-version: v0.6.17

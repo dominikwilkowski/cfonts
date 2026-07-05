@@ -12,4 +12,5 @@ tmp
 npm-debug.log
 package-lock.json
 .coveralls.yml
+lcov.info
 target
