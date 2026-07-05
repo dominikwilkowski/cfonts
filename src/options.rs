@@ -12,7 +12,7 @@ pub enum Valign {
 /// The `Env` enum includes all supported environment options.
 ///
 /// ![The env option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Env {
 	/// A CLI environment means we render colors as ansi escape sequences
 	Cli,
@@ -24,6 +24,16 @@ pub enum Env {
 	BrowserConsole, // TODO: support new target
 
 	Ratatui, // TODO: support new target
+}
+
+/// The `Align` enum includes all supported alignment options.
+///
+/// ![The align option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Align {
+	Left,
+	Center,
+	Right,
 }
 
 #[derive(Debug)]
@@ -59,14 +69,27 @@ impl Default for BlockOptions {
 
 #[derive(Debug)]
 pub struct Options {
-	pub align: bool, // TODO: implement
+	pub align: Align,
 	pub valign: Valign,
 	pub spaceless: bool, // TODO: implement
 	pub env: Env,
 	pub max_length: Option<NonZeroUsize>,
-	pub raw_mode: bool,    // TODO: implement
-	pub debug: bool,       // TODO: implement
-	pub debug_level: bool, // TODO: implement?
-	pub version: bool,     // TODO: move to bin
+	pub raw_mode: bool, // TODO: implement
+	pub debug: bool,    // TODO: implement
 	pub blocks: Vec<BlockOptions>,
+}
+
+impl Default for Options {
+	fn default() -> Self {
+		Self {
+			align: Align::Left,
+			valign: Valign::Middle,
+			spaceless: false,
+			env: Env::Cli,
+			max_length: None,
+			raw_mode: false,
+			debug: false,
+			blocks: Vec::new(),
+		}
+	}
 }

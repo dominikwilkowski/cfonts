@@ -1,7 +1,7 @@
 use terminal_size::{Width, terminal_size};
 
 use crate::{
-	fonts::{Font, GlyphRef, GlyphRow, Segment},
+	fonts::{GlyphRef, GlyphRow, Segment},
 	options::{BlockOptions, Env, Options, Valign},
 };
 
@@ -122,11 +122,8 @@ impl<'a> Layout<'a> {
 
 	/// Lays out every block into rows of output; the one traversal of blocks
 	fn layout(&mut self, terminal_width: Option<usize>) {
-		let mut prev_font: Option<Font> = None;
-
 		for (block_index, block) in self.options.blocks.iter().enumerate() {
-			self.layout_block(block_index, block, prev_font, terminal_width);
-			prev_font = Some(block.font);
+			self.layout_block(block_index, block, terminal_width);
 		}
 
 		// Flushing the last line
@@ -137,34 +134,12 @@ impl<'a> Layout<'a> {
 
 	/// Lays out one block: the seam to the previous block, then every glyph of its text;
 	/// the one traversal of this block's source text
-	fn layout_block(
-		&mut self,
-		block_index: usize,
-		block: &BlockOptions,
-		prev_font: Option<Font>,
-		terminal_width: Option<usize>,
-	) {
+	fn layout_block(&mut self, block_index: usize, block: &BlockOptions, terminal_width: Option<usize>) {
 		let font = block.font.get_font();
 		self.current_font_rows = font.rows();
 		self.space_pending = false;
 		self.current_line_height = block.line_height;
 		self.line_max_rows = self.line_max_rows.max(font.rows());
-
-		// We're between blocks so we need to push the end buffer
-		if let Some(prev) = prev_font {
-			let prev_data = prev.get_font();
-			self.push_glyph(LayoutGlyph {
-				glyph: GlyphRef {
-					rows: prev_data.buffer_end().rows,
-					// `buffer_end` claims 0 columns because `buffer_start` already
-					// claims the whole `buffer_size`, and the pair's rows are complementary
-					// (see `assert_buffers_complementary`)
-					width: 0,
-				},
-				block_index: block_index - 1,
-			});
-			self.line_max_rows = self.line_max_rows.max(prev_data.rows());
-		}
 
 		// Push buffer as a glyph so flush_line handles it like any other
 		let buffer_start = LayoutGlyph {
@@ -211,6 +186,19 @@ impl<'a> Layout<'a> {
 
 		// The end of a block always commits the pending word (words do not span blocks)
 		self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+
+		// At the end of this block we need to push the buffer_end to ensure with slanted fonts we end each line inside a line with the same length
+		self.push_glyph(LayoutGlyph {
+			glyph: GlyphRef {
+				rows: font.buffer_end().rows,
+				// `buffer_end` claims 0 columns because `buffer_start` already
+				// claims the whole `buffer_size`, and the pair's rows are complementary
+				// (see `assert_buffers_complementary` in fonts/mod.rs)
+				width: 0,
+			},
+			block_index,
+		});
+		self.line_max_rows = self.line_max_rows.max(font.rows());
 	}
 
 	/// Calculates the vertical padding for a line of glyphs, given the valign and line/block height
@@ -441,7 +429,10 @@ impl<'a> Layout<'a> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::options::BlockOptions;
+	use crate::{
+		fonts::Font,
+		options::{Align, BlockOptions},
+	};
 	use std::num::NonZeroUsize;
 
 	// helpers
@@ -449,15 +440,13 @@ mod tests {
 	// A convenience wrapper around Options for tests
 	fn options(valign: Valign, max_length: Option<usize>, blocks: Vec<BlockOptions>) -> Options {
 		Options {
-			align: false,
+			align: Align::Left,
 			valign,
 			spaceless: false,
 			env: Env::Browser, // unlimited width so tests never depend on a real terminal
 			max_length: max_length.and_then(NonZeroUsize::new),
 			raw_mode: false,
 			debug: false,
-			debug_level: false,
-			version: false,
 			blocks,
 		}
 	}
@@ -607,22 +596,30 @@ mod tests {
 		assert_eq!(layout_lines(&options, None).len(), 1);
 	}
 
+	#[test]
+	fn lines_ending_in_a_slanted_font_have_uniform_row_widths() {
+		// the block's closing buffer_end must square the line off, or align would shear the slant
+		let lines = line_widths(&options(Valign::Top, None, vec![block("X", Font::Font3D, false)]));
+		for line in &lines {
+			assert!(line.iter().all(|width| *width == line[0]), "rows of one line must span equal columns: {line:?}");
+		}
+	}
+
 	// layout_block
 
 	#[test]
-	fn layout_block_seams_blocks_with_their_buffers() {
+	fn layout_block_opens_and_closes_with_its_buffers() {
 		let options = options(Valign::Top, None, vec![]);
 		let mut layout = Layout::new(&options);
 		let first = block("A", Font::Tiny, false);
 		let second = block("B", Font::Tiny, false);
 
-		layout.layout_block(0, &first, None, None);
+		layout.layout_block(0, &first, None);
 		let entries_after_first = layout.line.len();
-		layout.layout_block(1, &second, Some(Font::Tiny), None);
+		layout.layout_block(1, &second, None);
 
-		assert_eq!(entries_after_first, 2); // buffer_start + A
-		// + buffer_end of the first block, buffer_start of the second, B
-		assert_eq!(layout.line.len(), entries_after_first + 3);
+		assert_eq!(entries_after_first, 3); // buffer_start, A, buffer_end
+		assert_eq!(layout.line.len(), entries_after_first + 3); // the same again for the second block
 	}
 
 	// vertical_padding

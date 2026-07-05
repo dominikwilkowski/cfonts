@@ -3,7 +3,7 @@ use std::env;
 use cfonts::{
 	fonts::Font,
 	layout::Layout,
-	options::{BlockOptions, Env, Options, Valign},
+	options::{Align, BlockOptions, Env, Options, Valign},
 };
 
 // terminology
@@ -36,15 +36,13 @@ fn main() {
 	let mut input = args[0].clone();
 	input.make_ascii_uppercase();
 	let options = Options {
-		align: false,
+		align: Align::Left,
 		valign: Valign::Middle,
 		spaceless: false,
 		env: Env::Cli,
 		max_length: std::num::NonZeroUsize::new(20),
 		raw_mode: false,
 		debug: false,
-		debug_level: false,
-		version: false,
 		blocks: vec![
 			BlockOptions {
 				text: input,
