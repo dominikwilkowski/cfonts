@@ -187,7 +187,7 @@ impl<'a> Layout<'a> {
 		// The end of a block always commits the pending word (words do not span blocks)
 		self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
 
-		// At the end of this block we need to push the buffer_end to ensure with slanted fonts we end each line inside a line with the same length
+		// Close the block with its buffer_end, mirroring the buffer_start that opened it, so lines ending in a slanted font keep uniform row widths
 		self.push_glyph(LayoutGlyph {
 			glyph: GlyphRef {
 				rows: font.buffer_end().rows,
