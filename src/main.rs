@@ -83,6 +83,5 @@ fn main() {
 		],
 	};
 
-	let mut layout = Layout::new(&options);
-	let _ = layout.start();
+	let _ = Layout::start(&options);
 }

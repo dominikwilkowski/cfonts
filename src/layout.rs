@@ -23,8 +23,15 @@ impl LayoutGlyph {
 
 #[derive(Debug)]
 pub enum RowEntry {
-	Data(&'static GlyphRow),
-	Blank(usize),
+	/// One row of a glyph, tagged with the block it came from so the render
+	/// environments can tie it to that block's color configuration
+	Data {
+		glyph_row: &'static GlyphRow,
+		block_index: usize,
+	},
+
+	/// A run of empty columns (valign padding), tagged with its block for background colors later
+	Blank { width: usize, block_index: usize },
 }
 
 /// Where a glyph allows a soft line break, relative to itself
@@ -106,8 +113,8 @@ impl<'a> Layout<'a> {
 	}
 
 	/// The width of the canvas we render into, None means unlimited
-	fn terminal_width(&self) -> Option<usize> {
-		match self.options.env {
+	fn terminal_width(options: &Options) -> Option<usize> {
+		match options.env {
 			// TODO: move to env trait
 			Env::Cli => {
 				if let Some((Width(width), _)) = terminal_size() {
@@ -120,16 +127,21 @@ impl<'a> Layout<'a> {
 		}
 	}
 
-	/// Lays out every block into rows of output; the one traversal of blocks
-	fn layout(&mut self, terminal_width: Option<usize>) {
-		for (block_index, block) in self.options.blocks.iter().enumerate() {
-			self.layout_block(block_index, block, terminal_width);
+	/// Builds the layout for the given options: every block laid out into rows of
+	/// output at the given canvas width (None means unlimited)
+	pub fn build(options: &'a Options, canvas_width: Option<usize>) -> Self {
+		let mut layout = Self::new(options);
+
+		for (block_index, block) in options.blocks.iter().enumerate() {
+			layout.layout_block(block_index, block, canvas_width);
 		}
 
 		// Flushing the last line
-		if !self.options.blocks.is_empty() {
-			self.flush_line();
+		if !options.blocks.is_empty() {
+			layout.flush_line();
 		}
+
+		layout
 	}
 
 	/// Lays out one block: the seam to the previous block, then every glyph of its text;
@@ -366,9 +378,15 @@ impl<'a> Layout<'a> {
 
 				let entry = if row < padding || row >= padding + glyph.rows().len() {
 					// Blank padding rows for fonts that are not as tall as another on the same line
-					RowEntry::Blank(glyph.width())
+					RowEntry::Blank {
+						width: glyph.width(),
+						block_index: glyph.block_index,
+					}
 				} else {
-					RowEntry::Data(&glyph.rows()[row - padding])
+					RowEntry::Data {
+						glyph_row: &glyph.rows()[row - padding],
+						block_index: glyph.block_index,
+					}
 				};
 				output_row.push(entry);
 			}
@@ -383,15 +401,13 @@ impl<'a> Layout<'a> {
 		self.prev_line_height = self.current_line_height;
 	}
 
-	/// Lays out all blocks, returning a reference to the output
-	pub fn start(&mut self) -> &Vec<Vec<RowEntry>> {
-		let terminal_width = self.terminal_width();
+	/// Lays out all blocks and (for now) prints the result, returning the layout
+	pub fn start(options: &'a Options) -> Self {
+		let layout = Self::build(options, Self::terminal_width(options));
 
-		self.layout(terminal_width);
+		println!("layout:\n{}", layout.render()); // TODO: remove this
 
-		println!("layout:\n{}", self.render()); // TODO: remove this
-
-		&self.output // TODO: fix the return type
+		layout // TODO: fix the return type
 	}
 
 	// TODO: this is just the simplest function to get me to see things, will be replaced later with a render trait
@@ -405,7 +421,7 @@ impl<'a> Layout<'a> {
 
 			for entry in row {
 				match entry {
-					RowEntry::Data(glyph_row) => {
+					RowEntry::Data { glyph_row, .. } => {
 						for segment in glyph_row.segments {
 							match segment {
 								Segment::Plain(text) | Segment::Colored { text, .. } => {
@@ -415,7 +431,7 @@ impl<'a> Layout<'a> {
 						}
 					}
 
-					RowEntry::Blank(width) => {
+					RowEntry::Blank { width, .. } => {
 						rendered.extend(std::iter::repeat_n(' ', *width));
 					}
 				}
@@ -466,14 +482,14 @@ mod tests {
 		row
 			.iter()
 			.map(|entry| match entry {
-				RowEntry::Data(glyph_row) => glyph_row
+				RowEntry::Data { glyph_row, .. } => glyph_row
 					.segments
 					.iter()
 					.map(|segment| match segment {
 						Segment::Plain(text) | Segment::Colored { text, .. } => text.chars().count(),
 					})
 					.sum(),
-				RowEntry::Blank(width) => *width,
+				RowEntry::Blank { width, .. } => *width,
 			})
 			.sum()
 	}
@@ -498,23 +514,19 @@ mod tests {
 		lines
 	}
 
-	// The line widths of a full run through start()
+	// The line widths of a full build (tests use Env::Browser, so no canvas width)
 	fn line_widths(options: &Options) -> Vec<Vec<usize>> {
-		let mut layout = Layout::new(options);
-		layout.start();
-		group_lines(&layout.output)
+		group_lines(&Layout::build(options, None).output)
 	}
 
-	// The line widths of a layout at an explicit canvas width, bypassing env detection
-	fn layout_lines(options: &Options, terminal_width: Option<usize>) -> Vec<Vec<usize>> {
-		let mut layout = Layout::new(options);
-		layout.layout(terminal_width);
-		group_lines(&layout.output)
+	// The line widths of a build at an explicit canvas width
+	fn layout_lines(options: &Options, canvas_width: Option<usize>) -> Vec<Vec<usize>> {
+		group_lines(&Layout::build(options, canvas_width).output)
 	}
 
-	// The structural output of a full layout, for equivalence comparisons
+	// The structural output of a full build, for equivalence comparisons
 	fn output_debug(options: &Options) -> String {
-		format!("{:?}", Layout::new(options).start())
+		format!("{:?}", Layout::build(options, None).output)
 	}
 
 	// Flush one line holding a tall Block glyph and a short Tiny glyph and return the
@@ -539,7 +551,7 @@ mod tests {
 			.output
 			.iter()
 			.enumerate()
-			.filter(|(_, row)| matches!(row[1], RowEntry::Data(_)))
+			.filter(|(_, row)| matches!(row[1], RowEntry::Data { .. }))
 			.map(|(index, _)| index)
 			.collect()
 	}
@@ -560,7 +572,7 @@ mod tests {
 	#[test]
 	fn browser_env_has_no_terminal_width() {
 		let options = options(Valign::Top, None, vec![]);
-		assert_eq!(Layout::new(&options).terminal_width(), None);
+		assert_eq!(Layout::terminal_width(&options), None);
 	}
 
 	#[test]
@@ -568,10 +580,10 @@ mod tests {
 		let mut options = options(Valign::Top, None, vec![]);
 		options.env = Env::Cli;
 		// a real terminal reports its size and a pipe falls back to 80: either way it is Some
-		assert!(Layout::new(&options).terminal_width().is_some());
+		assert!(Layout::terminal_width(&options).is_some());
 	}
 
-	// layout
+	// build
 
 	#[test]
 	fn layout_wraps_words_at_the_canvas_width() {
@@ -974,7 +986,7 @@ mod tests {
 		// every row spans the same columns: Blank rows claim exactly the glyph width
 		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(row)).collect();
 		assert!(widths.iter().all(|width| *width == widths[0]));
-		assert!(matches!(layout.output[0][1], RowEntry::Blank(width) if width == tiny_glyph.width));
+		assert!(matches!(layout.output[0][1], RowEntry::Blank { width, .. } if width == tiny_glyph.width));
 	}
 
 	#[test]
@@ -1007,8 +1019,8 @@ mod tests {
 	#[test]
 	fn line_height_rows_separate_lines() {
 		let options = options(Valign::Top, None, vec![block("A|B", Font::Tiny, false)]);
-		let mut layout = Layout::new(&options);
-		let output = layout.start();
+		let layout = Layout::build(&options, None);
+		let output = &layout.output;
 		assert_eq!(output.len(), 5); // 2 rows + 1 line-height row + 2 rows
 		assert!(output[2].is_empty());
 	}
@@ -1241,8 +1253,8 @@ mod tests {
 				..Default::default()
 			}],
 		);
-		let mut layout = Layout::new(&options);
-		let output = layout.start();
+		let layout = Layout::build(&options, None);
+		let output = &layout.output;
 		assert_eq!(output.len(), 6); // 2 rows + 2 gap rows + 2 rows
 		assert!(output[2].is_empty());
 		assert!(output[3].is_empty());
@@ -1260,8 +1272,8 @@ mod tests {
 				..Default::default()
 			}],
 		);
-		let mut layout = Layout::new(&options);
-		let output = layout.start();
+		let layout = Layout::build(&options, None);
+		let output = &layout.output;
 		assert_eq!(output.len(), 4);
 		assert!(output.iter().all(|row| !row.is_empty()));
 	}
