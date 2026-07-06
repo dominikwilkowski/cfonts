@@ -1,29 +1,12 @@
 use std::num::NonZeroUsize;
 
-use crate::fonts::Font;
+use crate::{environments::Env, fonts::Font};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Valign {
 	Top,
 	Middle,
 	Bottom,
-}
-
-/// The `Env` enum includes all supported environment options.
-///
-/// ![The env option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Env {
-	/// A CLI environment means we render colors as ansi escape sequences
-	Cli,
-
-	/// A browser environment means we render colors as hex colors and output some
-	/// outer HTML to enable us to see the right white space
-	Browser,
-
-	BrowserConsole, // TODO: support new target
-
-	Ratatui, // TODO: support new target
 }
 
 /// The `Align` enum includes all supported alignment options.

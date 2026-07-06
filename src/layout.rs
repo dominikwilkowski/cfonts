@@ -1,8 +1,6 @@
-use terminal_size::{Width, terminal_size};
-
 use crate::{
-	fonts::{GlyphRef, GlyphRow, Segment},
-	options::{BlockOptions, Env, Options, Valign},
+	fonts::{GlyphRef, GlyphRow},
+	options::{BlockOptions, Options, Valign},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -47,9 +45,9 @@ enum Break {
 	Both,
 }
 
-pub struct Layout<'a> {
+pub(crate) struct Layout<'a> {
 	/// The full output of all lines being built
-	output: Vec<Vec<RowEntry>>,
+	pub(crate) output: Vec<Vec<RowEntry>>,
 
 	/// The current line of glyphs
 	line: Vec<LayoutGlyph>,
@@ -109,21 +107,6 @@ impl<'a> Layout<'a> {
 			word_width: 0,
 			word_glyph_count: 0,
 			options,
-		}
-	}
-
-	/// The width of the canvas we render into, None means unlimited
-	fn terminal_width(options: &Options) -> Option<usize> {
-		match options.env {
-			// TODO: move to env trait
-			Env::Cli => {
-				if let Some((Width(width), _)) = terminal_size() {
-					Some(width as usize)
-				} else {
-					Some(80)
-				}
-			}
-			_ => None,
 		}
 	}
 
@@ -400,82 +383,18 @@ impl<'a> Layout<'a> {
 		self.space_pending = false;
 		self.prev_line_height = self.current_line_height;
 	}
-
-	/// Lays out all blocks and (for now) prints the result, returning the layout
-	pub fn start(options: &'a Options) -> Self {
-		let layout = Self::build(options, Self::terminal_width(options));
-
-		println!("layout:\n{}", layout.render()); // TODO: remove this
-
-		layout // TODO: fix the return type
-	}
-
-	// TODO: this is just the simplest function to get me to see things, will be replaced later with a render trait
-	fn render(&self) -> String {
-		let mut rendered = String::new();
-
-		for (row_index, row) in self.output.iter().enumerate() {
-			if row_index > 0 {
-				rendered.push('\n');
-			}
-
-			for entry in row {
-				match entry {
-					RowEntry::Data { glyph_row, .. } => {
-						for segment in glyph_row.segments {
-							match segment {
-								Segment::Plain(text) | Segment::Colored { text, .. } => {
-									rendered.push_str(text);
-								}
-							}
-						}
-					}
-
-					RowEntry::Blank { width, .. } => {
-						rendered.extend(std::iter::repeat_n(' ', *width));
-					}
-				}
-			}
-		}
-
-		rendered
-	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::{
-		fonts::Font,
-		options::{Align, BlockOptions},
+		fonts::{Font, Segment},
+		options::BlockOptions,
+		tests::{block, options, spaced_block},
 	};
-	use std::num::NonZeroUsize;
 
 	// helpers
-
-	// A convenience wrapper around Options for tests
-	fn options(valign: Valign, max_length: Option<usize>, blocks: Vec<BlockOptions>) -> Options {
-		Options {
-			align: Align::Left,
-			valign,
-			spaceless: false,
-			env: Env::Browser, // unlimited width so tests never depend on a real terminal
-			max_length: max_length.and_then(NonZeroUsize::new),
-			raw_mode: false,
-			debug: false,
-			blocks,
-		}
-	}
-
-	// A convenience wrapper around BlockOptions for tests
-	fn block(text: &str, font: Font, word_wrap: bool) -> BlockOptions {
-		BlockOptions {
-			text: text.into(),
-			font,
-			word_wrap,
-			..Default::default()
-		}
-	}
 
 	// Column width of one output row: Data counts its chars, Blank counts its claimed width
 	fn row_width(row: &[RowEntry]) -> usize {
@@ -554,33 +473,6 @@ mod tests {
 			.filter(|(_, row)| matches!(row[1], RowEntry::Data { .. }))
 			.map(|(index, _)| index)
 			.collect()
-	}
-
-	// A convenience wrapper around BlockOptions for tests with the Tiny font
-	fn spaced_block(text: &str, letter_spacing: usize, word_wrap: bool) -> BlockOptions {
-		BlockOptions {
-			text: text.into(),
-			font: Font::Tiny,
-			letter_spacing,
-			word_wrap,
-			..Default::default()
-		}
-	}
-
-	// terminal_width
-
-	#[test]
-	fn browser_env_has_no_terminal_width() {
-		let options = options(Valign::Top, None, vec![]);
-		assert_eq!(Layout::terminal_width(&options), None);
-	}
-
-	#[test]
-	fn cli_env_always_has_a_terminal_width() {
-		let mut options = options(Valign::Top, None, vec![]);
-		options.env = Env::Cli;
-		// a real terminal reports its size and a pipe falls back to 80: either way it is Some
-		assert!(Layout::terminal_width(&options).is_some());
 	}
 
 	// build

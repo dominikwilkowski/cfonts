@@ -1,9 +1,10 @@
 use std::env;
 
 use cfonts::{
+	environments::Env,
 	fonts::Font,
-	layout::Layout,
-	options::{Align, BlockOptions, Env, Options, Valign},
+	options::{Align, BlockOptions, Options, Valign},
+	say,
 };
 
 // terminology
@@ -83,5 +84,5 @@ fn main() {
 		],
 	};
 
-	let _ = Layout::start(&options);
+	say(&options)
 }
