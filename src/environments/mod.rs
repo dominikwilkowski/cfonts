@@ -96,7 +96,7 @@ pub trait Environment {
 		None
 	}
 
-	/// Paint one [Segment] of text, wrapped in the environment's color markup
+	/// Paint one [Segment] of text, wrapped in the env-interpreted color tokens
 	fn paint(&self, text: &str, color_start: &str, color_end: &str, out: &mut Rendered) {
 		out.text.push_str(color_start);
 		out.text.push_str(text);
@@ -119,6 +119,12 @@ pub trait Environment {
 	/// Output that follows all rows; don't call when `options.spaceless` is set
 	fn bottom_padding(&self, _out: &mut Rendered) {}
 
+	/// Adds the start of the wrapper around the render output
+	fn wrapper_start(&self, _options: &Options, _out: &mut Rendered) {}
+
+	/// Adds the end of the wrapper around the render output
+	fn wrapper_end(&self, _options: &Options, _out: &mut Rendered) {}
+
 	/// Performs the environment's output action
 	fn say(&self, rendered: &Rendered) {
 		println!("{}", rendered.text);
@@ -129,6 +135,8 @@ pub trait Environment {
 		let mut out = Rendered {
 			text: String::with_capacity(self.text_capacity(rows)),
 		};
+
+		self.wrapper_start(options, &mut out);
 
 		if !options.spaceless {
 			self.top_padding(&mut out);
@@ -144,6 +152,8 @@ pub trait Environment {
 		if !options.spaceless {
 			self.bottom_padding(&mut out);
 		}
+
+		self.wrapper_end(options, &mut out);
 
 		out
 	}
@@ -214,8 +224,8 @@ mod tests {
 	#[test]
 	fn render_produces_the_plain_rows() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.env = Env::Browser;
-		assert_eq!(render(&options).text, "▄▀█\n█▀█");
+		options.env = Env::Cli;
+		assert_eq!(render(&options).text, "\n\n▄▀█\n█▀█\n\n");
 	}
 
 	#[test]
@@ -224,9 +234,13 @@ mod tests {
 		let options =
 			options(Valign::Top, None, vec![block("HELLO WORLD", Font::Tiny, false), block("X", Font::Font3D, false)]);
 		let layout = Layout::build(&options, None);
-		let env = Env::Browser.get_env();
+		let env = Env::Cli.get_env();
 
-		assert_eq!(env.render(&layout.output, &options).text.len(), env.text_capacity(&layout.output));
+		let padding_space = 2; // The padding added at top and bottom when `options.spaceless` is false
+		assert_eq!(
+			env.render(&layout.output, &options).text.len(),
+			env.text_capacity(&layout.output) + padding_space + padding_space
+		);
 	}
 
 	#[test]

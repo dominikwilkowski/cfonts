@@ -1,6 +1,6 @@
 use terminal_size::{Width, terminal_size};
 
-use crate::environments::Environment;
+use crate::environments::{Environment, Rendered};
 
 /// The CLI environment renders for terminals
 /// TODO: add colors
@@ -13,5 +13,15 @@ impl Environment for CliEnv {
 		} else {
 			Some(80)
 		}
+	}
+
+	fn top_padding(&self, out: &mut Rendered) {
+		out.text.push('\n');
+		out.text.push('\n');
+	}
+
+	fn bottom_padding(&self, out: &mut Rendered) {
+		out.text.push('\n');
+		out.text.push('\n');
 	}
 }
