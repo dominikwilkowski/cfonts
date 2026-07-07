@@ -3,7 +3,6 @@ use std::{marker::PhantomData, num::NonZeroUsize};
 use crate::{
 	environments::{Env, Rendered},
 	fonts::Font,
-	layout::Layout,
 	options::{Align, BlockOptions, Options, Valign},
 };
 
@@ -24,6 +23,17 @@ pub struct Cfonts<
 }
 
 impl Cfonts {
+	/// Builds one text block and normalizes text to the supported uppercase glyph set
+	fn new_block(input: impl Into<String>) -> BlockOptions {
+		let mut text = input.into();
+		text.make_ascii_uppercase();
+
+		BlockOptions {
+			text,
+			..Default::default()
+		}
+	}
+
 	/// Starts a new cfonts composition with the first text block
 	///
 	/// This is the entry point for the builder API
@@ -42,25 +52,49 @@ impl Cfonts {
 	/// assert_eq!(options.blocks[0].font, Font::Tiny);
 	/// ```
 	pub fn text(input: impl Into<String>) -> Self {
-		let mut text = input.into();
-		text.make_ascii_uppercase();
 		Self {
 			options: Options {
-				blocks: vec![BlockOptions {
-					text,
-					..Default::default()
-				}],
+				blocks: vec![Self::new_block(input)],
 				..Default::default()
 			},
 			_state: PhantomData,
 		}
+	}
+
+	/// Renders hand-built or tweaked [`Options`] without going through the builder
+	///
+	/// ```
+	/// use cfonts::{Cfonts, Env, Font, Options};
+	///
+	/// let mut options: Options = Cfonts::text("A").font(Font::Tiny).env(Env::Browser).into();
+	/// options.spaceless = true;
+	///
+	/// let rendered = Cfonts::render_from(&options);
+	/// assert!(rendered.text.contains("▄▀█"));
+	/// ```
+	pub fn render_from(options: &Options) -> Rendered {
+		options.env.get_env().render_from(options)
+	}
+
+	/// Renders hand-built or tweaked [`Options`] and performs the environment's output action
+	///
+	/// ```no_run
+	/// use cfonts::{Cfonts, Options};
+	///
+	/// let options = Options::default();
+	/// Cfonts::say_from(&options);
+	/// ```
+	pub fn say_from(options: &Options) {
+		options.env.get_env().say_from(options);
 	}
 }
 
 impl<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 	Cfonts<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 {
-	/// Helper to get the last block
+	/// Returns the current block targeted by per-block setters
+	///
+	/// `Cfonts::text` always creates the first block, so this should only panic if a constructor bypasses that invariant
 	fn current_block_mut(&mut self) -> &mut BlockOptions {
 		self.options.blocks.last_mut().expect("Cfonts::text always creates one block")
 	}
@@ -84,12 +118,7 @@ impl<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 	/// assert_eq!(options.blocks[1].font, Font::Font3D);
 	/// ```
 	pub fn new_text(mut self, input: impl Into<String>) -> Self {
-		let mut text = input.into();
-		text.make_ascii_uppercase();
-		self.options.blocks.push(BlockOptions {
-			text,
-			..Default::default()
-		});
+		self.options.blocks.push(Cfonts::new_block(input));
 		self
 	}
 
@@ -235,15 +264,12 @@ impl<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 	/// assert!(rendered.text.contains("▄▀█"));
 	/// ```
 	pub fn render(&self) -> Rendered {
-		let env = self.options.env.get_env();
-		let layout = Layout::build(&self.options, env.canvas_width());
-
-		env.render(&layout.output, &self.options)
+		self.options.env.get_env().render_from(&self.options)
 	}
 
 	/// Renders the composition and performs the selected environment's output action
 	///
-	/// For the CLI environment this prints the rendered output to stdout.
+	/// For the CLI environment this prints the rendered output to stdout
 	/// Use [`render`](Self::render) when you want to receive the rendered value instead
 	///
 	/// ```no_run
@@ -254,7 +280,7 @@ impl<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 	///     .say();
 	/// ```
 	pub fn say(&self) {
-		self.options.env.get_env().say(&self.render());
+		self.options.env.get_env().say_from(&self.options);
 	}
 }
 
@@ -487,7 +513,8 @@ impl<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 /// Converts a [`Cfonts`] builder into the underlying [`Options`]
 ///
 /// This is useful when you want the ergonomic builder API for setup,
-/// but still want to inspect, tweak, or pass the final options object yourself
+/// but still want to inspect or tweak the final options object yourself;
+/// render it afterwards with [`Cfonts::render_from`] or [`Cfonts::say_from`]
 ///
 /// ```
 /// use cfonts::{Cfonts, Font, Options};

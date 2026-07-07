@@ -9,26 +9,31 @@ mod ratatui;
 #[cfg(feature = "ratatui")]
 pub use ratatui::CfontsWidget;
 
-use crate::{fonts::Segment, layout::RowEntry, options::Options};
+use crate::{
+	fonts::Segment,
+	layout::{Layout, RowEntry},
+	options::Options,
+};
 
-/// The `Env` enum includes all supported environment options.
+/// The supported output environments
 ///
 /// ![The env option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/env.png)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Env {
-	/// A CLI environment means we render colors as ansi escape sequences
+	/// Render for terminals using ANSI escape sequences
 	Cli,
 
-	/// A browser environment means we render colors as hex colors and output some
-	/// outer HTML to enable us to see the right white space
+	/// Render for browsers as an HTML fragment
 	Browser,
 
+	/// Render as a browser `console.log` statement
 	BrowserConsole, // TODO: support new target
 }
 
 impl Env {
-	/// Returns the environment implementation for this env,
-	/// so the specific behavior sits within each environment and not in this crate's logic
+	/// Returns the implementation for this output environment
+	///
+	/// This is the single place where built-in environment targets are installed
 	pub fn get_env(&self) -> &'static dyn Environment {
 		match self {
 			Self::Cli => &CliEnv,
@@ -50,7 +55,7 @@ pub struct Rendered {
 /// the flattened view of rows every environment consumes
 #[derive(Debug, PartialEq, Eq)]
 pub enum RowEvent {
-	/// One segment's text (per-block colors attach here later)
+	/// One text segment with the block it came from
 	Text { text: &'static str, block_index: usize }, // TODO: will need color slot as well
 
 	/// A run of empty columns (valign padding rows)
@@ -91,9 +96,9 @@ impl RowEvent {
 	}
 }
 
-/// An environment renders a layout for one output target
-/// The default implementations cover any target whose colors wrap text in a start/end string pair (ANSI codes, HTML tags, %c markers)
-/// Implementors override only what differs for their target
+/// Renders layout rows for one output target
+///
+/// Environments own output concerns such as canvas width, row separators, wrappers, padding, escaping, and color syntax
 pub trait Environment {
 	/// The width of the canvas we render into, None means unlimited
 	fn canvas_width(&self) -> Option<usize> {
@@ -134,7 +139,21 @@ pub trait Environment {
 		println!("{}", rendered.text);
 	}
 
-	/// The one traversal of the layout, shared by all environments
+	/// Builds a layout from options and renders it with this environment
+	///
+	/// `options.env` is ignored because the receiver is the environment
+	fn render_from(&self, options: &Options) -> Rendered {
+		let layout = Layout::build(options, self.canvas_width());
+
+		self.render(&layout.output, options)
+	}
+
+	/// Renders the given options with this environment and performs its output action
+	fn say_from(&self, options: &Options) {
+		self.say(&self.render_from(options));
+	}
+
+	/// Renders precomputed layout rows in one paint-stream traversal
 	fn render(&self, rows: &[Vec<RowEntry>], options: &Options) -> Rendered {
 		let mut out = Rendered {
 			text: String::with_capacity(self.capacity_hint(rows, options)),
@@ -162,10 +181,9 @@ pub trait Environment {
 		out
 	}
 
-	/// A cheap reservation hint for [`Rendered::text`]
+	/// Returns a cheap reservation hint for [`Rendered::text`]
 	///
-	/// This deliberately does not walk every row entry or segment
-	/// Rendering below is the only full traversal of the layout
+	/// This must not walk every row entry or segment, because [`render`](Self::render) owns the only full traversal of the layout
 	fn capacity_hint(&self, rows: &[Vec<RowEntry>], options: &Options) -> usize {
 		const AVERAGE_ENTRY_BYTES: usize = 8;
 

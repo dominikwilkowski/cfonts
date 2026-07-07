@@ -119,7 +119,7 @@ impl<'a> Layout<'a> {
 			layout.layout_block(block_index, block, canvas_width);
 		}
 
-		// Flushing the last line
+		// Flush the final line after all blocks have contributed their trailing buffers
 		if !options.blocks.is_empty() {
 			layout.flush_line();
 		}
@@ -151,7 +151,7 @@ impl<'a> Layout<'a> {
 
 		// Now we iterate each character in this block
 		for ch in block.text.chars() {
-			// Newline character will always output a new line in the terminal, even if empty
+			// `|` forces a logical line break, including empty lines
 			if ch == '|' {
 				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
 				self.flush_line();
@@ -159,7 +159,7 @@ impl<'a> Layout<'a> {
 				continue; // Skip as `|` does not print anything
 			}
 
-			// Skip unknown characters
+			// Unsupported glyphs are ignored; public entry points normalize only case
 			let Some(glyph) = font.get_glyph(ch) else {
 				continue;
 			};
@@ -276,7 +276,7 @@ impl<'a> Layout<'a> {
 		}
 
 		if self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width) {
-			// Adding the pending space before we add the word
+			// Insert inter-word letter spacing before a non-initial word
 			if self.space_pending {
 				for _ in 0..letter_spacing {
 					self.push_glyph(letter_space_glyph);
@@ -346,7 +346,7 @@ impl<'a> Layout<'a> {
 		);
 		self.output.reserve(self.prev_line_height + rows_to_push);
 
-		// Adding line height before we store the base index
+		// Insert the previous line's vertical gap before this line
 		if !self.output.is_empty() {
 			for _ in 0..self.prev_line_height {
 				// An empty Vec doesn't allocate until its first push, and these never receive one

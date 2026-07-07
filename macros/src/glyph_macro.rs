@@ -124,10 +124,10 @@ fn glyph_width(rows: &[Vec<GlyphSegment>]) -> Result<usize, String> {
 	Ok(expected_width)
 }
 
-/// Visible width of a row: number of columns, i.e. char count of every segment
+/// Returns the visible row width in terminal columns
 ///
-/// Assumes one char == one terminal column, which holds for the box-drawing and
-/// block glyphs cfonts ships; wide (CJK) or combining chars would break it
+/// This assumes one `char` occupies one terminal column, which holds for the
+/// block and box-drawing glyphs shipped by cfonts
 fn row_width(segments: &[GlyphSegment]) -> usize {
 	segments.iter().map(GlyphSegment::text).map(|text| text.chars().count()).sum()
 }
@@ -212,9 +212,9 @@ fn push_segment(segments: &mut Vec<GlyphSegment>, text: &mut String, slot: Optio
 	segments.push(segment);
 }
 
-/// Recognize `<cN>` or `</cN>` at the start of `input`
+/// Recognizes a color marker at the start of `input`
 ///
-/// Anything else beginning with `<` is treated as plain text, unless it starts like a color marker and is malformed
+/// Non-color `<...` text is kept as plain text, but malformed color markers return an error so font data fails loudly
 fn parse_marker(input: &str) -> Result<Option<(Marker, &str)>, String> {
 	if let Some(after_prefix) = input.strip_prefix("<c") {
 		let (slot, rest): (usize, &str) = parse_marker_slot(after_prefix, "<cN>")?;
@@ -281,7 +281,7 @@ fn rust_string_literal(text: &str) -> String {
 	format!("{text:?}")
 }
 
-/// Extract the value from a raw string literal source form: `r"…"`, `r#"…"#`, etc...
+/// Extract the value from a raw string literal source form such as `r"..."` or `r#"..."#`
 ///
 /// Normal string literals are intentionally rejected
 fn raw_string_literal_value(source: &str) -> Result<String, String> {

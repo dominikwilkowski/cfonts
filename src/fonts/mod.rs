@@ -194,7 +194,7 @@ mod tests {
 		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
 	}
 
-	/// Assert the font uses every color it declares: the highest slot used must be `colors - 1`.
+	/// Assert the font uses every color it declares: the highest slot used must be `colors - 1`
 	/// Catches a `.colors` that's set too high, or a glyph where a color was forgotten
 	pub(crate) fn assert_colors_all_used<const ROWS: usize>(font: &FontFile<ROWS>) {
 		match font.colors {

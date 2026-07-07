@@ -66,7 +66,7 @@ impl Environment for BrowserEnv {
 		out.text.push_str("</div>");
 	}
 
-	/// The size of spaces in the browser are bigger so let's adjust the capacity hint
+	/// Reserves extra space for the HTML wrapper, `<br>` row breaks and color spans
 	fn capacity_hint(&self, rows: &[Vec<RowEntry>], options: &Options) -> usize {
 		const AVERAGE_BROWSER_ENTRY_BYTES: usize = 12;
 		const WRAPPER_BYTES: usize = 128;

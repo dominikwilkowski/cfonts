@@ -1,4 +1,4 @@
-// Inside a module named ratatui, a bare use `ratatui::*` would be ambiguous, the `::` forces resolve to external crate
+// `::ratatui` forces resolution to the external crate instead of this module
 use ::ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 
 use crate::{
@@ -7,9 +7,10 @@ use crate::{
 	options::Options,
 };
 
-/// A ratatui widget that renders cfonts into its area
-/// The layout re-computes on every render with the area's width,
-/// so resizing re-wraps the text; `options.env` is ignored (the widget IS the environment)
+/// A ratatui widget that renders cfonts into a terminal buffer
+///
+/// The layout is rebuilt with the widget area's width on every render, so resizing re-wraps the text
+/// `options.env` is ignored because the widget itself is the output environment
 pub struct CfontsWidget<'a> {
 	pub options: &'a Options,
 }
@@ -42,8 +43,8 @@ impl Widget for &CfontsWidget<'_> {
 							}
 						}
 					}
-					// blank columns leave the buffer cells untouched (transparent);
-					// backgrounds will paint them once colors land
+					// Blank columns leave cells untouched so the widget stays transparent
+					// Background colors can paint these cells once color support lands
 					RowEntry::Blank { width, .. } => x = (x + *width as u16).min(area.right()),
 				}
 			}
