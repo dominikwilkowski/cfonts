@@ -24,7 +24,7 @@ mod tiny;
 pub use tiny::FONT_TINY;
 
 /// One segment within a GlyphRow that tells us what parts are color and with what color
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Segment {
 	/// Rendered as-is, no color
 	Plain(&'static str),
@@ -34,7 +34,7 @@ pub enum Segment {
 }
 
 /// One row of a glyph: an ordered run of plain/colored segments
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct GlyphRow {
 	pub segments: &'static [Segment],
 }

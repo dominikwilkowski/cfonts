@@ -19,7 +19,7 @@ impl LayoutGlyph {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RowEntry {
 	/// One row of a glyph, tagged with the block it came from so the render
 	/// environments can tie it to that block's color configuration
@@ -302,6 +302,7 @@ impl<'a> Layout<'a> {
 				let letter_spacing_count = if self.space_pending { letter_spacing } else { 0 };
 				let next_glyph_width = letter_spacing_count * letter_space_glyph.width() + entry.width();
 
+				// TODO: Very narrow terminal widths can produce a spurious blank line, add test for this
 				if terminal_width.is_some_and(|terminal_width| self.line_output_width + next_glyph_width > terminal_width)
 					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get())
 				{
@@ -445,7 +446,7 @@ mod tests {
 
 	// The structural output of a full build, for equivalence comparisons
 	fn output_debug(options: &Options) -> String {
-		format!("{:?}", Layout::build(options, None).output)
+		format!("{:?}", Layout::build(options, None).output) // TODO: use PartialEq trait to compare directly
 	}
 
 	// Flush one line holding a tall Block glyph and a short Tiny glyph and return the

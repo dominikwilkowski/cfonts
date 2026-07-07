@@ -1,11 +1,6 @@
 use std::env;
 
-use cfonts::{
-	environments::Env,
-	fonts::Font,
-	options::{Align, BlockOptions, Options, Valign},
-	say,
-};
+use cfonts::{fonts::Font, options::Valign};
 
 // terminology
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
@@ -34,55 +29,16 @@ fn main() {
 	// }
 
 	// config will come from the cli ags parser above
-	let mut input = args[0].clone();
-	input.make_ascii_uppercase();
-	let options = Options {
-		align: Align::Left,
-		valign: Valign::Middle,
-		spaceless: false,
-		env: Env::Cli,
-		max_length: std::num::NonZeroUsize::new(20),
-		raw_mode: false,
-		debug: false,
-		blocks: vec![
-			BlockOptions {
-				text: input,
-				font: Font::Block,
-				colors: false,
-				background: false,
-				gradient: false,
-				independent_gradient: false,
-				transition_gradient: false,
-				letter_spacing: 1,
-				line_height: 1,
-				word_wrap: true,
-			},
-			BlockOptions {
-				text: String::from("hello").to_ascii_uppercase(),
-				font: Font::Tiny,
-				colors: false,
-				background: false,
-				gradient: false,
-				independent_gradient: false,
-				transition_gradient: false,
-				letter_spacing: 1,
-				line_height: 1,
-				word_wrap: false,
-			},
-			// BlockOptions {
-			// 	text: String::from("ending").to_ascii_uppercase(),
-			// 	font: Font::Font3D,
-			// 	colors: false,
-			// 	background: false,
-			// 	gradient: false,
-			// 	independent_gradient: false,
-			// 	transition_gradient: false,
-			// 	letter_spacing: 1,
-			// 	line_height: 1,
-			// 	word_wrap: false,
-			// },
-		],
-	};
-
-	say(&options)
+	let input = args[0].clone();
+	cfonts::Cfonts::text(input)
+		.valign(Valign::Middle)
+		.max_length(20)
+		.font(Font::Block)
+		.letter_spacing(1)
+		.word_wrap()
+		.new_text("hello")
+		.font(Font::Tiny)
+		.new_text("world")
+		.font(Font::Font3D)
+		.say();
 }

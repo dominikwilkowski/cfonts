@@ -1,5 +1,6 @@
 use crate::{
 	environments::{Environment, Rendered},
+	layout::RowEntry,
 	options::{Align, Options},
 };
 
@@ -64,18 +65,28 @@ impl Environment for BrowserEnv {
 	fn wrapper_end(&self, _options: &Options, out: &mut Rendered) {
 		out.text.push_str("</div>");
 	}
+
+	/// The size of spaces in the browser are bigger so let's adjust the capacity hint
+	fn capacity_hint(&self, rows: &[Vec<RowEntry>], options: &Options) -> usize {
+		const AVERAGE_BROWSER_ENTRY_BYTES: usize = 12;
+		const WRAPPER_BYTES: usize = 128;
+
+		let row_count = rows.len();
+		let first_row_entries = rows.first().map_or(0, Vec::len).max(1);
+		let row_breaks = row_count.saturating_sub(1) * "<br>".len();
+
+		let body = row_count.saturating_mul(first_row_entries).saturating_mul(AVERAGE_BROWSER_ENTRY_BYTES);
+
+		let padding = if options.spaceless { 0 } else { "<br><br>".len() * 2 };
+
+		WRAPPER_BYTES.saturating_add(body).saturating_add(row_breaks).saturating_add(padding)
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		environments::Env,
-		fonts::Font,
-		options::Valign,
-		render,
-		tests::{block, options},
-	};
+	use crate::{Cfonts, environments::Env, fonts::Font, options::Valign};
 
 	// paint
 
@@ -110,10 +121,10 @@ mod tests {
 
 	#[test]
 	fn render_wraps_the_rows_in_a_styled_div() {
-		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.env = Env::Browser;
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).env(Env::Browser).render();
+
 		assert_eq!(
-			render(&options).text,
+			rendered.text,
 			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"><br><br>▄▀█<br>█▀█<br><br></div>"#,
 		);
 	}
@@ -122,11 +133,9 @@ mod tests {
 	fn spaceless_skips_the_browser_padding() {
 		// spaceless means no padding, and for the browser the wrapper is the padding:
 		// the output becomes an embeddable fragment for the consumer's own container
-		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.env = Env::Browser;
-		options.spaceless = true;
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).env(Env::Browser).spaceless().render();
 		assert_eq!(
-			render(&options).text,
+			rendered.text,
 			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█</div>"#,
 		);
 	}
@@ -135,9 +144,8 @@ mod tests {
 	fn multi_font_valign_padding_renders_as_spaces() {
 		// Tiny beside Block gets Blank rows; under the blank default they are spaces,
 		// so the only <br> are the 5 row breaks plus the 4 padding breaks
-		let mut options =
-			options(Valign::Middle, None, vec![block("A", Font::Block, false), block("B", Font::Tiny, false)]);
-		options.env = Env::Browser;
-		assert_eq!(render(&options).text.matches("<br>").count(), 9);
+		let rendered =
+			Cfonts::text("A").font(Font::Block).valign(Valign::Top).env(Env::Browser).new_text("B").font(Font::Tiny).render();
+		assert_eq!(rendered.text.matches("<br>").count(), 9);
 	}
 }

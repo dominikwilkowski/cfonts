@@ -47,7 +47,7 @@ pub struct Rendered {
 #[derive(Debug, PartialEq, Eq)]
 pub enum RowEvent {
 	/// One segment's text (per-block colors attach here later)
-	Text { text: &'static str, block_index: usize },
+	Text { text: &'static str, block_index: usize }, // TODO: will need color slot as well
 
 	/// A run of empty columns (valign padding rows)
 	Blank { width: usize, block_index: usize },
@@ -133,7 +133,7 @@ pub trait Environment {
 	/// The one traversal of the layout, shared by all environments
 	fn render(&self, rows: &[Vec<RowEntry>], options: &Options) -> Rendered {
 		let mut out = Rendered {
-			text: String::with_capacity(self.text_capacity(rows)),
+			text: String::with_capacity(self.capacity_hint(rows, options)),
 		};
 
 		self.wrapper_start(options, &mut out);
@@ -158,19 +158,22 @@ pub trait Environment {
 		out
 	}
 
-	/// The byte size of the rendered plain text, so `Rendered::text` can reserve once
-	/// (exact for the default implementations; environments with wider markup may override)
-	fn text_capacity(&self, rows: &[Vec<RowEntry>]) -> usize {
-		let mut size = 0;
-		RowEvent::each(rows, |event| {
-			size += match event {
-				RowEvent::Text { text, .. } => text.len(),
-				RowEvent::Blank { width, .. } => width,
-				RowEvent::Break => 1,
-			}
-		});
+	/// A cheap reservation hint for [`Rendered::text`]
+	///
+	/// This deliberately does not walk every row entry or segment
+	/// Rendering below is the only full traversal of the layout
+	fn capacity_hint(&self, rows: &[Vec<RowEntry>], options: &Options) -> usize {
+		const AVERAGE_ENTRY_BYTES: usize = 8;
 
-		size
+		let row_count = rows.len();
+		let first_row_entries = rows.first().map_or(0, Vec::len).max(1);
+		let row_breaks = row_count.saturating_sub(1);
+
+		let body = row_count.saturating_mul(first_row_entries).saturating_mul(AVERAGE_ENTRY_BYTES);
+
+		let padding = if options.spaceless { 0 } else { AVERAGE_ENTRY_BYTES };
+
+		body.saturating_add(row_breaks).saturating_add(padding)
 	}
 }
 
@@ -178,10 +181,10 @@ pub trait Environment {
 mod tests {
 	use super::*;
 	use crate::{
+		Cfonts,
 		fonts::Font,
 		layout::Layout,
 		options::Valign,
-		render,
 		tests::{block, options},
 	};
 
@@ -207,7 +210,9 @@ mod tests {
 		let layout = Layout::build(&options, None);
 		let mut events: Vec<RowEvent> = Vec::new();
 		RowEvent::each(&layout.output, |event| events.push(event));
-		// … the three asserts unchanged
+		assert_eq!(events.iter().filter(|event| matches!(event, RowEvent::Break)).count(), 1);
+		assert!(events.iter().all(|event| !matches!(event, RowEvent::Blank { .. })));
+		assert!(matches!(events[0], RowEvent::Text { block_index: 0, .. }));
 	}
 
 	// paint
@@ -223,24 +228,9 @@ mod tests {
 
 	#[test]
 	fn render_produces_the_plain_rows() {
-		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.env = Env::Cli;
-		assert_eq!(render(&options).text, "\n\n▄▀█\n█▀█\n\n");
-	}
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).env(Env::Cli).render();
 
-	#[test]
-	fn text_capacity_matches_the_default_render_exactly() {
-		// Data bytes + Blank spaces + row breaks: the reservation is exact for the default render
-		let options =
-			options(Valign::Top, None, vec![block("HELLO WORLD", Font::Tiny, false), block("X", Font::Font3D, false)]);
-		let layout = Layout::build(&options, None);
-		let env = Env::Cli.get_env();
-
-		let padding_space = 2; // The padding added at top and bottom when `options.spaceless` is false
-		assert_eq!(
-			env.render(&layout.output, &options).text.len(),
-			env.text_capacity(&layout.output) + padding_space + padding_space
-		);
+		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}
 
 	#[test]

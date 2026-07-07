@@ -54,7 +54,7 @@ impl Default for BlockOptions {
 pub struct Options {
 	pub align: Align,
 	pub valign: Valign,
-	pub spaceless: bool, // TODO: implement
+	pub spaceless: bool,
 	pub env: Env,
 	pub max_length: Option<NonZeroUsize>,
 	pub raw_mode: bool, // TODO: implement
