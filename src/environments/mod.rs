@@ -4,6 +4,10 @@ mod browser_console;
 pub use browser_console::BrowserConsoleEnv;
 mod cli;
 pub use cli::CliEnv;
+#[cfg(feature = "ratatui")]
+mod ratatui;
+#[cfg(feature = "ratatui")]
+pub use ratatui::CfontsWidget;
 
 use crate::{fonts::Segment, layout::RowEntry, options::Options};
 

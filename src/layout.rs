@@ -302,9 +302,11 @@ impl<'a> Layout<'a> {
 				let letter_spacing_count = if self.space_pending { letter_spacing } else { 0 };
 				let next_glyph_width = letter_spacing_count * letter_space_glyph.width() + entry.width();
 
-				// TODO: Very narrow terminal widths can produce a spurious blank line, add test for this
-				if terminal_width.is_some_and(|terminal_width| self.line_output_width + next_glyph_width > terminal_width)
-					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get())
+				// A glyph wider than the canvas overflows on the spot:
+				// wrapping the still empty line would only add a blank line in front of it
+				if (terminal_width.is_some_and(|terminal_width| self.line_output_width + next_glyph_width > terminal_width)
+					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get()))
+					&& self.line_glyph_count > 0
 				{
 					self.flush_line();
 					self.push_glyph(buffer_start);
@@ -508,6 +510,13 @@ mod tests {
 		for line in &lines {
 			assert!(line.iter().all(|width| *width == line[0]), "rows of one line must span equal columns: {line:?}");
 		}
+	}
+
+	#[test]
+	fn a_glyph_wider_than_the_canvas_overflows_without_a_blank_line() {
+		// a 3 column glyph on a 2 column canvas: it can never fit, so it overflows where it stands instead of flushing a blank line first
+		let lines = layout_lines(&options(Valign::Top, None, vec![block("A", Font::Tiny, false)]), Some(2));
+		assert_eq!(lines, vec![vec![3, 3]]);
 	}
 
 	// layout_block
