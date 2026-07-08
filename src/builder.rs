@@ -234,19 +234,22 @@ impl<EnvState, AlignState, ValignState, SpacelessState, MaxLengthState>
 	// 	/// assert!(options.blocks[0].transition_gradient);
 	// 	/// ```
 	// 	// TODO: add transition_gradient setter
-	//
-	// 	/// Sets how many blank rows are inserted after each rendered line from the current block
-	// 	///
-	// 	/// ```
-	// 	/// use cfonts::{Cfonts, Options};
-	// 	///
-	// 	/// let options: Options = Cfonts::text("hello")
-	// 	///     .line_height(2)
-	// 	///     .into();
-	// 	///
-	// 	/// assert_eq!(options.blocks[0].line_height, 2);
-	// 	/// ```
-	// 	// TODO: add line_height setter
+
+	/// Sets how many blank rows are inserted after each rendered line from the current block
+	///
+	/// ```
+	/// use cfonts::{Cfonts, Options};
+	///
+	/// let options: Options = Cfonts::text("hello")
+	///     .line_height(2)
+	///     .into();
+	///
+	/// assert_eq!(options.blocks[0].line_height, 2);
+	/// ```
+	pub fn line_height(mut self, line_height: usize) -> Self {
+		self.current_block_mut().line_height = line_height;
+		self
+	}
 
 	/// Renders the composition into the selected environment's output format
 	///

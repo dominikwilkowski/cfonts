@@ -24,11 +24,11 @@ fn main() {
 	// 	Ok(cfg) => { /* render */ }
 	// 	Err(e) => {
 	// 		eprintln!("{e}");
-	// 		std::process::exit(exitcode::USAGE);
+	// 		std::process::exit(64);
 	// 	}
 	// }
 
-	// config will come from the cli ags parser above
+	// TODO: config will come from the cli ags parser above
 	let input = args[0].clone();
 	cfonts::Cfonts::text(input)
 		.valign(Valign::Middle)
@@ -40,5 +40,8 @@ fn main() {
 		.font(Font::Tiny)
 		.new_text("world")
 		.font(Font::Font3D)
+		.line_height(3)
+		.new_text("end")
+		.font(Font::Tiny)
 		.say();
 }
