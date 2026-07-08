@@ -7,7 +7,7 @@ use crate::environments::{Environment, Rendered};
 pub struct CliEnv;
 
 impl Environment for CliEnv {
-	fn canvas_width(&self) -> Option<usize> {
+	fn get_canvas_width(&self) -> Option<usize> {
 		if let Some((Width(width), _)) = terminal_size() {
 			Some(width as usize)
 		} else {

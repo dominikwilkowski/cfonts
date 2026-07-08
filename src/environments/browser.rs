@@ -121,12 +121,14 @@ mod tests {
 
 	#[test]
 	fn render_wraps_the_rows_in_a_styled_div() {
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).env(Env::Browser).render();
+		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
+			let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).env(Env::Browser).render();
 
-		assert_eq!(
-			rendered.text,
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"><br><br>▄▀█<br>█▀█<br><br></div>"#,
-		);
+			assert_eq!(
+				rendered.text,
+				r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"><br><br>▄▀█<br>█▀█<br><br></div>"#,
+			);
+		});
 	}
 
 	#[test]

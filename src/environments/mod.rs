@@ -9,6 +9,8 @@ mod ratatui;
 #[cfg(feature = "ratatui")]
 pub use ratatui::CfontsWidget;
 
+use std::num::NonZeroUsize;
+
 use crate::{
 	fonts::Segment,
 	layout::{Layout, RowEntry},
@@ -100,8 +102,23 @@ impl RowEvent {
 ///
 /// Environments own output concerns such as canvas width, row separators, wrappers, padding, escaping, and color syntax
 pub trait Environment {
-	/// The width of the canvas we render into, None means unlimited
+	// This function is a wrapper around get_canvas_width and should not be overwritten by a trait implementor because
+	// it handles the FORCE_SIZE environment variable, which overrides terminal detection in CI logs and pipes
 	fn canvas_width(&self) -> Option<usize> {
+		// FORCE_SIZE overrides terminal detection, mirroring FORCE_COLOR:
+		// a feature for CI logs and pipes, and what keeps tests deterministic
+		// Like max-length, a value of 0 means unlimited; garbage values are ignored
+		if let Ok(value) = std::env::var("FORCE_SIZE")
+			&& let Ok(width) = value.parse::<usize>()
+		{
+			return NonZeroUsize::new(width).map(NonZeroUsize::get);
+		}
+
+		self.get_canvas_width()
+	}
+
+	/// The width of the canvas we render into, None means unlimited
+	fn get_canvas_width(&self) -> Option<usize> {
 		None
 	}
 
@@ -213,15 +230,69 @@ mod tests {
 	// canvas_width
 
 	#[test]
-	fn browser_envs_have_no_canvas_width() {
-		assert_eq!(Env::Browser.get_env().canvas_width(), None);
-		assert_eq!(Env::BrowserConsole.get_env().canvas_width(), None);
+	fn force_size_overrides_the_terminal_width() {
+		temp_env::with_var("FORCE_SIZE", Some("120"), || {
+			assert_eq!(Env::Cli.get_env().canvas_width(), Some(120));
+			assert_eq!(Env::Browser.get_env().canvas_width(), Some(120));
+			assert_eq!(Env::BrowserConsole.get_env().canvas_width(), Some(120));
+		});
+	}
+
+	#[test]
+	fn force_size_zero_means_unlimited() {
+		// consistent with max-length: 0 disables the limit
+		temp_env::with_var("FORCE_SIZE", Some("0"), || {
+			assert_eq!(CliEnv.canvas_width(), None);
+		});
+	}
+
+	#[test]
+	fn force_size_ignores_unparsable_values() {
+		// terminal detection wins when the variable holds garbage
+		for garbage in ["", "abc", "-1", "12.5"] {
+			temp_env::with_var("FORCE_SIZE", Some(garbage), || {
+				assert!(CliEnv.canvas_width().is_some(), "{garbage:?} must fall through to detection");
+			});
+		}
+	}
+
+	#[test]
+	fn without_force_size_the_terminal_width_is_detected() {
+		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
+			// a real terminal reports its size and a pipe falls back to 80: either way it is Some
+			assert!(CliEnv.canvas_width().is_some());
+		});
+	}
+
+	#[test]
+	fn browser_envs_have_no_canvas_width_without_force_size() {
+		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
+			assert_eq!(Env::Browser.get_env().canvas_width(), None);
+			assert_eq!(Env::BrowserConsole.get_env().canvas_width(), None);
+		});
 	}
 
 	#[test]
 	fn cli_env_always_has_a_canvas_width() {
-		// a real terminal reports its size and a pipe falls back to 80: either way it is Some
-		assert!(Env::Cli.get_env().canvas_width().is_some());
+		// wrapped in temp_env so this cannot race the FORCE_SIZE tests in cli.rs
+		// (its mutex only serializes tests that go through it)
+		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
+			// a real terminal reports its size and a pipe falls back to 80: either way it is Some
+			assert!(Env::Cli.get_env().canvas_width().is_some());
+		});
+	}
+
+	#[test]
+	fn force_size_wraps_browser_output() {
+		temp_env::with_var("FORCE_SIZE", Some("3"), || {
+			let rendered =
+				Cfonts::text("AA").font(Font::Tiny).line_height(0).valign(Valign::Top).env(Env::Browser).spaceless().render();
+
+			assert_eq!(
+				rendered.text,
+				r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
+			);
+		});
 	}
 
 	// RowEvent

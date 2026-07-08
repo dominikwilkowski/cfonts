@@ -134,6 +134,7 @@ version = "4.0.0"
 dependencies = [
  "cfonts-macros",
  "ratatui",
+ "temp-env",
  "terminal_size",
 ]
 
@@ -1274,6 +1275,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "temp-env"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96374855068f47402c3121c6eed88d29cb1de8f3ab27090e273e420bdabcf050"
+dependencies = [
+ "parking_lot",
 ]
 
 [[package]]
