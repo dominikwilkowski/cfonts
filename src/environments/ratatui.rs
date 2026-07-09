@@ -26,7 +26,7 @@ impl Widget for &CfontsWidget<'_> {
 			}
 
 			let mut x = area.x;
-			for entry in row {
+			for entry in &row.entries {
 				if x >= area.right() {
 					break;
 				}

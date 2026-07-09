@@ -1,7 +1,5 @@
 use std::env;
 
-use cfonts::{fonts::Font, options::Valign};
-
 // terminology
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
 // `line` = one logical line of glyphs, `n` rows tall. This is the thing terminated by `|`, by `max-length`, or by terminal width
@@ -31,17 +29,18 @@ fn main() {
 	// TODO: config will come from the cli ags parser above
 	let input = args[0].clone();
 	cfonts::Cfonts::text(input)
-		.valign(Valign::Middle)
+		.valign(cfonts::Valign::Middle)
 		.max_length(20)
-		.font(Font::Block)
+		.font(cfonts::Font::Block)
+		.align(cfonts::Align::Center)
 		.letter_spacing(1)
 		.word_wrap()
-		.new_text("hello")
-		.font(Font::Tiny)
-		.new_text("world")
-		.font(Font::Font3D)
-		.line_height(3)
-		.new_text("end")
-		.font(Font::Tiny)
+		// .new_text("hello")
+		// .font(cfonts::Font::Tiny)
+		// .new_text("world")
+		// .font(cfonts::Font::Font3D)
+		// .line_height(3)
+		// .new_text("end")
+		// .font(cfonts::Font::Tiny)
 		.say();
 }

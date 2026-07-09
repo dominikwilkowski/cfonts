@@ -13,7 +13,7 @@ use std::num::NonZeroUsize;
 
 use crate::{
 	fonts::Segment,
-	layout::{Layout, RowEntry},
+	layout::{Layout, LayoutRow, RowEntry},
 	options::Options,
 };
 
@@ -55,8 +55,11 @@ pub struct Rendered {
 
 /// One paintable event of a layout, in output order:
 /// the flattened view of rows every environment consumes
-#[derive(Debug, PartialEq, Eq)]
-pub enum RowEvent {
+#[derive(Debug)]
+pub enum RowEvent<'a> {
+	/// The start of a new row
+	RowStart { row: &'a LayoutRow },
+
 	/// One text segment with the block it came from
 	Text { text: &'static str, block_index: usize }, // TODO: will need color slot as well
 
@@ -67,31 +70,37 @@ pub enum RowEvent {
 	Break,
 }
 
-impl RowEvent {
+impl RowEvent<'_> {
 	/// Walks the layout rows in output order, calling `event` for every paintable event,
 	/// so the traversal logic exists exactly once
-	pub fn each(rows: &[Vec<RowEntry>], mut event: impl FnMut(RowEvent)) {
+	pub fn each<'a>(rows: &'a [LayoutRow], mut event: impl FnMut(RowEvent<'a>)) {
 		for (row_index, row) in rows.iter().enumerate() {
 			if row_index > 0 {
 				event(RowEvent::Break);
 			}
 
-			for entry in row {
+			event(RowEvent::RowStart { row });
+
+			for entry in &row.entries {
 				match entry {
 					RowEntry::Data { glyph_row, block_index } => {
 						for segment in glyph_row.segments {
 							match segment {
-								Segment::Plain(text) | Segment::Colored { text, .. } => event(RowEvent::Text {
-									text,
-									block_index: *block_index,
-								}),
+								Segment::Plain(text) | Segment::Colored { text, .. } => {
+									event(RowEvent::Text {
+										text,
+										block_index: *block_index,
+									});
+								}
 							}
 						}
 					}
-					RowEntry::Blank { width, block_index } => event(RowEvent::Blank {
-						width: *width,
-						block_index: *block_index,
-					}),
+					RowEntry::Blank { width, block_index } => {
+						event(RowEvent::Blank {
+							width: *width,
+							block_index: *block_index,
+						});
+					}
 				}
 			}
 		}
@@ -102,8 +111,10 @@ impl RowEvent {
 ///
 /// Environments own output concerns such as canvas width, row separators, wrappers, padding, escaping, and color syntax
 pub trait Environment {
-	// This function is a wrapper around get_canvas_width and should not be overwritten by a trait implementor because
-	// it handles the FORCE_SIZE environment variable, which overrides terminal detection in CI logs and pipes
+	// NOTE: This function is a wrapper around [get_canvas_width] and should not be overwritten by a trait implementor
+	// because it handles the FORCE_SIZE environment variable, which overrides terminal detection in CI logs and pipes
+	//
+	// If you want to adjust how your env understands cavnas size, override [get_canvas_width] instead
 	fn canvas_width(&self) -> Option<usize> {
 		// FORCE_SIZE overrides terminal detection, mirroring FORCE_COLOR:
 		// a feature for CI logs and pipes, and what keeps tests deterministic
@@ -128,6 +139,9 @@ pub trait Environment {
 		out.text.push_str(text);
 		out.text.push_str(color_end);
 	}
+
+	/// Runs before painting one rendered row
+	fn row_start(&self, _row_width: usize, _canvas_width: Option<usize>, _options: &Options, _out: &mut Rendered) {}
 
 	/// A run of empty columns (valign padding rows)
 	fn blank(&self, width: usize, out: &mut Rendered) {
@@ -160,9 +174,10 @@ pub trait Environment {
 	///
 	/// `options.env` is ignored because the receiver is the environment
 	fn render_from(&self, options: &Options) -> Rendered {
-		let layout = Layout::build(options, self.canvas_width());
+		let canvas_width = self.canvas_width();
+		let layout = Layout::build(options, canvas_width);
 
-		self.render(&layout.output, options)
+		self.render_with_width(&layout.output, options, canvas_width)
 	}
 
 	/// Renders the given options with this environment and performs its output action
@@ -170,8 +185,12 @@ pub trait Environment {
 		self.say(&self.render_from(options));
 	}
 
+	fn render(&self, rows: &[LayoutRow], options: &Options) -> Rendered {
+		self.render_with_width(rows, options, self.canvas_width())
+	}
+
 	/// Renders precomputed layout rows in one paint-stream traversal
-	fn render(&self, rows: &[Vec<RowEntry>], options: &Options) -> Rendered {
+	fn render_with_width(&self, rows: &[LayoutRow], options: &Options, canvas_width: Option<usize>) -> Rendered {
 		let mut out = Rendered {
 			text: String::with_capacity(self.capacity_hint(rows, options)),
 		};
@@ -184,9 +203,18 @@ pub trait Environment {
 
 		RowEvent::each(rows, |event| match event {
 			// TODO: resolve the block's color for colored segments via options.blocks[block_index] into this start/end pair
-			RowEvent::Text { text, .. } => self.paint(text, "", "", &mut out),
-			RowEvent::Blank { width, .. } => self.blank(width, &mut out),
-			RowEvent::Break => self.row_break(&mut out),
+			RowEvent::RowStart { row } => {
+				self.row_start(row.width, canvas_width, options, &mut out);
+			}
+			RowEvent::Text { text, .. } => {
+				self.paint(text, "", "", &mut out);
+			}
+			RowEvent::Blank { width, .. } => {
+				self.blank(width, &mut out);
+			}
+			RowEvent::Break => {
+				self.row_break(&mut out);
+			}
 		});
 
 		if !options.spaceless {
@@ -201,11 +229,11 @@ pub trait Environment {
 	/// Returns a cheap reservation hint for [`Rendered::text`]
 	///
 	/// This must not walk every row entry or segment, because [`render`](Self::render) owns the only full traversal of the layout
-	fn capacity_hint(&self, rows: &[Vec<RowEntry>], options: &Options) -> usize {
+	fn capacity_hint(&self, rows: &[LayoutRow], options: &Options) -> usize {
 		const AVERAGE_ENTRY_BYTES: usize = 8;
 
 		let row_count = rows.len();
-		let first_row_entries = rows.first().map_or(0, Vec::len).max(1);
+		let first_row_entries = rows.first().map_or(0, |r| r.entries.len()).max(1);
 		let row_breaks = row_count.saturating_sub(1);
 
 		let body = row_count.saturating_mul(first_row_entries).saturating_mul(AVERAGE_ENTRY_BYTES);
@@ -301,11 +329,27 @@ mod tests {
 	fn each_row_event_flattens_rows_into_the_paint_stream() {
 		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		let layout = Layout::build(&options, None);
-		let mut events: Vec<RowEvent> = Vec::new();
-		RowEvent::each(&layout.output, |event| events.push(event));
-		assert_eq!(events.iter().filter(|event| matches!(event, RowEvent::Break)).count(), 1);
-		assert!(events.iter().all(|event| !matches!(event, RowEvent::Blank { .. })));
-		assert!(matches!(events[0], RowEvent::Text { block_index: 0, .. }));
+		let mut row_starts = 0;
+		let mut breaks = 0;
+		let mut blanks = 0;
+		let mut first_text_block = None;
+
+		RowEvent::each(&layout.output, |event| match event {
+			RowEvent::RowStart { row } => {
+				row_starts += 1;
+				assert!(row.width > 0);
+			}
+			RowEvent::Text { block_index, .. } => {
+				first_text_block.get_or_insert(block_index);
+			}
+			RowEvent::Blank { .. } => blanks += 1,
+			RowEvent::Break => breaks += 1,
+		});
+
+		assert_eq!(row_starts, layout.output.len());
+		assert_eq!(breaks, layout.output.len().saturating_sub(1));
+		assert_eq!(blanks, 0);
+		assert_eq!(first_text_block, Some(0));
 	}
 
 	// paint

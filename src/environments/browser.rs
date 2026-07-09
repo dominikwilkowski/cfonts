@@ -1,6 +1,6 @@
 use crate::{
 	environments::{Environment, Rendered},
-	layout::RowEntry,
+	layout::LayoutRow,
 	options::{Align, Options},
 };
 
@@ -67,12 +67,12 @@ impl Environment for BrowserEnv {
 	}
 
 	/// Reserves extra space for the HTML wrapper, `<br>` row breaks and color spans
-	fn capacity_hint(&self, rows: &[Vec<RowEntry>], options: &Options) -> usize {
+	fn capacity_hint(&self, rows: &[LayoutRow], options: &Options) -> usize {
 		const AVERAGE_BROWSER_ENTRY_BYTES: usize = 12;
 		const WRAPPER_BYTES: usize = 128;
 
 		let row_count = rows.len();
-		let first_row_entries = rows.first().map_or(0, Vec::len).max(1);
+		let first_row_entries = rows.first().map_or(0, |r| r.entries.len()).max(1);
 		let row_breaks = row_count.saturating_sub(1) * "<br>".len();
 
 		let body = row_count.saturating_mul(first_row_entries).saturating_mul(AVERAGE_BROWSER_ENTRY_BYTES);

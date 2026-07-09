@@ -45,9 +45,16 @@ enum Break {
 	Both,
 }
 
+/// A row of glyphs for a single line in the layout
+#[derive(Debug)]
+pub struct LayoutRow {
+	pub entries: Vec<RowEntry>,
+	pub width: usize,
+}
+
 pub(crate) struct Layout<'a> {
 	/// The full output of all lines being built
-	pub(crate) output: Vec<Vec<RowEntry>>,
+	pub(crate) output: Vec<LayoutRow>,
 
 	/// The current line of glyphs
 	line: Vec<LayoutGlyph>,
@@ -337,6 +344,7 @@ impl<'a> Layout<'a> {
 	/// Flushing a complete line to our output
 	fn flush_line(&mut self) {
 		let mut current_block: Option<usize> = None;
+		let line_width = self.line_output_width;
 		let mut padding = 0;
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
@@ -350,12 +358,15 @@ impl<'a> Layout<'a> {
 		if !self.output.is_empty() {
 			for _ in 0..self.prev_line_height {
 				// An empty Vec doesn't allocate until its first push, and these never receive one
-				self.output.push(Vec::new());
+				self.output.push(LayoutRow {
+					entries: Vec::new(),
+					width: 0,
+				});
 			}
 		}
 
 		for row in 0..rows_to_push {
-			let mut output_row = Vec::with_capacity(self.line.len());
+			let mut entries = Vec::with_capacity(self.line.len());
 			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
 					padding = Self::vertical_padding(self.options.valign, rows_to_push, glyph.rows().len());
@@ -374,9 +385,12 @@ impl<'a> Layout<'a> {
 						block_index: glyph.block_index,
 					}
 				};
-				output_row.push(entry);
+				entries.push(entry);
 			}
-			self.output.push(output_row);
+			self.output.push(LayoutRow {
+				entries,
+				width: line_width,
+			});
 		}
 
 		self.line.clear();
@@ -418,21 +432,24 @@ mod tests {
 
 	// The output grouped into lines: each group holds the column width of every row of one
 	// line, with the empty line-height rows acting as separators between groups
-	fn group_lines(output: &[Vec<RowEntry>]) -> Vec<Vec<usize>> {
+	fn group_lines(output: &[LayoutRow]) -> Vec<Vec<usize>> {
 		let mut lines: Vec<Vec<usize>> = Vec::new();
 		let mut current: Vec<usize> = Vec::new();
+
 		for row in output {
-			if row.is_empty() {
+			if row.entries.is_empty() {
 				if !current.is_empty() {
 					lines.push(std::mem::take(&mut current));
 				}
 			} else {
-				current.push(row_width(row));
+				current.push(row.width);
 			}
 		}
+
 		if !current.is_empty() {
 			lines.push(current);
 		}
+
 		lines
 	}
 
@@ -473,7 +490,7 @@ mod tests {
 			.output
 			.iter()
 			.enumerate()
-			.filter(|(_, row)| matches!(row[1], RowEntry::Data { .. }))
+			.filter(|(_, row)| matches!(row.entries[1], RowEntry::Data { .. }))
 			.map(|(index, _)| index)
 			.collect()
 	}
@@ -801,7 +818,7 @@ mod tests {
 
 		// exactly one flush (A B), no spurious blank line before the word
 		assert_eq!(layout.output.len(), font.rows());
-		assert!(row_width(&layout.output[0]) > 0);
+		assert!(row_width(&layout.output[0].entries) > 0);
 		assert_eq!(layout.line_glyph_count, 1); // C on the new line
 	}
 
@@ -886,9 +903,9 @@ mod tests {
 		layout.flush_line();
 
 		// every row spans the same columns: Blank rows claim exactly the glyph width
-		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(row)).collect();
+		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
 		assert!(widths.iter().all(|width| *width == widths[0]));
-		assert!(matches!(layout.output[0][1], RowEntry::Blank { width, .. } if width == tiny_glyph.width));
+		assert!(matches!(layout.output[0].entries[1], RowEntry::Blank { width, .. } if width == tiny_glyph.width));
 	}
 
 	#[test]
@@ -924,7 +941,8 @@ mod tests {
 		let layout = Layout::build(&options, None);
 		let output = &layout.output;
 		assert_eq!(output.len(), 5); // 2 rows + 1 line-height row + 2 rows
-		assert!(output[2].is_empty());
+		assert!(output[2].entries.is_empty());
+		assert_eq!(output[2].width, 0);
 	}
 
 	#[test]
@@ -1158,8 +1176,10 @@ mod tests {
 		let layout = Layout::build(&options, None);
 		let output = &layout.output;
 		assert_eq!(output.len(), 6); // 2 rows + 2 gap rows + 2 rows
-		assert!(output[2].is_empty());
-		assert!(output[3].is_empty());
+		assert!(output[2].entries.is_empty());
+		assert_eq!(output[2].width, 0);
+		assert!(output[3].entries.is_empty());
+		assert_eq!(output[3].width, 0);
 	}
 
 	#[test]
@@ -1177,7 +1197,7 @@ mod tests {
 		let layout = Layout::build(&options, None);
 		let output = &layout.output;
 		assert_eq!(output.len(), 4);
-		assert!(output.iter().all(|row| !row.is_empty()));
+		assert!(output.iter().all(|row| !row.entries.is_empty()));
 	}
 
 	// start: word wrap with non-default letter_spacing
