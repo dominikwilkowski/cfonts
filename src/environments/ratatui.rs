@@ -1,3 +1,5 @@
+//! The [Ratatui](https://ratatui.rs/) widget guarded behind a feature flag
+
 // `::ratatui` forces resolution to the external crate instead of this module
 use ::ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 

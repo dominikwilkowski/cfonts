@@ -33,7 +33,7 @@ fn main() {
 		.max_length(20)
 		.font(cfonts::Font::Block)
 		.align(cfonts::Align::Center)
-		.letter_spacing(1)
+		.letter_spacing(2)
 		.word_wrap()
 		// .new_text("hello")
 		// .font(cfonts::Font::Tiny)

@@ -45,8 +45,8 @@ impl Env {
 	}
 }
 
-/// The output of a render: one complete, immediately usable artifact in the
-/// environment's format (ANSI text, an HTML snippet, a console.log statement)
+/// The output of a render: one complete, immediately usable artifact in the environment's format
+/// (ANSI text, an HTML snippet, a console.log statement)
 #[derive(Debug, Default)]
 pub struct Rendered {
 	/// The full output in the environment's format
