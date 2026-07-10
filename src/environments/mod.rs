@@ -111,10 +111,10 @@ impl RowEvent<'_> {
 ///
 /// Environments own output concerns such as canvas width, row separators, wrappers, padding, escaping, and color syntax
 pub trait Environment {
-	// NOTE: This function is a wrapper around [get_canvas_width] and should not be overwritten by a trait implementor
-	// because it handles the FORCE_SIZE environment variable, which overrides terminal detection in CI logs and pipes
-	//
-	// If you want to adjust how your env understands cavnas size, override [get_canvas_width] instead
+	/// NOTE: This function is a wrapper around [get_canvas_width] and should not be overwritten by a trait implementor
+	/// because it handles the FORCE_SIZE environment variable, which overrides terminal detection in CI logs and pipes
+	///
+	/// If you want to adjust how your env understands canvas size, override [get_canvas_width] instead
 	fn canvas_width(&self) -> Option<usize> {
 		// FORCE_SIZE overrides terminal detection, mirroring FORCE_COLOR:
 		// a feature for CI logs and pipes, and what keeps tests deterministic
