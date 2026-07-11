@@ -191,9 +191,9 @@ pub trait Environment {
 
 	/// Renders precomputed layout rows in one paint-stream traversal
 	fn render_with_width(&self, rows: &[LayoutRow], options: &Options, canvas_width: Option<usize>) -> Rendered {
-		let mut out = Rendered {
-			text: String::with_capacity(self.capacity_hint(rows, options)),
-		};
+		// Benchmarks showed that preallocation was either inaccurate or slower
+		// Let the string grow amortized to keep rendering single-pass
+		let mut out = Rendered::default();
 
 		self.wrapper_start(options, &mut out);
 
@@ -224,23 +224,6 @@ pub trait Environment {
 		self.wrapper_end(options, &mut out);
 
 		out
-	}
-
-	/// Returns a cheap reservation hint for [`Rendered::text`]
-	///
-	/// This must not walk every row entry or segment, because [`render`](Self::render) owns the only full traversal of the layout
-	fn capacity_hint(&self, rows: &[LayoutRow], options: &Options) -> usize {
-		const AVERAGE_ENTRY_BYTES: usize = 8;
-
-		let row_count = rows.len();
-		let first_row_entries = rows.first().map_or(0, |r| r.entries.len()).max(1);
-		let row_breaks = row_count.saturating_sub(1);
-
-		let body = row_count.saturating_mul(first_row_entries).saturating_mul(AVERAGE_ENTRY_BYTES);
-
-		let padding = if options.spaceless { 0 } else { AVERAGE_ENTRY_BYTES };
-
-		body.saturating_add(row_breaks).saturating_add(padding)
 	}
 }
 
