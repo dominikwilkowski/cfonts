@@ -248,3 +248,55 @@ fn cli_does_not_pad_empty_line_height_rows() {
 		assert_eq!(rendered.text, "  ▄▀█\n  █▀█\n\n  █▄▄\n  █▄█");
 	});
 }
+
+#[test]
+fn cli_align_with_unlimited_width_adds_no_padding() {
+	// FORCE_SIZE=0 means unlimited: with no canvas there is nothing to align against,
+	// so Center must be a no-op instead of padding against some default width
+	with_force_size(0, || {
+		let rendered = Cfonts::text("A").font(Font::Tiny).align(Align::Center).env(Env::Cli).spaceless().render();
+
+		assert_eq!(rendered.text, "▄▀█\n█▀█");
+	});
+}
+
+#[test]
+fn cli_aligns_multi_font_lines_as_one_unit() {
+	// the padding must be computed from the COMBINED width of all blocks on the line
+	// (12 columns on a 15 column canvas: one column of padding, floored from a gap of 3),
+	// not per block: per-block alignment would tear the composition apart
+	with_force_size(15, || {
+		let rendered = Cfonts::text("A")
+			.font(Font::Block)
+			.new_text("B")
+			.font(Font::Tiny)
+			.align(Align::Center)
+			.env(Env::Cli)
+			.spaceless()
+			.render();
+
+		assert_eq!(
+			rendered.text,
+			"   █████╗    \n  ██╔══██╗   \n  ███████║█▄▄\n  ██╔══██║█▄█\n  ██║  ██║   \n  ╚═╝  ╚═╝   ",
+		);
+	});
+}
+
+#[test]
+fn cli_aligns_wrapped_lines_by_their_own_width() {
+	// soft-wrapped lines align independently: the first line fills the canvas exactly
+	// (the boundary space stays on it) and gets no padding, the wrapped 7 column line
+	// gets one column ((9 - 7) / 2); alignment must run AFTER wrapping, per line
+	with_force_size(9, || {
+		let rendered = Cfonts::text("AA BB")
+			.font(Font::Tiny)
+			.word_wrap()
+			.line_height(0)
+			.align(Align::Center)
+			.env(Env::Cli)
+			.spaceless()
+			.render();
+
+		assert_eq!(rendered.text, "▄▀█ ▄▀█  \n█▀█ █▀█  \n █▄▄ █▄▄\n █▄█ █▄█");
+	});
+}
