@@ -1,11 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
-import init from "../pkg/cfonts_wasm.js";
+import { initSync } from "../pkg/cfonts_wasm.js";
 
-const file = await readFile(new URL("../pkg/cfonts_wasm_bg.wasm", import.meta.url));
-
-await init({
-	module_or_path: new Uint8Array(file),
-});
+initSync({ module: readFileSync(new URL("../pkg/cfonts_wasm_bg.wasm", import.meta.url)) });
 
 export * from "./index.js";

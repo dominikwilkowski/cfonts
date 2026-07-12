@@ -118,7 +118,7 @@ impl Cfonts {
 	/// A value of zero disables the limit
 	#[wasm_bindgen(js_name = maxLength)]
 	pub fn max_length(&mut self, max_length: u32) -> Result<(), JsError> {
-		self.set_global(MAX_LENGTH_SET, "max_length")?;
+		self.set_global(MAX_LENGTH_SET, "maxLength")?; // The javascript name instead of the rust spelling
 		self.options.max_length = NonZeroUsize::new(max_length as usize);
 		Ok(())
 	}

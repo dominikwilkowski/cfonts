@@ -24,11 +24,11 @@
 		"url": "https://github.com/dominikwilkowski/cfonts/issues"
 	},
 	"engines": {
-		"node": ">=20.0.0"
+		"node": ">=22.12.0"
 	},
 	"scripts": {
 		"clean": "rm -rf dist pkg",
-		"build:wasm": "wasm-pack build bindings/wasm --release --target web --out-dir ../../pkg && rm -f pkg/.gitignore pkg/README.md pkg/LICENSE pkg/package.json",
+		"build:wasm": "wasm-pack build bindings/wasm --release --target web --out-dir ../../pkg && rm -f pkg/.gitignore pkg/README.md pkg/LICENSE pkg/package.json && node npm/patch_types.js",
 		"build:ts": "tsc -p tsconfig.json",
 		"build": "pnpm run clean && pnpm run build:wasm && pnpm run build:ts",
 		"format": "biome format --write .",
@@ -38,13 +38,18 @@
 		"test:rust": "cargo test",
 		"test:wasm": "wasm-pack test --node bindings/wasm",
 		"test:js": "node --test npm/tests/npm.node.test.js",
-		"test": "pnpm run test:format && pnpm run test:lint && pnpm run test:typecheck && pnpm run test:rust && pnpm run test:wasm && pnpm run test:js",
-		"prepublishOnly": "pnpm run build"
+		"test:bundle": "vite build examples/browser --outDir ../../target/browser-example --emptyOutDir",
+		"test:package": "pnpm run build && pnpm run test:js && pnpm run test:bundle",
+		"test": "pnpm run test:format && pnpm run test:lint && pnpm run test:typecheck && pnpm run test:rust && pnpm run test:wasm && pnpm run test:js && pnpm run test:package",
+		"example:node": "pnpm run build && node examples/node.js",
+		"example:browser": "pnpm run build && vite examples/browser",
+		"prepublishOnly": "pnpm run test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.3",
 		"@types/node": "^20",
 		"typescript": "^7",
+		"vite": "8.1.4",
 		"wasm-pack": "^0.15"
 	},
 	"keywords": [
