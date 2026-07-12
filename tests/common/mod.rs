@@ -2,6 +2,20 @@
 
 use cfonts::Rendered;
 
+pub const ALL_FONTS: &[cfonts::Font] = &[
+	cfonts::Font::Block,
+	cfonts::Font::Chrome,
+	cfonts::Font::Console,
+	cfonts::Font::Font3D,
+	cfonts::Font::Huge,
+	cfonts::Font::Pallet,
+	cfonts::Font::Shade,
+	cfonts::Font::Simple3D,
+	cfonts::Font::SimpleBlock,
+	cfonts::Font::Slick,
+	cfonts::Font::Tiny,
+];
+
 /// Runs a test without the `FORCE_SIZE` environment variable set
 pub fn without_force_size<T>(test: impl FnOnce() -> T) -> T {
 	temp_env::with_var("FORCE_SIZE", None::<&str>, test)
