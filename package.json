@@ -31,19 +31,22 @@
 		"build:wasm": "wasm-pack build bindings/wasm --release --target web --out-dir ../../pkg && rm -f pkg/.gitignore pkg/README.md pkg/LICENSE pkg/package.json",
 		"build:ts": "tsc -p tsconfig.json",
 		"build": "pnpm run clean && pnpm run build:wasm && pnpm run build:ts",
-		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"format": "biome format --write .",
+		"test:format": "biome format .",
+		"test:lint": "biome lint --error-on-warnings .",
+		"test:typecheck": "tsc -p tsconfig.json --noEmit",
 		"test:rust": "cargo test",
 		"test:wasm": "wasm-pack test --node bindings/wasm",
-		"test:js": "node --test tests/npm.node.test.js",
+		"test:js": "node --test npm/tests/npm.node.test.js",
+		"test": "pnpm run test:format && pnpm run test:lint && pnpm run test:typecheck && pnpm run test:rust && pnpm run test:wasm && pnpm run test:js",
 		"prepublishOnly": "pnpm run build"
 	},
 	"devDependencies": {
-		"wasm-pack": "^0.15",
+		"@biomejs/biome": "2.5.3",
 		"@types/node": "^20",
-		"typescript": "^7"
+		"typescript": "^7",
+		"wasm-pack": "^0.15"
 	},
-	"peerDependencies": {},
-	"dependencies": {},
 	"keywords": [
 		"font",
 		"banner",
