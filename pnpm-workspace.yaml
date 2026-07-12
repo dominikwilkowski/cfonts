@@ -1,2 +1,2 @@
 allowBuilds:
-  wasm-pack: set this to true or false
+  wasm-pack: true

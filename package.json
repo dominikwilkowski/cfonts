@@ -2,6 +2,7 @@
 	"name": "cfonts",
 	"description": "Sexy ANSI fonts for the console",
 	"version": "4.0.0",
+	"type": "module",
 	"homepage": "https://github.com/dominikwilkowski/cfonts",
 	"author": {
 		"name": "Dominik Wilkowski",
@@ -26,16 +27,15 @@
 		"node": ">=20.0.0"
 	},
 	"scripts": {
-		"build:wasm": "wasm-pack build --release --target nodejs --out-dir pkg && rm -f pkg/.gitignore && rm -f pkg/README.md && rm -f pkg/LICENSE && rm -f pkg/package.json",
-		"build:ts": "tsc",
-		"build": "pnpm run build:wasm && pnpm run build:ts",
+		"clean": "rm -rf dist pkg",
+		"build:wasm": "wasm-pack build bindings/wasm --release --target web --out-dir ../../pkg && rm -f pkg/.gitignore pkg/README.md pkg/LICENSE pkg/package.json",
+		"build:ts": "tsc -p tsconfig.json",
+		"build": "pnpm run clean && pnpm run build:wasm && pnpm run build:ts",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"test:rust": "cargo test",
-		"test:js": "node tests/test.js",
-		"typecheck": "tsc --noEmit",
-		"test": "pnpm run build && pnpm run test:rust && pnpm run test:js",
-		"clean": "rm -f index.js index.d.ts index.js.map index.d.ts.map",
-		"rebuild": "pnpm run clean && pnpm run build",
-		"prepublishOnly": "pnpm run rebuild"
+		"test:wasm": "wasm-pack test --node bindings/wasm",
+		"test:js": "node --test tests/npm.node.test.js",
+		"prepublishOnly": "pnpm run build"
 	},
 	"devDependencies": {
 		"wasm-pack": "^0.15",
@@ -54,17 +54,21 @@
 		"pretty"
 	],
 	"files": [
-		"pkg/**/*",
-		"index.js",
-		"index.d.ts",
-		"index.js.map",
-		"index.d.ts.map",
-		"README.md"
+		"dist/**/*",
+		"pkg/cfonts_wasm.js",
+		"pkg/cfonts_wasm.d.ts",
+		"pkg/cfonts_wasm_bg.wasm",
+		"README.md",
+		"LICENSE"
 	],
-	"main": "./index.js",
-	"types": "./index.d.ts",
-	"bin": {
-		"cfonts": "cfonts.js"
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"browser": "./dist/browser.js",
+			"node": "./dist/node.js",
+			"default": "./dist/browser.js"
+		}
 	},
 	"licenses": [
 		{

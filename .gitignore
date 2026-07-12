@@ -14,3 +14,6 @@ package-lock.json
 .coveralls.yml
 lcov.info
 target
+.pnpm-store
+dist
+pkg

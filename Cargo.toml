@@ -10,14 +10,18 @@ repository = "https://github.com/dominikwilkowski/cfonts"
 documentation = "https://docs.rs/cfonts/"
 keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
+include = [
+	"src/**",
+	"examples/**",
+	"Cargo.toml",
+	"README.md",
+	"LICENSE",
+]
 
 [dependencies]
 cfonts-macros = { path = "macros", version = "=4.0.0" }
 ratatui = { version = "0.30", optional = true }
 terminal_size = "0.4"
-tsify = { version = "0.5", features = ["js"] }
-wasm-bindgen = "0.2"
-web-sys = { version = "0.3", features = ["console"] }
 
 [dev-dependencies]
 temp-env = "0.3"
@@ -30,6 +34,6 @@ name = "ratatui"
 required-features = ["ratatui"]
 
 [workspace]
-members = [".", "macros"]
+members = [".", "macros", "bindings/wasm"]
 default-members = ["."]
 resolver = "3"
