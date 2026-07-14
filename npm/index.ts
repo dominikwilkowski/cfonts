@@ -1,5 +1,5 @@
 import { Align, Cfonts as WasmCfonts, Font, Valign, type Rendered } from "../pkg/cfonts_wasm.js";
-import { detection } from "./detection.js";
+import { entry } from "./entry.js";
 
 export { Align, Font, Valign };
 
@@ -103,7 +103,7 @@ export class Cfonts {
 	renderCli(): Rendered {
 		// FORCE_SIZE takes precedence over whatever the entry point's width detection finds;
 		// neither exists inside the WASM so the width crosses the boundary here
-		return this.#inner.renderCli(forcedSize() ?? detection.width());
+		return this.#inner.renderCli(forcedSize() ?? entry.width());
 	}
 
 	renderBrowser(): Rendered {
@@ -115,6 +115,7 @@ export class Cfonts {
 	}
 
 	say(): void {
-		console.log(this.renderCli().text);
+		// the entry point's output action: the terminal in node, the devtools console in browsers
+		console.log(entry.sayRender(this).text);
 	}
 }

@@ -5,10 +5,11 @@ import { readFileSync } from "node:fs";
 import windowSize from "window-size/utils.js";
 
 import { initSync } from "../pkg/cfonts_wasm.js";
-import { detection } from "./detection.js";
+import { entry } from "./entry.js";
 
 initSync({ module: readFileSync(new URL("../pkg/cfonts_wasm_bg.wasm", import.meta.url)) });
 
-detection.width = () => windowSize.get()?.width;
+entry.width = () => windowSize.get()?.width;
+entry.sayRender = (banner) => banner.renderCli();
 
 export * from "./index.js";

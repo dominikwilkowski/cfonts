@@ -6,6 +6,10 @@ if (!(banner instanceof HTMLElement)) {
 	throw new Error("Missing the banner element");
 }
 
-const rendered = Cfonts.text("hello").font(Font.Block).align(Align.Center).spaceless().renderBrowser();
+const composition = Cfonts.text("hello world").font(Font.Block).align(Align.Center).spaceless();
 
-banner.innerHTML = rendered.text;
+// render HTML in the browser
+banner.innerHTML = composition.renderBrowser().text;
+
+// or use say() to speak to the devtools console
+composition.say();
