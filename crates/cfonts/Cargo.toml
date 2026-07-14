@@ -1,0 +1,34 @@
+[package]
+name = "cfonts"
+description = "Sexy ANSI fonts for the console"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/cfonts/"
+keywords = ["fonts", "color", "console", "ascii", "ANSI"]
+categories = ["command-line-interface", "command-line-utilities", "graphics"]
+include = [
+	"src/**",
+	"examples/**",
+	"Cargo.toml",
+	"README.md",
+	"LICENSE",
+]
+
+[dependencies]
+cfonts-macros = { path = "../macros", version = "=4.0.0" }
+ratatui = { version = "0.30", optional = true }
+terminal_size = "0.4"
+
+[dev-dependencies]
+temp-env = "0.3"
+
+[features]
+ratatui = ["dep:ratatui"]
+
+[[example]]
+name = "ratatui"
+required-features = ["ratatui"]

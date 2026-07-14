@@ -1,39 +1,12 @@
-[package]
-name = "cfonts"
+[workspace]
+members = ["crates/cfonts", "crates/macros", "crates/wasm"]
+default-members = ["crates/cfonts"]
+resolver = "3"
+
+[workspace.package]
 version = "4.0.0"
 edition = "2024"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
-description = "Sexy ANSI fonts for the console"
 homepage = "https://github.com/dominikwilkowski/cfonts"
 repository = "https://github.com/dominikwilkowski/cfonts"
-documentation = "https://docs.rs/cfonts/"
-keywords = ["fonts", "color", "console", "ascii", "ANSI"]
-categories = ["command-line-interface", "command-line-utilities", "graphics"]
-include = [
-	"src/**",
-	"examples/**",
-	"Cargo.toml",
-	"README.md",
-	"LICENSE",
-]
-
-[dependencies]
-cfonts-macros = { path = "macros", version = "=4.0.0" }
-ratatui = { version = "0.30", optional = true }
-terminal_size = "0.4"
-
-[dev-dependencies]
-temp-env = "0.3"
-
-[features]
-ratatui = ["dep:ratatui"]
-
-[[example]]
-name = "ratatui"
-required-features = ["ratatui"]
-
-[workspace]
-members = [".", "macros", "bindings/wasm"]
-default-members = ["."]
-resolver = "3"

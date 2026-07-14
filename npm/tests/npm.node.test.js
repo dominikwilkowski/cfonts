@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { Align, Cfonts, Env, Font, Valign } from "cfonts";
+import { Align, Cfonts, Font, Valign } from "cfonts";
 
 const INVALID_STRINGS = [0, true, null, undefined, {}, []];
 
@@ -20,6 +20,35 @@ const INVALID_U32_VALUES = [
 ];
 
 const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, "0", "Block", true, null, undefined];
+
+function withTerminal(columns, forceSize, render) {
+	const originalColumns = process.stdout.columns;
+	const originalRows = process.stdout.rows;
+	const originalForceSize = process.env.FORCE_SIZE;
+	process.stdout.columns = columns;
+	// window-size only accepts a stream size when both dimensions exist
+	// exists purely to satisfy window-size's validity check
+	process.stdout.rows = 24;
+
+	if (forceSize === undefined) {
+		delete process.env.FORCE_SIZE;
+	} else {
+		process.env.FORCE_SIZE = forceSize;
+	}
+
+	try {
+		return render();
+	} finally {
+		process.stdout.columns = originalColumns;
+		process.stdout.rows = originalRows;
+
+		if (originalForceSize === undefined) {
+			delete process.env.FORCE_SIZE;
+		} else {
+			process.env.FORCE_SIZE = originalForceSize;
+		}
+	}
+}
 
 function assertTypeErrors(values, invoke, message) {
 	for (const value of values) {
@@ -70,7 +99,6 @@ for (const [method, invoke] of u32Setters) {
 
 const enumSetters = [
 	["font", Font, (banner, value) => banner.font(value)],
-	["env", Env, (banner, value) => banner.env(value)],
 	["align", Align, (banner, value) => banner.align(value)],
 	["valign", Valign, (banner, value) => banner.valign(value)],
 ];
@@ -92,3 +120,33 @@ for (const [method, enumeration, invoke] of enumSetters) {
 		}
 	});
 }
+
+test("renderCli detects the terminal width", () => {
+	const narrow = withTerminal(13, undefined, () => Cfonts.text("AAAA").renderCli().text);
+	const wide = withTerminal(120, undefined, () => Cfonts.text("AAAA").renderCli().text);
+
+	assert.notEqual(narrow, wide);
+});
+
+test("FORCE_SIZE overrides the terminal width detection", () => {
+	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").renderCli().text);
+	const narrow = withTerminal(13, undefined, () => Cfonts.text("AAAA").renderCli().text);
+
+	assert.equal(forced, narrow);
+});
+
+test("FORCE_SIZE zero means unlimited", () => {
+	const unlimited = withTerminal(13, "0", () => Cfonts.text("AAAA").renderCli().text);
+	const wide = withTerminal(13, "120", () => Cfonts.text("AAAA").renderCli().text);
+
+	assert.equal(unlimited, wide);
+});
+
+test("FORCE_SIZE garbage falls through to detection", () => {
+	for (const garbage of ["", "abc", "-1", "12.5"]) {
+		const ignored = withTerminal(13, garbage, () => Cfonts.text("AAAA").renderCli().text);
+		const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").renderCli().text);
+
+		assert.equal(ignored, detected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
+	}
+});

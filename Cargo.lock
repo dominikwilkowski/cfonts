@@ -171,7 +171,7 @@ version = "4.0.0"
 
 [[package]]
 name = "cfonts-wasm"
-version = "0.0.0"
+version = "4.0.0"
 dependencies = [
  "cfonts",
  "serde",

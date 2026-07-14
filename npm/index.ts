@@ -1,6 +1,7 @@
-import { Align, Cfonts as WasmCfonts, Env, Font, Valign, type Rendered } from "../pkg/cfonts_wasm.js";
+import { Align, Cfonts as WasmCfonts, Font, Valign, type Rendered } from "../pkg/cfonts_wasm.js";
+import { detection } from "./detection.js";
 
-export { Align, Env, Font, Valign };
+export { Align, Font, Valign };
 
 export type { Rendered };
 
@@ -28,6 +29,19 @@ function expectEnum<T extends number>(value: unknown, enumeration: object, metho
 	}
 
 	return value as T;
+}
+
+function forcedSize(): number | undefined {
+	// mirrors the core FORCE_SIZE parsing: unsigned integers only, garbage is ignored
+	const raw = globalThis.process?.env?.FORCE_SIZE ?? "";
+
+	if (!/^\d+$/.test(raw)) {
+		return undefined;
+	}
+
+	const size = Number.parseInt(raw, 10);
+
+	return size <= U32_MAX ? size : undefined;
 }
 
 export class Cfonts {
@@ -61,11 +75,6 @@ export class Cfonts {
 		return this;
 	}
 
-	env(env: Env): this {
-		this.#inner.env(expectEnum<Env>(env, Env, "env"));
-		return this;
-	}
-
 	align(align: Align): this {
 		this.#inner.align(expectEnum<Align>(align, Align, "align"));
 		return this;
@@ -91,11 +100,21 @@ export class Cfonts {
 		return this;
 	}
 
-	render(): Rendered {
-		return this.#inner.render();
+	renderCli(): Rendered {
+		// FORCE_SIZE takes precedence over whatever the entry point's width detection finds;
+		// neither exists inside the WASM so the width crosses the boundary here
+		return this.#inner.renderCli(forcedSize() ?? detection.width());
+	}
+
+	renderBrowser(): Rendered {
+		return this.#inner.renderBrowser();
+	}
+
+	renderBrowserConsole(): Rendered {
+		return this.#inner.renderBrowserConsole();
 	}
 
 	say(): void {
-		console.log(this.render().text);
+		console.log(this.renderCli().text);
 	}
 }
