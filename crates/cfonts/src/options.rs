@@ -17,7 +17,7 @@ pub enum Valign {
 
 /// The supported horizontal alignment modes
 ///
-/// ![The align option and it's output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
+/// ![The align option and its output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Align {
 	Left,

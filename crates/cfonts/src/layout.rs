@@ -400,6 +400,12 @@ impl<'a> Layout<'a> {
 		self.space_pending = false;
 		self.prev_line_height = self.current_line_height;
 	}
+
+	/// Moving `output` out consumes Layout;
+	/// Rust drops the remaining fields: `line` and `word` buffers before render_with_width() starts
+	pub(crate) fn into_rows(self) -> Vec<LayoutRow> {
+		self.output
+	}
 }
 
 #[cfg(test)]

@@ -136,6 +136,6 @@ impl Cfonts {
 	/// Renders a browser console statement through the core Rust library
 	#[wasm_bindgen(js_name = renderBrowserConsole)]
 	pub fn render_browser_console(&self) -> Rendered {
-		BrowserConsoleEnv.render_from(&self.options).into()
+		BrowserConsoleEnv::default().render_from(&self.options).into()
 	}
 }

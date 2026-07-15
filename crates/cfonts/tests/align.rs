@@ -284,7 +284,7 @@ fn browser_alignment_applies_to_multi_font_compositions() {
 
 #[test]
 fn spaceless_keeps_the_alignment_wrapper() {
-	// The spaceless option has not effect on alignment
+	// The spaceless option has no effect on alignment
 	without_force_size(|| {
 		let rendered = Cfonts::text("A").font(Font::Tiny).align(Align::Right).spaceless().render(&BrowserEnv);
 		assert_eq!(rendered.text.matches("text-align:right").count(), 1);

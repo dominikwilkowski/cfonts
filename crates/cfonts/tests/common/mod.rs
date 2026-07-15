@@ -7,6 +7,7 @@ pub const ALL_FONTS: &[cfonts::Font] = &[
 	cfonts::Font::Chrome,
 	cfonts::Font::Console,
 	cfonts::Font::Font3D,
+	cfonts::Font::Grid,
 	cfonts::Font::Huge,
 	cfonts::Font::Pallet,
 	cfonts::Font::Shade,

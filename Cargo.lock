@@ -163,6 +163,7 @@ dependencies = [
  "ratatui",
  "temp-env",
  "terminal_size",
+ "web-sys",
 ]
 
 [[package]]

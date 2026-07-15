@@ -10,6 +10,3 @@ const composition = Cfonts.text("hello world").font(Font.Block).align(Align.Cent
 
 // render HTML in the browser
 banner.innerHTML = composition.renderBrowser().text;
-
-// or use say() to speak to the devtools console
-composition.say();

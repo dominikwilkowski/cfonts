@@ -25,7 +25,7 @@ use std::str::FromStr;
 /// ```
 ///
 /// `Segment` must be in scope at the call site
-/// The row count is checked against `Font<LINES>` at the assignment, not here
+/// The row count is checked against `Glyph<ROWS>` at the assignment, not here
 pub(crate) fn expand(input: TokenStream) -> TokenStream {
 	let rows: Vec<String> = match parse_input(input) {
 		Ok(rows) => rows,

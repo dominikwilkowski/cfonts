@@ -3,8 +3,8 @@
 	"files": {
 		"includes": [
 			"biome.json",
-			"examples/**/*.html",
-			"examples/**/*.js",
+			"crates/cfonts/examples/**/*.html",
+			"crates/cfonts/examples/**/*.js",
 			"npm/**/*.js",
 			"npm/**/*.ts",
 			"package.json",

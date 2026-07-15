@@ -147,9 +147,9 @@ pub trait Environment {
 	/// The receiver is the environment that renders
 	fn render_from(&self, options: &Options) -> Rendered {
 		let canvas_width = self.canvas_width();
-		let layout = Layout::build(options, canvas_width);
+		let rows = Layout::build(options, canvas_width).into_rows();
 
-		self.render_with_width(&layout.output, options, canvas_width)
+		self.render_with_width(&rows, options, canvas_width)
 	}
 
 	/// Renders the given options with this environment and performs its output action
@@ -217,7 +217,7 @@ mod tests {
 		temp_env::with_var("FORCE_SIZE", Some("120"), || {
 			assert_eq!(CliEnv::default().canvas_width(), Some(120));
 			assert_eq!(BrowserEnv.canvas_width(), Some(120));
-			assert_eq!(BrowserConsoleEnv.canvas_width(), Some(120));
+			assert_eq!(BrowserConsoleEnv::default().canvas_width(), Some(120));
 		});
 	}
 
@@ -266,7 +266,7 @@ mod tests {
 	fn browser_envs_have_no_canvas_width_without_force_size() {
 		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
 			assert_eq!(BrowserEnv.canvas_width(), None);
-			assert_eq!(BrowserConsoleEnv.canvas_width(), None);
+			assert_eq!(BrowserConsoleEnv::default().canvas_width(), None);
 		});
 	}
 

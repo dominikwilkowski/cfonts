@@ -12,16 +12,20 @@ keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 include = [
 	"src/**",
+	"!**/.DS_Store",
 	"examples/**",
 	"Cargo.toml",
-	"README.md",
-	"LICENSE",
+	"../../README.md",
+	"../../LICENSE",
 ]
 
 [dependencies]
 cfonts-macros = { path = "../macros", version = "=4.0.0" }
 ratatui = { version = "0.30", optional = true }
 terminal_size = "0.4"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = ["console"] }
 
 [dev-dependencies]
 temp-env = "0.3"

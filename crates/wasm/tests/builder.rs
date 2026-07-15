@@ -12,7 +12,7 @@ fn each_environment_has_its_own_render_method() {
 
 	assert_eq!(banner.render_cli(None).text, CoreCfonts::text("A").render(&CliEnv::default()).text);
 	assert_eq!(banner.render_browser().text, CoreCfonts::text("A").render(&BrowserEnv).text);
-	assert_eq!(banner.render_browser_console().text, CoreCfonts::text("A").render(&BrowserConsoleEnv).text);
+	assert_eq!(banner.render_browser_console().text, CoreCfonts::text("A").render(&BrowserConsoleEnv::default()).text);
 }
 
 #[wasm_bindgen_test]
@@ -23,6 +23,12 @@ fn render_cli_forwards_the_canvas_width() {
 	let expected = CoreCfonts::text("AA").font(CoreFont::Tiny).render(&CliEnv { canvas_width: Some(3) });
 
 	assert_eq!(actual.render_cli(Some(3)).text, expected.text);
+}
+
+#[wasm_bindgen_test]
+fn say_calls_the_host_console() {
+	// no assertion: passing means the web-sys console binding links and the call does not throw
+	CoreCfonts::text("A").font(CoreFont::Tiny).say(&BrowserConsoleEnv::default());
 }
 
 #[wasm_bindgen_test]
