@@ -17,34 +17,37 @@ use ratatui::{
 	},
 };
 
-use cfonts::{
-	environments::CfontsWidget,
-	fonts::Font,
-	options::{BlockOptions, Options},
-};
+use cfonts::{Align, Cfonts, Font, Options, environments::CfontsWidget};
 
-fn main() -> std::io::Result<()> {
-	let options = Options {
-		blocks: vec![BlockOptions {
-			text: String::from("HELLO"),
-			font: Font::Block,
-			word_wrap: true,
-			..Default::default()
-		}],
-		..Default::default()
-	};
-
-	enable_raw_mode()?;
-	execute!(stdout(), EnterAlternateScreen)?;
+fn run(options: &Options) -> std::io::Result<()> {
 	let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
 	terminal.draw(|frame| {
-		frame.render_widget(&CfontsWidget { options: &options }, frame.area());
+		frame.render_widget(&CfontsWidget { options }, frame.area());
 	})?;
 
 	event::read()?;
 
+	Ok(())
+}
+
+fn main() -> std::io::Result<()> {
+	// the builder is the primary API; the widget consumes the underlying options
+	// and re-wraps and re-aligns on every terminal resize
+	let options: Options = Cfonts::text("hello").font(Font::Block).word_wrap().align(Align::Center).into();
+
+	enable_raw_mode()?;
+
+	if let Err(error) = execute!(stdout(), EnterAlternateScreen) {
+		disable_raw_mode()?;
+		return Err(error);
+	}
+
+	// hold the result so the terminal is always restored, even when the app errors
+	let result = run(&options);
+
 	disable_raw_mode()?;
 	execute!(stdout(), LeaveAlternateScreen)?;
-	Ok(())
+
+	result
 }

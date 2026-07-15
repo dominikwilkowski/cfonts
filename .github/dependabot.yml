@@ -20,3 +20,11 @@ updates:
       day: monday
       time: "10:00"
       timezone: Australia/Brisbane
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: "10:00"
+      timezone: Australia/Brisbane

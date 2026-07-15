@@ -97,6 +97,62 @@ jobs:
       - name: Run cargo doc tests
         run: cargo test --doc --workspace --all-features --locked --no-fail-fast
 
+  package:
+    name: Package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: 1.96.1
+          target: wasm32-unknown-unknown
+          cache: true
+          cache-targets: true
+          cache-bin: false
+          cache-on-failure: false
+          cache-all-crates: false
+          cache-workspace-crates: false
+          cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11
+
+      - name: Install node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the package
+        run: pnpm run build
+
+      - name: Check formatting and linting
+        run: pnpm run test:format && pnpm run test:lint
+
+      - name: Check TypeScript and the consumer types
+        run: pnpm run test:typecheck && pnpm run test:types
+
+      - name: Run WASM tests
+        run: pnpm run test:wasm
+
+      - name: Install the playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run package tests
+        run: pnpm run test:js && pnpm run test:browser
+
   coverage:
     name: Coverage
     needs: test

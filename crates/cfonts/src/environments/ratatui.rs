@@ -6,7 +6,7 @@ use ::ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 use crate::{
 	fonts::Segment,
 	layout::{Layout, RowEntry},
-	options::Options,
+	options::{Align, Options},
 };
 
 /// A ratatui widget that renders cfonts into a terminal buffer
@@ -27,7 +27,15 @@ impl Widget for &CfontsWidget<'_> {
 				break;
 			}
 
-			let mut x = area.x;
+			// each row aligns by its own width, mirroring the CLI environment
+			let gap = (area.width as usize).saturating_sub(row.width);
+			let padding = match self.options.align {
+				Align::Left => 0,
+				Align::Center => gap / 2,
+				Align::Right => gap,
+			};
+
+			let mut x = area.x + padding as u16;
 			for entry in &row.entries {
 				if x >= area.right() {
 					break;
@@ -76,6 +84,31 @@ mod tests {
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
 
 		terminal.backend().assert_buffer_lines(["▄▀█  ", "█▀█  ", "     "]);
+	}
+
+	#[test]
+	fn widget_aligns_rows_inside_the_area() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.align = Align::Right;
+		let widget = CfontsWidget { options: &options };
+		let mut terminal = Terminal::new(TestBackend::new(5, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		terminal.backend().assert_buffer_lines(["  ▄▀█", "  █▀█"]);
+	}
+
+	#[test]
+	fn widget_centers_with_floored_padding() {
+		// an uneven gap floors the left padding, like the CLI environment
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.align = Align::Center;
+		let widget = CfontsWidget { options: &options };
+		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		terminal.backend().assert_buffer_lines([" ▄▀█  ", " █▀█  "]);
 	}
 
 	#[test]
