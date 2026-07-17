@@ -17,11 +17,6 @@ pub const ALL_FONTS: &[cfonts::Font] = &[
 	cfonts::Font::Tiny,
 ];
 
-/// Runs a test without the `FORCE_SIZE` environment variable set
-pub fn without_force_size<T>(test: impl FnOnce() -> T) -> T {
-	temp_env::with_var("FORCE_SIZE", None::<&str>, test)
-}
-
 /// Runs a test with the `FORCE_SIZE` environment variable set to `size`
 pub fn with_force_size<T>(size: usize, test: impl FnOnce() -> T) -> T {
 	temp_env::with_var("FORCE_SIZE", Some(&size.to_string()), test)

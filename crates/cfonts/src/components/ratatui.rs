@@ -9,20 +9,24 @@ use crate::{
 	options::{Align, Options},
 };
 
-/// A ratatui widget that renders cfonts into a terminal buffer
+/// A Ratatui widget that renders cfonts directly into a terminal buffer
 ///
-/// The layout is rebuilt with the widget area's width on every render, so resizing re-wraps the text
-/// The widget itself is the output environment
+/// This adapter consumes layout rows directly so it does not create an
+/// intermediate [`Rendered`](crate::Rendered) string or add another traversal
+///
+/// The layout is rebuilt with the widget area's width on every render so
+/// terminal resizing automatically re-wraps the composition
 pub struct CfontsWidget<'a> {
+	/// Options used to build the layout for the current widget area
 	pub options: &'a Options,
 }
 
 impl Widget for &CfontsWidget<'_> {
 	fn render(self, area: Rect, buffer: &mut Buffer) {
-		let layout = Layout::build(self.options, Some(area.width as usize));
+		let rows = Layout::build(self.options, Some(area.width as usize)).into_rows();
 
-		for (row_index, row) in layout.output.iter().enumerate() {
-			let y = area.y + row_index as u16;
+		for (row_offset, row) in rows.iter().take(area.height as usize).enumerate() {
+			let y = area.y.saturating_add(row_offset as u16);
 			if y >= area.bottom() {
 				break;
 			}

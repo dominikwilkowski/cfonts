@@ -135,6 +135,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check the core WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
+
+      - name: Check framework examples
+        run: pnpm run test:frameworks
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target/framework-examples
+
+      - name: Build the package
+        run: pnpm run build
+
       - name: Build the package
         run: pnpm run build
 

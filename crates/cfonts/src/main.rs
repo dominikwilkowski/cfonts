@@ -42,5 +42,5 @@ fn main() {
 		// .line_height(3)
 		// .new_text("end")
 		// .font(cfonts::Font::Tiny)
-		.say(&cfonts::CliEnv::default());
+		.say(&cfonts::RustHost::default());
 }

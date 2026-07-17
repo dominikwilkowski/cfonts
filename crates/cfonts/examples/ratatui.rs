@@ -17,7 +17,7 @@ use ratatui::{
 	},
 };
 
-use cfonts::{Align, Cfonts, Font, Options, environments::CfontsWidget};
+use cfonts::{Align, Cfonts, CfontsWidget, Font, Options};
 
 fn run(options: &Options) -> std::io::Result<()> {
 	let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;

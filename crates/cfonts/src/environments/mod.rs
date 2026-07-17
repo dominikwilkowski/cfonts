@@ -4,24 +4,19 @@ mod browser_console;
 pub use browser_console::BrowserConsoleEnv;
 mod cli;
 pub use cli::CliEnv;
-#[cfg(feature = "ratatui")]
-mod ratatui;
-#[cfg(feature = "ratatui")]
-pub use ratatui::CfontsWidget;
-
-use std::num::NonZeroUsize;
 
 use crate::{
 	fonts::Segment,
-	layout::{Layout, LayoutRow, RowEntry},
+	layout::{LayoutRow, RowEntry},
 	options::Options,
+	render::RenderContext,
 };
 
-/// The output of a render: one complete, immediately usable artifact in the environment's format
+/// The output of a render: one complete artifact in the selected environment's format
 /// (ANSI text, an HTML snippet, a console.log statement)
 #[derive(Debug, Default)]
 pub struct Rendered {
-	/// The full output in the environment's format
+	/// The artifact's primary text
 	pub text: String,
 }
 
@@ -33,7 +28,7 @@ pub enum RowEvent<'a> {
 	RowStart { row: &'a LayoutRow },
 
 	/// One text segment with the block it came from
-	Text { text: &'static str, block_index: usize }, // TODO: will need color slot as well
+	Text { text: &'static str, block_index: usize },
 
 	/// A run of empty columns (valign padding rows)
 	Blank { width: usize, block_index: usize },
@@ -79,41 +74,21 @@ impl RowEvent<'_> {
 	}
 }
 
-/// Renders layout rows for one output target
+/// Formats layout rows into one environment-specific artifact
 ///
-/// Environments own output concerns such as canvas width, row separators, wrappers, padding, escaping, and color syntax
+/// Environments own formatting such as wrappers, escaping, row separators, alignment syntax and color syntax
+///
+/// Hosts own capability discovery and output side effects
 pub trait Environment {
-	/// NOTE: This function is a wrapper around [`get_canvas_width`](Self::get_canvas_width) and should not be overwritten by a trait implementor
-	/// because it handles the FORCE_SIZE environment variable, which overrides terminal detection in CI logs and pipes
-	///
-	/// If you want to adjust how your env understands canvas size, override [`get_canvas_width`](Self::get_canvas_width) instead
-	fn canvas_width(&self) -> Option<usize> {
-		// FORCE_SIZE overrides terminal detection, mirroring FORCE_COLOR:
-		// a feature for CI logs and pipes, and what keeps tests deterministic
-		// Like max-length, a value of 0 means unlimited; garbage values are ignored
-		if let Ok(value) = std::env::var("FORCE_SIZE")
-			&& let Ok(width) = value.parse::<usize>()
-		{
-			return NonZeroUsize::new(width).map(NonZeroUsize::get);
-		}
-
-		self.get_canvas_width()
-	}
-
-	/// The width of the canvas we render into, None means unlimited
-	fn get_canvas_width(&self) -> Option<usize> {
-		None
-	}
-
 	/// Paint one [Segment] of text, wrapped in the env-interpreted color tokens
-	fn paint(&self, text: &str, color_start: &str, color_end: &str, out: &mut Rendered) {
+	fn paint(&self, text: &str, color_start: &str, color_end: &str, _context: &RenderContext, out: &mut Rendered) {
 		out.text.push_str(color_start);
 		out.text.push_str(text);
 		out.text.push_str(color_end);
 	}
 
 	/// Runs before painting one rendered row
-	fn row_start(&self, _row_width: usize, _canvas_width: Option<usize>, _options: &Options, _out: &mut Rendered) {}
+	fn row_start(&self, _row_width: usize, _context: &RenderContext, _options: &Options, _out: &mut Rendered) {}
 
 	/// A run of empty columns (valign padding rows)
 	fn blank(&self, width: usize, out: &mut Rendered) {
@@ -137,32 +112,8 @@ pub trait Environment {
 	/// Adds the end of the wrapper around the render output
 	fn wrapper_end(&self, _options: &Options, _out: &mut Rendered) {}
 
-	/// Performs the environment's output action
-	fn say(&self, rendered: &Rendered) {
-		println!("{}", rendered.text);
-	}
-
-	/// Builds a layout from options and renders it with this environment
-	///
-	/// The receiver is the environment that renders
-	fn render_from(&self, options: &Options) -> Rendered {
-		let canvas_width = self.canvas_width();
-		let rows = Layout::build(options, canvas_width).into_rows();
-
-		self.render_with_width(&rows, options, canvas_width)
-	}
-
-	/// Renders the given options with this environment and performs its output action
-	fn say_from(&self, options: &Options) {
-		self.say(&self.render_from(options));
-	}
-
-	fn render(&self, rows: &[LayoutRow], options: &Options) -> Rendered {
-		self.render_with_width(rows, options, self.canvas_width())
-	}
-
 	/// Renders precomputed layout rows in one paint-stream traversal
-	fn render_with_width(&self, rows: &[LayoutRow], options: &Options, canvas_width: Option<usize>) -> Rendered {
+	fn render_rows(&self, rows: &[LayoutRow], options: &Options, context: &RenderContext) -> Rendered {
 		// Benchmarks showed that preallocation was either inaccurate or slower
 		// Let the string grow amortized to keep rendering single-pass
 		let mut out = Rendered::default();
@@ -174,12 +125,12 @@ pub trait Environment {
 		}
 
 		RowEvent::each(rows, |event| match event {
-			// TODO: resolve the block's color for colored segments via options.blocks[block_index] into this start/end pair
 			RowEvent::RowStart { row } => {
-				self.row_start(row.width, canvas_width, options, &mut out);
+				self.row_start(row.width, context, options, &mut out);
 			}
 			RowEvent::Text { text, .. } => {
-				self.paint(text, "", "", &mut out);
+				// TODO(color): resolve paint tokens from the entry's block options
+				self.paint(text, "", "", context, &mut out);
 			}
 			RowEvent::Blank { width, .. } => {
 				self.blank(width, &mut out);
@@ -209,89 +160,6 @@ mod tests {
 		options::Valign,
 		tests::{block, options},
 	};
-
-	// canvas_width
-
-	#[test]
-	fn force_size_overrides_the_terminal_width() {
-		temp_env::with_var("FORCE_SIZE", Some("120"), || {
-			assert_eq!(CliEnv::default().canvas_width(), Some(120));
-			assert_eq!(BrowserEnv.canvas_width(), Some(120));
-			assert_eq!(BrowserConsoleEnv::default().canvas_width(), Some(120));
-		});
-	}
-
-	#[test]
-	fn force_size_zero_means_unlimited() {
-		// consistent with max-length: 0 disables the limit
-		temp_env::with_var("FORCE_SIZE", Some("0"), || {
-			assert_eq!(CliEnv::default().canvas_width(), None);
-		});
-	}
-
-	#[test]
-	fn force_size_ignores_unparsable_values() {
-		// terminal detection wins when the variable holds garbage
-		for garbage in ["", "abc", "-1", "12.5"] {
-			temp_env::with_var("FORCE_SIZE", Some(garbage), || {
-				assert!(CliEnv::default().canvas_width().is_some(), "{garbage:?} must fall through to detection");
-			});
-		}
-	}
-
-	#[test]
-	fn without_force_size_the_terminal_width_is_detected() {
-		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			// a real terminal reports its size and a pipe falls back to 80: either way it is Some
-			assert!(CliEnv::default().canvas_width().is_some());
-		});
-	}
-
-	#[test]
-	fn a_canvas_width_override_skips_the_terminal_detection() {
-		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			assert_eq!(CliEnv { canvas_width: Some(42) }.canvas_width(), Some(42));
-		});
-	}
-
-	#[test]
-	fn a_zero_canvas_width_override_means_unlimited() {
-		// mirrors FORCE_SIZE and max-length: zero disables the limit
-		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			assert_eq!(CliEnv { canvas_width: Some(0) }.canvas_width(), None);
-		});
-	}
-
-	#[test]
-	fn browser_envs_have_no_canvas_width_without_force_size() {
-		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			assert_eq!(BrowserEnv.canvas_width(), None);
-			assert_eq!(BrowserConsoleEnv::default().canvas_width(), None);
-		});
-	}
-
-	#[test]
-	fn cli_env_always_has_a_canvas_width() {
-		// wrapped in temp_env so this cannot race the FORCE_SIZE tests in cli.rs
-		// (its mutex only serializes tests that go through it)
-		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			// a real terminal reports its size and a pipe falls back to 80: either way it is Some
-			assert!(CliEnv::default().canvas_width().is_some());
-		});
-	}
-
-	#[test]
-	fn force_size_wraps_browser_output() {
-		temp_env::with_var("FORCE_SIZE", Some("3"), || {
-			let rendered =
-				Cfonts::text("AA").font(Font::Tiny).line_height(0).valign(Valign::Top).spaceless().render(&BrowserEnv);
-
-			assert_eq!(
-				rendered.text,
-				r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
-			);
-		});
-	}
 
 	// RowEvent
 
@@ -327,15 +195,31 @@ mod tests {
 	#[test]
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
-		CliEnv::default().paint("TEXT", "<start>", "<end>", &mut out);
+		CliEnv::default().paint("TEXT", "<start>", "<end>", &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 
 	// render
 
 	#[test]
+	fn an_explicit_context_wraps_browser_output() {
+		let rendered = Cfonts::text("AA")
+			.font(Font::Tiny)
+			.line_height(0)
+			.valign(Valign::Top)
+			.spaceless()
+			.render_with(&BrowserEnv, RenderContext::with_canvas_width(3));
+
+		assert_eq!(
+			rendered.text,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
+		);
+	}
+
+	#[test]
 	fn render_produces_the_plain_rows() {
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render(&CliEnv::default());
+		let rendered =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&CliEnv, RenderContext::unlimited());
 
 		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}
@@ -356,14 +240,14 @@ mod tests {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		{
 			let layout = Layout::build(&options, None);
-			let padded = PaddedEnv.render(&layout.output, &options);
+			let padded = PaddedEnv.render_rows(&layout.output, &options, &RenderContext::unlimited());
 			assert!(padded.text.starts_with("TOP\n"));
 			assert!(padded.text.ends_with("\nBOTTOM"));
 		}
 
 		options.spaceless = true;
 		let layout = Layout::build(&options, None);
-		let spaceless = PaddedEnv.render(&layout.output, &options);
+		let spaceless = PaddedEnv.render_rows(&layout.output, &options, &RenderContext::unlimited());
 		assert!(!spaceless.text.contains("TOP"));
 		assert!(!spaceless.text.contains("BOTTOM"));
 	}

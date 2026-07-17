@@ -1,45 +1,88 @@
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
-	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont,
-	Valign as CoreValign,
+	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont, Options,
+	RenderContext, Valign as CoreValign,
 };
-use cfonts_wasm::{Align, Cfonts, Font, Valign};
+use cfonts_wasm::{Align, Cfonts, Font, Rendered, Valign};
 
-#[wasm_bindgen_test]
-fn each_environment_has_its_own_render_method() {
-	let banner = Cfonts::text("A".to_owned());
+#[derive(Debug, Clone, Copy)]
+enum Target {
+	Cli,
+	Browser,
+	BrowserConsole,
+}
 
-	assert_eq!(banner.render_cli(None).text, CoreCfonts::text("A").render(&CliEnv::default()).text);
-	assert_eq!(banner.render_browser().text, CoreCfonts::text("A").render(&BrowserEnv).text);
-	assert_eq!(banner.render_browser_console().text, CoreCfonts::text("A").render(&BrowserConsoleEnv::default()).text);
+impl Target {
+	const ALL: [Self; 3] = [Self::Cli, Self::Browser, Self::BrowserConsole];
+
+	fn render(self, banner: &Cfonts, canvas_width: Option<usize>) -> Rendered {
+		match self {
+			Self::Cli => banner.render_cli(canvas_width),
+			Self::Browser => banner.render_browser(canvas_width),
+			Self::BrowserConsole => banner.render_browser_console(canvas_width),
+		}
+	}
+
+	fn render_core(self, canvas_width: Option<usize>) -> String {
+		let options: Options = CoreCfonts::text("AA").font(CoreFont::Tiny).line_height(0).spaceless().into();
+
+		let context = RenderContext::from_canvas_width(canvas_width);
+
+		match self {
+			Self::Cli => cfonts::render_with(&options, &CliEnv, context).text,
+			Self::Browser => cfonts::render_with(&options, &BrowserEnv, context).text,
+			Self::BrowserConsole => cfonts::render_with(&options, &BrowserConsoleEnv, context).text,
+		}
+	}
+}
+
+fn wrapping_banner() -> Cfonts {
+	let mut banner = Cfonts::text("AA".to_owned());
+
+	banner.font(Font::Tiny);
+	banner.line_height(0);
+	banner.spaceless().expect("first spaceless call");
+
+	banner
 }
 
 #[wasm_bindgen_test]
-fn render_cli_forwards_the_canvas_width() {
-	let mut actual = Cfonts::text("AA".to_owned());
-	actual.font(Font::Tiny);
+fn none_means_unlimited_for_every_environment() {
+	let banner = wrapping_banner();
 
-	let expected = CoreCfonts::text("AA").font(CoreFont::Tiny).render(&CliEnv { canvas_width: Some(3) });
-
-	assert_eq!(actual.render_cli(Some(3)).text, expected.text);
+	for target in Target::ALL {
+		assert_eq!(target.render(&banner, None).text, target.render_core(None), "{target:?}",);
+	}
 }
 
 #[wasm_bindgen_test]
-fn say_calls_the_host_console() {
-	// no assertion: passing means the web-sys console binding links and the call does not throw
-	CoreCfonts::text("A").font(CoreFont::Tiny).say(&BrowserConsoleEnv::default());
+fn zero_means_unlimited_for_every_environment() {
+	let banner = wrapping_banner();
+
+	for target in Target::ALL {
+		assert_eq!(target.render(&banner, Some(0)).text, target.render(&banner, None).text, "{target:?}",);
+	}
 }
 
 #[wasm_bindgen_test]
-fn render_cli_zero_width_means_unlimited() {
-	let mut actual = Cfonts::text("AA".to_owned());
-	actual.font(Font::Tiny);
+fn a_fixed_width_is_forwarded_to_every_environment() {
+	let banner = wrapping_banner();
 
-	let expected = CoreCfonts::text("AA").font(CoreFont::Tiny).render(&CliEnv { canvas_width: Some(0) });
+	for target in Target::ALL {
+		let narrow = target.render(&banner, Some(3)).text;
 
-	assert_ne!(actual.render_cli(Some(3)).text, actual.render_cli(Some(0)).text);
-	assert_eq!(actual.render_cli(Some(0)).text, expected.text);
+		assert_eq!(narrow, target.render_core(Some(3)), "{target:?}",);
+		assert_ne!(narrow, target.render(&banner, None).text, "{target:?}",);
+	}
+}
+
+#[wasm_bindgen_test]
+fn browser_console_render_returns_an_artifact() {
+	let rendered = wrapping_banner().render_browser_console(None);
+
+	// Logging belongs to BrowserHost in TypeScript so the raw binding only returns data
+	assert_eq!(rendered.text, "▄▀█ ▄▀█\n█▀█ █▀█",);
 }
 
 #[wasm_bindgen_test]
@@ -68,9 +111,9 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 		.valign(CoreValign::Bottom)
 		.spaceless()
 		.max_length(2)
-		.render(&BrowserEnv);
+		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	assert_eq!(actual.render_browser().text, expected.text);
+	assert_eq!(actual.render_browser(None).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -116,27 +159,30 @@ fn local_settings_can_be_configured_repeatedly() {
 		.new_text("B")
 		.new_text("C")
 		.font(CoreFont::Tiny)
-		.render(&BrowserEnv);
+		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	assert_eq!(actual.render_browser().text, expected.text);
+	assert_eq!(actual.render_browser(None).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
 fn builders_keep_independent_state() {
 	let mut tiny = Cfonts::text("A".to_owned());
+
 	tiny.font(Font::Tiny);
 
 	let block = Cfonts::text("A".to_owned());
 
-	assert_ne!(tiny.render_browser().text, block.render_browser().text);
+	assert_ne!(tiny.render_browser(None).text, block.render_browser(None).text,);
 }
 
 #[wasm_bindgen_test]
 fn rendering_does_not_consume_or_change_the_builder() {
-	let banner = Cfonts::text("A".to_owned());
+	let banner = wrapping_banner();
 
-	let first = banner.render_browser();
-	let second = banner.render_browser();
+	for target in Target::ALL {
+		let first = target.render(&banner, Some(3));
+		let second = target.render(&banner, Some(3));
 
-	assert_eq!(first.text, second.text);
+		assert_eq!(first.text, second.text, "{target:?}",);
+	}
 }

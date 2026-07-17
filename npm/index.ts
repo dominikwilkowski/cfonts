@@ -1,49 +1,16 @@
 import { Align, Cfonts as WasmCfonts, Font, Valign, type Rendered } from "../pkg/cfonts_wasm.js";
-import { entry } from "./entry.js";
+import { BrowserConsoleEnv, BrowserEnv, CliEnv, renderEnvironment, type Environment } from "./environments/index.js";
+import type { Host } from "./hosts/types.js";
+import { normalizeRenderContext, type RenderContext, type RenderOverrides } from "./render-context.js";
+import { expectEnum, expectString, expectU32 } from "./validation.js";
 
-export { Align, Font, Valign };
+export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Font, Valign };
 
-export type { Rendered };
+export type { Environment, Host, RenderContext, Rendered, RenderOverrides };
 
-const U32_MAX = 0xffff_ffff;
-
-function expectString(value: unknown, method: string): string {
-	if (typeof value !== "string") {
-		throw new TypeError(`\`${method}()\` expects a string`);
-	}
-
-	return value;
-}
-
-function expectU32(value: unknown, method: string): number {
-	if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > U32_MAX) {
-		throw new TypeError(`\`${method}()\` expects an unsigned 32-bit integer`);
-	}
-
-	return value;
-}
-
-function expectEnum<T extends number>(value: unknown, enumeration: object, method: string): T {
-	if (typeof value !== "number" || !Number.isInteger(value) || !Object.hasOwn(enumeration, value)) {
-		throw new TypeError(`\`${method}()\` expects a supported enum value`);
-	}
-
-	return value as T;
-}
-
-function forcedSize(): number | undefined {
-	// mirrors the core FORCE_SIZE parsing: unsigned integers only, garbage is ignored
-	const raw = globalThis.process?.env?.FORCE_SIZE ?? "";
-
-	if (!/^\d+$/.test(raw)) {
-		return undefined;
-	}
-
-	const size = Number.parseInt(raw, 10);
-
-	return size <= U32_MAX ? size : undefined;
-}
-
+/**
+ * A fluent cfonts composition builder
+ */
 export class Cfonts {
 	readonly #inner: WasmCfonts;
 
@@ -100,22 +67,34 @@ export class Cfonts {
 		return this;
 	}
 
-	renderCli(): Rendered {
-		// FORCE_SIZE takes precedence over whatever the entry point's width detection finds;
-		// neither exists inside the WASM so the width crosses the boundary here
-		return this.#inner.renderCli(forcedSize() ?? entry.width());
+	/**
+	 * Renders through an explicit environment and resolved context
+	 *
+	 * This does not perform host discovery or output side effects
+	 */
+	renderWith(environment: Environment, context?: RenderContext): Rendered {
+		return renderEnvironment(this.#inner, environment, normalizeRenderContext(context));
 	}
 
-	renderBrowser(): Rendered {
-		return this.#inner.renderBrowser();
+	/**
+	 * Renders through the supplied host without performing output
+	 */
+	render(host: Host): Rendered {
+		if (host === null || typeof host !== "object" || typeof host.render !== "function") {
+			throw new TypeError("`render()` expects a cfonts host");
+		}
+
+		return host.render(this);
 	}
 
-	renderBrowserConsole(): Rendered {
-		return this.#inner.renderBrowserConsole();
-	}
+	/**
+	 * Renders and delegates output to the supplied host
+	 */
+	say(host: Host): void {
+		if (host === null || typeof host !== "object" || typeof host.say !== "function") {
+			throw new TypeError("`say()` expects a cfonts host");
+		}
 
-	say(): void {
-		// the entry point's output action: the terminal in node, the devtools console in browsers
-		console.log(entry.sayRender(this).text);
+		host.say(this);
 	}
 }

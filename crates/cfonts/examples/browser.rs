@@ -1,10 +1,11 @@
-use cfonts::{Align, BrowserEnv, Cfonts, Font};
+use cfonts::{Align, BrowserEnv, Cfonts, Font, RenderContext};
 
 fn main() {
 	// the browser environment renders a self contained HTML fragment with the alignment as CSS;
 	// native hosts like servers or build scripts place the artifact themselves:
 	// cargo run --example browser > banner.html
-	let rendered = Cfonts::text("hello").font(Font::Block).align(Align::Center).render(&BrowserEnv);
+	let rendered =
+		Cfonts::text("hello").font(Font::Block).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
 
 	println!("{}", rendered.text);
 }

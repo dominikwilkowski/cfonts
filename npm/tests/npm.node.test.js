@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { Align, Cfonts, Font, Valign } from "cfonts";
+import * as packageExports from "cfonts";
+
+const { Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Font, NodeHost, Valign } = packageExports;
 
 const INVALID_STRINGS = [0, true, null, undefined, {}, []];
 
@@ -21,14 +23,16 @@ const INVALID_U32_VALUES = [
 
 const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, "0", "Block", true, null, undefined];
 
-function withTerminal(columns, forceSize, render) {
-	const originalColumns = process.stdout.columns;
-	const originalRows = process.stdout.rows;
+// helpers
+
+function withTerminal(columns, forceSize, operation) {
 	const originalForceSize = process.env.FORCE_SIZE;
-	process.stdout.columns = columns;
-	// window-size only accepts a stream size when both dimensions exist
-	// exists purely to satisfy window-size's validity check
-	process.stdout.rows = 24;
+
+	const restoreGetWindowSize = overrideProperty(process.stdout, "getWindowSize", () => [columns, 24]);
+
+	const restoreColumns = overrideProperty(process.stdout, "columns", columns);
+
+	const restoreRows = overrideProperty(process.stdout, "rows", 24);
 
 	if (forceSize === undefined) {
 		delete process.env.FORCE_SIZE;
@@ -37,10 +41,11 @@ function withTerminal(columns, forceSize, render) {
 	}
 
 	try {
-		return render();
+		return operation();
 	} finally {
-		process.stdout.columns = originalColumns;
-		process.stdout.rows = originalRows;
+		restoreRows();
+		restoreColumns();
+		restoreGetWindowSize();
 
 		if (originalForceSize === undefined) {
 			delete process.env.FORCE_SIZE;
@@ -61,6 +66,59 @@ function assertTypeErrors(values, invoke, message) {
 			`unexpectedly accepted ${String(value)}`,
 		);
 	}
+}
+
+function overrideProperty(target, property, value) {
+	const descriptor = Object.getOwnPropertyDescriptor(target, property);
+
+	Object.defineProperty(target, property, {
+		configurable: true,
+		writable: true,
+		value,
+	});
+
+	return () => {
+		if (descriptor === undefined) {
+			delete target[property];
+		} else {
+			Object.defineProperty(target, property, descriptor);
+		}
+	};
+}
+
+function captureStdout(operation) {
+	const writes = [];
+
+	const restore = overrideProperty(process.stdout, "write", (chunk) => {
+		writes.push(String(chunk));
+		return true;
+	});
+
+	try {
+		operation();
+		return writes;
+	} finally {
+		restore();
+	}
+}
+
+function captureConsoleLogs(operation) {
+	const calls = [];
+
+	const restore = overrideProperty(console, "log", (...arguments_) => {
+		calls.push(arguments_);
+	});
+
+	try {
+		operation();
+		return calls;
+	} finally {
+		restore();
+	}
+}
+
+function wrappingBanner() {
+	return Cfonts.text("AA").font(Font.Tiny).lineHeight(0).spaceless();
 }
 
 for (const [method, invoke] of [
@@ -121,31 +179,292 @@ for (const [method, enumeration, invoke] of enumSetters) {
 	});
 }
 
-test("renderCli detects the terminal width", () => {
-	const narrow = withTerminal(13, undefined, () => Cfonts.text("AAAA").renderCli().text);
-	const wide = withTerminal(120, undefined, () => Cfonts.text("AAAA").renderCli().text);
+test("the Node entry exports NodeHost but not BrowserHost", () => {
+	assert.equal(typeof packageExports.NodeHost, "function");
+	assert.equal("BrowserHost" in packageExports, false);
+});
+
+test("renderWith selects each environment", () => {
+	const banner = wrappingBanner();
+
+	assert.equal(banner.renderWith(CliEnv).text, "▄▀█ ▄▀█\n█▀█ █▀█");
+	assert.equal(banner.renderWith(BrowserConsoleEnv).text, "▄▀█ ▄▀█\n█▀█ █▀█");
+	assert.equal(
+		banner.renderWith(BrowserEnv).text,
+		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█ ▄▀█<br>█▀█ █▀█</div>',
+	);
+});
+
+test("renderWith applies width to every environment", () => {
+	for (const [name, environment] of [
+		["CLI", CliEnv],
+		["browser", BrowserEnv],
+		["browser console", BrowserConsoleEnv],
+	]) {
+		const banner = wrappingBanner();
+
+		const unlimited = banner.renderWith(environment).text;
+
+		const zero = banner.renderWith(environment, { canvasWidth: 0 }).text;
+
+		const narrow = banner.renderWith(environment, { canvasWidth: 3 }).text;
+
+		assert.equal(zero, unlimited, `${name} zero must mean unlimited`);
+		assert.notEqual(narrow, unlimited, `${name} must receive the fixed width`);
+	}
+});
+
+test("renderWith BrowserConsoleEnv returns without logging", () => {
+	let artifact;
+
+	const calls = captureConsoleLogs(() => {
+		artifact = wrappingBanner().renderWith(BrowserConsoleEnv);
+	});
+
+	assert.deepEqual(calls, []);
+	assert.equal(artifact.text, "▄▀█ ▄▀█\n█▀█ █▀█");
+});
+
+test("renderWith rejects unsupported environments", () => {
+	for (const environment of [undefined, null, 0, true, "", {}, []]) {
+		assert.throws(() => wrappingBanner().renderWith(environment), {
+			name: "TypeError",
+			message: "`renderWith()` expects a cfonts environment",
+		});
+	}
+});
+
+test("renderWith rejects invalid contexts", () => {
+	for (const context of [null, 0, true, "", [], () => {}]) {
+		assert.throws(() => wrappingBanner().renderWith(CliEnv, context), {
+			name: "TypeError",
+			message: "`renderWith()` expects a render context object",
+		});
+	}
+});
+
+test("renderWith validates canvasWidth at runtime", () => {
+	for (const canvasWidth of INVALID_U32_VALUES.filter((value) => value !== undefined)) {
+		assert.throws(() => wrappingBanner().renderWith(CliEnv, { canvasWidth }), {
+			name: "TypeError",
+			message: "`renderWith()` expects an unsigned 32-bit integer",
+		});
+	}
+
+	wrappingBanner().renderWith(CliEnv, { canvasWidth: 0 });
+	wrappingBanner().renderWith(CliEnv, { canvasWidth: 0xffff_ffff });
+});
+
+test("custom hosts receive the composition exactly once", () => {
+	const composition = Cfonts.text("A");
+	let renderCalls = 0;
+	let sayCalls = 0;
+
+	const host = {
+		render(received) {
+			assert.equal(received, composition);
+			renderCalls += 1;
+
+			return {
+				text: "custom render",
+			};
+		},
+		say(received) {
+			assert.equal(received, composition);
+			sayCalls += 1;
+		},
+	};
+
+	assert.deepEqual(composition.render(host), { text: "custom render" });
+	composition.say(host);
+
+	assert.equal(renderCalls, 1);
+	assert.equal(sayCalls, 1);
+});
+
+test("render rejects values without a render method", () => {
+	const composition = Cfonts.text("A");
+
+	for (const host of [undefined, null, 0, true, "", {}, [], { say() {} }]) {
+		assert.throws(() => composition.render(host), {
+			name: "TypeError",
+			message: "`render()` expects a cfonts host",
+		});
+	}
+});
+
+test("say rejects values without a say method", () => {
+	const composition = Cfonts.text("A");
+
+	for (const host of [undefined, null, 0, true, "", {}, [], { render() {} }]) {
+		assert.throws(() => composition.say(host), {
+			name: "TypeError",
+			message: "`say()` expects a cfonts host",
+		});
+	}
+});
+
+test("NodeHost validates override objects", () => {
+	for (const overrides of [undefined, null, 0, true, "", [], () => {}]) {
+		assert.throws(() => NodeHost.fromOverrides(overrides), {
+			name: "TypeError",
+			message: "`fromOverrides()` expects an overrides object",
+		});
+	}
+});
+
+test("NodeHost validates override widths", () => {
+	for (const canvasWidth of INVALID_U32_VALUES.filter((value) => value !== undefined)) {
+		assert.throws(
+			() =>
+				NodeHost.fromOverrides({
+					canvasWidth,
+				}),
+			{
+				name: "TypeError",
+				message: "`fromOverrides()` expects an unsigned 32-bit integer",
+			},
+		);
+	}
+
+	NodeHost.fromOverrides({
+		canvasWidth: 0,
+	});
+	NodeHost.fromOverrides({
+		canvasWidth: 0xffff_ffff,
+	});
+});
+
+test("NodeHost detects width on each render", () => {
+	const host = new NodeHost();
+	const banner = Cfonts.text("AAAA");
+
+	const narrow = withTerminal(13, undefined, () => banner.render(host).text);
+	const wide = withTerminal(120, undefined, () => banner.render(host).text);
 
 	assert.notEqual(narrow, wide);
 });
 
+test("FORCE_SIZE overrides terminal detection", () => {
+	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+	const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+	assert.equal(forced, detected);
+});
+
+test("FORCE_SIZE overrides an API width", () => {
+	const forcedHost = NodeHost.fromOverrides({
+		canvasWidth: 120,
+	});
+
+	const expectedHost = NodeHost.fromOverrides({
+		canvasWidth: 13,
+	});
+
+	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(forcedHost).text);
+
+	const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(expectedHost).text);
+
+	assert.equal(forced, expected);
+});
+
+test("FORCE_SIZE zero overrides an API width with unlimited output", () => {
+	const forcedHost = NodeHost.fromOverrides({
+		canvasWidth: 13,
+	});
+
+	const unlimitedHost = NodeHost.fromOverrides({
+		canvasWidth: 0,
+	});
+
+	const forced = withTerminal(13, "0", () => Cfonts.text("AAAA").render(forcedHost).text);
+
+	const expected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(unlimitedHost).text);
+
+	assert.equal(forced, expected);
+});
+
+test("an API width overrides terminal detection", () => {
+	const explicitHost = NodeHost.fromOverrides({
+		canvasWidth: 13,
+	});
+
+	const explicit = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(explicitHost).text);
+
+	const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+	assert.equal(explicit, detected);
+});
+
+test("an API width of zero means unlimited", () => {
+	const unlimitedHost = NodeHost.fromOverrides({
+		canvasWidth: 0,
+	});
+
+	const unlimited = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(unlimitedHost).text);
+
+	const wide = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+	assert.equal(unlimited, wide);
+});
+
+test("invalid FORCE_SIZE falls through to the API override", () => {
+	const host = NodeHost.fromOverrides({
+		canvasWidth: 13,
+	});
+
+	for (const garbage of ["", "abc", "-1", "12.5", "4294967296"]) {
+		const ignored = withTerminal(120, garbage, () => Cfonts.text("AAAA").render(host).text);
+
+		const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(host).text);
+
+		assert.equal(ignored, expected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
+	}
+});
+
+test("NodeHost render does not write to stdout", () => {
+	withTerminal(80, undefined, () => {
+		const writes = captureStdout(() => {
+			Cfonts.text("A").render(new NodeHost());
+		});
+
+		assert.deepEqual(writes, []);
+	});
+});
+
+test("NodeHost say writes exactly once", () => {
+	withTerminal(80, undefined, () => {
+		const banner = Cfonts.text("A");
+		const host = new NodeHost();
+		const expected = banner.render(host).text;
+
+		const writes = captureStdout(() => {
+			banner.say(host);
+		});
+
+		assert.deepEqual(writes, [`${expected}\n`]);
+	});
+});
+
 test("FORCE_SIZE overrides the terminal width detection", () => {
-	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").renderCli().text);
-	const narrow = withTerminal(13, undefined, () => Cfonts.text("AAAA").renderCli().text);
+	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(new NodeHost()).text);
+	const narrow = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
 
 	assert.equal(forced, narrow);
 });
 
 test("FORCE_SIZE zero means unlimited", () => {
-	const unlimited = withTerminal(13, "0", () => Cfonts.text("AAAA").renderCli().text);
-	const wide = withTerminal(13, "120", () => Cfonts.text("AAAA").renderCli().text);
+	const unlimited = withTerminal(13, "0", () => Cfonts.text("AAAA").render(new NodeHost()).text);
+	const wide = withTerminal(13, "120", () => Cfonts.text("AAAA").render(new NodeHost()).text);
 
 	assert.equal(unlimited, wide);
 });
 
 test("FORCE_SIZE garbage falls through to detection", () => {
 	for (const garbage of ["", "abc", "-1", "12.5"]) {
-		const ignored = withTerminal(13, garbage, () => Cfonts.text("AAAA").renderCli().text);
-		const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").renderCli().text);
+		const ignored = withTerminal(13, garbage, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+		const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
 
 		assert.equal(ignored, detected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
 	}

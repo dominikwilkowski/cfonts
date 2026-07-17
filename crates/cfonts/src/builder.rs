@@ -3,7 +3,9 @@ use std::{marker::PhantomData, num::NonZeroUsize};
 use crate::{
 	environments::{Environment, Rendered},
 	fonts::Font,
+	hosts::Host,
 	options::{Align, BlockOptions, Options, Valign},
+	render::RenderContext,
 };
 
 #[doc(hidden)]
@@ -218,38 +220,69 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 		self
 	}
 
-	/// Renders the composition into the selected environment's output format
+	/// Renders through an explicit environment and resolved context
 	///
-	/// This returns a [`Rendered`] value and does not print anything
-	/// Use [`say`](Self::say) when you want to perform the environment's output action
+	/// This is the low-level API for consumers that need a particular artifact
+	/// without host detection or output side effects
 	///
 	/// ```
-	/// use cfonts::{BrowserEnv, Cfonts, Font};
+	/// use cfonts::{
+	///     BrowserEnv, Cfonts, Font, RenderContext,
+	/// };
 	///
 	/// let rendered = Cfonts::text("A")
 	///     .font(Font::Tiny)
-	///     .render(&BrowserEnv);
+	///     .render_with(
+	///         &BrowserEnv,
+	///         RenderContext::unlimited(),
+	///     );
 	///
 	/// assert!(rendered.text.contains("▄▀█"));
 	/// ```
-	pub fn render(&self, env: &impl Environment) -> Rendered {
-		env.render_from(&self.options)
+	pub fn render_with<E: Environment + ?Sized>(&self, environment: &E, context: RenderContext) -> Rendered {
+		crate::render_with(&self.options, environment, context)
 	}
 
-	/// Renders the composition and performs the selected environment's output action
+	/// Renders the composition through a host
 	///
-	/// For the CLI environment this prints the rendered output to stdout
-	/// Use [`render`](Self::render) when you want to receive the rendered value instead
+	/// The host resolves runtime capabilities and selects its render environment
+	/// This returns a [`Rendered`] value without performing the host's output action
+	///
+	/// ```
+	/// use cfonts::{
+	///     Cfonts, Font, RenderOverrides, RustHost,
+	/// };
+	///
+	/// let host = RustHost::from_overrides(
+	///     RenderOverrides::default()
+	///         .with_canvas_width(0),
+	/// );
+	///
+	/// let rendered = Cfonts::text("A")
+	///     .font(Font::Tiny)
+	///     .render(&host);
+	///
+	/// assert!(rendered.text.contains("▄▀█"));
+	/// ```
+	pub fn render<H: Host + ?Sized>(&self, host: &H) -> Rendered {
+		host.render(&self.options)
+	}
+
+	/// Renders the composition and performs the host's output action
+	///
+	/// For [`RustHost`](crate::RustHost), this writes terminal output to stdout
+	/// Use [`render`](Self::render) when you need the artifact without writing it
 	///
 	/// ```no_run
-	/// use cfonts::{Cfonts, CliEnv, Font};
+	/// use cfonts::{Cfonts, Font, RustHost};
 	///
 	/// Cfonts::text("hello")
 	///     .font(Font::Block)
-	///     .say(&CliEnv::default());
+	///     .say(&RustHost::default())
+	///     .expect("stdout should be writable");
 	/// ```
-	pub fn say(&self, env: &impl Environment) {
-		env.say_from(&self.options);
+	pub fn say<H: Host + ?Sized>(&self, host: &H) -> Result<(), H::Error> {
+		host.say(&self.options)
 	}
 }
 
@@ -437,10 +470,9 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 
 /// Converts a [`Cfonts`] builder into the underlying [`Options`]
 ///
-/// This is useful when you want the ergonomic builder API for setup,
-/// but still want to inspect or tweak the final options object yourself;
-/// render it afterwards through any environment with [`render_from`](crate::Environment::render_from)
-/// or [`say_from`](crate::Environment::say_from)
+/// This is useful when you want the ergonomic builder API for setup while retaining access to the underlying options
+///
+/// Pass the resulting options to [`render_with`](crate::render_with) or to a custom [`Host`](crate::Host)
 ///
 /// ```
 /// use cfonts::{Cfonts, Font, Options};

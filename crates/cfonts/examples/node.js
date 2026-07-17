@@ -1,16 +1,13 @@
-import { Align, Cfonts, Font } from "cfonts";
+import { BrowserEnv, Cfonts, Font, NodeHost } from "cfonts";
 
-// say() renders for the terminal and prints in one step
-Cfonts.text("hello").font(Font.Block).newText("world").font(Font.Tiny).say();
+const host = new NodeHost();
 
-// one composition can render for every environment
-const composition = Cfonts.text("hello world").font(Font.Tiny).align(Align.Center);
+Cfonts.text("hello").font(Font.Block).say(host);
 
-// the terminal render detects the terminal width by itself;
-// the FORCE_SIZE environment variable overrides the detection
-const cli = composition.renderCli();
-console.log(cli.text);
+const composition = Cfonts.text("hello world").font(Font.Tiny);
 
-// the same composition as an HTML fragment
-const html = composition.renderBrowser();
+const terminal = composition.render(host);
+console.log(terminal.text);
+
+const html = composition.renderWith(BrowserEnv);
 console.log(html.text);

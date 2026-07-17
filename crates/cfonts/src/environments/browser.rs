@@ -1,9 +1,11 @@
 use crate::{
 	environments::{Environment, Rendered},
 	options::{Align, Options},
+	render::RenderContext,
 };
 
 /// The browser environment renders HTML
+#[derive(Debug, Clone, Copy, Default)]
 pub struct BrowserEnv;
 
 impl BrowserEnv {
@@ -22,7 +24,7 @@ impl BrowserEnv {
 }
 
 impl Environment for BrowserEnv {
-	fn paint(&self, text: &str, color_start: &str, _color_end: &str, out: &mut Rendered) {
+	fn paint(&self, text: &str, color_start: &str, _color_end: &str, _context: &RenderContext, out: &mut Rendered) {
 		if color_start.is_empty() {
 			Self::push_escaped(text, &mut out.text);
 			return;
@@ -77,7 +79,7 @@ mod tests {
 	fn paint_escapes_the_text_but_not_the_color_markup() {
 		// the console font's `&` glyph and simple3d's `</` art must not parse as HTML
 		let mut out = Rendered::default();
-		BrowserEnv.paint("</&>", "red", "", &mut out);
+		BrowserEnv.paint("</&>", "red", "", &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
 	}
 
@@ -105,7 +107,8 @@ mod tests {
 	#[test]
 	fn render_wraps_the_rows_in_a_styled_div() {
 		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render(&BrowserEnv);
+			let rendered =
+				Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderContext::unlimited());
 
 			assert_eq!(
 				rendered.text,
@@ -118,7 +121,11 @@ mod tests {
 	fn spaceless_skips_the_browser_padding() {
 		// spaceless means no padding, and for the browser the wrapper is the padding:
 		// the output becomes an embeddable fragment for the consumer's own container
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&BrowserEnv);
+		let rendered = Cfonts::text("A")
+			.font(Font::Tiny)
+			.valign(Valign::Top)
+			.spaceless()
+			.render_with(&BrowserEnv, RenderContext::unlimited());
 		assert_eq!(
 			rendered.text,
 			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█</div>"#,
@@ -129,8 +136,12 @@ mod tests {
 	fn multi_font_valign_padding_renders_as_spaces() {
 		// Tiny beside Block gets Blank rows; under the blank default they are spaces,
 		// so the only <br> are the 5 row breaks plus the 4 padding breaks
-		let rendered =
-			Cfonts::text("A").font(Font::Block).valign(Valign::Top).new_text("B").font(Font::Tiny).render(&BrowserEnv);
+		let rendered = Cfonts::text("A")
+			.font(Font::Block)
+			.valign(Valign::Top)
+			.new_text("B")
+			.font(Font::Tiny)
+			.render_with(&BrowserEnv, RenderContext::unlimited());
 		assert_eq!(rendered.text.matches("<br>").count(), 9);
 	}
 }

@@ -1,0 +1,24 @@
+[package]
+name = "cfonts-example-dioxus"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Kept outside the root workspace so normal builds stay framework-free
+[workspace]
+
+[dependencies]
+cfonts = {
+	path = "../..",
+default-features = false,
+features = ["dioxus"],
+}
+
+dioxus = {
+	version = "0.7",
+default-features = false,
+}
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]

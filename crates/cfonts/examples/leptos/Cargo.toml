@@ -8,5 +8,9 @@ publish = false
 [workspace]
 
 [dependencies]
-cfonts = { path = "../.." }
+cfonts = {
+	path = "../..",
+	default-features = false,
+	features = ["leptos"],
+}
 leptos = { version = "0.8", features = ["csr"] }

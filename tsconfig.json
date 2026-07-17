@@ -18,5 +18,5 @@
 		"removeComments": false,
 	},
 	"include": ["npm/**/*.ts"],
-	"exclude": ["node_modules", "pkg", "dist", "tests"],
+	"exclude": ["node_modules", "pkg", "dist", "tests", "npm/tests"],
 }

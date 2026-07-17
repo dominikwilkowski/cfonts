@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Environment, Options, options::BlockOptions,
+	BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Options, RenderContext, options::BlockOptions,
 };
 
 use crate::{Align, Font, Rendered, Valign};
@@ -118,24 +118,27 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Renders for terminals through the core Rust library
+	/// Renders a terminal artifact through the core Rust library
 	///
-	/// The JavaScript layer passes the canvas width it reads from the host;
-	/// zero means unlimited, without a width the core detection runs
+	/// The JavaScript host passes the width it has already resolved `None` and zero mean unlimited
 	#[wasm_bindgen(js_name = renderCli)]
 	pub fn render_cli(&self, canvas_width: Option<usize>) -> Rendered {
-		CliEnv { canvas_width }.render_from(&self.options).into()
+		cfonts::render_with(&self.options, &CliEnv::default(), Self::context(canvas_width)).into()
 	}
 
 	/// Renders an HTML fragment through the core Rust library
 	#[wasm_bindgen(js_name = renderBrowser)]
-	pub fn render_browser(&self) -> Rendered {
-		BrowserEnv.render_from(&self.options).into()
+	pub fn render_browser(&self, canvas_width: Option<usize>) -> Rendered {
+		cfonts::render_with(&self.options, &BrowserEnv, Self::context(canvas_width)).into()
 	}
 
-	/// Renders a browser console statement through the core Rust library
+	/// Renders a browser-console artifact through the core Rust library
 	#[wasm_bindgen(js_name = renderBrowserConsole)]
-	pub fn render_browser_console(&self) -> Rendered {
-		BrowserConsoleEnv::default().render_from(&self.options).into()
+	pub fn render_browser_console(&self, canvas_width: Option<usize>) -> Rendered {
+		cfonts::render_with(&self.options, &BrowserConsoleEnv::default(), Self::context(canvas_width)).into()
+	}
+
+	fn context(canvas_width: Option<usize>) -> RenderContext {
+		RenderContext::from_canvas_width(canvas_width)
 	}
 }
