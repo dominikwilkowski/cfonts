@@ -123,7 +123,7 @@ impl Cfonts {
 	/// The JavaScript host passes the width it has already resolved `None` and zero mean unlimited
 	#[wasm_bindgen(js_name = renderCli)]
 	pub fn render_cli(&self, canvas_width: Option<usize>) -> Rendered {
-		cfonts::render_with(&self.options, &CliEnv::default(), Self::context(canvas_width)).into()
+		cfonts::render_with(&self.options, &CliEnv, Self::context(canvas_width)).into()
 	}
 
 	/// Renders an HTML fragment through the core Rust library
@@ -135,7 +135,7 @@ impl Cfonts {
 	/// Renders a browser-console artifact through the core Rust library
 	#[wasm_bindgen(js_name = renderBrowserConsole)]
 	pub fn render_browser_console(&self, canvas_width: Option<usize>) -> Rendered {
-		cfonts::render_with(&self.options, &BrowserConsoleEnv::default(), Self::context(canvas_width)).into()
+		cfonts::render_with(&self.options, &BrowserConsoleEnv, Self::context(canvas_width)).into()
 	}
 
 	fn context(canvas_width: Option<usize>) -> RenderContext {

@@ -22,7 +22,7 @@ impl RustHost {
 	pub fn from_overrides(overrides: RenderOverrides) -> Self {
 		Self {
 			overrides,
-			environment: CliEnv::default(),
+			environment: CliEnv,
 		}
 	}
 }

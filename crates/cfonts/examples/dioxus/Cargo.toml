@@ -17,6 +17,7 @@ features = ["dioxus"],
 dioxus = {
 	version = "0.7",
 default-features = false,
+features = ["launch"],
 }
 
 [features]

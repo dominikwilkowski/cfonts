@@ -195,7 +195,7 @@ mod tests {
 	#[test]
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
-		CliEnv::default().paint("TEXT", "<start>", "<end>", &RenderContext::unlimited(), &mut out);
+		CliEnv.paint("TEXT", "<start>", "<end>", &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 

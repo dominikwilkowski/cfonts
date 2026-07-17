@@ -7,7 +7,7 @@ use crate::{BrowserEnv, Options, RenderContext, Rendered, render_with};
 /// Rendering is pure and uses an unlimited canvas because browser capability
 /// discovery belongs to the application host
 #[component]
-pub fn CfontsDioxus(options: ReadOnlySignal<Options>) -> Element {
+pub fn CfontsDioxus(options: ReadSignal<Options>) -> Element {
 	let options = options.read();
 	let rendered = render_browser(&options);
 

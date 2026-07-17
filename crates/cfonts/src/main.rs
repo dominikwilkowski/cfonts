@@ -14,7 +14,7 @@ use std::env;
 // `line-height` = vertical gap between lines
 // `spaceless` = trim the top/bottom padding rows
 
-fn main() {
+fn main() -> std::io::Result<()> {
 	let args = env::args().skip(1).collect::<Vec<String>>();
 
 	// parsing args
@@ -26,7 +26,7 @@ fn main() {
 	// 	}
 	// }
 
-	// TODO: config will come from the cli ags parser above
+	// TODO: config will come from the CLI args parser above
 	let input = args[0].clone();
 	cfonts::Cfonts::text(input)
 		.valign(cfonts::Valign::Middle)
@@ -42,5 +42,5 @@ fn main() {
 		// .line_height(3)
 		// .new_text("end")
 		// .font(cfonts::Font::Tiny)
-		.say(&cfonts::RustHost::default());
+		.say(&cfonts::RustHost::default())
 }
