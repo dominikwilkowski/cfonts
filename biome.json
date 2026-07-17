@@ -19,6 +19,16 @@
 					"trailingCommas": "all"
 				}
 			}
+		},
+		{
+			"includes": ["npm/tests/types/**"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedImports": "off"
+					}
+				}
+			}
 		}
 	],
 	"formatter": {

@@ -76,6 +76,14 @@ impl RenderContext {
 		}
 	}
 
+	/// Creates a context from an already validated width but expects NonZeroUsize instead of usize
+	///
+	/// Only the native host resolves to `NonZeroUsize` directly; the wasm boundary passes `Option<usize>`
+	#[cfg(not(target_arch = "wasm32"))]
+	pub(crate) fn from_validated_width(canvas_width: Option<NonZeroUsize>) -> Self {
+		Self { canvas_width }
+	}
+
 	/// Returns the resolved width in columns
 	#[must_use]
 	pub fn canvas_width(self) -> Option<usize> {

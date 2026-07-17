@@ -44,7 +44,7 @@ impl Host for RustHost {
 		let forced = std::env::var("FORCE_SIZE").ok();
 		let width = Self::resolve_canvas_width(forced.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
 
-		RenderContext::from_canvas_width(width.map(NonZeroUsize::get))
+		RenderContext::from_validated_width(width)
 	}
 
 	fn write(&self, rendered: &Rendered) -> Result<(), Self::Error> {

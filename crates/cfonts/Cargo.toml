@@ -21,17 +21,12 @@ include = [
 
 [dependencies]
 cfonts-macros = { path = "../macros", version = "=4.0.0" }
-dioxus = {
-	version = "0.7",
-	optional = true,
-	default-features = false,
-	features = ["html", "macro", "signals"],
-}
-leptos = {
-	version = "0.8",
-	optional = true,
-	default-features = false,
-}
+dioxus = { version = "0.7", optional = true, default-features = false, features = [
+	"html",
+	"macro",
+	"signals",
+] }
+leptos = { version = "0.8", optional = true, default-features = false }
 ratatui = { version = "0.30", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
