@@ -1,11 +1,15 @@
 //! End to end tests for the `align` option, through the public API only
+//!
+//! Alignment semantics (gap math, flooring, per-line widths) are unit tested on `Layout::align_offset`;
+//! each environment's expression of the offset is tested in that environment's own file
+//! This file proves the whole chain: painted output through a host, the browser's CSS expression, and the option's builder behavior
 
 mod common;
 use common::{ALL_FONTS, browser_content, with_force_size};
 
 use cfonts::{Align, BrowserEnv, Cfonts, Font, Options, RenderContext, Valign, hosts::RustHost};
 
-// cli
+// painted output
 
 #[test]
 fn cli_aligns_left_center_and_right() {
@@ -90,7 +94,7 @@ fn cli_aligns_multi_font_lines_as_one_unit() {
 	});
 }
 
-// browser
+// browser css expression
 
 #[test]
 fn browser_wrapper_carries_each_alignment() {
@@ -153,40 +157,6 @@ fn spaceless_keeps_the_alignment_wrapper() {
 }
 
 #[test]
-fn empty_text_still_renders_an_aligned_wrapper() {
-	// Even empty text renders a wrapper
-	let rendered =
-		Cfonts::text("").font(Font::Block).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
-	assert_eq!(rendered.text.matches("text-align:center").count(), 1);
-}
-
-#[test]
-fn alignment_survives_full_builder_combinations() {
-	let rendered = Cfonts::text("HELLO WORLD")
-		.font(Font::Tiny)
-		.word_wrap()
-		.letter_spacing(2)
-		.align(Align::Right)
-		.valign(Valign::Bottom)
-		.max_length(8)
-		.spaceless()
-		.render_with(&BrowserEnv, RenderContext::unlimited());
-
-	assert_eq!(rendered.text.matches("text-align:right").count(), 1);
-}
-
-#[test]
-fn tweaked_options_render_with_their_alignment() {
-	// Passing your own options align the same way the builder does
-	let options: Options = Cfonts::text("A").font(Font::Tiny).align(Align::Center).into();
-
-	assert_eq!(
-		cfonts::render_with(&options, &BrowserEnv, RenderContext::unlimited(),).text.matches("text-align:center").count(),
-		1
-	);
-}
-
-#[test]
 fn explicit_width_wrapping_keeps_one_alignment_wrapper() {
 	let rendered = Cfonts::text("AA")
 		.font(Font::Tiny)
@@ -214,6 +184,20 @@ fn alignment_does_not_change_wrapped_browser_rows() {
 	assert_eq!(browser_content(&left), browser_content(&center));
 	assert_eq!(browser_content(&left), browser_content(&right));
 }
+
+#[test]
+fn browser_wrapper_contains_exactly_one_text_align_declaration() {
+	// The text-align declaration is applied to the wrapper div, not the content
+	let rendered =
+		Cfonts::text("Hi").font(Font::Tiny).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
+	let wrapper = rendered.text.split('>').next().expect("opening wrapper");
+
+	assert_eq!(wrapper.matches("text-align:center").count(), 1);
+	assert!(!wrapper.contains("text-align:left"));
+	assert!(!wrapper.contains("text-align:right"));
+}
+
+// builder and options api
 
 #[test]
 fn align_is_global_ignores_setter_position() {
@@ -256,6 +240,40 @@ fn align_is_global_ignores_setter_position() {
 }
 
 #[test]
+fn alignment_survives_full_builder_combinations() {
+	let rendered = Cfonts::text("HELLO WORLD")
+		.font(Font::Tiny)
+		.word_wrap()
+		.letter_spacing(2)
+		.align(Align::Right)
+		.valign(Valign::Bottom)
+		.max_length(8)
+		.spaceless()
+		.render_with(&BrowserEnv, RenderContext::unlimited());
+
+	assert_eq!(rendered.text.matches("text-align:right").count(), 1);
+}
+
+#[test]
+fn tweaked_options_render_with_their_alignment() {
+	// Passing your own options align the same way the builder does
+	let options: Options = Cfonts::text("A").font(Font::Tiny).align(Align::Center).into();
+
+	assert_eq!(
+		cfonts::render_with(&options, &BrowserEnv, RenderContext::unlimited(),).text.matches("text-align:center").count(),
+		1
+	);
+}
+
+#[test]
+fn empty_text_still_renders_an_aligned_wrapper() {
+	// Even empty text renders a wrapper
+	let rendered =
+		Cfonts::text("").font(Font::Block).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
+	assert_eq!(rendered.text.matches("text-align:center").count(), 1);
+}
+
+#[test]
 fn no_blocks_still_render_with_their_alignment() {
 	// If no text was passed into the builder the alignment still applies
 	let options = Options {
@@ -268,16 +286,4 @@ fn no_blocks_still_render_with_their_alignment() {
 	assert!(rendered.text.contains("text-align:right"));
 	assert!(rendered.text.starts_with("<div"));
 	assert!(rendered.text.ends_with("</div>"));
-}
-
-#[test]
-fn browser_wrapper_contains_exactly_one_text_align_declaration() {
-	// The text-align declaration is applied to the wrapper div, not the content
-	let rendered =
-		Cfonts::text("Hi").font(Font::Tiny).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
-	let wrapper = rendered.text.split('>').next().expect("opening wrapper");
-
-	assert_eq!(wrapper.matches("text-align:center").count(), 1);
-	assert!(!wrapper.contains("text-align:left"));
-	assert!(!wrapper.contains("text-align:right"));
 }

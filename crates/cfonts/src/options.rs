@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 use crate::fonts::Font;
 
 /// The supported vertical alignment modes for mixed-height font blocks
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Valign {
 	/// Align shorter font blocks to the top of the tallest line
 	Top,

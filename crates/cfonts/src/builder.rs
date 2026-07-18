@@ -485,3 +485,60 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 		builder.options
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	// Double-setting a global is a compile error, not a runtime panic:
+	// that guarantee lives in the `compile_fail` doctests on each global setter
+
+	// global setters
+
+	#[test]
+	fn global_setters_land_in_the_options() {
+		let options: Options =
+			Cfonts::text("hello").align(Align::Center).valign(Valign::Top).spaceless().max_length(20).into();
+
+		assert_eq!(options.align, Align::Center);
+		assert_eq!(options.valign, Valign::Top);
+		assert!(options.spaceless);
+		assert_eq!(options.max_length, NonZeroUsize::new(20));
+	}
+
+	#[test]
+	fn a_zero_max_length_means_unlimited() {
+		let options: Options = Cfonts::text("hello").max_length(0).into();
+
+		assert_eq!(options.max_length, None);
+	}
+
+	#[test]
+	fn global_setters_are_order_independent() {
+		let one: Options = Cfonts::text("A").align(Align::Right).valign(Valign::Top).into();
+		let two: Options = Cfonts::text("A").valign(Valign::Top).align(Align::Right).into();
+
+		assert_eq!(one.align, two.align);
+		assert_eq!(two.valign, Valign::Top);
+	}
+
+	// local setters
+
+	#[test]
+	fn per_block_setters_target_the_current_block() {
+		let options: Options =
+			Cfonts::text("one").font(Font::Tiny).letter_spacing(2).new_text("two").font(Font::Block).into();
+
+		assert_eq!(options.blocks[0].font, Font::Tiny);
+		assert_eq!(options.blocks[0].letter_spacing, 2);
+		assert_eq!(options.blocks[1].font, Font::Block);
+		assert_eq!(options.blocks[1].letter_spacing, 1);
+	}
+
+	#[test]
+	fn per_block_setters_are_repeatable() {
+		let options: Options = Cfonts::text("one").font(Font::Tiny).font(Font::Block).into();
+
+		assert_eq!(options.blocks[0].font, Font::Block);
+	}
+}
