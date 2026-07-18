@@ -489,6 +489,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::CliEnv;
 
 	// Double-setting a global is a compile error, not a runtime panic:
 	// that guarantee lives in the `compile_fail` doctests on each global setter
@@ -540,5 +541,97 @@ mod tests {
 		let options: Options = Cfonts::text("one").font(Font::Tiny).font(Font::Block).into();
 
 		assert_eq!(options.blocks[0].font, Font::Block);
+	}
+
+	// test hosts
+
+	/// A host that captures its write instead of touching stdout
+	#[derive(Default)]
+	struct CaptureHost {
+		written: std::cell::RefCell<Vec<String>>,
+	}
+
+	impl Host for CaptureHost {
+		type RenderEnvironment = CliEnv;
+		type SayEnvironment = CliEnv;
+		type Error = std::convert::Infallible;
+
+		fn render_environment(&self) -> &CliEnv {
+			&CliEnv
+		}
+
+		fn say_environment(&self) -> &CliEnv {
+			&CliEnv
+		}
+
+		fn resolve_context(&self) -> RenderContext {
+			RenderContext::unlimited()
+		}
+
+		fn write(&self, rendered: &Rendered) -> Result<(), Self::Error> {
+			self.written.borrow_mut().push(rendered.text.clone());
+			Ok(())
+		}
+	}
+
+	/// A host whose output action always fails
+	struct FailingHost;
+
+	impl Host for FailingHost {
+		type RenderEnvironment = CliEnv;
+		type SayEnvironment = CliEnv;
+		type Error = &'static str;
+
+		fn render_environment(&self) -> &CliEnv {
+			&CliEnv
+		}
+
+		fn say_environment(&self) -> &CliEnv {
+			&CliEnv
+		}
+
+		fn resolve_context(&self) -> RenderContext {
+			RenderContext::unlimited()
+		}
+
+		fn write(&self, _rendered: &Rendered) -> Result<(), Self::Error> {
+			Err("the writer is broken")
+		}
+	}
+
+	// render
+
+	#[test]
+	fn render_returns_the_artifact_without_writing() {
+		let host = CaptureHost::default();
+
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&host);
+
+		assert_eq!(rendered.text, "▄▀█\n█▀█");
+		assert!(host.written.borrow().is_empty());
+	}
+
+	#[test]
+	fn render_succeeds_even_when_the_hosts_writer_is_broken() {
+		// render never touches the output action, so a broken writer cannot matter
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&FailingHost);
+
+		assert_eq!(rendered.text, "▄▀█\n█▀█");
+	}
+
+	// say
+
+	#[test]
+	fn say_writes_the_composition_through_the_host() {
+		let host = CaptureHost::default();
+
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().say(&host).expect("CaptureHost cannot fail");
+
+		assert_eq!(host.written.borrow().as_slice(), ["▄▀█\n█▀█"]);
+	}
+
+	#[test]
+	fn say_returns_the_hosts_write_error() {
+		assert_eq!(Cfonts::text("A").say(&FailingHost), Err("the writer is broken"));
 	}
 }

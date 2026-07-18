@@ -170,7 +170,8 @@ mod tests {
 
 	#[test]
 	fn each_row_event_flattens_rows_into_the_paint_stream() {
-		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		// a tall Block beside a short Tiny forces Blank padding entries for the Tiny rows
+		let options = options(Valign::Top, None, vec![block("A", Font::Block, false), block("B", Font::Tiny, false)]);
 		let layout = Layout::build(&options, None);
 		let mut row_starts = 0;
 		let mut breaks = 0;
@@ -191,7 +192,9 @@ mod tests {
 
 		assert_eq!(row_starts, layout.output.len());
 		assert_eq!(breaks, layout.output.len().saturating_sub(1));
-		assert_eq!(blanks, 0);
+		// Block is 6 rows tall and Tiny is 2, so 4 rows pad the Tiny block below its height
+		// each of its 3 entries (buffer seam, letter space, glyph) blanks per padding row
+		assert_eq!(blanks, 12);
 		assert_eq!(first_text_block, Some(0));
 	}
 
