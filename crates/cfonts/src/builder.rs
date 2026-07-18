@@ -19,17 +19,6 @@ pub struct Cfonts<AlignState = Unset, ValignState = Unset, SpacelessState = Unse
 }
 
 impl Cfonts {
-	/// Builds one text block and normalizes text to the supported uppercase glyph set
-	fn new_block(input: impl Into<String>) -> BlockOptions {
-		let mut text = input.into();
-		text.make_ascii_uppercase();
-
-		BlockOptions {
-			text,
-			..Default::default()
-		}
-	}
-
 	/// Starts a new cfonts composition with the first text block
 	///
 	/// This is the entry point for the builder API
@@ -50,7 +39,7 @@ impl Cfonts {
 	pub fn text(input: impl Into<String>) -> Self {
 		Self {
 			options: Options {
-				blocks: vec![Self::new_block(input)],
+				blocks: vec![BlockOptions::new(input)],
 				..Default::default()
 			},
 			_state: PhantomData,
@@ -87,7 +76,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 	/// assert_eq!(options.blocks[1].font, Font::Font3D);
 	/// ```
 	pub fn new_text(mut self, input: impl Into<String>) -> Self {
-		self.options.blocks.push(Cfonts::new_block(input));
+		self.options.blocks.push(BlockOptions::new(input));
 		self
 	}
 

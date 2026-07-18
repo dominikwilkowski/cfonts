@@ -1,5 +1,6 @@
 use crate::{
 	environments::{Environment, Rendered},
+	layout::LayoutRow,
 	options::{Align, Options},
 	render::RenderContext,
 };
@@ -24,6 +25,9 @@ impl BrowserEnv {
 }
 
 impl Environment for BrowserEnv {
+	/// Alignment is expressed as CSS `text-align` on the wrapper, not as physical padding
+	fn row_start(&self, _row: &LayoutRow, _options: &Options, _out: &mut Rendered) {}
+
 	fn paint(&self, text: &str, color_start: &str, _color_end: &str, _context: &RenderContext, out: &mut Rendered) {
 		if color_start.is_empty() {
 			Self::push_escaped(text, &mut out.text);
@@ -73,6 +77,22 @@ mod tests {
 	use super::*;
 	use crate::{Cfonts, fonts::Font, options::Valign};
 
+	// row_start
+
+	#[test]
+	fn row_start_paints_no_physical_offset() {
+		// the browser expresses alignment as CSS on the wrapper instead
+		let row = LayoutRow {
+			entries: Vec::new(),
+			width: 3,
+			align_offset: 4,
+		};
+		let mut out = Rendered::default();
+		BrowserEnv.row_start(&row, &Options::default(), &mut out);
+
+		assert_eq!(out.text, "");
+	}
+
 	// paint
 
 	#[test]
@@ -106,15 +126,13 @@ mod tests {
 
 	#[test]
 	fn render_wraps_the_rows_in_a_styled_div() {
-		temp_env::with_var("FORCE_SIZE", None::<&str>, || {
-			let rendered =
-				Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderContext::unlimited());
+		let rendered =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderContext::unlimited());
 
-			assert_eq!(
-				rendered.text,
-				r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"><br><br>▄▀█<br>█▀█<br><br></div>"#,
-			);
-		});
+		assert_eq!(
+			rendered.text,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"><br><br>▄▀█<br>█▀█<br><br></div>"#,
+		);
 	}
 
 	#[test]

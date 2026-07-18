@@ -12,8 +12,6 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
 		"noEmitOnError": true,
 		"removeComments": false,
 	},

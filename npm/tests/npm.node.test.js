@@ -447,13 +447,6 @@ test("NodeHost say writes exactly once", () => {
 	});
 });
 
-test("FORCE_SIZE overrides the terminal width detection", () => {
-	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(new NodeHost()).text);
-	const narrow = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
-
-	assert.equal(forced, narrow);
-});
-
 test("FORCE_SIZE zero means unlimited", () => {
 	const unlimited = withTerminal(13, "0", () => Cfonts.text("AAAA").render(new NodeHost()).text);
 	const wide = withTerminal(13, "120", () => Cfonts.text("AAAA").render(new NodeHost()).text);

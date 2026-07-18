@@ -78,6 +78,19 @@ impl Default for BlockOptions {
 	}
 }
 
+impl BlockOptions {
+	/// Builds one text block and normalizes text to the supported uppercase glyph set
+	pub fn new(text: impl Into<String>) -> Self {
+		let mut text = text.into();
+		text.make_ascii_uppercase();
+
+		Self {
+			text,
+			..Default::default()
+		}
+	}
+}
+
 /// Global render options for one cfonts composition
 ///
 /// Global settings apply to the whole composition, while [`BlockOptions`] settings apply to individual text blocks

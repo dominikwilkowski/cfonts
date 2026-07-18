@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// The output of a render: one complete artifact in the selected environment's format
-/// (ANSI text, an HTML snippet, a console.log statement)
+/// (ANSI text, an HTML snippet, a browser-console banner)
 #[derive(Debug, Default)]
 pub struct Rendered {
 	/// The artifact's primary text
@@ -88,7 +88,12 @@ pub trait Environment {
 	}
 
 	/// Runs before painting one rendered row
-	fn row_start(&self, _row_width: usize, _context: &RenderContext, _options: &Options, _out: &mut Rendered) {}
+	///
+	/// The default expresses the row's alignment as physical padding;
+	/// environments with their own alignment syntax override this
+	fn row_start(&self, row: &LayoutRow, _options: &Options, out: &mut Rendered) {
+		self.blank(row.align_offset, out);
+	}
 
 	/// A run of empty columns (valign padding rows)
 	fn blank(&self, width: usize, out: &mut Rendered) {
@@ -126,7 +131,7 @@ pub trait Environment {
 
 		RowEvent::each(rows, |event| match event {
 			RowEvent::RowStart { row } => {
-				self.row_start(row.width, context, options, &mut out);
+				self.row_start(row, options, &mut out);
 			}
 			RowEvent::Text { text, .. } => {
 				// TODO(color): resolve paint tokens from the entry's block options
@@ -197,6 +202,21 @@ mod tests {
 		let mut out = Rendered::default();
 		CliEnv.paint("TEXT", "<start>", "<end>", &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
+	}
+
+	// row_start
+
+	#[test]
+	fn the_default_row_start_paints_the_alignment_offset() {
+		let row = LayoutRow {
+			entries: Vec::new(),
+			width: 3,
+			align_offset: 4,
+		};
+		let mut out = Rendered::default();
+		CliEnv.row_start(&row, &Options::default(), &mut out);
+
+		assert_eq!(out.text, "    ");
 	}
 
 	// render

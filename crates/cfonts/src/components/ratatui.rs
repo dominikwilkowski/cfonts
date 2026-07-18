@@ -6,7 +6,7 @@ use ::ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 use crate::{
 	fonts::Segment,
 	layout::{Layout, RowEntry},
-	options::{Align, Options},
+	options::Options,
 };
 
 /// A Ratatui widget that renders cfonts directly into a terminal buffer
@@ -23,6 +23,11 @@ pub struct CfontsWidget<'a> {
 
 impl Widget for &CfontsWidget<'_> {
 	fn render(self, area: Rect, buffer: &mut Buffer) {
+		// An empty area can show nothing; building the layout for it would be pure waste
+		if area.is_empty() {
+			return;
+		}
+
 		let rows = Layout::build(self.options, Some(area.width as usize)).into_rows();
 
 		for (row_offset, row) in rows.iter().take(area.height as usize).enumerate() {
@@ -31,15 +36,8 @@ impl Widget for &CfontsWidget<'_> {
 				break;
 			}
 
-			// each row aligns by its own width, mirroring the CLI environment
-			let gap = (area.width as usize).saturating_sub(row.width);
-			let padding = match self.options.align {
-				Align::Left => 0,
-				Align::Center => gap / 2,
-				Align::Right => gap,
-			};
-
-			let mut x = area.x + padding as u16;
+			// the layout computed each row's alignment inside the canvas already
+			let mut x = area.x.saturating_add(row.align_offset as u16);
 			for entry in &row.entries {
 				if x >= area.right() {
 					break;
@@ -59,7 +57,7 @@ impl Widget for &CfontsWidget<'_> {
 					}
 					// Blank columns leave cells untouched so the widget stays transparent
 					// Background colors can paint these cells once color support lands
-					RowEntry::Blank { width, .. } => x = (x + *width as u16).min(area.right()),
+					RowEntry::Blank { width, .. } => x = (x as usize).saturating_add(*width).min(area.right() as usize) as u16,
 				}
 			}
 		}
@@ -73,7 +71,7 @@ mod tests {
 
 	use crate::{
 		fonts::Font,
-		options::Valign,
+		options::{Align, Valign},
 		tests::{block, options},
 	};
 
@@ -88,6 +86,15 @@ mod tests {
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
 
 		terminal.backend().assert_buffer_lines(["▄▀█  ", "█▀█  ", "     "]);
+	}
+
+	#[test]
+	fn widget_ignores_an_empty_area() {
+		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		let widget = CfontsWidget { options: &options };
+		let mut terminal = Terminal::new(TestBackend::new(0, 0)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
 	}
 
 	#[test]

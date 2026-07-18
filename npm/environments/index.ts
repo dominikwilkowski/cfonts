@@ -14,6 +14,10 @@ type EnvironmentKind = (typeof EnvironmentKind)[keyof typeof EnvironmentKind];
 
 /**
  * A built-in environment that converts a composition into one artifact format
+ *
+ * This is a deliberately closed set: JavaScript cannot implement new environments
+ * because all formatting runs inside the WASM. Custom artifact formats belong to
+ * the Rust `Environment` trait; custom runtimes implement the open `Host` interface
  */
 export interface Environment {
 	readonly [environmentKind]: EnvironmentKind;

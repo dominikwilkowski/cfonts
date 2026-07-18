@@ -1,6 +1,6 @@
 use crate::{
 	fonts::{GlyphRef, GlyphRow},
-	options::{BlockOptions, Options, Valign},
+	options::{Align, BlockOptions, Options, Valign},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -48,8 +48,14 @@ enum Break {
 /// A row of glyphs for a single line in the layout
 #[derive(Debug)]
 pub struct LayoutRow {
+	/// All glyphs of a line
 	pub entries: Vec<RowEntry>,
+
+	/// The max size of this line of glyphs
 	pub width: usize,
+
+	/// Columns of leading padding that place this row inside the canvas
+	pub align_offset: usize,
 }
 
 pub(crate) struct Layout<'a> {
@@ -128,7 +134,7 @@ impl<'a> Layout<'a> {
 
 		// Flush the final line after all blocks have contributed their trailing buffers
 		if !options.blocks.is_empty() {
-			layout.flush_line();
+			layout.flush_line(canvas_width);
 		}
 
 		layout
@@ -161,7 +167,7 @@ impl<'a> Layout<'a> {
 			// `|` forces a logical line break, including empty lines
 			if ch == '|' {
 				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
-				self.flush_line();
+				self.flush_line(terminal_width);
 				self.push_glyph(buffer_start);
 				continue; // Skip as `|` does not print anything
 			}
@@ -275,14 +281,18 @@ impl<'a> Layout<'a> {
 			return;
 		}
 
+		let mut fits = self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width);
+
 		// Wrap only if this line already holds printable content:
 		// a word that fits no line at all starts here and gets split below instead
-		if !self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width) && self.line_glyph_count > 0 {
-			self.flush_line();
+		if !fits && self.line_glyph_count > 0 {
+			self.flush_line(terminal_width);
 			self.push_glyph(buffer_start);
+			// The flush emptied the line so the verdict must be recomputed
+			fits = self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width);
 		}
 
-		if self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width) {
+		if fits {
 			// Insert inter-word letter spacing before a non-initial word
 			if self.space_pending {
 				for _ in 0..letter_spacing {
@@ -315,7 +325,7 @@ impl<'a> Layout<'a> {
 					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get()))
 					&& self.line_glyph_count > 0
 				{
-					self.flush_line();
+					self.flush_line(terminal_width);
 					self.push_glyph(buffer_start);
 				} else {
 					for _ in 0..letter_spacing_count {
@@ -341,10 +351,32 @@ impl<'a> Layout<'a> {
 		self.line.push(glyph);
 	}
 
+	/// Columns of leading padding that place a row of `row_width` inside the canvas
+	///
+	/// Empty rows and rows without a canvas have nothing to align against
+	fn align_offset(&self, row_width: usize, terminal_width: Option<usize>) -> usize {
+		let Some(terminal_width) = terminal_width else {
+			return 0;
+		};
+
+		if row_width == 0 {
+			return 0;
+		}
+
+		let gap = terminal_width.saturating_sub(row_width);
+
+		match self.options.align {
+			Align::Left => 0,
+			Align::Center => gap / 2,
+			Align::Right => gap,
+		}
+	}
+
 	/// Flushing a complete line to our output
-	fn flush_line(&mut self) {
+	fn flush_line(&mut self, terminal_width: Option<usize>) {
 		let mut current_block: Option<usize> = None;
 		let line_width = self.line_output_width;
+		let align_offset = self.align_offset(line_width, terminal_width);
 		let mut padding = 0;
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
@@ -361,6 +393,7 @@ impl<'a> Layout<'a> {
 				self.output.push(LayoutRow {
 					entries: Vec::new(),
 					width: 0,
+					align_offset: 0,
 				});
 			}
 		}
@@ -390,6 +423,7 @@ impl<'a> Layout<'a> {
 			self.output.push(LayoutRow {
 				entries,
 				width: line_width,
+				align_offset,
 			});
 		}
 
@@ -402,7 +436,7 @@ impl<'a> Layout<'a> {
 	}
 
 	/// Moving `output` out consumes Layout;
-	/// Rust drops the remaining fields: `line` and `word` buffers before render_with_width() starts
+	/// Rust drops the remaining fields: `line` and `word` buffers before render_rows() starts
 	pub(crate) fn into_rows(self) -> Vec<LayoutRow> {
 		self.output
 	}
@@ -491,7 +525,7 @@ mod tests {
 			glyph: tiny_font.get_glyph('B').unwrap(),
 			block_index: 1,
 		});
-		layout.flush_line();
+		layout.flush_line(None);
 		layout
 			.output
 			.iter()
@@ -880,6 +914,97 @@ mod tests {
 		assert_eq!(layout.line_output_width, glyph_a.width + glyph_b.width);
 	}
 
+	// align_offset
+
+	#[test]
+	fn align_offset_is_zero_without_a_canvas() {
+		let mut options = options(Valign::Top, None, vec![]);
+		options.align = Align::Right;
+		let layout = Layout::new(&options);
+
+		assert_eq!(layout.align_offset(4, None), 0);
+	}
+
+	#[test]
+	fn align_offset_is_zero_for_left_alignment() {
+		let options = options(Valign::Top, None, vec![]);
+		let layout = Layout::new(&options);
+
+		assert_eq!(layout.align_offset(4, Some(10)), 0);
+	}
+
+	#[test]
+	fn align_offset_centers_with_floored_padding() {
+		let mut options = options(Valign::Top, None, vec![]);
+		options.align = Align::Center;
+		let layout = Layout::new(&options);
+
+		// an uneven gap floors the padding so the left side gets less
+		assert_eq!(layout.align_offset(3, Some(10)), 3);
+	}
+
+	#[test]
+	fn align_offset_right_aligns_into_the_gap() {
+		let mut options = options(Valign::Top, None, vec![]);
+		options.align = Align::Right;
+		let layout = Layout::new(&options);
+
+		assert_eq!(layout.align_offset(4, Some(10)), 6);
+	}
+
+	#[test]
+	fn align_offset_is_zero_for_empty_rows() {
+		// empty line-height rows have nothing to align
+		let mut options = options(Valign::Top, None, vec![]);
+		options.align = Align::Right;
+		let layout = Layout::new(&options);
+
+		assert_eq!(layout.align_offset(0, Some(10)), 0);
+	}
+
+	#[test]
+	fn align_offset_is_zero_when_the_row_overflows_the_canvas() {
+		let mut options = options(Valign::Top, None, vec![]);
+		options.align = Align::Right;
+		let layout = Layout::new(&options);
+
+		assert_eq!(layout.align_offset(12, Some(10)), 0);
+	}
+
+	#[test]
+	fn rows_carry_their_lines_alignment_offsets() {
+		// each line aligns by its own width; the empty line-height rows between them stay at zero
+		let mut options = options(Valign::Top, None, vec![block("A|BB", Font::Tiny, false)]);
+		options.align = Align::Center;
+		let rows = Layout::build(&options, Some(11)).into_rows();
+
+		let offsets: Vec<usize> = rows.iter().map(|row| row.align_offset).collect();
+		let widths: Vec<usize> = rows.iter().map(|row| row.width).collect();
+
+		// A is 3 wide (gap 8 floors to 4), BB is 7 wide (gap 4 halves to 2)
+		assert_eq!(widths, vec![3, 3, 0, 7, 7]);
+		assert_eq!(offsets, vec![4, 4, 0, 2, 2]);
+	}
+
+	#[test]
+	fn wrapped_lines_align_by_their_own_width() {
+		let mut options = options(Valign::Top, None, vec![block("AA BB", Font::Tiny, true)]);
+		options.align = Align::Center;
+		let rows = Layout::build(&options, Some(9)).into_rows();
+
+		let mut printable_rows = 0;
+		for row in &rows {
+			if row.width > 0 {
+				assert_eq!(row.align_offset, (9 - row.width) / 2, "row width {}", row.width);
+				printable_rows += 1;
+			} else {
+				assert_eq!(row.align_offset, 0);
+			}
+		}
+
+		assert!(printable_rows >= 4, "the text must have wrapped into at least two lines");
+	}
+
 	// flush_line
 
 	#[test]
@@ -906,7 +1031,7 @@ mod tests {
 			glyph: tiny_glyph,
 			block_index: 1,
 		});
-		layout.flush_line();
+		layout.flush_line(None);
 
 		// every row spans the same columns: Blank rows claim exactly the glyph width
 		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
@@ -929,7 +1054,7 @@ mod tests {
 			block_index: 0,
 		});
 
-		layout.flush_line();
+		layout.flush_line(None);
 
 		assert!(layout.line.is_empty());
 		assert_eq!(layout.line_output_width, 0);

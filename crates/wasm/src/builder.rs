@@ -23,13 +23,6 @@ pub struct Cfonts {
 }
 
 impl Cfonts {
-	/// Builds one normalized block through the core builder
-	fn new_block(input: String) -> BlockOptions {
-		let mut options: Options = CoreCfonts::text(input).into();
-
-		options.blocks.pop().expect("Cfonts::text always creates one block")
-	}
-
 	/// Returns the block targeted by local setters
 	fn current_block_mut(&mut self) -> &mut BlockOptions {
 		self.options.blocks.last_mut().expect("Cfonts always contains one block")
@@ -61,7 +54,7 @@ impl Cfonts {
 	/// Starts a new text block
 	#[wasm_bindgen(js_name = newText)]
 	pub fn new_text(&mut self, input: String) {
-		self.options.blocks.push(Self::new_block(input));
+		self.options.blocks.push(BlockOptions::new(input));
 	}
 
 	/// Sets the font for the current block
