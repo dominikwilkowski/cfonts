@@ -45,13 +45,13 @@ export const BrowserConsoleEnv = defineEnvironment(EnvironmentKind.BrowserConsol
 export function renderEnvironment(builder: WasmCfonts, environment: Environment, context: RenderContext): Rendered {
 	switch (environment?.[environmentKind]) {
 		case EnvironmentKind.Cli:
-			return builder.renderCli(context.canvasWidth);
+			return builder.renderCli(context.canvasWidth, context.colorLevel, context.seed);
 
 		case EnvironmentKind.Browser:
-			return builder.renderBrowser(context.canvasWidth);
+			return builder.renderBrowser(context.canvasWidth, context.colorLevel, context.seed);
 
 		case EnvironmentKind.BrowserConsole:
-			return builder.renderBrowserConsole(context.canvasWidth);
+			return builder.renderBrowserConsole(context.canvasWidth, context.colorLevel, context.seed);
 
 		default:
 			throw new TypeError("`renderWith()` expects a cfonts environment");

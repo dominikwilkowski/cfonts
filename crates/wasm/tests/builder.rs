@@ -18,9 +18,9 @@ impl Target {
 
 	fn render(self, banner: &Cfonts, canvas_width: Option<usize>) -> Rendered {
 		match self {
-			Self::Cli => banner.render_cli(canvas_width),
-			Self::Browser => banner.render_browser(canvas_width),
-			Self::BrowserConsole => banner.render_browser_console(canvas_width),
+			Self::Cli => banner.render_cli(canvas_width, None, None),
+			Self::Browser => banner.render_browser(canvas_width, None, None),
+			Self::BrowserConsole => banner.render_browser_console(canvas_width, None, None),
 		}
 	}
 
@@ -79,7 +79,7 @@ fn a_fixed_width_is_forwarded_to_every_environment() {
 
 #[wasm_bindgen_test]
 fn browser_console_render_returns_an_artifact() {
-	let rendered = wrapping_banner().render_browser_console(None);
+	let rendered = wrapping_banner().render_browser_console(None, None, None);
 
 	// Logging belongs to BrowserHost in TypeScript so the raw binding only returns data
 	assert_eq!(rendered.text, "▄▀█ ▄▀█\n█▀█ █▀█",);
@@ -113,7 +113,7 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 		.max_length(2)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	assert_eq!(actual.render_browser(None).text, expected.text,);
+	assert_eq!(actual.render_browser(None, None, None).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -161,7 +161,7 @@ fn local_settings_can_be_configured_repeatedly() {
 		.font(CoreFont::Tiny)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	assert_eq!(actual.render_browser(None).text, expected.text,);
+	assert_eq!(actual.render_browser(None, None, None).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -172,7 +172,7 @@ fn builders_keep_independent_state() {
 
 	let block = Cfonts::text("A".to_owned());
 
-	assert_ne!(tiny.render_browser(None).text, block.render_browser(None).text,);
+	assert_ne!(tiny.render_browser(None, None, None).text, block.render_browser(None, None, None).text,);
 }
 
 #[wasm_bindgen_test]

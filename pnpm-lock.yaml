@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      supports-color:
+        specifier: ^10.2.2
+        version: 10.2.2
       window-size:
         specifier: ^1
         version: 1.1.1
@@ -519,6 +522,10 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
+  supports-color@10.2.2:
+    resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
+    engines: {node: '>=18'}
+
   tar@7.5.19:
     resolution: {integrity: sha512-4LeEWl96twnS2Q7Bz4MGqgazLqO+hJN63GZxXoIqh1T3VweYD997gbU1ItNsQafqqXTXd5WFyFdReLtwvRBNiw==}
     engines: {node: '>=18'}
@@ -929,6 +936,8 @@ snapshots:
       '@rolldown/binding-win32-x64-msvc': 1.1.5
 
   source-map-js@1.2.1: {}
+
+  supports-color@10.2.2: {}
 
   tar@7.5.19:
     dependencies:

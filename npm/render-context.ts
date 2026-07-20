@@ -1,5 +1,8 @@
-import { expectU32 } from "./validation.js";
+import { ColorLevel } from "../pkg/cfonts_wasm.js";
 
+import { expectEnum, expectU32 } from "./validation.js";
+
+/** Resolved capabilities for one render */
 export interface RenderContext {
 	/**
 	 * Resolved width in columns
@@ -7,6 +10,16 @@ export interface RenderContext {
 	 * Undefined and zero mean unlimited
 	 */
 	readonly canvasWidth?: number;
+
+	/**
+	 * Resolved color support
+	 *
+	 * Undefined paints nothing
+	 */
+	readonly colorLevel?: ColorLevel;
+
+	/** The seed that makes candy colors reproducible */
+	readonly seed?: number;
 }
 
 export interface RenderOverrides {
@@ -16,6 +29,16 @@ export interface RenderOverrides {
 	 * Undefined means automatic detection and zero means unlimited
 	 */
 	readonly canvasWidth?: number;
+
+	/**
+	 * Color support requested by the consumer
+	 *
+	 * Undefined means automatic detection and false disables colors
+	 */
+	readonly color?: ColorLevel | false;
+
+	/** Overrides the host's entropy for reproducible candy colors */
+	readonly seed?: number;
 }
 
 const UNLIMITED_CONTEXT: RenderContext = Object.freeze({});
@@ -29,13 +52,19 @@ export function normalizeRenderContext(context?: RenderContext): RenderContext {
 		throw new TypeError("`renderWith()` expects a render context object");
 	}
 
-	const canvasWidth = context.canvasWidth;
+	const canvasWidth =
+		context.canvasWidth === undefined || expectU32(context.canvasWidth, "renderWith") === 0
+			? undefined
+			: context.canvasWidth;
+	const colorLevel =
+		context.colorLevel === undefined ? undefined : expectEnum<ColorLevel>(context.colorLevel, ColorLevel, "renderWith");
+	const seed = context.seed === undefined ? undefined : expectU32(context.seed, "renderWith");
 
-	if (canvasWidth === undefined || expectU32(canvasWidth, "renderWith") === 0) {
+	if (canvasWidth === undefined && colorLevel === undefined && seed === undefined) {
 		return UNLIMITED_CONTEXT;
 	}
 
-	return Object.freeze({ canvasWidth });
+	return Object.freeze({ canvasWidth, colorLevel, seed });
 }
 
 export function normalizeRenderOverrides(overrides: RenderOverrides): RenderOverrides {
@@ -43,21 +72,18 @@ export function normalizeRenderOverrides(overrides: RenderOverrides): RenderOver
 		throw new TypeError("`fromOverrides()` expects an overrides object");
 	}
 
-	const canvasWidth = overrides.canvasWidth;
+	const canvasWidth =
+		overrides.canvasWidth === undefined ? undefined : expectU32(overrides.canvasWidth, "fromOverrides");
+	const color =
+		overrides.color === undefined || overrides.color === false
+			? overrides.color
+			: expectEnum<ColorLevel>(overrides.color, ColorLevel, "fromOverrides");
+	const seed = overrides.seed === undefined ? undefined : expectU32(overrides.seed, "fromOverrides");
 
-	if (canvasWidth === undefined) {
-		return Object.freeze({});
-	}
-
-	return Object.freeze({
-		canvasWidth: expectU32(canvasWidth, "fromOverrides"),
-	});
+	return Object.freeze({ canvasWidth, color, seed });
 }
 
-export function contextFromCanvasWidth(canvasWidth: number | undefined): RenderContext {
-	if (canvasWidth === undefined || canvasWidth === 0) {
-		return UNLIMITED_CONTEXT;
-	}
-
-	return Object.freeze({ canvasWidth });
+/** Fresh entropy for candy colors */
+export function randomSeed(): number {
+	return Math.floor(Math.random() * 0x1_0000_0000);
 }

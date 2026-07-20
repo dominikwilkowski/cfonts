@@ -1,10 +1,10 @@
-import { Align, Cfonts as WasmCfonts, Font, Valign, type Rendered } from "../pkg/cfonts_wasm.js";
+import { Align, Cfonts as WasmCfonts, Font, Valign, type Rendered, ColorLevel } from "../pkg/cfonts_wasm.js";
 import { BrowserConsoleEnv, BrowserEnv, CliEnv, renderEnvironment, type Environment } from "./environments/index.js";
 import type { Host } from "./hosts/types.js";
 import { normalizeRenderContext, type RenderContext, type RenderOverrides } from "./render-context.js";
 import { expectEnum, expectString, expectU32 } from "./validation.js";
 
-export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Font, Valign };
+export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Font, Valign, ColorLevel };
 
 export type { Environment, Host, RenderContext, Rendered, RenderOverrides };
 

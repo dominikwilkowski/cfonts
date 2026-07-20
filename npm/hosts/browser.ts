@@ -1,11 +1,7 @@
+import { ColorLevel } from "../../pkg/cfonts_wasm.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { BrowserConsoleEnv, BrowserEnv } from "../environments/index.js";
-import {
-	contextFromCanvasWidth,
-	normalizeRenderOverrides,
-	type RenderContext,
-	type RenderOverrides,
-} from "../render-context.js";
+import { normalizeRenderOverrides, randomSeed, type RenderContext, type RenderOverrides } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**
@@ -24,14 +20,11 @@ export class BrowserHost implements Host {
 	}
 
 	render(composition: Cfonts): Rendered {
-		const context = this.#resolveContext();
-
-		return composition.renderWith(BrowserEnv, context);
+		return composition.renderWith(BrowserEnv, this.#resolveContext());
 	}
 
 	say(composition: Cfonts): void {
-		const context = this.#resolveContext();
-		const rendered = composition.renderWith(BrowserConsoleEnv, context);
+		const rendered = composition.renderWith(BrowserConsoleEnv, this.#resolveContext());
 
 		console.log(rendered.text);
 
@@ -39,6 +32,13 @@ export class BrowserHost implements Host {
 	}
 
 	#resolveContext(): RenderContext {
-		return contextFromCanvasWidth(this.#overrides.canvasWidth);
+		const override = this.#overrides.color;
+
+		return Object.freeze({
+			canvasWidth: this.#overrides.canvasWidth === 0 ? undefined : this.#overrides.canvasWidth,
+			// pages always support full color unless told otherwise
+			colorLevel: override === false ? undefined : (override ?? ColorLevel.TrueColor),
+			seed: this.#overrides.seed ?? randomSeed(),
+		});
 	}
 }

@@ -1,13 +1,12 @@
+import supportsColor from "supports-color";
+// window-size's main export is a load-time snapshot that is undefined in pipes;
+// its get() in utils always detects fresh, per render
 import windowSize from "window-size/utils.js";
 
+import { ColorLevel } from "../../pkg/cfonts_wasm.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { CliEnv } from "../environments/index.js";
-import {
-	contextFromCanvasWidth,
-	normalizeRenderOverrides,
-	type RenderContext,
-	type RenderOverrides,
-} from "../render-context.js";
+import { normalizeRenderOverrides, randomSeed, type RenderContext, type RenderOverrides } from "../render-context.js";
 import { parseU32 } from "../validation.js";
 import type { Host } from "./types.js";
 
@@ -22,7 +21,7 @@ export class NodeHost implements Host {
 	/**
 	 * Creates a Node host with explicit capability overrides
 	 *
-	 * FORCE_SIZE still takes precedence over these values
+	 * FORCE_SIZE and FORCE_COLOR still take precedence over these values
 	 */
 	static fromOverrides(overrides: RenderOverrides): NodeHost {
 		const host = new NodeHost();
@@ -31,31 +30,80 @@ export class NodeHost implements Host {
 	}
 
 	render(composition: Cfonts): Rendered {
-		const context = this.#resolveContext();
-
-		return composition.renderWith(CliEnv, context);
+		return composition.renderWith(CliEnv, this.#resolveContext());
 	}
 
 	say(composition: Cfonts): void {
-		const context = this.#resolveContext();
-		const rendered = composition.renderWith(CliEnv, context);
+		const rendered = composition.renderWith(CliEnv, this.#resolveContext());
 
 		process.stdout.write(`${rendered.text}\n`);
 	}
 
 	#resolveContext(): RenderContext {
+		return Object.freeze({
+			canvasWidth: this.#resolveCanvasWidth(),
+			colorLevel: this.#resolveColorLevel(),
+			seed: this.#overrides.seed ?? randomSeed(),
+		});
+	}
+
+	#resolveCanvasWidth(): number | undefined {
 		const forced = parseU32(process.env.FORCE_SIZE);
 
 		if (forced !== undefined) {
-			return contextFromCanvasWidth(forced);
+			return forced === 0 ? undefined : forced;
 		}
 
 		if (this.#overrides.canvasWidth !== undefined) {
-			return contextFromCanvasWidth(this.#overrides.canvasWidth);
+			return this.#overrides.canvasWidth === 0 ? undefined : this.#overrides.canvasWidth;
 		}
 
-		const detected = windowSize.get()?.width;
+		return windowSize.get()?.width ?? FALLBACK_WIDTH;
+	}
 
-		return contextFromCanvasWidth(detected ?? FALLBACK_WIDTH);
+	#resolveColorLevel(): ColorLevel | undefined {
+		switch (process.env.FORCE_COLOR) {
+			case "0":
+				return undefined;
+			case "1":
+				return ColorLevel.Basic;
+			case "2":
+				return ColorLevel.Ansi256;
+			case "3":
+				return ColorLevel.TrueColor;
+			default:
+				// any other value is treated as absent
+				break;
+		}
+
+		if (process.env.NO_COLOR !== undefined) {
+			return undefined;
+		}
+
+		const override = this.#overrides.color;
+
+		if (override === false) {
+			return undefined;
+		}
+
+		if (override !== undefined) {
+			return override;
+		}
+
+		// terminals that cannot be detected still get full color
+		const detected = supportsColor.stdout;
+
+		if (!detected) {
+			return ColorLevel.TrueColor;
+		}
+
+		switch (detected.level) {
+			case 1:
+				return ColorLevel.Basic;
+			case 2:
+				return ColorLevel.Ansi256;
+			default:
+				return ColorLevel.TrueColor;
+		}
 	}
 }

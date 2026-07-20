@@ -5,7 +5,7 @@ use std::{
 
 use terminal_size::{Width, terminal_size};
 
-use crate::{CanvasWidth, CliEnv, Host, RenderContext, RenderOverrides, Rendered};
+use crate::{CanvasWidth, CliEnv, ColorLevel, ColorOverride, Host, RenderContext, RenderOverrides, Rendered};
 
 const FALLBACK_WIDTH: usize = 80;
 
@@ -41,10 +41,18 @@ impl Host for RustHost {
 	}
 
 	fn resolve_context(&self) -> RenderContext {
-		let forced = std::env::var("FORCE_SIZE").ok();
-		let width = Self::resolve_canvas_width(forced.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
+		let forced_width = std::env::var("FORCE_SIZE").ok();
+		let width =
+			Self::resolve_canvas_width(forced_width.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
+
+		let forced_color = std::env::var("FORCE_COLOR").ok();
+		let no_color = std::env::var_os("NO_COLOR").is_some();
+		let color_level =
+			Self::resolve_color_level(forced_color.as_deref(), no_color, self.overrides.color(), Self::detect_color_level);
 
 		RenderContext::from_validated_width(width)
+			.with_color_level(color_level)
+			.with_seed(self.overrides.seed().unwrap_or_else(Self::entropy))
 	}
 
 	fn write(&self, rendered: &Rendered) -> Result<(), Self::Error> {
@@ -72,6 +80,54 @@ impl RustHost {
 
 	fn detect_canvas_width() -> Option<NonZeroUsize> {
 		terminal_size().and_then(|(Width(width), _)| NonZeroUsize::new(width as usize))
+	}
+
+	/// FORCE_COLOR wins over NO_COLOR, which wins over the API override, which skips detection;
+	/// None means paint nothing
+	fn resolve_color_level(
+		forced: Option<&str>,
+		no_color: bool,
+		override_color: ColorOverride,
+		detect: impl FnOnce() -> Option<ColorLevel>,
+	) -> Option<ColorLevel> {
+		match forced {
+			Some("0") => return None,
+			Some("1") => return Some(ColorLevel::Basic),
+			Some("2") => return Some(ColorLevel::Ansi256),
+			Some("3") => return Some(ColorLevel::TrueColor),
+			// any other value is treated as absent
+			_ => {}
+		}
+
+		if no_color {
+			return None;
+		}
+
+		match override_color {
+			// terminals that cannot be detected still get full color
+			ColorOverride::Auto => Some(detect().unwrap_or(ColorLevel::TrueColor)),
+			ColorOverride::Disabled => None,
+			ColorOverride::Level(level) => Some(level),
+		}
+	}
+
+	fn detect_color_level() -> Option<ColorLevel> {
+		supports_color::on(supports_color::Stream::Stdout).map(|support| {
+			if support.has_16m {
+				ColorLevel::TrueColor
+			} else if support.has_256 {
+				ColorLevel::Ansi256
+			} else {
+				ColorLevel::Basic
+			}
+		})
+	}
+
+	/// Fresh per-process entropy for candy colors, without a dependency
+	fn entropy() -> u64 {
+		use std::hash::{BuildHasher, Hasher};
+
+		std::collections::hash_map::RandomState::new().build_hasher().finish()
 	}
 }
 
@@ -172,6 +228,137 @@ mod tests {
 
 		assert_eq!(resolved, Some(width(120)));
 		assert_eq!(detection_calls.get(), 1);
+	}
+
+	// resolve_color_level
+
+	#[test]
+	fn force_color_zero_disables_colors_even_with_an_api_override() {
+		let resolved = RustHost::resolve_color_level(Some("0"), false, ColorOverride::Level(ColorLevel::TrueColor), || {
+			panic!("a forced color level must skip detection")
+		});
+
+		assert_eq!(resolved, None);
+	}
+
+	#[test]
+	fn force_color_sets_fixed_levels() {
+		for (forced, expected) in [
+			("1", ColorLevel::Basic),
+			("2", ColorLevel::Ansi256),
+			("3", ColorLevel::TrueColor),
+		] {
+			let resolved = RustHost::resolve_color_level(Some(forced), false, ColorOverride::Auto, || {
+				panic!("a forced color level must skip detection")
+			});
+
+			assert_eq!(resolved, Some(expected), "{forced:?}");
+		}
+	}
+
+	#[test]
+	fn invalid_force_color_is_treated_as_absent() {
+		for forced in ["", "abc", "4", "true"] {
+			let resolved =
+				RustHost::resolve_color_level(Some(forced), false, ColorOverride::Level(ColorLevel::Basic), || {
+					panic!("an api override must skip detection")
+				});
+
+			assert_eq!(resolved, Some(ColorLevel::Basic), "{forced:?}");
+		}
+	}
+
+	#[test]
+	fn force_color_wins_over_no_color() {
+		let resolved = RustHost::resolve_color_level(Some("3"), true, ColorOverride::Auto, || {
+			panic!("a forced color level must skip detection")
+		});
+
+		assert_eq!(resolved, Some(ColorLevel::TrueColor));
+	}
+
+	#[test]
+	fn no_color_wins_over_the_api_override() {
+		let resolved = RustHost::resolve_color_level(None, true, ColorOverride::Level(ColorLevel::TrueColor), || {
+			panic!("no-color must skip detection")
+		});
+
+		assert_eq!(resolved, None);
+	}
+
+	#[test]
+	fn the_api_override_skips_detection() {
+		let disabled = RustHost::resolve_color_level(None, false, ColorOverride::Disabled, || {
+			panic!("a disabled override must skip detection")
+		});
+		let fixed = RustHost::resolve_color_level(None, false, ColorOverride::Level(ColorLevel::Ansi256), || {
+			panic!("a fixed override must skip detection")
+		});
+
+		assert_eq!(disabled, None);
+		assert_eq!(fixed, Some(ColorLevel::Ansi256));
+	}
+
+	#[test]
+	fn auto_uses_the_detected_level() {
+		let detection_calls = Cell::new(0);
+
+		let resolved = RustHost::resolve_color_level(None, false, ColorOverride::Auto, || {
+			detection_calls.set(detection_calls.get() + 1);
+			Some(ColorLevel::Ansi256)
+		});
+
+		assert_eq!(resolved, Some(ColorLevel::Ansi256));
+		assert_eq!(detection_calls.get(), 1);
+	}
+
+	#[test]
+	fn auto_falls_back_to_full_color_when_detection_is_blind() {
+		let resolved = RustHost::resolve_color_level(None, false, ColorOverride::Auto, || None);
+
+		assert_eq!(resolved, Some(ColorLevel::TrueColor));
+	}
+
+	// entropy
+
+	#[test]
+	fn entropy_differs_between_calls() {
+		assert_ne!(RustHost::entropy(), RustHost::entropy());
+	}
+
+	// resolve_context
+
+	#[test]
+	fn the_context_carries_the_seed_override() {
+		temp_env::with_vars(
+			[
+				("FORCE_SIZE", None::<&str>),
+				("FORCE_COLOR", None::<&str>),
+				("NO_COLOR", None::<&str>),
+			],
+			|| {
+				let host = RustHost::from_overrides(RenderOverrides::default().with_seed(42));
+
+				assert_eq!(host.resolve_context().seed(), 42);
+			},
+		);
+	}
+
+	#[test]
+	fn the_context_seeds_itself_without_an_override() {
+		temp_env::with_vars(
+			[
+				("FORCE_SIZE", None::<&str>),
+				("FORCE_COLOR", None::<&str>),
+				("NO_COLOR", None::<&str>),
+			],
+			|| {
+				let one = RustHost::default().resolve_context().seed();
+				let two = RustHost::default().resolve_context().seed();
+
+				assert_ne!(one, two);
+			},
+		);
 	}
 
 	#[test]

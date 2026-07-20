@@ -52,6 +52,7 @@
 		"prepublishOnly": "pnpm run test"
 	},
 	"dependencies": {
+		"supports-color": "^10.2.2",
 		"window-size": "^1"
 	},
 	"devDependencies": {

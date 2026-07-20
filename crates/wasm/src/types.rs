@@ -2,7 +2,9 @@ use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use cfonts::{Align as CoreAlign, Font as CoreFont, Rendered as CoreRendered, Valign as CoreValign};
+use cfonts::{
+	Align as CoreAlign, ColorLevel as CoreColorLevel, Font as CoreFont, Rendered as CoreRendered, Valign as CoreValign,
+};
 
 macro_rules! bridge_enum {
 	($wasm:ident => $core:ident {
@@ -42,6 +44,12 @@ bridge_enum!(Valign => CoreValign {
 	Top,
 	Middle,
 	Bottom,
+});
+
+bridge_enum!(ColorLevel => CoreColorLevel {
+	Basic,
+	Ansi256,
+	TrueColor,
 });
 
 bridge_enum!(Font => CoreFont {

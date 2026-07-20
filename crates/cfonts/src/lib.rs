@@ -13,7 +13,7 @@ pub use environments::{BrowserConsoleEnv, BrowserEnv, CliEnv, Environment, Rende
 pub use fonts::Font;
 pub use hosts::Host;
 pub use options::{Align, Options, Valign};
-pub use render::{CanvasWidth, RenderContext, RenderOverrides, render_with};
+pub use render::{CanvasWidth, ColorLevel, ColorOverride, RenderContext, RenderOverrides, render_with};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use hosts::RustHost;

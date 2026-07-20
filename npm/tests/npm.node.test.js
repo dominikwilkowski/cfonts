@@ -3,7 +3,7 @@ import test from "node:test";
 
 import * as packageExports from "cfonts";
 
-const { Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Font, NodeHost, Valign } = packageExports;
+const { Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Font, NodeHost, Valign, ColorLevel } = packageExports;
 
 const INVALID_STRINGS = [0, true, null, undefined, {}, []];
 
@@ -461,4 +461,27 @@ test("FORCE_SIZE garbage falls through to detection", () => {
 
 		assert.equal(ignored, detected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
 	}
+});
+
+test("color overrides are validated", () => {
+	assert.throws(() => NodeHost.fromOverrides({ color: 99 }), TypeError);
+	assert.throws(() => NodeHost.fromOverrides({ seed: -1 }), TypeError);
+	NodeHost.fromOverrides({ color: false });
+	NodeHost.fromOverrides({ color: ColorLevel.Basic, seed: 42 });
+});
+
+test("renderWith validates color context fields", () => {
+	assert.throws(() => Cfonts.text("A").renderWith(CliEnv, { colorLevel: 99 }), TypeError);
+	assert.throws(() => Cfonts.text("A").renderWith(CliEnv, { seed: 1.5 }), TypeError);
+});
+
+test("color capabilities do not change the output yet", () => {
+	const plain = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+	const leveled = withTerminal(
+		13,
+		undefined,
+		() => Cfonts.text("AAAA").render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 42 })).text,
+	);
+
+	assert.equal(plain, leveled);
 });
