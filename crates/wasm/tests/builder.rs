@@ -4,7 +4,7 @@ use cfonts::{
 	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont, Options,
 	RenderContext, Valign as CoreValign,
 };
-use cfonts_wasm::{Align, Cfonts, Font, Rendered, Valign};
+use cfonts_wasm::{Align, Cfonts, Font, GradientPreset, Rendered, Valign};
 
 #[derive(Debug, Clone, Copy)]
 enum Target {
@@ -185,4 +185,60 @@ fn rendering_does_not_consume_or_change_the_builder() {
 
 		assert_eq!(first.text, second.text, "{target:?}",);
 	}
+}
+
+#[wasm_bindgen_test]
+fn color_configuration_does_not_change_the_output_yet() {
+	let plain = wrapping_banner();
+	let mut colored = wrapping_banner();
+
+	colored.colors(vec!["red".to_owned(), "#f80".to_owned()]).expect("valid colors");
+	colored.gradient("red".to_owned(), "#0000ff".to_owned(), true).expect("valid stops");
+	colored.gradient_preset(GradientPreset::Pride, false);
+	colored.global_transition(vec!["cyan".to_owned(), "magenta".to_owned()], false).expect("valid stops");
+
+	for target in Target::ALL {
+		assert_eq!(target.render(&colored, None).text, target.render(&plain, None).text, "{target:?}",);
+	}
+}
+
+#[wasm_bindgen_test]
+fn color_values_are_validated_at_the_boundary() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	assert!(
+		banner
+			.colors(vec![
+				"red".to_owned(),
+				"REDBRIGHT".to_owned(),
+				"#ff8800".to_owned(),
+				"f80".to_owned()
+			])
+			.is_ok()
+	);
+	assert!(banner.colors(vec!["grey".to_owned()]).is_ok()); // the alternate gray spelling
+	assert!(banner.colors(vec![]).is_ok()); // an empty list is still a configured color
+	assert!(banner.colors(vec!["reed".to_owned()]).is_err());
+	assert!(banner.colors(vec!["#ff88".to_owned()]).is_err());
+	assert!(banner.gradient("system".to_owned(), "blue".to_owned(), false).is_err()); // system is not a gradient stop
+	assert!(banner.transition(vec!["red".to_owned()], false).is_err()); // one stop is not a transition
+	assert!(banner.transition(vec!["red".to_owned(), "blue".to_owned()], false).is_ok());
+}
+
+#[wasm_bindgen_test]
+fn the_global_gradient_can_be_configured_once_across_all_shapes() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_ok());
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_err());
+	assert!(banner.global_transition(vec!["red".to_owned(), "blue".to_owned()], false).is_err());
+	assert!(banner.global_gradient_preset(GradientPreset::Pride, false).is_err());
+}
+
+#[wasm_bindgen_test]
+fn a_failed_global_gradient_does_not_claim_the_slot() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	assert!(banner.global_gradient("reed".to_owned(), "blue".to_owned(), false).is_err());
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_ok());
 }

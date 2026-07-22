@@ -11,8 +11,12 @@ pub use gradient::{GradientColors, GradientPreset};
 pub enum ColorError {
 	/// A hex color holds exactly three or six hex digits after the optional `#`
 	HexLength(usize),
+
 	/// A hex color can only hold hex digits
 	HexCharacter,
+
+	/// A transition gradient holds at least two stops
+	TransitionStops(usize),
 }
 
 impl std::fmt::Display for ColorError {
@@ -22,6 +26,9 @@ impl std::fmt::Display for ColorError {
 				write!(f, "A hex color holds exactly three or six hex digits, this one holds {length}")
 			}
 			Self::HexCharacter => write!(f, "A hex color can only hold hex digits 0-9 and A-F"),
+			Self::TransitionStops(count) => {
+				write!(f, "A transition gradient holds at least two stops, this one holds {count}")
+			}
 		}
 	}
 }
@@ -162,6 +169,33 @@ pub enum Color {
 }
 
 impl Color {
+	/// Looks up a color by its name, case insensitively
+	///
+	/// Hex values are not names: they go through [`Rgb::from_hex`]
+	pub fn from_name(name: &str) -> Option<Self> {
+		match name.to_ascii_lowercase().as_str() {
+			"system" => Some(Self::System),
+			"black" => Some(Self::Black),
+			"red" => Some(Self::Red),
+			"green" => Some(Self::Green),
+			"yellow" => Some(Self::Yellow),
+			"blue" => Some(Self::Blue),
+			"magenta" => Some(Self::Magenta),
+			"cyan" => Some(Self::Cyan),
+			"white" => Some(Self::White),
+			"gray" | "grey" => Some(Self::Gray),
+			"redbright" => Some(Self::RedBright),
+			"greenbright" => Some(Self::GreenBright),
+			"yellowbright" => Some(Self::YellowBright),
+			"bluebright" => Some(Self::BlueBright),
+			"magentabright" => Some(Self::MagentaBright),
+			"cyanbright" => Some(Self::CyanBright),
+			"whitebright" => Some(Self::WhiteBright),
+			"candy" => Some(Self::Candy),
+			_ => None,
+		}
+	}
+
 	/// The RGB value of this color
 	///
 	/// `System` paints nothing and `Candy` must be rolled into a named color first: both yield None
@@ -297,6 +331,24 @@ pub enum GradientStop {
 }
 
 impl GradientStop {
+	/// Looks up a gradient stop by its name, case insensitively
+	///
+	/// Hex values are not names: they go through [`Rgb::from_hex`]
+	pub fn from_name(name: &str) -> Option<Self> {
+		match name.to_ascii_lowercase().as_str() {
+			"black" => Some(Self::Black),
+			"red" => Some(Self::Red),
+			"green" => Some(Self::Green),
+			"blue" => Some(Self::Blue),
+			"yellow" => Some(Self::Yellow),
+			"magenta" => Some(Self::Magenta),
+			"cyan" => Some(Self::Cyan),
+			"white" => Some(Self::White),
+			"gray" | "grey" => Some(Self::Gray),
+			_ => None,
+		}
+	}
+
 	/// The RGB value of this stop, from the gradient parser's canonical table
 	pub fn to_rgb(self) -> Rgb {
 		match self {
@@ -375,6 +427,25 @@ impl TransitionStops {
 	}
 }
 
+/// Two or more stops in a list become transition stops, fewer are an error
+impl TryFrom<Vec<GradientStop>> for TransitionStops {
+	type Error = ColorError;
+
+	fn try_from(stops: Vec<GradientStop>) -> Result<Self, Self::Error> {
+		let count = stops.len();
+		let mut stops = stops.into_iter();
+
+		match (stops.next(), stops.next()) {
+			(Some(first), Some(second)) => Ok(Self {
+				first,
+				second,
+				rest: stops.collect(),
+			}),
+			_ => Err(ColorError::TransitionStops(count)),
+		}
+	}
+}
+
 /// The two gradient shapes as distinct types, so a two stop gradient with more stops cannot exist
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GradientOption {
@@ -402,9 +473,21 @@ pub enum ColorOption {
 	Gradient(GradientOption),
 }
 
+impl From<Vec<Color>> for ColorOption {
+	fn from(colors: Vec<Color>) -> Self {
+		Self::Colors(colors)
+	}
+}
+
 impl From<GradientOption> for ColorOption {
 	fn from(gradient: GradientOption) -> Self {
 		Self::Gradient(gradient)
+	}
+}
+
+impl From<GradientPreset> for ColorOption {
+	fn from(preset: GradientPreset) -> Self {
+		Self::Gradient(preset.into())
 	}
 }
 
@@ -664,6 +747,49 @@ mod tests {
 		);
 	}
 
+	// Color::from_name
+
+	#[test]
+	fn color_names_resolve_to_their_colors() {
+		for (name, color) in [
+			("system", Color::System),
+			("black", Color::Black),
+			("red", Color::Red),
+			("green", Color::Green),
+			("yellow", Color::Yellow),
+			("blue", Color::Blue),
+			("magenta", Color::Magenta),
+			("cyan", Color::Cyan),
+			("white", Color::White),
+			("gray", Color::Gray),
+			("grey", Color::Gray),
+			("redBright", Color::RedBright),
+			("greenBright", Color::GreenBright),
+			("yellowBright", Color::YellowBright),
+			("blueBright", Color::BlueBright),
+			("magentaBright", Color::MagentaBright),
+			("cyanBright", Color::CyanBright),
+			("whiteBright", Color::WhiteBright),
+			("candy", Color::Candy),
+		] {
+			assert_eq!(Color::from_name(name), Some(color), "{name}");
+		}
+	}
+
+	#[test]
+	fn color_names_ignore_case() {
+		assert_eq!(Color::from_name("RED"), Some(Color::Red));
+		assert_eq!(Color::from_name("RedBright"), Some(Color::RedBright));
+		assert_eq!(Color::from_name("REDBRIGHT"), Some(Color::RedBright));
+	}
+
+	#[test]
+	fn color_names_reject_everything_else() {
+		assert_eq!(Color::from_name("reed"), None);
+		assert_eq!(Color::from_name("#ff0000"), None);
+		assert_eq!(Color::from_name(""), None);
+	}
+
 	// Color::to_rgb
 
 	#[test]
@@ -730,7 +856,41 @@ mod tests {
 		);
 	}
 
-	// GradientStop
+	// GradientStop::from_name
+
+	#[test]
+	fn gradient_stop_names_resolve_to_their_stops() {
+		for (name, stop) in [
+			("black", GradientStop::Black),
+			("red", GradientStop::Red),
+			("green", GradientStop::Green),
+			("blue", GradientStop::Blue),
+			("yellow", GradientStop::Yellow),
+			("magenta", GradientStop::Magenta),
+			("cyan", GradientStop::Cyan),
+			("white", GradientStop::White),
+			("gray", GradientStop::Gray),
+			("grey", GradientStop::Gray),
+		] {
+			assert_eq!(GradientStop::from_name(name), Some(stop), "{name}");
+		}
+	}
+
+	#[test]
+	fn gradient_stop_names_ignore_case() {
+		assert_eq!(GradientStop::from_name("RED"), Some(GradientStop::Red));
+		assert_eq!(GradientStop::from_name("Gray"), Some(GradientStop::Gray));
+	}
+
+	#[test]
+	fn gradient_stop_names_reject_slot_only_colors() {
+		assert_eq!(GradientStop::from_name("system"), None);
+		assert_eq!(GradientStop::from_name("candy"), None);
+		assert_eq!(GradientStop::from_name("redBright"), None);
+		assert_eq!(GradientStop::from_name("#ff0000"), None);
+	}
+
+	// GradientStop::to_rgb
 
 	#[test]
 	fn gradient_stops_carry_the_canonical_values() {
@@ -765,6 +925,38 @@ mod tests {
 		assert_eq!(
 			stops.iter().collect::<Vec<GradientStop>>(),
 			vec![GradientStop::Red, GradientStop::Blue, GradientStop::Green]
+		);
+	}
+
+	#[test]
+	fn transition_stops_come_from_a_list_of_at_least_two() {
+		let stops = TransitionStops::try_from(vec![GradientStop::Red, GradientStop::Blue, GradientStop::Green])
+			.expect("three stops are enough");
+
+		assert_eq!(stops.first, GradientStop::Red);
+		assert_eq!(stops.second, GradientStop::Blue);
+		assert_eq!(stops.rest, vec![GradientStop::Green]);
+
+		assert_eq!(TransitionStops::try_from(vec![]), Err(ColorError::TransitionStops(0)));
+		assert_eq!(TransitionStops::try_from(vec![GradientStop::Red]), Err(ColorError::TransitionStops(1)));
+	}
+
+	// ColorOption
+
+	#[test]
+	fn color_lists_gradients_and_presets_convert_into_the_option() {
+		assert_eq!(ColorOption::from(vec![Color::Red]), ColorOption::Colors(vec![Color::Red]));
+
+		let gradient = GradientOption::TwoStop {
+			start: GradientStop::Red,
+			end: GradientStop::Blue,
+			independent_gradient: false,
+		};
+		assert_eq!(ColorOption::from(gradient.clone()), ColorOption::Gradient(gradient));
+
+		assert_eq!(
+			ColorOption::from(GradientPreset::Pride),
+			ColorOption::Gradient(GradientPreset::Pride.to_gradient(false))
 		);
 	}
 

@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
+	color::{ColorOption, GradientOption},
 	environments::{Environment, Rendered},
 	fonts::Font,
 	hosts::Host,
@@ -13,9 +14,15 @@ pub struct Unset;
 #[doc(hidden)]
 pub struct Set;
 
-pub struct Cfonts<AlignState = Unset, ValignState = Unset, SpacelessState = Unset, MaxLengthState = Unset> {
+pub struct Cfonts<
+	AlignState = Unset,
+	ValignState = Unset,
+	SpacelessState = Unset,
+	MaxLengthState = Unset,
+	GlobalGradientState = Unset,
+> {
 	options: Options,
-	_state: PhantomData<(AlignState, ValignState, SpacelessState, MaxLengthState)>,
+	_state: PhantomData<(AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState)>,
 }
 
 impl Cfonts {
@@ -47,8 +54,8 @@ impl Cfonts {
 	}
 }
 
-impl<AlignState, ValignState, SpacelessState, MaxLengthState>
-	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState>
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
+	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
 {
 	/// Returns the current block targeted by per-block setters
 	///
@@ -128,70 +135,25 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 		self
 	}
 
-	// 	/// Sets the color palette for the current text block
-	// 	///
-	// 	/// ```
-	// 	/// use cfonts::{Cfonts, Colors, Options};
-	// 	///
-	// 	/// let options: Options = Cfonts::text("hello")
-	// 	///     .colors(vec![Colors::Red])
-	// 	///     .into();
-	// 	///
-	// 	/// assert_eq!(options.blocks[0].colors, vec![Colors::Red]);
-	// 	/// ```
-	// 	// TODO: add color setter
-	//
-	// 	/// Sets the background color for the current text block
-	// 	///
-	// 	/// ```
-	// 	/// use cfonts::{Cfonts, Colors, Options};
-	// 	///
-	// 	/// let options: Options = Cfonts::text("hello")
-	// 	///     .background(Colors::Blue)
-	// 	///     .into();
-	// 	///
-	// 	/// assert_eq!(options.blocks[0].background, Some(Colors::Blue));
-	// 	/// ```
-	// 	// TODO: add background setter
-	//
-	// 	/// Enables gradient coloring for the current text block
-	// 	///
-	// 	/// ```
-	// 	/// use cfonts::{Cfonts, Colors, Options};
-	// 	///
-	// 	/// let options: Options = Cfonts::text("hello")
-	// 	///     .gradient(vec![Colors::Red, Colors::Blue])
-	// 	///     .into();
-	// 	///
-	// 	/// assert_eq!(options.blocks[0].gradient, vec![Colors::Red, Colors::Blue]);
-	// 	/// ```
-	// 	// TODO: add gradient setter
-	//
-	// 	/// Controls whether the current block's gradient is calculated independently
-	// 	///
-	// 	/// ```
-	// 	/// use cfonts::{Cfonts, Options};
-	// 	///
-	// 	/// let options: Options = Cfonts::text("hello")
-	// 	///     .independent_gradient()
-	// 	///     .into();
-	// 	///
-	// 	/// assert!(options.blocks[0].independent_gradient);
-	// 	/// ```
-	// 	// TODO: add independent_gradient setter
-	//
-	// 	/// Controls whether the current block transitions its gradient into the next block
-	// 	///
-	// 	/// ```
-	// 	/// use cfonts::{Cfonts, Options};
-	// 	///
-	// 	/// let options: Options = Cfonts::text("hello")
-	// 	///     .transition_gradient()
-	// 	///     .into();
-	// 	///
-	// 	/// assert!(options.blocks[0].transition_gradient);
-	// 	/// ```
-	// 	// TODO: add transition_gradient setter
+	/// Sets the colors for the current text block
+	///
+	/// Accepts a list of [`Color`](crate::Color)s, one per font color slot, a [`GradientOption`],
+	/// or a [`GradientPreset`](crate::GradientPreset)
+	/// Any configured value, including an empty color list, overrides the global gradient for this block
+	///
+	/// ```
+	/// use cfonts::{Cfonts, Color, ColorOption, Options};
+	///
+	/// let options: Options = Cfonts::text("hello")
+	///     .color(vec![Color::Red, Color::System])
+	///     .into();
+	///
+	/// assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
+	/// ```
+	pub fn color(mut self, color: impl Into<ColorOption>) -> Self {
+		self.current_block_mut().color = Some(color.into());
+		self
+	}
 
 	/// Sets how many blank rows are inserted after each rendered line from the current block
 	///
@@ -285,8 +247,8 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetAlign {}
-impl<ValignState, SpacelessState, MaxLengthState> CanSetAlign
-	for Cfonts<Unset, ValignState, SpacelessState, MaxLengthState>
+impl<ValignState, SpacelessState, MaxLengthState, GlobalGradientState> CanSetAlign
+	for Cfonts<Unset, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
 {
 }
 
@@ -299,8 +261,8 @@ impl<ValignState, SpacelessState, MaxLengthState> CanSetAlign
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetValign {}
-impl<AlignState, SpacelessState, MaxLengthState> CanSetValign
-	for Cfonts<AlignState, Unset, SpacelessState, MaxLengthState>
+impl<AlignState, SpacelessState, MaxLengthState, GlobalGradientState> CanSetValign
+	for Cfonts<AlignState, Unset, SpacelessState, MaxLengthState, GlobalGradientState>
 {
 }
 
@@ -313,8 +275,8 @@ impl<AlignState, SpacelessState, MaxLengthState> CanSetValign
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetSpaceless {}
-impl<AlignState, ValignState, MaxLengthState> CanSetSpaceless
-	for Cfonts<AlignState, ValignState, Unset, MaxLengthState>
+impl<AlignState, ValignState, MaxLengthState, GlobalGradientState> CanSetSpaceless
+	for Cfonts<AlignState, ValignState, Unset, MaxLengthState, GlobalGradientState>
 {
 }
 
@@ -327,13 +289,27 @@ impl<AlignState, ValignState, MaxLengthState> CanSetSpaceless
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetMaxLength {}
-impl<AlignState, ValignState, SpacelessState> CanSetMaxLength
-	for Cfonts<AlignState, ValignState, SpacelessState, Unset>
+impl<AlignState, ValignState, SpacelessState, GlobalGradientState> CanSetMaxLength
+	for Cfonts<AlignState, ValignState, SpacelessState, Unset, GlobalGradientState>
 {
 }
 
-impl<AlignState, ValignState, SpacelessState, MaxLengthState>
-	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState>
+// GLOBAL_GRADIENT
+
+#[doc(hidden)]
+#[diagnostic::on_unimplemented(
+	message = "`global_gradient()` has already been set",
+	label = "this global setting is already configured",
+	note = "Each global setting may be set once per render."
+)]
+pub trait CanSetGlobalGradient {}
+impl<AlignState, ValignState, SpacelessState, MaxLengthState> CanSetGlobalGradient
+	for Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Unset>
+{
+}
+
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
+	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
 {
 	/// Sets the horizontal alignment for the whole rendered composition
 	/// *This is a global setting and may only be configured once*
@@ -352,7 +328,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 	///     .align(Align::Left)
 	///     .align(Align::Right); // compiler error
 	/// ```
-	pub fn align(self, align: Align) -> Cfonts<Set, ValignState, SpacelessState, MaxLengthState>
+	pub fn align(self, align: Align) -> Cfonts<Set, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
 	where
 		Self: CanSetAlign,
 	{
@@ -382,7 +358,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 	///     .valign(Valign::Top)
 	///     .valign(Valign::Middle); // compiler error
 	/// ```
-	pub fn valign(self, valign: Valign) -> Cfonts<AlignState, Set, SpacelessState, MaxLengthState>
+	pub fn valign(self, valign: Valign) -> Cfonts<AlignState, Set, SpacelessState, MaxLengthState, GlobalGradientState>
 	where
 		Self: CanSetValign,
 	{
@@ -412,7 +388,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 	///     .spaceless()
 	///     .spaceless(); // compiler error
 	/// ```
-	pub fn spaceless(self) -> Cfonts<AlignState, ValignState, Set, MaxLengthState>
+	pub fn spaceless(self) -> Cfonts<AlignState, ValignState, Set, MaxLengthState, GlobalGradientState>
 	where
 		Self: CanSetSpaceless,
 	{
@@ -443,12 +419,56 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 	///     .max_length(10)
 	///     .max_length(20); // compiler error
 	/// ```
-	pub fn max_length(self, max_length: usize) -> Cfonts<AlignState, ValignState, SpacelessState, Set>
+	pub fn max_length(
+		self,
+		max_length: usize,
+	) -> Cfonts<AlignState, ValignState, SpacelessState, Set, GlobalGradientState>
 	where
 		Self: CanSetMaxLength,
 	{
 		let mut options = self.options;
 		options.max_length = NonZeroUsize::new(max_length);
+
+		Cfonts {
+			options,
+			_state: PhantomData,
+		}
+	}
+
+	/// Sets a gradient across the whole composition
+	/// Blocks with their own [`color`](Self::color) override it for their columns
+	/// *This is a global setting and may only be configured once*
+	///
+	/// ```
+	/// use cfonts::{Cfonts, GradientOption, GradientPreset, GradientStop};
+	///
+	/// let _banner = Cfonts::text("hello")
+	///     .global_gradient(GradientOption::TwoStop {
+	///         start: GradientStop::Red,
+	///         end: GradientStop::Blue,
+	///         independent_gradient: false,
+	///     });
+	///
+	/// let _preset = Cfonts::text("hello")
+	///     .global_gradient(GradientPreset::Pride);
+	/// ```
+	///
+	/// ```compile_fail
+	/// use cfonts::{Cfonts, GradientPreset};
+	///
+	/// let _banner = Cfonts::text("hello")
+	///     .global_gradient(GradientPreset::Pride)
+	///     .global_gradient(GradientPreset::Agender); // compiler error
+	/// ```
+	pub fn global_gradient(
+		self,
+		gradient: impl Into<GradientOption>,
+	) -> Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Set>
+	where
+		Self: CanSetGlobalGradient,
+	{
+		let mut options = self.options;
+		options.global_gradient = Some(gradient.into());
 
 		Cfonts {
 			options,
@@ -478,10 +498,10 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 /// assert_eq!(options.blocks[1].text, "WORLD");
 /// assert_eq!(options.blocks[1].font, Font::Font3D);
 /// ```
-impl<AlignState, ValignState, SpacelessState, MaxLengthState>
-	From<Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState>> for Options
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>
+	From<Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>> for Options
 {
-	fn from(builder: Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState>) -> Self {
+	fn from(builder: Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalGradientState>) -> Self {
 		builder.options
 	}
 }
@@ -489,7 +509,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState>
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::CliEnv;
+	use crate::{CliEnv, Color, GradientPreset, GradientStop};
 
 	// Double-setting a global is a compile error, not a runtime panic:
 	// that guarantee lives in the `compile_fail` doctests on each global setter
@@ -498,13 +518,34 @@ mod tests {
 
 	#[test]
 	fn global_setters_land_in_the_options() {
-		let options: Options =
-			Cfonts::text("hello").align(Align::Center).valign(Valign::Top).spaceless().max_length(20).into();
+		let options: Options = Cfonts::text("hello")
+			.align(Align::Center)
+			.valign(Valign::Top)
+			.spaceless()
+			.max_length(20)
+			.global_gradient(GradientPreset::Pride)
+			.into();
 
 		assert_eq!(options.align, Align::Center);
 		assert_eq!(options.valign, Valign::Top);
 		assert!(options.spaceless);
 		assert_eq!(options.max_length, NonZeroUsize::new(20));
+		assert_eq!(options.global_gradient, Some(GradientPreset::Pride.to_gradient(false)));
+	}
+
+	#[test]
+	fn a_global_gradient_accepts_gradients_and_presets() {
+		let two_stop = GradientOption::TwoStop {
+			start: GradientStop::Red,
+			end: GradientStop::Blue,
+			independent_gradient: true,
+		};
+
+		let options: Options = Cfonts::text("hello").global_gradient(two_stop.clone()).into();
+		assert_eq!(options.global_gradient, Some(two_stop));
+
+		let options: Options = Cfonts::text("hello").global_gradient(GradientPreset::Pride).into();
+		assert_eq!(options.global_gradient, Some(GradientPreset::Pride.to_gradient(false)));
 	}
 
 	#[test]
@@ -541,6 +582,28 @@ mod tests {
 		let options: Options = Cfonts::text("one").font(Font::Tiny).font(Font::Block).into();
 
 		assert_eq!(options.blocks[0].font, Font::Block);
+	}
+
+	#[test]
+	fn color_targets_the_current_block() {
+		let options: Options = Cfonts::text("one").color(vec![Color::Red]).new_text("two").into();
+
+		assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![Color::Red])));
+		assert_eq!(options.blocks[1].color, None);
+	}
+
+	#[test]
+	fn an_empty_color_list_is_still_a_configured_color() {
+		let options: Options = Cfonts::text("one").color(Vec::<Color>::new()).into();
+
+		assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![])));
+	}
+
+	#[test]
+	fn color_is_repeatable_and_takes_gradients() {
+		let options: Options = Cfonts::text("one").color(vec![Color::Red]).color(GradientPreset::Pride).into();
+
+		assert_eq!(options.blocks[0].color, Some(ColorOption::Gradient(GradientPreset::Pride.to_gradient(false))));
 	}
 
 	// test hosts

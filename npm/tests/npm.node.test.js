@@ -3,7 +3,19 @@ import test from "node:test";
 
 import * as packageExports from "cfonts";
 
-const { Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Font, NodeHost, Valign, ColorLevel } = packageExports;
+const {
+	Align,
+	BrowserConsoleEnv,
+	BrowserEnv,
+	Cfonts,
+	CliEnv,
+	Color,
+	ColorLevel,
+	Font,
+	GradientPreset,
+	NodeHost,
+	Valign,
+} = packageExports;
 
 const INVALID_STRINGS = [0, true, null, undefined, {}, []];
 
@@ -484,4 +496,69 @@ test("color capabilities do not change the output yet", () => {
 	);
 
 	assert.equal(plain, leveled);
+});
+
+test("colors accepts enums hex values and channel objects", () => {
+	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+	const colored = Cfonts.text("A")
+		.colors([Color.Red, "#ff8800", "f80", { red: 1, green: 2, blue: 3 }, Color.Candy, "grey"])
+		.renderWith(CliEnv).text;
+	const empty = Cfonts.text("A").colors([]).renderWith(CliEnv).text;
+
+	assert.equal(colored, plain); // nothing paints yet
+	assert.equal(empty, plain); // an empty list is still a configured color
+});
+
+test("colors validates its input", () => {
+	assert.throws(() => Cfonts.text("A").colors("red"), TypeError); // not an array
+	assert.throws(() => Cfonts.text("A").colors([99]), TypeError); // not a Color
+	assert.throws(() => Cfonts.text("A").colors([{ red: 256, green: 0, blue: 0 }]), TypeError); // not a channel value
+	assert.throws(() => Cfonts.text("A").colors([true]), TypeError);
+	assert.throws(() => Cfonts.text("A").colors(["reed"]), Error); // unknown name, rejected in Rust
+	assert.throws(() => Cfonts.text("A").colors(["#ff88"]), Error); // invalid hex, rejected in Rust
+});
+
+test("gradient shapes are validated", () => {
+	assert.throws(() => Cfonts.text("A").gradient({}), TypeError); // no shape
+	assert.throws(() => Cfonts.text("A").gradient({ start: "red", transition: ["red", "blue"] }), TypeError); // two shapes
+	assert.throws(() => Cfonts.text("A").gradient({ start: "red" }), TypeError); // missing end
+	assert.throws(() => Cfonts.text("A").gradient({ start: "red", end: "blue", independentGradient: 1 }), TypeError);
+	assert.throws(() => Cfonts.text("A").gradient({ transition: "red" }), TypeError); // not an array
+	assert.throws(() => Cfonts.text("A").gradient({ preset: 99 }), TypeError); // not a preset
+	assert.throws(() => Cfonts.text("A").gradient(99), TypeError);
+	assert.throws(() => Cfonts.text("A").gradient({ transition: ["red"] }), Error); // one stop, rejected in Rust
+	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), Error); // system is not a gradient stop
+});
+
+test("gradients accept every shape and do not change the output yet", () => {
+	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+
+	const preset = Cfonts.text("A").gradient(GradientPreset.Pride).renderWith(CliEnv).text;
+	const twoStop = Cfonts.text("A")
+		.gradient({ start: "red", end: "#0000ff", independentGradient: true })
+		.renderWith(CliEnv).text;
+	const transition = Cfonts.text("A")
+		.gradient({ transition: ["red", { red: 0, green: 0, blue: 255 }, "gray"] })
+		.renderWith(CliEnv).text;
+	const global = Cfonts.text("A")
+		.globalGradient({ preset: GradientPreset.Transgender, independentGradient: true })
+		.renderWith(CliEnv).text;
+
+	for (const rendered of [preset, twoStop, transition, global]) {
+		assert.equal(rendered, plain);
+	}
+});
+
+test("the global gradient can only be set once", () => {
+	const banner = Cfonts.text("A").globalGradient(GradientPreset.Pride);
+
+	assert.throws(() => banner.globalGradient(GradientPreset.Agender), Error);
+	assert.throws(() => banner.globalGradient({ start: "red", end: "blue" }), Error);
+});
+
+test("a failed global gradient does not claim the slot", () => {
+	const banner = Cfonts.text("A");
+
+	assert.throws(() => banner.globalGradient({ start: "reed", end: "blue" }), Error);
+	banner.globalGradient({ start: "red", end: "blue" }); // the slot is still available
 });

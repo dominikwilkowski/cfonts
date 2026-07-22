@@ -3,15 +3,18 @@ use std::num::NonZeroUsize;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Options, RenderContext, options::BlockOptions,
+	BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor, ColorError, ColorOption,
+	GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options, RenderContext, Rgb, TransitionStops,
+	options::BlockOptions,
 };
 
-use crate::{Align, ColorLevel, Font, Rendered, Valign};
+use crate::{Align, ColorLevel, Font, GradientPreset, Rendered, Valign};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
 const SPACELESS_SET: u8 = 1 << 2;
 const MAX_LENGTH_SET: u8 = 1 << 3;
+const GLOBAL_GRADIENT_SET: u8 = 1 << 4;
 
 /// The mutable WASM-facing builder
 ///
@@ -80,6 +83,35 @@ impl Cfonts {
 		self.current_block_mut().line_height = line_height as usize;
 	}
 
+	/// Sets the colors for the current block
+	///
+	/// Each entry is a color name or hex value; TypeScript feeds enum selections through as names
+	pub fn colors(&mut self, colors: Vec<String>) -> Result<(), JsError> {
+		let colors = colors.iter().map(|color| parse_color(color)).collect::<Result<Vec<CoreColor>, JsError>>()?;
+		self.current_block_mut().color = Some(ColorOption::Colors(colors));
+		Ok(())
+	}
+
+	/// Sets a two stop gradient for the current block
+	pub fn gradient(&mut self, start: String, end: String, independent_gradient: bool) -> Result<(), JsError> {
+		let gradient = two_stop(&start, &end, independent_gradient)?;
+		self.current_block_mut().color = Some(gradient.into());
+		Ok(())
+	}
+
+	/// Sets a transition gradient for the current block
+	pub fn transition(&mut self, stops: Vec<String>, independent_gradient: bool) -> Result<(), JsError> {
+		let gradient = transition(&stops, independent_gradient)?;
+		self.current_block_mut().color = Some(gradient.into());
+		Ok(())
+	}
+
+	/// Sets a preset gradient for the current block
+	#[wasm_bindgen(js_name = gradientPreset)]
+	pub fn gradient_preset(&mut self, preset: GradientPreset, independent_gradient: bool) {
+		self.current_block_mut().color = Some(CoreGradientPreset::from(preset).to_gradient(independent_gradient).into());
+	}
+
 	/// Sets the global horizontal alignment
 	pub fn align(&mut self, align: Align) -> Result<(), JsError> {
 		self.set_global(ALIGN_SET, "align")?;
@@ -108,6 +140,34 @@ impl Cfonts {
 	pub fn max_length(&mut self, max_length: u32) -> Result<(), JsError> {
 		self.set_global(MAX_LENGTH_SET, "maxLength")?; // The javascript name instead of the rust spelling
 		self.options.max_length = NonZeroUsize::new(max_length as usize);
+		Ok(())
+	}
+
+	/// Sets a two stop gradient across the whole composition
+	///
+	/// Parsing happens before the once only slot is claimed, so a failed call leaves the builder unchanged
+	#[wasm_bindgen(js_name = globalGradient)]
+	pub fn global_gradient(&mut self, start: String, end: String, independent_gradient: bool) -> Result<(), JsError> {
+		let gradient = two_stop(&start, &end, independent_gradient)?;
+		self.set_global(GLOBAL_GRADIENT_SET, "globalGradient")?;
+		self.options.global_gradient = Some(gradient);
+		Ok(())
+	}
+
+	/// Sets a transition gradient across the whole composition
+	#[wasm_bindgen(js_name = globalTransition)]
+	pub fn global_transition(&mut self, stops: Vec<String>, independent_gradient: bool) -> Result<(), JsError> {
+		let gradient = transition(&stops, independent_gradient)?;
+		self.set_global(GLOBAL_GRADIENT_SET, "globalGradient")?; // one slot, one name: the TypeScript method is globalGradient for every shape
+		self.options.global_gradient = Some(gradient);
+		Ok(())
+	}
+
+	/// Sets a preset gradient across the whole composition
+	#[wasm_bindgen(js_name = globalGradientPreset)]
+	pub fn global_gradient_preset(&mut self, preset: GradientPreset, independent_gradient: bool) -> Result<(), JsError> {
+		self.set_global(GLOBAL_GRADIENT_SET, "globalGradient")?;
+		self.options.global_gradient = Some(CoreGradientPreset::from(preset).to_gradient(independent_gradient));
 		Ok(())
 	}
 
@@ -152,4 +212,50 @@ impl Cfonts {
 			.with_color_level(color_level.map(Into::into))
 			.with_seed(seed.map_or(0, u64::from))
 	}
+}
+
+/// Parses a boundary color: a color name or hex value
+fn parse_color(input: &str) -> Result<CoreColor, JsError> {
+	if let Some(color) = CoreColor::from_name(input) {
+		return Ok(color);
+	}
+
+	Rgb::from_hex(input).map(CoreColor::Rgb).map_err(|error| color_error(input, error))
+}
+
+/// Parses a boundary gradient stop: a stop name or hex value
+fn parse_stop(input: &str) -> Result<GradientStop, JsError> {
+	if let Some(stop) = GradientStop::from_name(input) {
+		return Ok(stop);
+	}
+
+	Rgb::from_hex(input).map(GradientStop::Rgb).map_err(|error| color_error(input, error))
+}
+
+/// Hex errors point at hex looking input, everything else gets the generic message
+fn color_error(input: &str, error: ColorError) -> JsError {
+	if input.starts_with('#') {
+		JsError::new(&error.to_string())
+	} else {
+		JsError::new(&format!("Unsupported color `{input}`, use a color name or hex value"))
+	}
+}
+
+/// Builds the two stop boundary gradient from its stop strings
+fn two_stop(start: &str, end: &str, independent_gradient: bool) -> Result<GradientOption, JsError> {
+	Ok(GradientOption::TwoStop {
+		start: parse_stop(start)?,
+		end: parse_stop(end)?,
+		independent_gradient,
+	})
+}
+
+/// Builds the transition boundary gradient from its stop strings
+fn transition(stops: &[String], independent_gradient: bool) -> Result<GradientOption, JsError> {
+	let stops = stops.iter().map(|stop| parse_stop(stop)).collect::<Result<Vec<GradientStop>, JsError>>()?;
+
+	Ok(GradientOption::Transition {
+		stops: TransitionStops::try_from(stops).map_err(|error| JsError::new(&error.to_string()))?,
+		independent_gradient,
+	})
 }

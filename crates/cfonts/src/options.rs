@@ -1,6 +1,9 @@
 use std::num::NonZeroUsize;
 
-use crate::fonts::Font;
+use crate::{
+	color::{ColorOption, GradientOption},
+	fonts::Font,
+};
 
 /// The supported vertical alignment modes for mixed-height font blocks
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -36,20 +39,11 @@ pub struct BlockOptions {
 	/// Font used for this block
 	pub font: Font,
 
-	/// Whether this block should render with colors
-	pub colors: bool, // TODO: combine colors, gradient, independent_gradient and transition_gradient into a single field
-
-	/// Whether this block should render with a background
-	pub background: bool, // TODO: implement
-
-	/// Whether this block should render with a gradient
-	pub gradient: bool, // TODO: remove
-
-	/// Whether this block's gradient should be calculated independently
-	pub independent_gradient: bool, // TODO: remove
-
-	/// Whether this block's gradient should transition into the next block
-	pub transition_gradient: bool, // TODO: remove
+	/// Colors for this block's font color slots or a gradient across this block's columns
+	///
+	/// Any configured value, including an empty color list, overrides the global gradient for this block
+	/// `None` leaves the block unpainted unless a global gradient covers it
+	pub color: Option<ColorOption>,
 
 	/// Number of font-defined letter-space glyphs inserted between glyphs
 	pub letter_spacing: usize,
@@ -66,11 +60,7 @@ impl Default for BlockOptions {
 		Self {
 			text: String::new(),
 			font: Font::Block,
-			colors: false,
-			background: false,
-			gradient: false,
-			independent_gradient: false,
-			transition_gradient: false,
+			color: None,
 			letter_spacing: 1,
 			line_height: 1,
 			word_wrap: false,
@@ -110,6 +100,12 @@ pub struct Options {
 	/// `None` means unlimited
 	pub max_length: Option<NonZeroUsize>,
 
+	/// A gradient across the whole composition's columns
+	///
+	/// Blocks with their own [`color`](BlockOptions::color) override it for their columns
+	/// and the global ramp resumes after them
+	pub global_gradient: Option<GradientOption>,
+
 	/// Whether raw mode should bypass normal output decoration
 	pub raw_mode: bool, // TODO: implement
 
@@ -127,6 +123,7 @@ impl Default for Options {
 			valign: Valign::Middle,
 			spaceless: false,
 			max_length: None,
+			global_gradient: None,
 			raw_mode: false,
 			debug: false,
 			blocks: Vec::new(),

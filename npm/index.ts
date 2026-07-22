@@ -1,12 +1,39 @@
-import { Align, Cfonts as WasmCfonts, Font, Valign, type Rendered, ColorLevel } from "../pkg/cfonts_wasm.js";
+import {
+	Align,
+	Cfonts as WasmCfonts,
+	Color,
+	ColorLevel,
+	Font,
+	GradientPreset,
+	Valign,
+	type Rendered,
+} from "../pkg/cfonts_wasm.js";
+import {
+	normalizeColor,
+	normalizeGradient,
+	type ColorInput,
+	type GradientInput,
+	type GradientStopInput,
+	type RgbInput,
+} from "./color-input.js";
 import { BrowserConsoleEnv, BrowserEnv, CliEnv, renderEnvironment, type Environment } from "./environments/index.js";
 import type { Host } from "./hosts/types.js";
 import { normalizeRenderContext, type RenderContext, type RenderOverrides } from "./render-context.js";
 import { expectEnum, expectString, expectU32 } from "./validation.js";
 
-export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Font, Valign, ColorLevel };
+export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Color, ColorLevel, Font, GradientPreset, Valign };
 
-export type { Environment, Host, RenderContext, Rendered, RenderOverrides };
+export type {
+	ColorInput,
+	Environment,
+	GradientInput,
+	GradientStopInput,
+	Host,
+	RenderContext,
+	Rendered,
+	RenderOverrides,
+	RgbInput,
+};
 
 /**
  * A fluent cfonts composition builder
@@ -42,6 +69,39 @@ export class Cfonts {
 		return this;
 	}
 
+	/**
+	 * Sets the colors for the current text block, one per font color slot
+	 */
+	colors(colors: ColorInput[]): this {
+		if (!Array.isArray(colors)) {
+			throw new TypeError("`colors()` expects an array of colors");
+		}
+
+		this.#inner.colors(colors.map((color) => normalizeColor(color, "colors")));
+		return this;
+	}
+
+	/**
+	 * Sets a gradient for the current text block
+	 */
+	gradient(gradient: GradientInput): this {
+		const normalized = normalizeGradient(gradient, "gradient");
+
+		switch (normalized.kind) {
+			case "preset":
+				this.#inner.gradientPreset(normalized.preset, normalized.independentGradient);
+				break;
+			case "twoStop":
+				this.#inner.gradient(normalized.start, normalized.end, normalized.independentGradient);
+				break;
+			case "transition":
+				this.#inner.transition(normalized.stops, normalized.independentGradient);
+				break;
+		}
+
+		return this;
+	}
+
 	align(align: Align): this {
 		this.#inner.align(expectEnum<Align>(align, Align, "align"));
 		return this;
@@ -54,6 +114,29 @@ export class Cfonts {
 
 	maxLength(maxLength: number): this {
 		this.#inner.maxLength(expectU32(maxLength, "maxLength"));
+		return this;
+	}
+
+	/**
+	 * Sets a gradient across the whole composition
+	 *
+	 * Blocks with their own colors override it for their columns
+	 */
+	globalGradient(gradient: GradientInput): this {
+		const normalized = normalizeGradient(gradient, "globalGradient");
+
+		switch (normalized.kind) {
+			case "preset":
+				this.#inner.globalGradientPreset(normalized.preset, normalized.independentGradient);
+				break;
+			case "twoStop":
+				this.#inner.globalGradient(normalized.start, normalized.end, normalized.independentGradient);
+				break;
+			case "transition":
+				this.#inner.globalTransition(normalized.stops, normalized.independentGradient);
+				break;
+		}
+
 		return this;
 	}
 

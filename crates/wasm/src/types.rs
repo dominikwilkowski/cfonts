@@ -3,11 +3,13 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	Align as CoreAlign, ColorLevel as CoreColorLevel, Font as CoreFont, Rendered as CoreRendered, Valign as CoreValign,
+	Align as CoreAlign, Color as CoreColor, ColorLevel as CoreColorLevel, Font as CoreFont,
+	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Valign as CoreValign,
 };
 
 macro_rules! bridge_enum {
-	($wasm:ident => $core:ident {
+	// A one way bridge for core enums whose data carrying variants cannot cross the boundary
+	($wasm:ident -> $core:ident {
 		$($variant:ident),+ $(,)?
 	}) => {
 		#[wasm_bindgen]
@@ -23,6 +25,14 @@ macro_rules! bridge_enum {
 				}
 			}
 		}
+	};
+	// A two way bridge for core enums that cross the boundary whole
+	($wasm:ident => $core:ident {
+		$($variant:ident),+ $(,)?
+	}) => {
+		bridge_enum!($wasm -> $core {
+			$($variant),+
+		});
 
 		impl From<$core> for $wasm {
 			fn from(value: $core) -> Self {
@@ -50,6 +60,44 @@ bridge_enum!(ColorLevel => CoreColorLevel {
 	Basic,
 	Ansi256,
 	TrueColor,
+});
+
+// Rgb colors cross as hex values, so the boundary enum only carries the named variants
+bridge_enum!(Color -> CoreColor {
+	System,
+	Black,
+	Red,
+	Green,
+	Yellow,
+	Blue,
+	Magenta,
+	Cyan,
+	White,
+	Gray,
+	RedBright,
+	GreenBright,
+	YellowBright,
+	BlueBright,
+	MagentaBright,
+	CyanBright,
+	WhiteBright,
+	Candy,
+});
+
+bridge_enum!(GradientPreset => CoreGradientPreset {
+	Pride,
+	Agender,
+	Aromantic,
+	Asexual,
+	Bisexual,
+	Genderfluid,
+	Genderqueer,
+	Intersex,
+	Lesbian,
+	Nonbinary,
+	Pansexual,
+	Polysexual,
+	Transgender,
 });
 
 bridge_enum!(Font => CoreFont {

@@ -1,5 +1,6 @@
 use cfonts::{
-	CanvasWidth, Cfonts, CliEnv, ColorLevel, ColorOverride, Font, Options, RenderContext, RenderOverrides, render_with,
+	CanvasWidth, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, GradientPreset, Options, RenderContext,
+	RenderOverrides, render_with,
 };
 
 #[test]
@@ -53,4 +54,19 @@ fn color_capabilities_do_not_change_the_output_yet() {
 		banner.render_with(&CliEnv, RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor)).with_seed(42));
 
 	assert_eq!(plain.text, leveled.text);
+}
+
+#[test]
+fn color_options_do_not_change_the_output_yet() {
+	// the renderer carries but does not consume color configuration: the artifact stays byte identical
+	let plain: Options = Cfonts::text("HI").font(Font::Tiny).into();
+	let colored: Options = Cfonts::text("HI")
+		.font(Font::Tiny)
+		.color(vec![Color::Red, Color::Candy])
+		.global_gradient(GradientPreset::Pride)
+		.into();
+
+	let context = RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor));
+
+	assert_eq!(render_with(&plain, &CliEnv, context).text, render_with(&colored, &CliEnv, context).text);
 }

@@ -16,6 +16,22 @@ export function expectU32(value: unknown, method: string): number {
 	return value;
 }
 
+export function expectU8(value: unknown, method: string): number {
+	if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 255) {
+		throw new TypeError(`\`${method}()\` expects RGB channel values as integers between 0 and 255`);
+	}
+
+	return value;
+}
+
+export function expectBoolean(value: unknown, method: string): boolean {
+	if (typeof value !== "boolean") {
+		throw new TypeError(`\`${method}()\` expects a boolean`);
+	}
+
+	return value;
+}
+
 export function expectEnum<T extends number>(value: unknown, enumeration: object, method: string): T {
 	if (typeof value !== "number" || !Number.isInteger(value) || !Object.hasOwn(enumeration, value)) {
 		throw new TypeError(`\`${method}()\` expects a supported enum value`);
