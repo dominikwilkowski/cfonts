@@ -463,13 +463,13 @@ pub enum GradientOption {
 	},
 }
 
-/// One block's color configuration
+/// One scope's color configuration: a block's own or the whole composition's
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ColorOption {
 	/// One color per font color slot; missing slots stay unpainted, colors beyond the font's slots are ignored
 	Colors(Vec<Color>),
 
-	/// A gradient across this block's columns
+	/// A gradient across the scope's columns
 	Gradient(GradientOption),
 }
 

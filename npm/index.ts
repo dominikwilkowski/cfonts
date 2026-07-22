@@ -118,9 +118,25 @@ export class Cfonts {
 	}
 
 	/**
+	 * Sets the colors across the whole composition, one per font color slot
+	 *
+	 * Blocks with their own colors override it for their columns;
+	 * shares the one global color slot with `globalGradient`
+	 */
+	globalColors(colors: ColorInput[]): this {
+		if (!Array.isArray(colors)) {
+			throw new TypeError("`globalColors()` expects an array of colors");
+		}
+
+		this.#inner.globalColors(colors.map((color) => normalizeColor(color, "globalColors")));
+		return this;
+	}
+
+	/**
 	 * Sets a gradient across the whole composition
 	 *
-	 * Blocks with their own colors override it for their columns
+	 * Blocks with their own colors override it for their columns;
+	 * shares the one global color slot with `globalColors`
 	 */
 	globalGradient(gradient: GradientInput): this {
 		const normalized = normalizeGradient(gradient, "globalGradient");

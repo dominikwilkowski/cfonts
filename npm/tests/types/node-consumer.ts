@@ -19,6 +19,8 @@ colorful.gradient({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff0
 colorful.gradient({ preset: GradientPreset.Lesbian, independentGradient: true });
 colorful.render(host);
 
+Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }]);
+
 // @ts-expect-error an empty object is not a gradient
 banner.gradient({});
 

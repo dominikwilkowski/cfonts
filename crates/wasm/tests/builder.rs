@@ -226,19 +226,34 @@ fn color_values_are_validated_at_the_boundary() {
 }
 
 #[wasm_bindgen_test]
-fn the_global_gradient_can_be_configured_once_across_all_shapes() {
+fn the_global_color_can_be_configured_once_across_all_shapes() {
 	let mut banner = Cfonts::text("A".to_owned());
 
 	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_ok());
 	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_err());
 	assert!(banner.global_transition(vec!["red".to_owned(), "blue".to_owned()], false).is_err());
 	assert!(banner.global_gradient_preset(GradientPreset::Pride, false).is_err());
+	assert!(banner.global_colors(vec!["red".to_owned()]).is_err());
 }
 
 #[wasm_bindgen_test]
-fn a_failed_global_gradient_does_not_claim_the_slot() {
+fn global_colors_do_not_change_the_output_yet() {
+	let plain = wrapping_banner();
+	let mut colored = wrapping_banner();
+
+	colored.global_colors(vec!["red".to_owned(), "#f80".to_owned()]).expect("valid colors");
+
+	for target in Target::ALL {
+		assert_eq!(target.render(&colored, None).text, target.render(&plain, None).text, "{target:?}",);
+	}
+}
+
+#[wasm_bindgen_test]
+fn a_failed_global_color_does_not_claim_the_slot() {
 	let mut banner = Cfonts::text("A".to_owned());
 
+	assert!(banner.global_colors(vec!["reed".to_owned()]).is_err());
 	assert!(banner.global_gradient("reed".to_owned(), "blue".to_owned(), false).is_err());
-	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_ok());
+	assert!(banner.global_colors(vec!["red".to_owned()]).is_ok());
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_err()); // the claimed slot blocks the gradient shapes too
 }

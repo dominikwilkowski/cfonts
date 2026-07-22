@@ -549,6 +549,23 @@ test("gradients accept every shape and do not change the output yet", () => {
 	}
 });
 
+test("globalColors accepts colors and does not change the output yet", () => {
+	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+	const global = Cfonts.text("A").globalColors([Color.Red, "#ff8800"]).renderWith(CliEnv).text;
+
+	assert.equal(global, plain);
+	assert.throws(() => Cfonts.text("A").globalColors("red"), TypeError); // not an array
+	assert.throws(() => Cfonts.text("A").globalColors(["reed"]), Error); // unknown name, rejected in Rust
+});
+
+test("globalColors and globalGradient share the one global slot", () => {
+	const colored = Cfonts.text("A").globalColors([Color.Red]);
+	assert.throws(() => colored.globalGradient(GradientPreset.Pride), /global color has already been set/);
+
+	const ramped = Cfonts.text("A").globalGradient(GradientPreset.Pride);
+	assert.throws(() => ramped.globalColors([Color.Red]), /global color has already been set/);
+});
+
 test("the global gradient can only be set once", () => {
 	const banner = Cfonts.text("A").globalGradient(GradientPreset.Pride);
 

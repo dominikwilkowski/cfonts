@@ -63,10 +63,12 @@ fn color_options_do_not_change_the_output_yet() {
 	let colored: Options = Cfonts::text("HI")
 		.font(Font::Tiny)
 		.color(vec![Color::Red, Color::Candy])
-		.global_gradient(GradientPreset::Pride)
+		.global_color(GradientPreset::Pride)
 		.into();
+	let global_colors: Options = Cfonts::text("HI").font(Font::Tiny).global_color(vec![Color::Red]).into();
 
 	let context = RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor));
 
 	assert_eq!(render_with(&plain, &CliEnv, context).text, render_with(&colored, &CliEnv, context).text);
+	assert_eq!(render_with(&plain, &CliEnv, context).text, render_with(&global_colors, &CliEnv, context).text);
 }

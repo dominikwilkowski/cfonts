@@ -1,9 +1,6 @@
 use std::num::NonZeroUsize;
 
-use crate::{
-	color::{ColorOption, GradientOption},
-	fonts::Font,
-};
+use crate::{color::ColorOption, fonts::Font};
 
 /// The supported vertical alignment modes for mixed-height font blocks
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -41,8 +38,8 @@ pub struct BlockOptions {
 
 	/// Colors for this block's font color slots or a gradient across this block's columns
 	///
-	/// Any configured value, including an empty color list, overrides the global gradient for this block
-	/// `None` leaves the block unpainted unless a global gradient covers it
+	/// Any configured value, including an empty color list, overrides the global color for this block
+	/// `None` leaves the block unpainted unless a global color covers it
 	pub color: Option<ColorOption>,
 
 	/// Number of font-defined letter-space glyphs inserted between glyphs
@@ -100,11 +97,11 @@ pub struct Options {
 	/// `None` means unlimited
 	pub max_length: Option<NonZeroUsize>,
 
-	/// A gradient across the whole composition's columns
+	/// Colors or a gradient across the whole composition
 	///
 	/// Blocks with their own [`color`](BlockOptions::color) override it for their columns
-	/// and the global ramp resumes after them
-	pub global_gradient: Option<GradientOption>,
+	/// and a global gradient's ramp resumes after them
+	pub global_color: Option<ColorOption>,
 
 	/// Whether raw mode should bypass normal output decoration
 	pub raw_mode: bool, // TODO: implement
@@ -123,7 +120,7 @@ impl Default for Options {
 			valign: Valign::Middle,
 			spaceless: false,
 			max_length: None,
-			global_gradient: None,
+			global_color: None,
 			raw_mode: false,
 			debug: false,
 			blocks: Vec::new(),

@@ -14,7 +14,7 @@ const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
 const SPACELESS_SET: u8 = 1 << 2;
 const MAX_LENGTH_SET: u8 = 1 << 3;
-const GLOBAL_GRADIENT_SET: u8 = 1 << 4;
+const GLOBAL_COLOR_SET: u8 = 1 << 4;
 
 /// The mutable WASM-facing builder
 ///
@@ -38,6 +38,21 @@ impl Cfonts {
 		}
 
 		self.configured_globals |= flag;
+		Ok(())
+	}
+
+	/// Records the shared global color slot or returns a JavaScript error when repeated
+	///
+	/// `globalColors` and the three `globalGradient` shapes all claim this one slot,
+	/// so the error names the slot instead of whichever method was called
+	fn set_global_color(&mut self) -> Result<(), JsError> {
+		if self.configured_globals & GLOBAL_COLOR_SET != 0 {
+			return Err(JsError::new(
+				"The global color has already been set, `globalColors()` and `globalGradient()` share one slot",
+			));
+		}
+
+		self.configured_globals |= GLOBAL_COLOR_SET;
 		Ok(())
 	}
 }
@@ -143,14 +158,24 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Sets a two stop gradient across the whole composition
+	/// Sets the colors across the whole composition
 	///
-	/// Parsing happens before the once only slot is claimed, so a failed call leaves the builder unchanged
+	/// Shares the one global color slot with the global gradient shapes;
+	/// parsing happens before the slot is claimed, so a failed call leaves the builder unchanged
+	#[wasm_bindgen(js_name = globalColors)]
+	pub fn global_colors(&mut self, colors: Vec<String>) -> Result<(), JsError> {
+		let colors = colors.iter().map(|color| parse_color(color)).collect::<Result<Vec<CoreColor>, JsError>>()?;
+		self.set_global_color()?;
+		self.options.global_color = Some(ColorOption::Colors(colors));
+		Ok(())
+	}
+
+	/// Sets a two stop gradient across the whole composition
 	#[wasm_bindgen(js_name = globalGradient)]
 	pub fn global_gradient(&mut self, start: String, end: String, independent_gradient: bool) -> Result<(), JsError> {
 		let gradient = two_stop(&start, &end, independent_gradient)?;
-		self.set_global(GLOBAL_GRADIENT_SET, "globalGradient")?;
-		self.options.global_gradient = Some(gradient);
+		self.set_global_color()?;
+		self.options.global_color = Some(gradient.into());
 		Ok(())
 	}
 
@@ -158,16 +183,16 @@ impl Cfonts {
 	#[wasm_bindgen(js_name = globalTransition)]
 	pub fn global_transition(&mut self, stops: Vec<String>, independent_gradient: bool) -> Result<(), JsError> {
 		let gradient = transition(&stops, independent_gradient)?;
-		self.set_global(GLOBAL_GRADIENT_SET, "globalGradient")?; // one slot, one name: the TypeScript method is globalGradient for every shape
-		self.options.global_gradient = Some(gradient);
+		self.set_global_color()?;
+		self.options.global_color = Some(gradient.into());
 		Ok(())
 	}
 
 	/// Sets a preset gradient across the whole composition
 	#[wasm_bindgen(js_name = globalGradientPreset)]
 	pub fn global_gradient_preset(&mut self, preset: GradientPreset, independent_gradient: bool) -> Result<(), JsError> {
-		self.set_global(GLOBAL_GRADIENT_SET, "globalGradient")?;
-		self.options.global_gradient = Some(CoreGradientPreset::from(preset).to_gradient(independent_gradient));
+		self.set_global_color()?;
+		self.options.global_color = Some(CoreGradientPreset::from(preset).to_gradient(independent_gradient).into());
 		Ok(())
 	}
 
