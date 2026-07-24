@@ -30,14 +30,16 @@ test(
 );
 
 test(
-	"BrowserHost say writes the browser-console artifact",
+	"BrowserHost say writes the styled browser-console artifact",
 	async ({ page }) => {
 		const messages: string[] = [];
+		const styleCounts: number[] = [];
 		const errors: string[] = [];
 
 		page.on("console", (message) => {
 			if (message.text().includes("█")) {
 				messages.push(message.text());
+				styleCounts.push(message.args().length - 1);
 			}
 		});
 		page.on("pageerror", (error) => {
@@ -51,6 +53,12 @@ test(
 		await expect
 			.poll(() => messages.length)
 			.toBe(2);
+
+		// both banners paint, so every log carries %c markers with matching style arguments
+		for (const [index, text] of messages.entries()) {
+			expect(text).toContain("%c");
+			expect(styleCounts[index]).toBeGreaterThan(0);
+		}
 
 		expect(errors).toEqual([]);
 	},

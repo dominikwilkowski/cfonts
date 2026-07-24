@@ -26,9 +26,11 @@ export class BrowserHost implements Host {
 	say(composition: Cfonts): void {
 		const rendered = composition.renderWith(BrowserConsoleEnv, this.#resolveContext());
 
-		console.log(rendered.text);
-
-		// TODO(color): pass rendered.styles after the text argument
+		if (rendered.styles.length > 0) {
+			console.log(rendered.text, ...rendered.styles);
+		} else {
+			console.log(rendered.text);
+		}
 	}
 
 	#resolveContext(): RenderContext {

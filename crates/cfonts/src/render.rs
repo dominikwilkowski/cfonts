@@ -234,8 +234,6 @@ pub(crate) struct PaintPlan<T> {
 	blocks: Vec<BlockPlan<T>>,
 
 	/// Whether any slot resolved to paint
-	// TODO(M5): drives the browser console's percent escaping decision
-	#[allow(dead_code)]
 	will_style: bool,
 }
 
@@ -285,6 +283,13 @@ impl<T> PaintPlan<T> {
 			.collect();
 
 		Self { blocks, will_style }
+	}
+
+	/// Whether any slot resolved to paint
+	///
+	/// Environments whose escaping depends on the whole artifact key off this
+	pub(crate) fn will_style(&self) -> bool {
+		self.will_style
 	}
 
 	/// The paint of one text segment, if any

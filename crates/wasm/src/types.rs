@@ -120,10 +120,16 @@ bridge_enum!(Font => CoreFont {
 #[tsify(into_wasm_abi)]
 pub struct Rendered {
 	pub text: String,
+
+	/// Style values consumed by the text's format markers, in marker order
+	pub styles: Vec<String>,
 }
 
 impl From<CoreRendered> for Rendered {
 	fn from(rendered: CoreRendered) -> Self {
-		Self { text: rendered.text }
+		Self {
+			text: rendered.text,
+			styles: rendered.styles,
+		}
 	}
 }

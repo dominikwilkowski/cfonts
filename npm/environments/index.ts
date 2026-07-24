@@ -36,9 +36,8 @@ export const CliEnv = defineEnvironment(EnvironmentKind.Cli);
 export const BrowserEnv = defineEnvironment(EnvironmentKind.Browser);
 
 /**
- * Formats a browser-console artifact
- *
- * TODO(color): add the `%c` format string and style arguments
+ * Formats a browser-console artifact whose `%c` markers pair with the
+ * rendered styles, ready to spread into `console.log`
  */
 export const BrowserConsoleEnv = defineEnvironment(EnvironmentKind.BrowserConsole);
 

@@ -1,5 +1,6 @@
 use cfonts::{
-	BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientPreset, Options, RenderContext, Rgb, Valign, render_with,
+	BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientPreset, Options, RenderContext, Rgb,
+	Valign, render_with,
 };
 
 /// A one block Tiny composition with the given colors
@@ -206,4 +207,64 @@ fn the_browser_paints_nothing_without_a_level_or_for_system() {
 
 	assert_eq!(unleveled, plain);
 	assert_eq!(system, plain);
+}
+
+// BrowserConsoleEnv painting
+
+#[test]
+fn the_console_pairs_markers_with_styles_in_order() {
+	let rendered =
+		render_with(&tiny("A", vec![Color::Red]), &BrowserConsoleEnv, RenderContext::colored(ColorLevel::TrueColor));
+
+	assert_eq!(rendered.text, "%c▄▀█%c\n%c█▀█%c");
+	assert_eq!(
+		rendered.styles,
+		vec![
+			String::from("color:#ea3223"),
+			String::new(),
+			String::from("color:#ea3223"),
+			String::new(),
+		]
+	);
+}
+
+#[test]
+fn only_the_console_fills_styles() {
+	let context = RenderContext::colored(ColorLevel::TrueColor);
+
+	assert!(render_with(&tiny("A", vec![Color::Red]), &CliEnv, context).styles.is_empty());
+	assert!(render_with(&tiny("A", vec![Color::Red]), &BrowserEnv, context).styles.is_empty());
+}
+
+#[test]
+fn the_console_paints_nothing_without_a_level_or_for_system() {
+	let unleveled = render_with(&tiny("A", vec![Color::Red]), &BrowserConsoleEnv, RenderContext::unlimited());
+	assert_eq!(unleveled.text, "▄▀█\n█▀█");
+	assert!(unleveled.styles.is_empty());
+
+	let plain = render_with(&tiny("A", vec![]), &BrowserConsoleEnv, RenderContext::colored(ColorLevel::TrueColor));
+	let system =
+		render_with(&tiny("A", vec![Color::System]), &BrowserConsoleEnv, RenderContext::colored(ColorLevel::TrueColor));
+	assert_eq!(system.text, plain.text);
+	assert!(system.styles.is_empty());
+}
+
+#[test]
+fn a_resolved_color_that_paints_no_segment_does_not_escape_percent() {
+	// the two slot font's untagged space never paints, so the red slot resolves
+	// but covers no segment; the percent in the console font's art must survive
+	let options: Options = Cfonts::text(" ")
+		.font(Font::Block)
+		.color(vec![Color::Red])
+		.new_text("%")
+		.font(Font::Console)
+		.valign(Valign::Top)
+		.spaceless()
+		.into();
+
+	let rendered = render_with(&options, &BrowserConsoleEnv, RenderContext::colored(ColorLevel::TrueColor));
+
+	assert!(rendered.styles.is_empty());
+	assert!(rendered.text.contains('%'));
+	assert!(!rendered.text.contains("%%"));
 }

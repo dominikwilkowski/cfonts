@@ -48,7 +48,7 @@ impl Environment for BrowserEnv {
 	}
 
 	/// The start token is the CSS color value; the span markup is the paint
-	fn paint(&self, text: &str, tokens: &ColorTokens, _options: &Options, _context: &RenderContext, out: &mut Rendered) {
+	fn paint(&self, text: &str, tokens: &ColorTokens, _will_style: bool, _context: &RenderContext, out: &mut Rendered) {
 		if tokens.start.is_empty() {
 			Self::push_escaped(text, &mut out.text);
 			return;
@@ -148,7 +148,7 @@ mod tests {
 			start: Cow::Borrowed("red"),
 			end: Cow::Borrowed(""),
 		};
-		BrowserEnv.paint("</&>", &tokens, &Options::default(), &RenderContext::unlimited(), &mut out);
+		BrowserEnv.paint("</&>", &tokens, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
 	}
 

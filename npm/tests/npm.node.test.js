@@ -614,3 +614,16 @@ test("colors paint through the node host", () => {
 
 	assert.ok(rendered.includes("\u001b[31m"));
 });
+
+test("console styles pair with their markers through renderWith", () => {
+	const unstyled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleEnv);
+	assert.ok(!unstyled.text.includes("%c"));
+	assert.deepEqual(unstyled.styles, []);
+
+	const styled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleEnv, {
+		colorLevel: ColorLevel.TrueColor,
+	});
+	assert.equal(styled.text.match(/%c/g).length, styled.styles.length);
+	assert.ok(styled.styles.includes("color:#ea3223"));
+	assert.ok(styled.styles.includes(""));
+});

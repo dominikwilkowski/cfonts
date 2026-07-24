@@ -21,6 +21,12 @@ use crate::{
 pub struct Rendered {
 	/// The artifact's primary text
 	pub text: String,
+
+	/// Style values consumed by the text's format markers, in marker order
+	///
+	/// Only environments that style through arguments fill this; the browser
+	/// console pairs each value with one `%c` marker in the text
+	pub styles: Vec<String>,
 }
 
 /// The environment specific markers that paint one color around a segment
@@ -136,7 +142,10 @@ pub trait Environment {
 	}
 
 	/// Paint one [Segment] of text, wrapped in the env-interpreted color tokens
-	fn paint(&self, text: &str, tokens: &ColorTokens, _options: &Options, _context: &RenderContext, out: &mut Rendered) {
+	///
+	/// `will_style` says whether this render emits any style at all,
+	/// for environments whose escaping depends on the whole artifact
+	fn paint(&self, text: &str, tokens: &ColorTokens, _will_style: bool, _context: &RenderContext, out: &mut Rendered) {
 		out.text.push_str(&tokens.start);
 		out.text.push_str(text);
 		out.text.push_str(&tokens.end);
@@ -181,6 +190,10 @@ pub trait Environment {
 			let tokens = self.color_tokens(color, context);
 			tokens.paints().then_some(tokens)
 		});
+		// A resolved slot may cover no segment at all, and escaping must match the
+		// styles that actually get emitted, so the plan's resolution is confirmed
+		// against the rows; the scan stops at the first painted segment
+		let will_style = plan.will_style() && any_segment_paints(&plan, rows);
 		let no_paint = ColorTokens::default();
 
 		self.wrapper_start(options, &mut out);
@@ -202,7 +215,7 @@ pub trait Environment {
 				// Empty segments emit nothing so no stray color codes wrap zero columns
 				if !text.is_empty() {
 					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-					self.paint(text, tokens, options, context, &mut out);
+					self.paint(text, tokens, will_style, context, &mut out);
 				}
 			}
 			RowEvent::Blank { width, .. } => {
@@ -221,6 +234,30 @@ pub trait Environment {
 
 		out
 	}
+}
+
+/// Whether any segment of these rows actually paints under the plan
+///
+/// Resolution alone is not enough: a resolved slot may cover no segment,
+/// and a consumer only spreads style arguments that exist
+fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
+	rows.iter().any(|row| {
+		row.entries.iter().any(|entry| match entry {
+			RowEntry::Data {
+				glyph_row,
+				block_index,
+				paintable,
+			} => glyph_row.segments.iter().any(|segment| {
+				let (text, slot) = match segment {
+					Segment::Plain(text) => (*text, None),
+					Segment::Colored { slot, text } => (*text, Some(*slot)),
+				};
+
+				!text.is_empty() && plan.paint_for(*block_index, slot, *paintable).is_some()
+			}),
+			RowEntry::Blank { .. } => false,
+		})
+	})
 }
 
 #[cfg(test)]
@@ -298,7 +335,7 @@ mod tests {
 			start: Cow::Borrowed("<start>"),
 			end: Cow::Borrowed("<end>"),
 		};
-		CliEnv.paint("TEXT", &tokens, &Options::default(), &RenderContext::unlimited(), &mut out);
+		CliEnv.paint("TEXT", &tokens, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 

@@ -25,7 +25,8 @@ Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, bl
 banner.gradient({});
 
 const text: string = rendered.text;
-console.log(text, artifact.text);
+const styles: string[] = artifact.styles;
+console.log(text, artifact.text, styles.length);
 
 // @ts-expect-error BrowserHost is not exported from the Node entry
 import { BrowserHost } from "cfonts";

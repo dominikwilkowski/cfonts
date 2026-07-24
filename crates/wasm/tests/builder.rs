@@ -270,3 +270,18 @@ fn a_color_level_paints_the_configured_colors() {
 	);
 	assert!(!banner.render_cli(None, None, None).text.contains('\u{1b}'));
 }
+
+#[wasm_bindgen_test]
+fn console_styles_cross_the_boundary_in_marker_order() {
+	let mut banner = Cfonts::text("A".to_owned());
+	banner.font(Font::Tiny);
+	banner.colors(vec!["red".to_owned()]).expect("valid colors");
+
+	let unstyled = banner.render_browser_console(None, None, None);
+	assert!(!unstyled.text.contains("%c"));
+	assert!(unstyled.styles.is_empty());
+
+	let styled = banner.render_browser_console(None, Some(ColorLevel::TrueColor), None);
+	assert_eq!(styled.text.matches("%c").count(), styled.styles.len());
+	assert!(styled.styles.contains(&String::from("color:#ea3223")));
+}
