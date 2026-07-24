@@ -5,11 +5,14 @@ pub use browser_console::BrowserConsoleEnv;
 mod cli;
 pub use cli::CliEnv;
 
+use std::borrow::Cow;
+
 use crate::{
+	color::Color,
 	fonts::Segment,
 	layout::{LayoutRow, RowEntry},
 	options::Options,
-	render::RenderContext,
+	render::{PaintPlan, RenderContext},
 };
 
 /// The output of a render: one complete artifact in the selected environment's format
@@ -20,6 +23,33 @@ pub struct Rendered {
 	pub text: String,
 }
 
+/// The environment specific markers that paint one color around a segment
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorTokens {
+	/// Output before the painted text
+	pub start: Cow<'static, str>,
+
+	/// Output after the painted text
+	pub end: Cow<'static, str>,
+}
+
+impl ColorTokens {
+	/// Whether this pair paints anything
+	pub fn paints(&self) -> bool {
+		!(self.start.is_empty() && self.end.is_empty())
+	}
+}
+
+impl Default for ColorTokens {
+	/// The empty pair: paints nothing
+	fn default() -> Self {
+		Self {
+			start: Cow::Borrowed(""),
+			end: Cow::Borrowed(""),
+		}
+	}
+}
+
 /// One paintable event of a layout, in output order:
 /// the flattened view of rows every environment consumes
 #[derive(Debug)]
@@ -28,7 +58,17 @@ pub enum RowEvent<'a> {
 	RowStart { row: &'a LayoutRow },
 
 	/// One text segment with the block it came from
-	Text { text: &'static str, block_index: usize },
+	Text {
+		text: &'static str,
+		block_index: usize,
+
+		/// The font color slot of a tagged segment
+		slot: Option<usize>,
+
+		/// Whether an untagged segment may take the block's single color
+		/// (glyph and letter-space text may, buffer seams may not)
+		paintable: bool,
+	},
 
 	/// A run of empty columns (valign padding rows)
 	Blank { width: usize, block_index: usize },
@@ -50,16 +90,23 @@ impl RowEvent<'_> {
 
 			for entry in &row.entries {
 				match entry {
-					RowEntry::Data { glyph_row, block_index } => {
+					RowEntry::Data {
+						glyph_row,
+						block_index,
+						paintable,
+					} => {
 						for segment in glyph_row.segments {
-							match segment {
-								Segment::Plain(text) | Segment::Colored { text, .. } => {
-									event(RowEvent::Text {
-										text,
-										block_index: *block_index,
-									});
-								}
-							}
+							let (text, slot) = match segment {
+								Segment::Plain(text) => (text, None),
+								Segment::Colored { slot, text } => (text, Some(*slot)),
+							};
+
+							event(RowEvent::Text {
+								text,
+								block_index: *block_index,
+								slot,
+								paintable: *paintable,
+							});
 						}
 					}
 					RowEntry::Blank { width, block_index } => {
@@ -80,11 +127,19 @@ impl RowEvent<'_> {
 ///
 /// Hosts own capability discovery and output side effects
 pub trait Environment {
+	/// One color as this environment's start and end paint markers
+	///
+	/// Resolved once per configured color per render through the paint plan, never per glyph
+	/// The default paints nothing so monochrome environments need no color code
+	fn color_tokens(&self, _color: Color, _context: &RenderContext) -> ColorTokens {
+		ColorTokens::default()
+	}
+
 	/// Paint one [Segment] of text, wrapped in the env-interpreted color tokens
-	fn paint(&self, text: &str, color_start: &str, color_end: &str, _context: &RenderContext, out: &mut Rendered) {
-		out.text.push_str(color_start);
+	fn paint(&self, text: &str, tokens: &ColorTokens, _options: &Options, _context: &RenderContext, out: &mut Rendered) {
+		out.text.push_str(&tokens.start);
 		out.text.push_str(text);
-		out.text.push_str(color_end);
+		out.text.push_str(&tokens.end);
 	}
 
 	/// Runs before painting one rendered row
@@ -122,6 +177,11 @@ pub trait Environment {
 		// Benchmarks showed that preallocation was either inaccurate or slower
 		// Let the string grow amortized to keep rendering single-pass
 		let mut out = Rendered::default();
+		let plan = PaintPlan::build(options, context, |color| {
+			let tokens = self.color_tokens(color, context);
+			tokens.paints().then_some(tokens)
+		});
+		let no_paint = ColorTokens::default();
 
 		self.wrapper_start(options, &mut out);
 
@@ -133,9 +193,17 @@ pub trait Environment {
 			RowEvent::RowStart { row } => {
 				self.row_start(row, options, &mut out);
 			}
-			RowEvent::Text { text, .. } => {
-				// TODO(color): resolve paint tokens from the entry's block options
-				self.paint(text, "", "", context, &mut out);
+			RowEvent::Text {
+				text,
+				block_index,
+				slot,
+				paintable,
+			} => {
+				// Empty segments emit nothing so no stray color codes wrap zero columns
+				if !text.is_empty() {
+					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
+					self.paint(text, tokens, options, context, &mut out);
+				}
 			}
 			RowEvent::Blank { width, .. } => {
 				self.blank(width, &mut out);
@@ -198,12 +266,39 @@ mod tests {
 		assert_eq!(first_text_block, Some(0));
 	}
 
+	// ColorTokens
+
+	#[test]
+	fn the_default_tokens_paint_nothing() {
+		let tokens = ColorTokens::default();
+
+		assert!(!tokens.paints());
+		assert!(
+			ColorTokens {
+				start: Cow::Borrowed("x"),
+				end: Cow::Borrowed(""),
+			}
+			.paints()
+		);
+		assert!(
+			ColorTokens {
+				start: Cow::Borrowed(""),
+				end: Cow::Borrowed("x"),
+			}
+			.paints()
+		);
+	}
+
 	// paint
 
 	#[test]
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
-		CliEnv.paint("TEXT", "<start>", "<end>", &RenderContext::unlimited(), &mut out);
+		let tokens = ColorTokens {
+			start: Cow::Borrowed("<start>"),
+			end: Cow::Borrowed("<end>"),
+		};
+		CliEnv.paint("TEXT", &tokens, &Options::default(), &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 

@@ -4,7 +4,7 @@ use cfonts::{
 	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont, Options,
 	RenderContext, Valign as CoreValign,
 };
-use cfonts_wasm::{Align, Cfonts, Font, GradientPreset, Rendered, Valign};
+use cfonts_wasm::{Align, Cfonts, ColorLevel, Font, GradientPreset, Rendered, Valign};
 
 #[derive(Debug, Clone, Copy)]
 enum Target {
@@ -188,7 +188,7 @@ fn rendering_does_not_consume_or_change_the_builder() {
 }
 
 #[wasm_bindgen_test]
-fn color_configuration_does_not_change_the_output_yet() {
+fn color_configuration_without_a_color_level_paints_nothing() {
 	let plain = wrapping_banner();
 	let mut colored = wrapping_banner();
 
@@ -237,7 +237,7 @@ fn the_global_color_can_be_configured_once_across_all_shapes() {
 }
 
 #[wasm_bindgen_test]
-fn global_colors_do_not_change_the_output_yet() {
+fn global_colors_without_a_color_level_paint_nothing() {
 	let plain = wrapping_banner();
 	let mut colored = wrapping_banner();
 
@@ -256,4 +256,17 @@ fn a_failed_global_color_does_not_claim_the_slot() {
 	assert!(banner.global_gradient("reed".to_owned(), "blue".to_owned(), false).is_err());
 	assert!(banner.global_colors(vec!["red".to_owned()]).is_ok());
 	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_err()); // the claimed slot blocks the gradient shapes too
+}
+
+#[wasm_bindgen_test]
+fn a_color_level_paints_the_configured_colors() {
+	let mut banner = Cfonts::text("A".to_owned());
+	banner.font(Font::Tiny);
+	banner.colors(vec!["red".to_owned()]).expect("valid colors");
+
+	assert!(banner.render_cli(None, Some(ColorLevel::TrueColor), None).text.contains("\u{1b}[31m"));
+	assert!(
+		banner.render_browser(None, Some(ColorLevel::TrueColor), None).text.contains(r##"<span style="color:#ea3223">"##)
+	);
+	assert!(!banner.render_cli(None, None, None).text.contains('\u{1b}'));
 }

@@ -285,8 +285,6 @@ impl Color {
 	///
 	/// Named colors never level up or down so they respect the terminal's own palette;
 	/// `Candy` and `Rgb` resolve elsewhere and yield None
-	// TODO(M4): the allow disappears when CliEnv::color_tokens starts consuming this
-	#[allow(dead_code)]
 	pub(crate) fn ansi16_sgr(self) -> Option<&'static str> {
 		match self {
 			Self::System => Some("\x1b[39m"),

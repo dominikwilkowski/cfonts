@@ -5,8 +5,15 @@ use crate::{
 
 #[derive(Debug, Copy, Clone)]
 pub struct LayoutGlyph {
+	/// The rows and column width of this glyph; letter spaces and buffer seams travel as glyphs too
 	glyph: GlyphRef,
+
+	/// The block this glyph came from, carried into the rows so paint can tie it to that block's colors
 	block_index: usize,
+
+	/// Whether this glyph's untagged text may take the block's single color
+	/// (printable glyphs and letter spaces may, buffer seams may not)
+	paintable: bool,
 }
 
 impl LayoutGlyph {
@@ -26,6 +33,10 @@ pub enum RowEntry {
 	Data {
 		glyph_row: &'static GlyphRow,
 		block_index: usize,
+
+		/// Whether untagged text of this row may take the block's single color
+		/// (printable glyphs and letter spaces may, buffer seams may not)
+		paintable: bool,
 	},
 
 	/// A run of empty columns (valign padding), tagged with its block for background colors later
@@ -153,6 +164,7 @@ impl<'a> Layout<'a> {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index,
+			paintable: false,
 		};
 		self.push_glyph(buffer_start);
 
@@ -160,6 +172,7 @@ impl<'a> Layout<'a> {
 		let letter_space_glyph = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index,
+			paintable: true,
 		};
 
 		// Now we iterate each character in this block
@@ -205,6 +218,7 @@ impl<'a> Layout<'a> {
 				width: 0,
 			},
 			block_index,
+			paintable: false,
 		});
 		self.line_max_rows = self.line_max_rows.max(font.rows());
 	}
@@ -250,7 +264,11 @@ impl<'a> Layout<'a> {
 				self.word_width += letter_space_glyph.width();
 			}
 		}
-		self.word.push(LayoutGlyph { glyph, block_index });
+		self.word.push(LayoutGlyph {
+			glyph,
+			block_index,
+			paintable: true,
+		});
 		self.word_width += glyph.width;
 		self.word_glyph_count += 1;
 	}
@@ -416,6 +434,7 @@ impl<'a> Layout<'a> {
 					RowEntry::Data {
 						glyph_row: &glyph.rows()[row - padding],
 						block_index: glyph.block_index,
+						paintable: glyph.paintable,
 					}
 				};
 				entries.push(entry);
@@ -520,10 +539,12 @@ mod tests {
 		layout.push_glyph(LayoutGlyph {
 			glyph: block_font.get_glyph('A').unwrap(),
 			block_index: 0,
+			paintable: true,
 		});
 		layout.push_glyph(LayoutGlyph {
 			glyph: tiny_font.get_glyph('B').unwrap(),
 			block_index: 1,
+			paintable: true,
 		});
 		layout.flush_line(None);
 		layout
@@ -650,6 +671,7 @@ mod tests {
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		let glyph = font.get_glyph('A').unwrap();
 
@@ -667,6 +689,7 @@ mod tests {
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
@@ -688,6 +711,7 @@ mod tests {
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		let glyph = font.get_glyph('A').unwrap();
 		layout.stage_glyph(glyph, letter_space, 1, 0);
@@ -712,10 +736,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 
 		layout.commit_word(buffer_start, letter_space, 1, Some(100));
@@ -734,10 +760,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		let glyph = font.get_glyph('A').unwrap();
 
@@ -763,10 +791,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 
 		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
@@ -788,10 +818,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		layout.push_glyph(buffer_start);
 
@@ -814,10 +846,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		layout.push_glyph(buffer_start);
 		let glyph_a = font.get_glyph('A').unwrap();
@@ -844,10 +878,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		layout.push_glyph(buffer_start);
 
@@ -874,10 +910,12 @@ mod tests {
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index: 0,
+			paintable: false,
 		};
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index: 0,
+			paintable: true,
 		};
 		layout.push_glyph(buffer_start);
 		for character in ['A', 'B', 'C'] {
@@ -904,10 +942,12 @@ mod tests {
 		layout.push_glyph(LayoutGlyph {
 			glyph: glyph_a,
 			block_index: 0,
+			paintable: true,
 		});
 		layout.push_glyph(LayoutGlyph {
 			glyph: glyph_b,
 			block_index: 0,
+			paintable: true,
 		});
 
 		assert_eq!(layout.line.len(), 2);
@@ -1026,10 +1066,12 @@ mod tests {
 		layout.push_glyph(LayoutGlyph {
 			glyph: block_font.get_glyph('A').unwrap(),
 			block_index: 0,
+			paintable: true,
 		});
 		layout.push_glyph(LayoutGlyph {
 			glyph: tiny_glyph,
 			block_index: 1,
+			paintable: true,
 		});
 		layout.flush_line(None);
 
@@ -1052,6 +1094,7 @@ mod tests {
 		layout.push_glyph(LayoutGlyph {
 			glyph: font.get_glyph('A').unwrap(),
 			block_index: 0,
+			paintable: true,
 		});
 
 		layout.flush_line(None);

@@ -1,6 +1,5 @@
 use cfonts::{
-	CanvasWidth, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, GradientPreset, Options, RenderContext,
-	RenderOverrides, render_with,
+	CanvasWidth, Cfonts, CliEnv, ColorLevel, ColorOverride, Font, Options, RenderContext, RenderOverrides, render_with,
 };
 
 #[test]
@@ -40,35 +39,17 @@ fn contexts_default_to_colorless_and_carry_what_they_are_given() {
 	assert_eq!(plain.color_level(), None);
 	assert_eq!(plain.seed(), 0);
 
-	let colorful = RenderContext::unlimited().with_color_level(Some(ColorLevel::Ansi256)).with_seed(42);
+	let colorful = RenderContext::colored(ColorLevel::Ansi256).with_seed(42);
 	assert_eq!(colorful.color_level(), Some(ColorLevel::Ansi256));
 	assert_eq!(colorful.seed(), 42);
 }
 
 #[test]
-fn color_capabilities_do_not_change_the_output_yet() {
-	// nothing paints until the environments consume the level: the artifact stays byte identical
+fn a_color_level_without_color_options_paints_nothing() {
+	// capabilities alone paint nothing: only configured colors consume the level
 	let banner = Cfonts::text("HI").font(Font::Tiny);
 	let plain = banner.render_with(&CliEnv, RenderContext::unlimited());
-	let leveled =
-		banner.render_with(&CliEnv, RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor)).with_seed(42));
+	let leveled = banner.render_with(&CliEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(42));
 
 	assert_eq!(plain.text, leveled.text);
-}
-
-#[test]
-fn color_options_do_not_change_the_output_yet() {
-	// the renderer carries but does not consume color configuration: the artifact stays byte identical
-	let plain: Options = Cfonts::text("HI").font(Font::Tiny).into();
-	let colored: Options = Cfonts::text("HI")
-		.font(Font::Tiny)
-		.color(vec![Color::Red, Color::Candy])
-		.global_color(GradientPreset::Pride)
-		.into();
-	let global_colors: Options = Cfonts::text("HI").font(Font::Tiny).global_color(vec![Color::Red]).into();
-
-	let context = RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor));
-
-	assert_eq!(render_with(&plain, &CliEnv, context).text, render_with(&colored, &CliEnv, context).text);
-	assert_eq!(render_with(&plain, &CliEnv, context).text, render_with(&global_colors, &CliEnv, context).text);
 }

@@ -1,5 +1,8 @@
+use std::borrow::Cow;
+
 use crate::{
-	environments::{Environment, Rendered},
+	color::Color,
+	environments::{ColorTokens, Environment, Rendered},
 	layout::LayoutRow,
 	options::{Align, Options},
 	render::RenderContext,
@@ -28,14 +31,31 @@ impl Environment for BrowserEnv {
 	/// Alignment is expressed as CSS `text-align` on the wrapper, not as physical padding
 	fn row_start(&self, _row: &LayoutRow, _options: &Options, _out: &mut Rendered) {}
 
-	fn paint(&self, text: &str, color_start: &str, _color_end: &str, _context: &RenderContext, out: &mut Rendered) {
-		if color_start.is_empty() {
+	/// The browser has no terminal palette, so named colors flatten to their RGB
+	/// values and every color level paints the same CSS
+	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+		if context.color_level().is_none() {
+			return ColorTokens::default();
+		}
+
+		match color.to_rgb() {
+			Some(rgb) => ColorTokens {
+				start: Cow::Owned(rgb.to_hex()),
+				end: Cow::Borrowed(""),
+			},
+			None => ColorTokens::default(),
+		}
+	}
+
+	/// The start token is the CSS color value; the span markup is the paint
+	fn paint(&self, text: &str, tokens: &ColorTokens, _options: &Options, _context: &RenderContext, out: &mut Rendered) {
+		if tokens.start.is_empty() {
 			Self::push_escaped(text, &mut out.text);
 			return;
 		}
 
 		out.text.push_str(r#"<span style="color:"#);
-		out.text.push_str(color_start);
+		out.text.push_str(&tokens.start);
 		out.text.push_str(r#"">"#);
 		Self::push_escaped(text, &mut out.text);
 		out.text.push_str("</span>");
@@ -75,7 +95,7 @@ impl Environment for BrowserEnv {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{Cfonts, fonts::Font, options::Valign};
+	use crate::{Cfonts, color::Rgb, fonts::Font, options::Valign, render::ColorLevel};
 
 	// row_start
 
@@ -93,13 +113,42 @@ mod tests {
 		assert_eq!(out.text, "");
 	}
 
+	// color_tokens
+
+	#[test]
+	fn named_colors_flatten_to_their_rgb_values() {
+		// the browser has no terminal palette, so every level paints the same CSS
+		let context = RenderContext::colored(ColorLevel::Basic);
+
+		assert_eq!(BrowserEnv.color_tokens(Color::Red, &context).start, "#ea3223");
+		assert_eq!(
+			BrowserEnv
+				.color_tokens(
+					Color::Rgb(Rgb {
+						red: 1,
+						green: 2,
+						blue: 3,
+					}),
+					&context,
+				)
+				.start,
+			"#010203"
+		);
+		assert!(!BrowserEnv.color_tokens(Color::System, &context).paints());
+		assert!(!BrowserEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+	}
+
 	// paint
 
 	#[test]
 	fn paint_escapes_the_text_but_not_the_color_markup() {
 		// the console font's `&` glyph and simple3d's `</` art must not parse as HTML
 		let mut out = Rendered::default();
-		BrowserEnv.paint("</&>", "red", "", &RenderContext::unlimited(), &mut out);
+		let tokens = ColorTokens {
+			start: Cow::Borrowed("red"),
+			end: Cow::Borrowed(""),
+		};
+		BrowserEnv.paint("</&>", &tokens, &Options::default(), &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
 	}
 

@@ -37,6 +37,21 @@ const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, "0", "Block", true, null, 
 
 // helpers
 
+function withEnv(name, value, operation) {
+	const original = process.env[name];
+	process.env[name] = value;
+
+	try {
+		return operation();
+	} finally {
+		if (original === undefined) {
+			delete process.env[name];
+		} else {
+			process.env[name] = original;
+		}
+	}
+}
+
 function withTerminal(columns, forceSize, operation) {
 	const originalForceSize = process.env.FORCE_SIZE;
 
@@ -487,7 +502,7 @@ test("renderWith validates color context fields", () => {
 	assert.throws(() => Cfonts.text("A").renderWith(CliEnv, { seed: 1.5 }), TypeError);
 });
 
-test("color capabilities do not change the output yet", () => {
+test("a color level without color options paints nothing", () => {
 	const plain = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
 	const leveled = withTerminal(
 		13,
@@ -505,7 +520,7 @@ test("colors accepts enums hex values and channel objects", () => {
 		.renderWith(CliEnv).text;
 	const empty = Cfonts.text("A").colors([]).renderWith(CliEnv).text;
 
-	assert.equal(colored, plain); // nothing paints yet
+	assert.equal(colored, plain); // renderWith without a color level paints nothing
 	assert.equal(empty, plain); // an empty list is still a configured color
 });
 
@@ -530,7 +545,7 @@ test("gradient shapes are validated", () => {
 	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), Error); // system is not a gradient stop
 });
 
-test("gradients accept every shape and do not change the output yet", () => {
+test("gradients accept every shape and do not paint yet", () => {
 	const plain = Cfonts.text("A").renderWith(CliEnv).text;
 
 	const preset = Cfonts.text("A").gradient(GradientPreset.Pride).renderWith(CliEnv).text;
@@ -549,7 +564,7 @@ test("gradients accept every shape and do not change the output yet", () => {
 	}
 });
 
-test("globalColors accepts colors and does not change the output yet", () => {
+test("globalColors accepts colors and paints nothing without a color level", () => {
 	const plain = Cfonts.text("A").renderWith(CliEnv).text;
 	const global = Cfonts.text("A").globalColors([Color.Red, "#ff8800"]).renderWith(CliEnv).text;
 
@@ -578,4 +593,24 @@ test("a failed global gradient does not claim the slot", () => {
 
 	assert.throws(() => banner.globalGradient({ start: "reed", end: "blue" }), Error);
 	banner.globalGradient({ start: "red", end: "blue" }); // the slot is still available
+});
+
+test("renderWith paints with an explicit color level", () => {
+	const cli = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(CliEnv, {
+		colorLevel: ColorLevel.TrueColor,
+	}).text;
+	assert.ok(cli.includes("\u001b[31m"));
+
+	const browser = Cfonts.text("A").font(Font.Tiny).colors(["#ff8800"]).renderWith(BrowserEnv, {
+		colorLevel: ColorLevel.TrueColor,
+	}).text;
+	assert.ok(browser.includes('<span style="color:#ff8800">'));
+});
+
+test("colors paint through the node host", () => {
+	const rendered = withEnv("FORCE_COLOR", "3", () =>
+		withTerminal(80, undefined, () => Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).render(new NodeHost()).text),
+	);
+
+	assert.ok(rendered.includes("\u001b[31m"));
 });
