@@ -1,7 +1,7 @@
 use std::num::NonZeroUsize;
 
 use crate::{
-	color::{Color, ColorOption},
+	color::{CANDY, CandyRng, Color, ColorOption},
 	environments::{Environment, Rendered},
 	layout::Layout,
 	options::Options,
@@ -203,7 +203,6 @@ pub(crate) enum SlotPaint<T> {
 	Fixed(T),
 
 	/// A fresh pick from the candy assortment per painted segment
-	// TODO(M6): rolls arrive with the paint plan's rng; until then candy paints nothing
 	Candy,
 }
 
@@ -232,6 +231,12 @@ impl<T> BlockPlan<T> {
 #[derive(Debug)]
 pub(crate) struct PaintPlan<T> {
 	blocks: Vec<BlockPlan<T>>,
+
+	/// The candy assortment resolved through the environment, present only when a slot rolls
+	candy: Option<Box<[Option<T>; CANDY.len()]>>,
+
+	/// The deterministic roll source, seeded by the host through the context
+	rng: CandyRng,
 
 	/// Whether any slot resolved to paint
 	will_style: bool,
@@ -271,7 +276,7 @@ impl<T> PaintPlan<T> {
 							})
 							.collect();
 
-						will_style |= slots.iter().any(|slot| matches!(slot, SlotPaint::Fixed(_)));
+						will_style |= slots.iter().any(|slot| matches!(slot, SlotPaint::Fixed(_) | SlotPaint::Candy));
 						let paint_plain = font_colors == 1 && matches!(slots.first(), Some(SlotPaint::Fixed(_) | SlotPaint::Candy));
 
 						BlockPlan { slots, paint_plain }
@@ -280,9 +285,18 @@ impl<T> PaintPlan<T> {
 					ColorOption::Gradient(_) => BlockPlan::bare(),
 				}
 			})
-			.collect();
+			.collect::<Vec<BlockPlan<T>>>();
 
-		Self { blocks, will_style }
+		// The assortment resolves once, and only when something actually rolls
+		let rolls = blocks.iter().any(|block| block.slots.iter().any(|slot| matches!(slot, SlotPaint::Candy)));
+		let candy = rolls.then(|| Box::new(CANDY.map(&mut resolve)));
+
+		Self {
+			blocks,
+			candy,
+			rng: CandyRng::new(context.seed()),
+			will_style,
+		}
 	}
 
 	/// Whether any slot resolved to paint
@@ -292,10 +306,27 @@ impl<T> PaintPlan<T> {
 		self.will_style
 	}
 
-	/// The paint of one text segment, if any
+	/// Whether one text segment resolves to paint, without consuming a roll
+	///
+	/// The pre-paint scan uses this so candy determinism is untouched by scanning
+	pub(crate) fn resolves(&self, block_index: usize, slot: Option<usize>, paintable: bool) -> bool {
+		let Some(block) = self.blocks.get(block_index) else {
+			return false;
+		};
+
+		let slot = match slot {
+			Some(slot) => slot,
+			None if paintable && block.paint_plain => 0,
+			None => return false,
+		};
+
+		matches!(block.slots.get(slot), Some(SlotPaint::Fixed(_) | SlotPaint::Candy))
+	}
+
+	/// The paint of one text segment, if any; a candy slot rolls a fresh pick
 	///
 	/// Tagged segments use their slot; untagged paintable segments take slot zero when the block paints plain
-	pub(crate) fn paint_for(&self, block_index: usize, slot: Option<usize>, paintable: bool) -> Option<&T> {
+	pub(crate) fn paint_for(&mut self, block_index: usize, slot: Option<usize>, paintable: bool) -> Option<&T> {
 		let block = self.blocks.get(block_index)?;
 
 		let slot = match slot {
@@ -306,8 +337,11 @@ impl<T> PaintPlan<T> {
 
 		match block.slots.get(slot) {
 			Some(SlotPaint::Fixed(paint)) => Some(paint),
-			// TODO(M6): candy rolls a fresh color here instead of staying bare
-			Some(SlotPaint::Candy | SlotPaint::None) | None => None,
+			Some(SlotPaint::Candy) => {
+				let pick = self.rng.pick();
+				self.candy.as_ref().and_then(|candy| candy[pick].as_ref())
+			}
+			Some(SlotPaint::None) | None => None,
 		}
 	}
 }
@@ -347,7 +381,7 @@ mod tests {
 			.color(vec![Color::Green])
 			.into();
 
-		let (plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
 
 		assert_eq!(calls, 3);
 		assert!(plan.will_style);
@@ -360,7 +394,7 @@ mod tests {
 	fn no_color_level_builds_a_bare_plan() {
 		let options: Options = Cfonts::text("hello").color(vec![Color::Red]).into();
 
-		let (plan, calls) = plan_for(&options, &RenderContext::unlimited());
+		let (mut plan, calls) = plan_for(&options, &RenderContext::unlimited());
 
 		assert_eq!(calls, 0);
 		assert!(!plan.will_style);
@@ -372,7 +406,7 @@ mod tests {
 		// Tiny holds one color slot, so the second color can never apply and must not style the render
 		let options: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::System, Color::Red]).into();
 
-		let (plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
 
 		assert_eq!(calls, 0);
 		assert!(!plan.will_style);
@@ -385,11 +419,11 @@ mod tests {
 		let single: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Red]).into();
 		let multi: Options = Cfonts::text("hello").font(Font::Block).color(vec![Color::Red, Color::Blue]).into();
 
-		let (plan, _) = plan_for(&single, &RenderContext::colored(ColorLevel::TrueColor));
+		let (mut plan, _) = plan_for(&single, &RenderContext::colored(ColorLevel::TrueColor));
 		assert_eq!(plan.paint_for(0, None, true), Some(&String::from("Red")));
 		assert_eq!(plan.paint_for(0, None, false), None); // buffer seams stay bare
 
-		let (plan, _) = plan_for(&multi, &RenderContext::colored(ColorLevel::TrueColor));
+		let (mut plan, _) = plan_for(&multi, &RenderContext::colored(ColorLevel::TrueColor));
 		assert_eq!(plan.paint_for(0, None, true), None); // letter spaces stay bare in tagged fonts
 	}
 
@@ -403,25 +437,82 @@ mod tests {
 			.global_color(vec![Color::Blue])
 			.into();
 
-		let (plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+		let (mut plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
 
 		assert_eq!(plan.paint_for(0, None, true), Some(&String::from("Red")));
 		assert_eq!(plan.paint_for(1, None, true), Some(&String::from("Blue")));
 	}
 
 	#[test]
-	fn candy_and_gradients_do_not_paint_here_yet() {
-		// TODO(M6)/TODO(M7): candy rolls and gradient columns get their own paint paths
-		let candy: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Candy]).into();
+	fn a_candy_slot_resolves_the_assortment_once_and_rolls_per_segment() {
+		// two candy slots share the one resolved assortment
+		let options: Options = Cfonts::text("hello")
+			.font(Font::Tiny)
+			.color(vec![Color::Candy])
+			.new_text("world")
+			.font(Font::Tiny)
+			.color(vec![Color::Candy])
+			.into();
+
+		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+
+		// eleven resolver calls for the assortment, none per slot
+		assert_eq!(calls, 11);
+		assert!(plan.will_style);
+		assert!(plan.resolves(0, None, true));
+		assert!(plan.resolves(1, None, true));
+
+		let rolls: Vec<String> =
+			(0..32).map(|_| plan.paint_for(0, None, true).expect("candy always paints").clone()).collect();
+		let assortment: Vec<String> = crate::color::CANDY.iter().map(|color| format!("{color:?}")).collect();
+
+		// every roll comes from the assortment and the rolls vary
+		assert!(rolls.iter().all(|roll| assortment.contains(roll)));
+		assert!(rolls.windows(2).any(|pair| pair[0] != pair[1]));
+	}
+
+	#[test]
+	fn candy_rolls_are_deterministic_for_a_seed() {
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Candy]).into();
+		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
+
+		let (mut one, _) = plan_for(&options, &seeded);
+		let (mut two, _) = plan_for(&options, &seeded);
+		let (mut other, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor).with_seed(43));
+
+		let picks = |plan: &mut PaintPlan<String>| -> Vec<String> {
+			(0..16).map(|_| plan.paint_for(0, None, true).expect("candy always paints").clone()).collect()
+		};
+
+		let first = picks(&mut one);
+		assert_eq!(first, picks(&mut two));
+		assert_ne!(first, picks(&mut other));
+	}
+
+	#[test]
+	fn the_scan_does_not_consume_rolls() {
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Candy]).into();
+		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
+
+		let (mut scanned, _) = plan_for(&options, &seeded);
+		let (mut bare, _) = plan_for(&options, &seeded);
+
+		// resolving repeatedly must not shift the roll sequence
+		for _ in 0..8 {
+			assert!(scanned.resolves(0, None, true));
+		}
+
+		assert_eq!(scanned.paint_for(0, None, true), bare.paint_for(0, None, true));
+	}
+
+	#[test]
+	fn gradients_do_not_paint_here_yet() {
+		// TODO(M7): gradient columns get their own paint path
 		let gradient: Options = Cfonts::text("hello").font(Font::Tiny).color(GradientPreset::Pride).into();
 
-		let (plan, calls) = plan_for(&candy, &RenderContext::colored(ColorLevel::TrueColor));
+		let (mut plan, calls) = plan_for(&gradient, &RenderContext::colored(ColorLevel::TrueColor));
 		assert_eq!(calls, 0);
 		assert!(!plan.will_style);
-		assert_eq!(plan.paint_for(0, None, true), None);
-
-		let (plan, calls) = plan_for(&gradient, &RenderContext::colored(ColorLevel::TrueColor));
-		assert_eq!(calls, 0);
 		assert_eq!(plan.paint_for(0, Some(0), true), None);
 	}
 }

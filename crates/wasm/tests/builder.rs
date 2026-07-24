@@ -285,3 +285,18 @@ fn console_styles_cross_the_boundary_in_marker_order() {
 	assert_eq!(styled.text.matches("%c").count(), styled.styles.len());
 	assert!(styled.styles.contains(&String::from("color:#ea3223")));
 }
+
+#[wasm_bindgen_test]
+fn candy_seeds_are_deterministic_across_the_boundary() {
+	let mut banner = Cfonts::text("AB".to_owned());
+	banner.font(Font::Tiny);
+	banner.colors(vec!["candy".to_owned()]).expect("valid colors");
+
+	let one = banner.render_cli(None, Some(ColorLevel::TrueColor), Some(42));
+	let two = banner.render_cli(None, Some(ColorLevel::TrueColor), Some(42));
+	let other = banner.render_cli(None, Some(ColorLevel::TrueColor), Some(43));
+
+	assert_eq!(one.text, two.text);
+	assert_ne!(one.text, other.text);
+	assert!(one.text.contains("\u{1b}["));
+}

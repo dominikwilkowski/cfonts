@@ -81,7 +81,7 @@ mod tests {
 
 	#[test]
 	fn system_candy_and_unleveled_contexts_paint_nothing() {
-		// TODO(M6): the paint plan rolls candy into a named color before tokens resolve
+		// the paint plan rolls candy into a named color before tokens resolve, so raw candy never paints
 		assert!(!CliEnv.color_tokens(Color::System, &RenderContext::colored(ColorLevel::TrueColor)).paints());
 		assert!(!CliEnv.color_tokens(Color::Candy, &RenderContext::colored(ColorLevel::TrueColor)).paints());
 		assert!(!CliEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());

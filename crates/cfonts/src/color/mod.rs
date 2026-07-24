@@ -490,8 +490,6 @@ impl From<GradientPreset> for ColorOption {
 }
 
 /// The candy assortment: five base and six bright colors, no blue and no white
-// TODO(M6): the allow disappears when the paint plan starts rolling candy
-#[allow(dead_code)]
 pub(crate) const CANDY: [Color; 11] = [
 	Color::Red,
 	Color::Green,
@@ -509,27 +507,25 @@ pub(crate) const CANDY: [Color; 11] = [
 /// A tiny deterministic PRNG (SplitMix64) for candy picks
 ///
 /// Hosts inject entropy through the render context, a fixed seed makes renders reproducible
-// TODO(M6): the allow disappears when the paint plan starts rolling candy
-#[allow(dead_code)]
+#[derive(Debug)]
 pub(crate) struct CandyRng {
 	state: u64,
 }
 
-#[allow(dead_code)]
 impl CandyRng {
 	pub(crate) const fn new(seed: u64) -> Self {
 		Self { state: seed }
 	}
 
-	/// The next random pick from the candy assortment
-	pub(crate) fn pick(&mut self) -> Color {
+	/// The next random pick from the candy assortment, as an index into [`CANDY`]
+	pub(crate) fn pick(&mut self) -> usize {
 		self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
 		let mut mixed = self.state;
 		mixed = (mixed ^ (mixed >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
 		mixed = (mixed ^ (mixed >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
 		mixed ^= mixed >> 31;
 
-		CANDY[(mixed % CANDY.len() as u64) as usize]
+		(mixed % CANDY.len() as u64) as usize
 	}
 }
 
@@ -964,8 +960,8 @@ mod tests {
 	fn candy_picks_are_deterministic_for_a_seed() {
 		let mut one = CandyRng::new(42);
 		let mut two = CandyRng::new(42);
-		let picks_one: Vec<Color> = (0..32).map(|_| one.pick()).collect();
-		let picks_two: Vec<Color> = (0..32).map(|_| two.pick()).collect();
+		let picks_one: Vec<usize> = (0..32).map(|_| one.pick()).collect();
+		let picks_two: Vec<usize> = (0..32).map(|_| two.pick()).collect();
 
 		assert_eq!(picks_one, picks_two);
 	}
@@ -974,18 +970,18 @@ mod tests {
 	fn candy_picks_differ_between_seeds() {
 		let mut one = CandyRng::new(1);
 		let mut two = CandyRng::new(2);
-		let picks_one: Vec<Color> = (0..32).map(|_| one.pick()).collect();
-		let picks_two: Vec<Color> = (0..32).map(|_| two.pick()).collect();
+		let picks_one: Vec<usize> = (0..32).map(|_| one.pick()).collect();
+		let picks_two: Vec<usize> = (0..32).map(|_| two.pick()).collect();
 
 		assert_ne!(picks_one, picks_two);
 	}
 
 	#[test]
-	fn candy_picks_come_from_the_assortment() {
+	fn candy_picks_index_the_assortment() {
 		let mut rng = CandyRng::new(0);
 
 		for _ in 0..256 {
-			assert!(CANDY.contains(&rng.pick()));
+			assert!(rng.pick() < CANDY.len());
 		}
 	}
 }

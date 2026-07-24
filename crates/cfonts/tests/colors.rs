@@ -58,12 +58,39 @@ fn system_paints_nothing() {
 }
 
 #[test]
-fn candy_does_not_paint_here_yet() {
-	// TODO(M6): candy rolls a fresh assortment color per painted segment
-	let plain = render_with(&tiny("A", vec![]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
-	let candy = render_with(&tiny("A", vec![Color::Candy]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+fn candy_renders_are_deterministic_for_a_seed() {
+	let options = tiny("AB", vec![Color::Candy]);
+	let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
 
-	assert_eq!(candy, plain);
+	let one = render_with(&options, &CliEnv, seeded).text;
+	let two = render_with(&options, &CliEnv, seeded).text;
+	let other = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(43)).text;
+
+	assert_eq!(one, two);
+	assert_ne!(one, other);
+}
+
+#[test]
+fn candy_paints_only_assortment_codes() {
+	let rendered =
+		render_with(&tiny("ABC", vec![Color::Candy]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(7))
+			.text;
+
+	// candy picks named colors, so every start is a fixed sixteen color code from
+	// the assortment: five base and six bright, no blue and no white
+	let assortment = ["31", "32", "33", "35", "36", "91", "92", "93", "94", "95", "96"];
+	let mut runs = 0;
+
+	for code in rendered.split("\u{1b}[").skip(1) {
+		let code = code.split('m').next().expect("every escape closes with m");
+
+		if code != "39" {
+			assert!(assortment.contains(&code), "{code} is not a candy code");
+			runs += 1;
+		}
+	}
+
+	assert!(runs > 0);
 }
 
 #[test]

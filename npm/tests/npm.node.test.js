@@ -627,3 +627,21 @@ test("console styles pair with their markers through renderWith", () => {
 	assert.ok(styled.styles.includes("color:#ea3223"));
 	assert.ok(styled.styles.includes(""));
 });
+
+test("candy seeds are deterministic through renderWith", () => {
+	const seeded = { colorLevel: ColorLevel.TrueColor, seed: 42 };
+
+	const one = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(CliEnv, seeded).text;
+	const two = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(CliEnv, seeded).text;
+	const other = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(CliEnv, {
+		colorLevel: ColorLevel.TrueColor,
+		seed: 43,
+	}).text;
+
+	assert.equal(one, two);
+	assert.notEqual(one, other);
+	assert.ok(one.includes("\u001b["));
+
+	const consoleArtifact = Cfonts.text("A").font(Font.Tiny).colors([Color.Candy]).renderWith(BrowserConsoleEnv, seeded);
+	assert.ok(consoleArtifact.styles.length > 0);
+});

@@ -186,7 +186,7 @@ pub trait Environment {
 		// Benchmarks showed that preallocation was either inaccurate or slower
 		// Let the string grow amortized to keep rendering single-pass
 		let mut out = Rendered::default();
-		let plan = PaintPlan::build(options, context, |color| {
+		let mut plan = PaintPlan::build(options, context, |color| {
 			let tokens = self.color_tokens(color, context);
 			tokens.paints().then_some(tokens)
 		});
@@ -253,7 +253,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 					Segment::Colored { slot, text } => (*text, Some(*slot)),
 				};
 
-				!text.is_empty() && plan.paint_for(*block_index, slot, *paintable).is_some()
+				!text.is_empty() && plan.resolves(*block_index, slot, *paintable)
 			}),
 			RowEntry::Blank { .. } => false,
 		})
