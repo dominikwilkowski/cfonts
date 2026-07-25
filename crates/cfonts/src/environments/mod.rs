@@ -8,11 +8,11 @@ pub use cli::CliEnv;
 use std::borrow::Cow;
 
 use crate::{
-	color::Color,
+	color::{Color, Rgb},
 	fonts::Segment,
 	layout::{LayoutRow, RowEntry},
 	options::Options,
-	render::{PaintPlan, RenderContext},
+	render::{GradientPlans, PaintDomain, PaintPlan, RenderContext},
 };
 
 /// The output of a render: one complete artifact in the selected environment's format
@@ -79,6 +79,11 @@ pub enum RowEvent<'a> {
 	/// A run of empty columns (valign padding rows)
 	Blank { width: usize, block_index: usize },
 
+	/// The end of one entry, with the columns it claimed
+	///
+	/// Gradient cursors advance on this without rescanning segment text
+	EntryEnd { width: usize, block_index: usize },
+
 	/// The boundary between two rows
 	Break,
 }
@@ -99,6 +104,7 @@ impl RowEvent<'_> {
 					RowEntry::Data {
 						glyph_row,
 						block_index,
+						width,
 						paintable,
 					} => {
 						for segment in glyph_row.segments {
@@ -114,6 +120,11 @@ impl RowEvent<'_> {
 								paintable: *paintable,
 							});
 						}
+
+						event(RowEvent::EntryEnd {
+							width: *width,
+							block_index: *block_index,
+						});
 					}
 					RowEntry::Blank { width, block_index } => {
 						event(RowEvent::Blank {
@@ -149,6 +160,16 @@ pub trait Environment {
 		out.text.push_str(&tokens.start);
 		out.text.push_str(text);
 		out.text.push_str(&tokens.end);
+	}
+
+	/// Paint text one column per ramp color and return the columns consumed
+	///
+	/// The window is pre-sliced to this segment's first column; a drained window
+	/// paints bare so cursors stay honest even past the ramp
+	/// The default ignores the ramp so monochrome environments stay untouched
+	fn gradient_paint(&self, text: &str, _colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+		out.text.push_str(text);
+		text.chars().count()
 	}
 
 	/// Runs before painting one rendered row
@@ -195,6 +216,13 @@ pub trait Environment {
 		// against the rows; the scan stops at the first painted segment
 		let will_style = plan.will_style() && any_segment_paints(&plan, rows);
 		let no_paint = ColorTokens::default();
+		let mut gradients = GradientPlans::build(options, context, rows);
+
+		// Ramp cursors: the global one counts every column of the row, a block one
+		// counts within the current block; both reset as rows and blocks change
+		let mut global_cursor = 0_usize;
+		let mut block_cursor = 0_usize;
+		let mut cursor_block: Option<usize> = None;
 
 		self.wrapper_start(options, &mut out);
 
@@ -204,6 +232,10 @@ pub trait Environment {
 
 		RowEvent::each(rows, |event| match event {
 			RowEvent::RowStart { row } => {
+				gradients.start_row(row);
+				global_cursor = gradients.global_row_origin(row);
+				block_cursor = 0;
+				cursor_block = None;
 				self.row_start(row, options, &mut out);
 			}
 			RowEvent::Text {
@@ -214,12 +246,40 @@ pub trait Environment {
 			} => {
 				// Empty segments emit nothing so no stray color codes wrap zero columns
 				if !text.is_empty() {
-					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-					self.paint(text, tokens, will_style, context, &mut out);
+					match plan.domain(block_index) {
+						PaintDomain::Global => {
+							global_cursor += self.gradient_paint(text, gradients.global_window(global_cursor), context, &mut out);
+						}
+						PaintDomain::Block => {
+							if cursor_block != Some(block_index) {
+								cursor_block = Some(block_index);
+								block_cursor = 0;
+							}
+
+							block_cursor +=
+								self.gradient_paint(text, gradients.block_window(block_index, block_cursor), context, &mut out);
+						}
+						PaintDomain::Slots => {
+							let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
+							self.paint(text, tokens, will_style, context, &mut out);
+						}
+					}
 				}
 			}
-			RowEvent::Blank { width, .. } => {
+			RowEvent::Blank { width, block_index } => {
 				self.blank(width, &mut out);
+				global_cursor += width;
+
+				if cursor_block == Some(block_index) {
+					block_cursor += width;
+				}
+			}
+			RowEvent::EntryEnd { width, block_index } => {
+				// Segments of the global domain advanced per column already;
+				// every other entry claims its columns of the global ramp here
+				if plan.domain(block_index) != PaintDomain::Global {
+					global_cursor += width;
+				}
 			}
 			RowEvent::Break => {
 				self.row_break(&mut out);
@@ -247,6 +307,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 				glyph_row,
 				block_index,
 				paintable,
+				..
 			} => glyph_row.segments.iter().any(|segment| {
 				let (text, slot) = match segment {
 					Segment::Plain(text) => (*text, None),
@@ -281,6 +342,8 @@ mod tests {
 		let mut row_starts = 0;
 		let mut breaks = 0;
 		let mut blanks = 0;
+		let mut entry_ends = 0;
+		let mut entry_end_columns = 0;
 		let mut first_text_block = None;
 
 		RowEvent::each(&layout.output, |event| match event {
@@ -292,6 +355,10 @@ mod tests {
 				first_text_block.get_or_insert(block_index);
 			}
 			RowEvent::Blank { .. } => blanks += 1,
+			RowEvent::EntryEnd { width, .. } => {
+				entry_ends += 1;
+				entry_end_columns += width;
+			}
 			RowEvent::Break => breaks += 1,
 		});
 
@@ -301,6 +368,25 @@ mod tests {
 		// each of its 3 entries (buffer seam, letter space, glyph) blanks per padding row
 		assert_eq!(blanks, 12);
 		assert_eq!(first_text_block, Some(0));
+
+		// every data entry closes with its claimed columns; blank entries do not
+		let data_entries: usize = layout
+			.output
+			.iter()
+			.map(|row| row.entries.iter().filter(|entry| matches!(entry, RowEntry::Data { .. })).count())
+			.sum();
+		assert_eq!(entry_ends, data_entries);
+		let claimed: usize = layout.output.iter().map(|row| row.width).sum::<usize>()
+			- layout
+				.output
+				.iter()
+				.flat_map(|row| row.entries.iter())
+				.filter_map(|entry| match entry {
+					RowEntry::Blank { width, .. } => Some(*width),
+					RowEntry::Data { .. } => None,
+				})
+				.sum::<usize>();
+		assert_eq!(entry_end_columns, claimed);
 	}
 
 	// ColorTokens
@@ -347,6 +433,7 @@ mod tests {
 			entries: Vec::new(),
 			width: 3,
 			align_offset: 4,
+			block_spans: Vec::new(),
 		};
 		let mut out = Rendered::default();
 		CliEnv.row_start(&row, &Options::default(), &mut out);

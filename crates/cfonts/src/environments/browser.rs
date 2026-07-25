@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::Color,
+	color::{Color, Rgb},
 	environments::{ColorTokens, Environment, Rendered},
 	layout::LayoutRow,
 	options::{Align, Options},
@@ -17,12 +17,17 @@ impl BrowserEnv {
 	/// (the console font's `&` glyph and simple3d's `</` art would otherwise parse as HTML markup)
 	fn push_escaped(text: &str, out: &mut String) {
 		for character in text.chars() {
-			match character {
-				'&' => out.push_str("&amp;"),
-				'<' => out.push_str("&lt;"),
-				'>' => out.push_str("&gt;"),
-				_ => out.push(character),
-			}
+			Self::push_escaped_char(character, out);
+		}
+	}
+
+	/// Escapes one HTML-special character
+	fn push_escaped_char(character: char, out: &mut String) {
+		match character {
+			'&' => out.push_str("&amp;"),
+			'<' => out.push_str("&lt;"),
+			'>' => out.push_str("&gt;"),
+			_ => out.push(character),
 		}
 	}
 }
@@ -45,6 +50,28 @@ impl Environment for BrowserEnv {
 			},
 			None => ColorTokens::default(),
 		}
+	}
+
+	/// Every column gets its own span so each character carries its ramp color
+	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+		let mut consumed = 0;
+
+		for character in text.chars() {
+			match colors.get(consumed) {
+				Some(rgb) => {
+					out.text.push_str(r#"<span style="color:"#);
+					out.text.push_str(&rgb.to_hex());
+					out.text.push_str(r#"">"#);
+					Self::push_escaped_char(character, &mut out.text);
+					out.text.push_str("</span>");
+				}
+				None => Self::push_escaped_char(character, &mut out.text),
+			}
+
+			consumed += 1;
+		}
+
+		consumed
 	}
 
 	/// The start token is the CSS color value; the span markup is the paint
@@ -106,6 +133,7 @@ mod tests {
 			entries: Vec::new(),
 			width: 3,
 			align_offset: 4,
+			block_spans: Vec::new(),
 		};
 		let mut out = Rendered::default();
 		BrowserEnv.row_start(&row, &Options::default(), &mut out);

@@ -31,8 +31,14 @@ pub enum RowEntry {
 	/// One row of a glyph, tagged with the block it came from so the render
 	/// environments can tie it to that block's color configuration
 	Data {
+		/// One row of the glyph's art, shared from the font's static data
 		glyph_row: &'static GlyphRow,
+
+		/// The block whose options cover this row's paint
 		block_index: usize,
+
+		/// The columns this entry claims, so cursors advance without rescanning text
+		width: usize,
 
 		/// Whether untagged text of this row may take the block's single color
 		/// (printable glyphs and letter spaces may, buffer seams may not)
@@ -56,6 +62,19 @@ enum Break {
 	Both,
 }
 
+/// The columns one block occupies on one row
+///
+/// Gradient ramps span these: a block ramp over its own block's columns,
+/// the global ramp over the whole row
+#[derive(Debug, PartialEq, Eq)]
+pub struct BlockSpan {
+	/// The block these columns belong to
+	pub block_index: usize,
+
+	/// The column count of this block's entries on this row
+	pub width: usize,
+}
+
 /// A row of glyphs for a single line in the layout
 #[derive(Debug)]
 pub struct LayoutRow {
@@ -67,6 +86,9 @@ pub struct LayoutRow {
 
 	/// Columns of leading padding that place this row inside the canvas
 	pub align_offset: usize,
+
+	/// The column span of each block on this row, in row order
+	pub block_spans: Vec<BlockSpan>,
 }
 
 pub(crate) struct Layout<'a> {
@@ -412,16 +434,26 @@ impl<'a> Layout<'a> {
 					entries: Vec::new(),
 					width: 0,
 					align_offset: 0,
+					block_spans: Vec::new(),
 				});
 			}
 		}
 
 		for row in 0..rows_to_push {
 			let mut entries = Vec::with_capacity(self.line.len());
+			let mut block_spans: Vec<BlockSpan> = Vec::new();
 			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
 					padding = Self::vertical_padding(self.options.valign, rows_to_push, glyph.rows().len());
 					current_block = Some(glyph.block_index);
+				}
+
+				match block_spans.last_mut() {
+					Some(span) if span.block_index == glyph.block_index => span.width += glyph.width(),
+					_ => block_spans.push(BlockSpan {
+						block_index: glyph.block_index,
+						width: glyph.width(),
+					}),
 				}
 
 				let entry = if row < padding || row >= padding + glyph.rows().len() {
@@ -434,6 +466,7 @@ impl<'a> Layout<'a> {
 					RowEntry::Data {
 						glyph_row: &glyph.rows()[row - padding],
 						block_index: glyph.block_index,
+						width: glyph.width(),
 						paintable: glyph.paintable,
 					}
 				};
@@ -443,6 +476,7 @@ impl<'a> Layout<'a> {
 				entries,
 				width: line_width,
 				align_offset,
+				block_spans,
 			});
 		}
 
@@ -1331,6 +1365,35 @@ mod tests {
 			}],
 		));
 		assert_eq!(lines, vec![vec![expected, expected]]);
+	}
+
+	// start: block_spans
+
+	#[test]
+	fn block_spans_merge_each_blocks_columns_per_row() {
+		let options = options(Valign::Top, None, vec![block("AB", Font::Tiny, false), block("C", Font::Tiny, false)]);
+		let layout = Layout::build(&options, None);
+
+		for row in &layout.output {
+			assert_eq!(row.block_spans.len(), 2);
+			assert_eq!(row.block_spans[0].block_index, 0);
+			assert_eq!(row.block_spans[0].width, 7); // two glyphs and their letter space
+			assert_eq!(row.block_spans[1].block_index, 1);
+			assert_eq!(row.block_spans[1].width, 3);
+			assert_eq!(row.block_spans.iter().map(|span| span.width).sum::<usize>(), row.width);
+		}
+	}
+
+	#[test]
+	fn wrapped_lines_carry_their_own_block_spans() {
+		let options = options(Valign::Top, Some(3), vec![block("AB", Font::Tiny, false)]);
+		let layout = Layout::build(&options, Some(3));
+
+		// each wrapped line holds one three column glyph of the block; gap rows hold nothing
+		for row in layout.output.iter().filter(|row| !row.entries.is_empty()) {
+			assert_eq!(row.block_spans.len(), 1);
+			assert_eq!(row.block_spans[0].width, 3);
+		}
 	}
 
 	// start: line_height

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::Color,
+	color::{Color, Rgb},
 	environments::{ColorTokens, Environment, Rendered},
 	render::RenderContext,
 };
@@ -19,10 +19,15 @@ impl BrowserConsoleEnv {
 	/// Only logs with style arguments interpret `%`, so this runs only when the render styles
 	fn push_escaped(text: &str, out: &mut String) {
 		for character in text.chars() {
-			match character {
-				'%' => out.push_str("%%"),
-				_ => out.push(character),
-			}
+			Self::push_escaped_char(character, out);
+		}
+	}
+
+	/// Pushes one character with `%` doubled
+	fn push_escaped_char(character: char, out: &mut String) {
+		match character {
+			'%' => out.push_str("%%"),
+			_ => out.push(character),
 		}
 	}
 }
@@ -42,6 +47,30 @@ impl Environment for BrowserConsoleEnv {
 			},
 			None => ColorTokens::default(),
 		}
+	}
+
+	/// Every column becomes its own `%c` pair with the ramp color's declaration
+	///
+	/// Gradient domains always style, so the percent escaping always applies here
+	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+		let mut consumed = 0;
+
+		for character in text.chars() {
+			match colors.get(consumed) {
+				Some(rgb) => {
+					out.text.push_str("%c");
+					Self::push_escaped_char(character, &mut out.text);
+					out.text.push_str("%c");
+					out.styles.push(format!("color:{}", rgb.to_hex()));
+					out.styles.push(String::new());
+				}
+				None => Self::push_escaped_char(character, &mut out.text),
+			}
+
+			consumed += 1;
+		}
+
+		consumed
 	}
 
 	/// Painted text becomes a `%c` pair: the style value, the escaped text, the reset

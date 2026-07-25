@@ -545,7 +545,7 @@ test("gradient shapes are validated", () => {
 	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), Error); // system is not a gradient stop
 });
 
-test("gradients accept every shape and do not paint yet", () => {
+test("gradients accept every shape and paint nothing without a color level", () => {
 	const plain = Cfonts.text("A").renderWith(CliEnv).text;
 
 	const preset = Cfonts.text("A").gradient(GradientPreset.Pride).renderWith(CliEnv).text;
@@ -644,4 +644,18 @@ test("candy seeds are deterministic through renderWith", () => {
 
 	const consoleArtifact = Cfonts.text("A").font(Font.Tiny).colors([Color.Candy]).renderWith(BrowserConsoleEnv, seeded);
 	assert.ok(consoleArtifact.styles.length > 0);
+});
+
+test("gradients paint through renderWith with a color level", () => {
+	const ramped = Cfonts.text("A").font(Font.Tiny).gradient({ start: "red", end: "blue" }).renderWith(CliEnv, {
+		colorLevel: ColorLevel.TrueColor,
+	}).text;
+	assert.ok(ramped.includes("\u001b[38;2;255;0;0m"));
+
+	const globalRamp = Cfonts.text("A")
+		.font(Font.Tiny)
+		.globalGradient(GradientPreset.Pride)
+		.renderWith(BrowserConsoleEnv, { colorLevel: ColorLevel.TrueColor });
+	assert.equal(globalRamp.text.match(/%c/g).length, globalRamp.styles.length);
+	assert.ok(globalRamp.styles.includes("color:#750787"));
 });

@@ -300,3 +300,19 @@ fn candy_seeds_are_deterministic_across_the_boundary() {
 	assert_ne!(one.text, other.text);
 	assert!(one.text.contains("\u{1b}["));
 }
+
+#[wasm_bindgen_test]
+fn gradients_paint_across_the_boundary() {
+	let mut banner = Cfonts::text("A".to_owned());
+	banner.font(Font::Tiny);
+	banner.gradient("red".to_owned(), "blue".to_owned(), false).expect("valid stops");
+
+	let plain = banner.render_cli(None, None, None);
+	assert!(!plain.text.contains("\u{1b}["));
+
+	let ramped = banner.render_cli(None, Some(ColorLevel::TrueColor), None);
+	assert!(ramped.text.contains("\u{1b}[38;2;255;0;0m"));
+
+	let console = banner.render_browser_console(None, Some(ColorLevel::TrueColor), None);
+	assert_eq!(console.text.matches("%c").count(), console.styles.len());
+}

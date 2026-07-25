@@ -1,10 +1,21 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::Color,
+	color::{Color, Rgb},
 	environments::{ColorTokens, Environment, Rendered},
 	render::{ColorLevel, RenderContext},
 };
+
+impl CliEnv {
+	/// The foreground start code of one RGB value at one support level
+	fn rgb_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
+		match level {
+			ColorLevel::TrueColor => Cow::Owned(format!("\x1b[38;2;{};{};{}m", rgb.red, rgb.green, rgb.blue)),
+			ColorLevel::Ansi256 => Cow::Owned(format!("\x1b[38;5;{}m", rgb.ansi256_index())),
+			ColorLevel::Basic => Cow::Borrowed(rgb.ansi16_sgr()),
+		}
+	}
+}
 
 /// The terminal artifact formatter
 #[derive(Debug, Clone, Copy, Default)]
@@ -20,11 +31,7 @@ impl Environment for CliEnv {
 
 		let start: Cow<'static, str> = match color {
 			Color::System | Color::Candy => return ColorTokens::default(),
-			Color::Rgb(rgb) => match level {
-				ColorLevel::TrueColor => Cow::Owned(format!("\x1b[38;2;{};{};{}m", rgb.red, rgb.green, rgb.blue)),
-				ColorLevel::Ansi256 => Cow::Owned(format!("\x1b[38;5;{}m", rgb.ansi256_index())),
-				ColorLevel::Basic => Cow::Borrowed(rgb.ansi16_sgr()),
-			},
+			Color::Rgb(rgb) => Self::rgb_start(rgb, level),
 			named => Cow::Borrowed(named.ansi16_sgr().expect("every named color carries a fixed code")),
 		};
 
@@ -32,6 +39,31 @@ impl Environment for CliEnv {
 			start,
 			end: Cow::Borrowed("\x1b[39m"),
 		}
+	}
+
+	/// Every column gets its own run: the ramp color's start, the character, the reset
+	fn gradient_paint(&self, text: &str, colors: &[Rgb], context: &RenderContext, out: &mut Rendered) -> usize {
+		let Some(level) = context.color_level() else {
+			out.text.push_str(text);
+			return text.chars().count();
+		};
+
+		let mut consumed = 0;
+
+		for character in text.chars() {
+			match colors.get(consumed) {
+				Some(rgb) => {
+					out.text.push_str(&Self::rgb_start(*rgb, level));
+					out.text.push(character);
+					out.text.push_str("\x1b[39m");
+				}
+				None => out.text.push(character),
+			}
+
+			consumed += 1;
+		}
+
+		consumed
 	}
 
 	fn top_padding(&self, out: &mut Rendered) {
