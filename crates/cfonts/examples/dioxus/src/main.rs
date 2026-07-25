@@ -1,4 +1,4 @@
-use cfonts::{Align, Cfonts, CfontsDioxus, Font, Options};
+use cfonts::{Align, Cfonts, CfontsDioxus, Font, GradientPreset, Options};
 use dioxus::prelude::*;
 
 fn main() {
@@ -8,7 +8,8 @@ fn main() {
 /// Shows the feature-gated cfonts Dioxus adapter
 #[component]
 fn App() -> Element {
-	let options: Options = Cfonts::text("hello").font(Font::Block).align(Align::Center).into();
+	let options: Options =
+		Cfonts::text("hello").global_color(GradientPreset::Pride).font(Font::Block).align(Align::Center).into();
 
 	rsx! {
 		main {

@@ -1,4 +1,4 @@
-import type { Cfonts as WasmCfonts, Rendered } from "../../pkg/cfonts_wasm.js";
+import type { Rendered, Cfonts as WasmCfonts } from "../../pkg/cfonts_wasm.js";
 
 import type { RenderContext } from "../render-context.js";
 

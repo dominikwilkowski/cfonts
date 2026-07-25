@@ -4,7 +4,7 @@ use crate::{
 	color::{CANDY, CandyRng, Color, ColorOption, GradientColors, GradientOption, GradientStop, Rgb},
 	environments::{Environment, Rendered},
 	layout::{Layout, LayoutRow},
-	options::Options,
+	options::{Align, Options},
 };
 
 /// How a host should resolve its canvas width
@@ -219,10 +219,20 @@ pub(crate) enum SlotPaint<T> {
 	Candy,
 }
 
+impl<T> SlotPaint<T> {
+	/// Whether this slot state paints at all
+	fn paints(&self) -> bool {
+		matches!(self, Self::Fixed(_) | Self::Candy)
+	}
+}
+
 /// One block's resolved paints, one entry per font color slot
 #[derive(Debug)]
 pub(crate) struct BlockPlan<T> {
 	slots: Vec<SlotPaint<T>>,
+
+	/// The paint path covering this block's segments
+	domain: PaintDomain,
 
 	/// Whether untagged paintable segments take the block's single color
 	/// (single-color fonts carry no slot tags, their glyph and letter-space text paints wholesale)
@@ -230,12 +240,30 @@ pub(crate) struct BlockPlan<T> {
 }
 
 impl<T> BlockPlan<T> {
-	/// The plan of an unpainted block
-	fn bare() -> Self {
+	/// The plan of a block without slot paints
+	fn bare(domain: PaintDomain) -> Self {
 		Self {
 			slots: Vec::new(),
+			domain,
 			paint_plain: false,
 		}
+	}
+
+	/// The slot one text segment selects, holding the single copy of the routing rule
+	///
+	/// Tagged segments use their slot; untagged paintable segments take slot zero
+	/// when the block paints plain; everything else selects nothing
+	fn slot_index(&self, slot: Option<usize>, paintable: bool) -> Option<usize> {
+		match slot {
+			Some(slot) => Some(slot),
+			None if paintable && self.paint_plain => Some(0),
+			None => None,
+		}
+	}
+
+	/// The slot paint one text segment resolves to
+	fn slot_paint(&self, slot: Option<usize>, paintable: bool) -> Option<&SlotPaint<T>> {
+		self.slots.get(self.slot_index(slot, paintable)?)
 	}
 }
 
@@ -244,9 +272,6 @@ impl<T> BlockPlan<T> {
 #[derive(Debug)]
 pub(crate) struct PaintPlan<T> {
 	blocks: Vec<BlockPlan<T>>,
-
-	/// The paint path of each block
-	domains: Vec<PaintDomain>,
 
 	/// The candy assortment resolved through the environment, present only when a slot rolls
 	candy: Option<Box<[Option<T>; CANDY.len()]>>,
@@ -263,26 +288,20 @@ impl<T> PaintPlan<T> {
 	///
 	/// A block's own color wins over the global color; without a color level nothing paints
 	pub(crate) fn build(options: &Options, context: &RenderContext, mut resolve: impl FnMut(Color) -> Option<T>) -> Self {
-		let mut will_style = false;
-		let mut domains = Vec::with_capacity(options.blocks.len());
-
 		let blocks = options
 			.blocks
 			.iter()
 			.map(|block| {
 				if context.color_level().is_none() {
-					domains.push(PaintDomain::Slots);
-					return BlockPlan::bare();
+					return BlockPlan::bare(PaintDomain::Slots);
 				}
 
 				let Some(color) = block.color.as_ref().or(options.global_color.as_ref()) else {
-					domains.push(PaintDomain::Slots);
-					return BlockPlan::bare();
+					return BlockPlan::bare(PaintDomain::Slots);
 				};
 
 				match color {
 					ColorOption::Colors(colors) => {
-						domains.push(PaintDomain::Slots);
 						let font_colors = block.font.get_font().colors();
 
 						// Colors beyond the font's slots can never paint, so they don't shape the plan
@@ -296,34 +315,34 @@ impl<T> PaintPlan<T> {
 							})
 							.collect();
 
-						will_style |= slots.iter().any(|slot| matches!(slot, SlotPaint::Fixed(_) | SlotPaint::Candy));
-						let paint_plain = font_colors == 1 && matches!(slots.first(), Some(SlotPaint::Fixed(_) | SlotPaint::Candy));
+						let paint_plain = font_colors == 1 && slots.first().is_some_and(SlotPaint::paints);
 
-						BlockPlan { slots, paint_plain }
+						BlockPlan {
+							slots,
+							domain: PaintDomain::Slots,
+							paint_plain,
+						}
 					}
-					// TODO(M7): gradients paint through their own per-column path
 					ColorOption::Gradient(_) => {
 						// the block's own gradient wins, otherwise the global one covers it
-						domains.push(if block.color.is_some() {
+						BlockPlan::bare(if block.color.is_some() {
 							PaintDomain::Block
 						} else {
 							PaintDomain::Global
-						});
-						will_style = true;
-
-						BlockPlan::bare()
+						})
 					}
 				}
 			})
 			.collect::<Vec<BlockPlan<T>>>();
 
-		// The assortment resolves once, and only when something actually rolls
+		// Both summaries derive from the finished blocks and are stored, not recomputed
+		let will_style =
+			blocks.iter().any(|block| block.domain != PaintDomain::Slots || block.slots.iter().any(SlotPaint::paints));
 		let rolls = blocks.iter().any(|block| block.slots.iter().any(|slot| matches!(slot, SlotPaint::Candy)));
 		let candy = rolls.then(|| Box::new(CANDY.map(&mut resolve)));
 
 		Self {
 			blocks,
-			domains,
 			candy,
 			rng: CandyRng::new(context.seed()),
 			will_style,
@@ -332,7 +351,7 @@ impl<T> PaintPlan<T> {
 
 	/// The paint path of one block
 	pub(crate) fn domain(&self, block_index: usize) -> PaintDomain {
-		self.domains.get(block_index).copied().unwrap_or(PaintDomain::Slots)
+		self.blocks.get(block_index).map_or(PaintDomain::Slots, |block| block.domain)
 	}
 
 	/// Whether any slot resolved to paint
@@ -346,42 +365,24 @@ impl<T> PaintPlan<T> {
 	///
 	/// The pre-paint scan uses this so candy determinism is untouched by scanning
 	pub(crate) fn resolves(&self, block_index: usize, slot: Option<usize>, paintable: bool) -> bool {
-		if self.domain(block_index) != PaintDomain::Slots {
-			return true;
-		}
-
 		let Some(block) = self.blocks.get(block_index) else {
 			return false;
 		};
 
-		let slot = match slot {
-			Some(slot) => slot,
-			None if paintable && block.paint_plain => 0,
-			None => return false,
-		};
-
-		matches!(block.slots.get(slot), Some(SlotPaint::Fixed(_) | SlotPaint::Candy))
+		block.domain != PaintDomain::Slots || block.slot_paint(slot, paintable).is_some_and(SlotPaint::paints)
 	}
 
 	/// The paint of one text segment, if any; a candy slot rolls a fresh pick
-	///
-	/// Tagged segments use their slot; untagged paintable segments take slot zero when the block paints plain
 	pub(crate) fn paint_for(&mut self, block_index: usize, slot: Option<usize>, paintable: bool) -> Option<&T> {
 		let block = self.blocks.get(block_index)?;
 
-		let slot = match slot {
-			Some(slot) => slot,
-			None if paintable && block.paint_plain => 0,
-			None => return None,
-		};
-
-		match block.slots.get(slot) {
-			Some(SlotPaint::Fixed(paint)) => Some(paint),
-			Some(SlotPaint::Candy) => {
+		match block.slot_paint(slot, paintable)? {
+			SlotPaint::Fixed(paint) => Some(paint),
+			SlotPaint::Candy => {
 				let pick = self.rng.pick();
 				self.candy.as_ref().and_then(|candy| candy[pick].as_ref())
 			}
-			Some(SlotPaint::None) | None => None,
+			SlotPaint::None => None,
 		}
 	}
 }
@@ -407,6 +408,10 @@ impl GradientState {
 				stops,
 				independent_gradient,
 			} => (stops.iter().map(GradientStop::to_rgb).collect(), true, *independent_gradient),
+			GradientOption::Preset {
+				preset,
+				independent_gradient,
+			} => (preset.stops().to_vec(), true, *independent_gradient),
 		};
 
 		Self {
@@ -438,6 +443,15 @@ pub(crate) struct GradientPlans {
 
 	/// The smallest alignment indent across painted rows: the fixed global ramp's origin column
 	indent_floor: usize,
+
+	/// The global ramp cursor: every column of the current row counts here
+	global_cursor: usize,
+
+	/// The block ramp cursor, counting within the block currently painting
+	block_cursor: usize,
+
+	/// The block the block cursor counts for, reset as blocks change
+	cursor_block: Option<usize>,
 }
 
 impl GradientPlans {
@@ -450,6 +464,9 @@ impl GradientPlans {
 				blocks: options.blocks.iter().map(|_| None).collect(),
 				global: None,
 				indent_floor: 0,
+				global_cursor: 0,
+				block_cursor: 0,
+				cursor_block: None,
 			};
 		}
 
@@ -497,21 +514,16 @@ impl GradientPlans {
 			blocks,
 			global,
 			indent_floor,
+			global_cursor: 0,
+			block_cursor: 0,
+			cursor_block: None,
 		}
 	}
 
-	/// The global cursor's start for one row
+	/// Starts one row: refills the independent ramps and resets the cursors
 	///
 	/// Fixed ramps index by absolute column, so the row's extra indent beyond the
-	/// shared floor consumes ramp columns; independent ramps start at their own row
-	pub(crate) fn global_row_origin(&self, row: &LayoutRow) -> usize {
-		match &self.global {
-			Some(state) if !state.independent => row.align_offset.saturating_sub(self.indent_floor),
-			_ => 0,
-		}
-	}
-
-	/// Refills the independent ramps for one row's spans
+	/// shared floor seeds the global cursor; independent ramps start at their own row
 	pub(crate) fn start_row(&mut self, row: &LayoutRow) {
 		if let Some(global) = self.global.as_mut()
 			&& global.independent
@@ -526,22 +538,67 @@ impl GradientPlans {
 				state.fill(span.width);
 			}
 		}
+
+		self.global_cursor = match &self.global {
+			Some(state) if !state.independent => row.align_offset.saturating_sub(self.indent_floor),
+			_ => 0,
+		};
+		self.block_cursor = 0;
+		self.cursor_block = None;
 	}
 
-	/// The global ramp from `cursor` onward
-	pub(crate) fn global_window(&self, cursor: usize) -> &[Rgb] {
-		self.global.as_ref().map_or(&[], |state| state.window(cursor))
+	/// The global ramp at the cursor; advance with [`advance_global`](Self::advance_global)
+	pub(crate) fn global_window(&self) -> &[Rgb] {
+		self.global.as_ref().map_or(&[], |state| state.window(self.global_cursor))
 	}
 
-	/// One block ramp from `cursor` onward
-	pub(crate) fn block_window(&self, block_index: usize, cursor: usize) -> &[Rgb] {
-		self.blocks.get(block_index).and_then(Option::as_ref).map_or(&[], |state| state.window(cursor))
+	/// One block's ramp at its cursor, resetting the cursor when the block changes
+	pub(crate) fn block_window(&mut self, block_index: usize) -> &[Rgb] {
+		if self.cursor_block != Some(block_index) {
+			self.cursor_block = Some(block_index);
+			self.block_cursor = 0;
+		}
+
+		self.blocks.get(block_index).and_then(Option::as_ref).map_or(&[], |state| state.window(self.block_cursor))
+	}
+
+	/// Claims painted columns of the global ramp
+	pub(crate) fn advance_global(&mut self, columns: usize) {
+		self.global_cursor += columns;
+	}
+
+	/// Claims painted columns of the current block's ramp
+	pub(crate) fn advance_block(&mut self, columns: usize) {
+		self.block_cursor += columns;
+	}
+
+	/// Blank columns consume the global ramp and the current block's ramp alike
+	pub(crate) fn skip_blank(&mut self, width: usize, block_index: usize) {
+		self.global_cursor += width;
+
+		if self.cursor_block == Some(block_index) {
+			self.block_cursor += width;
+		}
 	}
 }
 
 /// Builds layout once and renders it through a pure environment
 pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, context: RenderContext) -> Rendered {
-	let rows = Layout::build(options, context.canvas_width()).into_rows();
+	let mut rows = Layout::build(options, context.canvas_width()).into_rows();
+
+	// Environments that own their frame align rows within the widest line when
+	// no canvas exists, so gradients and padding share one column story
+	if context.canvas_width().is_none() && environment.frames_alignment_to_widest() && options.align != Align::Left {
+		let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
+
+		for row in rows.iter_mut().filter(|row| !row.entries.is_empty()) {
+			row.align_offset = match options.align {
+				Align::Left => 0,
+				Align::Center => (widest - row.width) / 2,
+				Align::Right => widest - row.width,
+			};
+		}
+	}
 
 	environment.render_rows(&rows, options, &context)
 }

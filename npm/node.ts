@@ -7,5 +7,5 @@ initSync({
 	module: readFileSync(new URL("../pkg/cfonts_wasm_bg.wasm", import.meta.url)),
 });
 
-export * from "./index.js";
 export { NodeHost } from "./hosts/node.js";
+export * from "./index.js";

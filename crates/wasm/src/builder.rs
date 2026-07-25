@@ -199,7 +199,7 @@ impl Cfonts {
 	/// Renders a terminal artifact through the core Rust library
 	///
 	/// The JavaScript host passes the capabilities it has already resolved;
-	/// `None` and zero width mean unlimited, no color level paints nothing.
+	/// `None` and zero width mean unlimited, no color level paints nothing
 	#[wasm_bindgen(js_name = renderCli)]
 	pub fn render_cli(
 		&self,

@@ -5,5 +5,5 @@ await init({
 	module_or_path: new URL("../pkg/cfonts_wasm_bg.wasm", import.meta.url),
 });
 
-export * from "./index.js";
 export { BrowserHost } from "./hosts/browser.js";
+export * from "./index.js";

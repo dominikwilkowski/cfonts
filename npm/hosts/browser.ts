@@ -1,7 +1,7 @@
 import { ColorLevel } from "../../pkg/cfonts_wasm.js";
-import type { Cfonts, Rendered } from "../index.js";
 import { BrowserConsoleEnv, BrowserEnv } from "../environments/index.js";
-import { normalizeRenderOverrides, randomSeed, type RenderContext, type RenderOverrides } from "../render-context.js";
+import type { Cfonts, Rendered } from "../index.js";
+import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**

@@ -1,10 +1,14 @@
-use cfonts::{Align, Cfonts, CfontsLeptos, Font, Options};
+use cfonts::{Align, Cfonts, CfontsLeptos, Font, GradientPreset, Options, console_say};
 use leptos::prelude::*;
 
 /// Shows the feature-gated cfonts Leptos adapter
 #[component]
 fn App() -> impl IntoView {
-	let options: Options = Cfonts::text("hello").font(Font::Block).align(Align::Center).into();
+	let options: Options =
+		Cfonts::text("hello").font(Font::Block).align(Align::Center).global_color(GradientPreset::Pride).into();
+
+	// the console artifact logs with its styles, straight from Rust
+	console_say(&Cfonts::text("hello world").font(Font::Block).global_color(GradientPreset::Transgender).into(), 0);
 
 	view! {
 		<main>

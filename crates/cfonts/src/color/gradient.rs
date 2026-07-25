@@ -5,7 +5,7 @@
 
 use std::f64::consts::{PI, TAU};
 
-use crate::color::{GradientOption, GradientStop, Rgb, TransitionStops};
+use crate::color::{GradientOption, Rgb};
 
 /// Hue in degrees, saturation and value in percent
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -158,6 +158,7 @@ pub struct GradientColors {
 }
 
 impl GradientColors {
+	/// An empty gradient buffer, filled per domain by [`fill`](Self::fill)
 	pub fn new() -> Self {
 		Self { colors: Vec::new() }
 	}
@@ -605,24 +606,16 @@ impl GradientPreset {
 		}
 	}
 
-	/// This preset as a transition gradient
-	///
-	/// Every preset holds at least two stops, so the conversion cannot fail
+	/// This preset as a gradient
 	pub fn to_gradient(self, independent_gradient: bool) -> GradientOption {
-		let stops = self.stops();
-
-		GradientOption::Transition {
-			stops: TransitionStops {
-				first: GradientStop::Rgb(stops[0]),
-				second: GradientStop::Rgb(stops[1]),
-				rest: stops[2..].iter().copied().map(GradientStop::Rgb).collect(),
-			},
+		GradientOption::Preset {
+			preset: self,
 			independent_gradient,
 		}
 	}
 }
 
-/// A preset used directly is a transition gradient over its stops
+/// A preset used directly is a gradient over its stops
 impl From<GradientPreset> for GradientOption {
 	fn from(preset: GradientPreset) -> Self {
 		preset.to_gradient(false)
@@ -904,25 +897,20 @@ mod tests {
 	}
 
 	#[test]
-	fn presets_convert_into_transition_gradients() {
-		let GradientOption::Transition {
-			stops,
-			independent_gradient,
-		} = GradientPreset::Transgender.to_gradient(true)
-		else {
-			panic!("presets are transition gradients")
-		};
-
-		assert!(independent_gradient);
-		let rgb: Vec<Rgb> = stops.iter().map(|stop| stop.to_rgb()).collect();
-		assert_eq!(rgb, GradientPreset::Transgender.stops());
-
-		let GradientOption::Transition {
-			independent_gradient, ..
-		} = GradientOption::from(GradientPreset::Pride)
-		else {
-			panic!("presets are transition gradients")
-		};
-		assert!(!independent_gradient);
+	fn presets_convert_into_preset_gradients() {
+		assert_eq!(
+			GradientPreset::Transgender.to_gradient(true),
+			GradientOption::Preset {
+				preset: GradientPreset::Transgender,
+				independent_gradient: true,
+			}
+		);
+		assert_eq!(
+			GradientOption::from(GradientPreset::Pride),
+			GradientOption::Preset {
+				preset: GradientPreset::Pride,
+				independent_gradient: false,
+			}
+		);
 	}
 }

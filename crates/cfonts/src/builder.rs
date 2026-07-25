@@ -14,6 +14,10 @@ pub struct Unset;
 #[doc(hidden)]
 pub struct Set;
 
+/// A fluent cfonts composition builder
+///
+/// The typestate parameters record which global settings are already configured,
+/// so setting one twice fails at compile time; per-block setters stay repeatable
 pub struct Cfonts<
 	AlignState = Unset,
 	ValignState = Unset,
@@ -137,7 +141,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 
 	/// Sets the colors for the current text block
 	///
-	/// Accepts a list of [`Color`](crate::Color)s, one per font color slot, a [`GradientOption`],
+	/// Accepts a list of [`Color`](crate::Color)s, one per font color slot, a [`GradientOption`](crate::GradientOption),
 	/// or a [`GradientPreset`](crate::GradientPreset)
 	/// Any configured value, including an empty color list, overrides the global color for this block
 	///
@@ -474,7 +478,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 ///
 /// This is useful when you want the ergonomic builder API for setup while retaining access to the underlying options
 ///
-/// Pass the resulting options to [`render_with`](crate::render_with) or to a custom [`Host`](crate::Host)
+/// Pass the resulting options to [`render_with`](crate::render_with) or to a custom [`Host`]
 ///
 /// ```
 /// use cfonts::{Cfonts, Font, Options};

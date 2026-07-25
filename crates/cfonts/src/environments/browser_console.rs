@@ -23,6 +23,18 @@ impl BrowserConsoleEnv {
 		}
 	}
 
+	/// Emits one painted run as a `%c` pair: the style value, the content, the reset
+	///
+	/// The pair pushes exactly two style values so markers and styles always match;
+	/// both the slot and the gradient paint paths route through this
+	fn push_pair(style: String, content: impl FnOnce(&mut String), out: &mut Rendered) {
+		out.text.push_str("%c");
+		content(&mut out.text);
+		out.text.push_str("%c");
+		out.styles.push(style);
+		out.styles.push(String::new());
+	}
+
 	/// Pushes one character with `%` doubled
 	fn push_escaped_char(character: char, out: &mut String) {
 		match character {
@@ -58,11 +70,7 @@ impl Environment for BrowserConsoleEnv {
 		for character in text.chars() {
 			match colors.get(consumed) {
 				Some(rgb) => {
-					out.text.push_str("%c");
-					Self::push_escaped_char(character, &mut out.text);
-					out.text.push_str("%c");
-					out.styles.push(format!("color:{}", rgb.to_hex()));
-					out.styles.push(String::new());
+					Self::push_pair(format!("color:{}", rgb.to_hex()), |out| Self::push_escaped_char(character, out), out);
 				}
 				None => Self::push_escaped_char(character, &mut out.text),
 			}
@@ -87,11 +95,7 @@ impl Environment for BrowserConsoleEnv {
 			return;
 		}
 
-		out.text.push_str("%c");
-		Self::push_escaped(text, &mut out.text);
-		out.text.push_str("%c");
-		out.styles.push(tokens.start.to_string());
-		out.styles.push(tokens.end.to_string());
+		Self::push_pair(tokens.start.to_string(), |out| Self::push_escaped(text, out), out);
 	}
 }
 

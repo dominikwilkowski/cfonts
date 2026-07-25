@@ -1,3 +1,5 @@
+//! The bundled font data and its parsed glyph representation
+
 mod block;
 pub use block::FONT_BLOCK;
 mod chrome;
@@ -31,6 +33,16 @@ pub enum Segment {
 
 	/// Painted with a color slot, 0-based index into the font's color set
 	Colored { slot: usize, text: &'static str },
+}
+
+impl Segment {
+	/// The segment's text and color slot as one pair
+	pub fn parts(&self) -> (&'static str, Option<usize>) {
+		match self {
+			Self::Plain(text) => (text, None),
+			Self::Colored { slot, text } => (text, Some(*slot)),
+		}
+	}
 }
 
 /// One row of a glyph: an ordered run of plain/colored segments

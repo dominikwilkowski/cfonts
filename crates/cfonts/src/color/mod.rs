@@ -459,6 +459,12 @@ pub enum GradientOption {
 		stops: TransitionStops,
 		independent_gradient: bool,
 	},
+
+	/// A bundled transition over a preset's stops
+	Preset {
+		preset: GradientPreset,
+		independent_gradient: bool,
+	},
 }
 
 /// One scope's color configuration: a block's own or the whole composition's
@@ -489,7 +495,7 @@ impl From<GradientPreset> for ColorOption {
 	}
 }
 
-/// The candy assortment: five base and six bright colors, no blue and no white
+/// The candy assortment: five base and six bright colors, no base blue and no white
 pub(crate) const CANDY: [Color; 11] = [
 	Color::Red,
 	Color::Green,

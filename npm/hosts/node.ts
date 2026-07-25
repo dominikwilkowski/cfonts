@@ -4,9 +4,9 @@ import supportsColor from "supports-color";
 import windowSize from "window-size/utils.js";
 
 import { ColorLevel } from "../../pkg/cfonts_wasm.js";
-import type { Cfonts, Rendered } from "../index.js";
 import { CliEnv } from "../environments/index.js";
-import { normalizeRenderOverrides, randomSeed, type RenderContext, type RenderOverrides } from "../render-context.js";
+import type { Cfonts, Rendered } from "../index.js";
+import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
 import { parseU32 } from "../validation.js";
 import type { Host } from "./types.js";
 

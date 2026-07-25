@@ -3,8 +3,7 @@ use std::borrow::Cow;
 use crate::{
 	color::{Color, Rgb},
 	environments::{ColorTokens, Environment, Rendered},
-	layout::LayoutRow,
-	options::{Align, Options},
+	options::Options,
 	render::RenderContext,
 };
 
@@ -21,6 +20,18 @@ impl BrowserEnv {
 		}
 	}
 
+	/// Wraps escaped content in the span markup that carries one CSS color
+	///
+	/// Both the slot and the gradient paint paths route through this,
+	/// so the markup has exactly one home
+	fn push_span(css: &str, content: impl FnOnce(&mut String), out: &mut String) {
+		out.push_str(r#"<span style="color:"#);
+		out.push_str(css);
+		out.push_str(r#"">"#);
+		content(out);
+		out.push_str("</span>");
+	}
+
 	/// Escapes one HTML-special character
 	fn push_escaped_char(character: char, out: &mut String) {
 		match character {
@@ -33,8 +44,11 @@ impl BrowserEnv {
 }
 
 impl Environment for BrowserEnv {
-	/// Alignment is expressed as CSS `text-align` on the wrapper, not as physical padding
-	fn row_start(&self, _row: &LayoutRow, _options: &Options, _out: &mut Rendered) {}
+	/// Rows align physically within the widest line, so gradient columns line up
+	/// with the padding; placing the banner on the page belongs to the consumer
+	fn frames_alignment_to_widest(&self) -> bool {
+		true
+	}
 
 	/// The browser has no terminal palette, so named colors flatten to their RGB
 	/// values and every color level paints the same CSS
@@ -59,11 +73,7 @@ impl Environment for BrowserEnv {
 		for character in text.chars() {
 			match colors.get(consumed) {
 				Some(rgb) => {
-					out.text.push_str(r#"<span style="color:"#);
-					out.text.push_str(&rgb.to_hex());
-					out.text.push_str(r#"">"#);
-					Self::push_escaped_char(character, &mut out.text);
-					out.text.push_str("</span>");
+					Self::push_span(&rgb.to_hex(), |out| Self::push_escaped_char(character, out), &mut out.text);
 				}
 				None => Self::push_escaped_char(character, &mut out.text),
 			}
@@ -81,11 +91,7 @@ impl Environment for BrowserEnv {
 			return;
 		}
 
-		out.text.push_str(r#"<span style="color:"#);
-		out.text.push_str(&tokens.start);
-		out.text.push_str(r#"">"#);
-		Self::push_escaped(text, &mut out.text);
-		out.text.push_str("</span>");
+		Self::push_span(&tokens.start, |out| Self::push_escaped(text, out), &mut out.text);
 	}
 
 	fn row_break(&self, out: &mut Rendered) {
@@ -100,16 +106,10 @@ impl Environment for BrowserEnv {
 		out.text.push_str("<br><br>");
 	}
 
-	fn wrapper_start(&self, options: &Options, out: &mut Rendered) {
-		let text_align = match options.align {
-			Align::Left => "left",
-			Align::Center => "center",
-			Align::Right => "right",
-		};
-
-		out.text.push_str(r#"<div style="font-family:monospace;white-space:pre;text-align:"#);
-		out.text.push_str(text_align);
-		out.text.push_str(";max-width:100%;overflow:scroll;background:");
+	fn wrapper_start(&self, _options: &Options, out: &mut Rendered) {
+		out.text.push_str(
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"#,
+		);
 		out.text.push_str(""); // TODO: add background color
 		out.text.push_str(r#"">"#);
 	}
@@ -123,23 +123,6 @@ impl Environment for BrowserEnv {
 mod tests {
 	use super::*;
 	use crate::{Cfonts, color::Rgb, fonts::Font, options::Valign, render::ColorLevel};
-
-	// row_start
-
-	#[test]
-	fn row_start_paints_no_physical_offset() {
-		// the browser expresses alignment as CSS on the wrapper instead
-		let row = LayoutRow {
-			entries: Vec::new(),
-			width: 3,
-			align_offset: 4,
-			block_spans: Vec::new(),
-		};
-		let mut out = Rendered::default();
-		BrowserEnv.row_start(&row, &Options::default(), &mut out);
-
-		assert_eq!(out.text, "");
-	}
 
 	// color_tokens
 

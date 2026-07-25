@@ -1,3 +1,8 @@
+//! Pure formatters: each environment turns layout rows into its target's artifact
+//!
+//! Environments own syntax such as color codes, markup and escaping;
+//! hosts own capability discovery and output side effects
+
 mod browser;
 pub use browser::BrowserEnv;
 mod browser_console;
@@ -9,7 +14,6 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	fonts::Segment,
 	layout::{LayoutRow, RowEntry},
 	options::Options,
 	render::{GradientPlans, PaintDomain, PaintPlan, RenderContext},
@@ -17,7 +21,7 @@ use crate::{
 
 /// The output of a render: one complete artifact in the selected environment's format
 /// (ANSI text, an HTML snippet, a browser-console banner)
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Rendered {
 	/// The artifact's primary text
 	pub text: String,
@@ -108,10 +112,7 @@ impl RowEvent<'_> {
 						paintable,
 					} => {
 						for segment in glyph_row.segments {
-							let (text, slot) = match segment {
-								Segment::Plain(text) => (text, None),
-								Segment::Colored { slot, text } => (text, Some(*slot)),
-							};
+							let (text, slot) = segment.parts();
 
 							event(RowEvent::Text {
 								text,
@@ -174,10 +175,17 @@ pub trait Environment {
 
 	/// Runs before painting one rendered row
 	///
-	/// The default expresses the row's alignment as physical padding;
-	/// environments with their own alignment syntax override this
+	/// The default expresses the row's alignment as physical padding
 	fn row_start(&self, row: &LayoutRow, _options: &Options, out: &mut Rendered) {
 		self.blank(row.align_offset, out);
+	}
+
+	/// Whether rows align within the widest line when no canvas exists
+	///
+	/// Physical targets align only inside a real canvas; targets whose output
+	/// embeds elsewhere own their frame, so the composition itself is the canvas
+	fn frames_alignment_to_widest(&self) -> bool {
+		false
 	}
 
 	/// A run of empty columns (valign padding rows)
@@ -218,12 +226,6 @@ pub trait Environment {
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(options, context, rows);
 
-		// Ramp cursors: the global one counts every column of the row, a block one
-		// counts within the current block; both reset as rows and blocks change
-		let mut global_cursor = 0_usize;
-		let mut block_cursor = 0_usize;
-		let mut cursor_block: Option<usize> = None;
-
 		self.wrapper_start(options, &mut out);
 
 		if !options.spaceless {
@@ -233,9 +235,6 @@ pub trait Environment {
 		RowEvent::each(rows, |event| match event {
 			RowEvent::RowStart { row } => {
 				gradients.start_row(row);
-				global_cursor = gradients.global_row_origin(row);
-				block_cursor = 0;
-				cursor_block = None;
 				self.row_start(row, options, &mut out);
 			}
 			RowEvent::Text {
@@ -248,16 +247,12 @@ pub trait Environment {
 				if !text.is_empty() {
 					match plan.domain(block_index) {
 						PaintDomain::Global => {
-							global_cursor += self.gradient_paint(text, gradients.global_window(global_cursor), context, &mut out);
+							let consumed = self.gradient_paint(text, gradients.global_window(), context, &mut out);
+							gradients.advance_global(consumed);
 						}
 						PaintDomain::Block => {
-							if cursor_block != Some(block_index) {
-								cursor_block = Some(block_index);
-								block_cursor = 0;
-							}
-
-							block_cursor +=
-								self.gradient_paint(text, gradients.block_window(block_index, block_cursor), context, &mut out);
+							let consumed = self.gradient_paint(text, gradients.block_window(block_index), context, &mut out);
+							gradients.advance_block(consumed);
 						}
 						PaintDomain::Slots => {
 							let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
@@ -268,17 +263,13 @@ pub trait Environment {
 			}
 			RowEvent::Blank { width, block_index } => {
 				self.blank(width, &mut out);
-				global_cursor += width;
-
-				if cursor_block == Some(block_index) {
-					block_cursor += width;
-				}
+				gradients.skip_blank(width, block_index);
 			}
 			RowEvent::EntryEnd { width, block_index } => {
 				// Segments of the global domain advanced per column already;
 				// every other entry claims its columns of the global ramp here
 				if plan.domain(block_index) != PaintDomain::Global {
-					global_cursor += width;
+					gradients.advance_global(width);
 				}
 			}
 			RowEvent::Break => {
@@ -309,10 +300,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 				paintable,
 				..
 			} => glyph_row.segments.iter().any(|segment| {
-				let (text, slot) = match segment {
-					Segment::Plain(text) => (*text, None),
-					Segment::Colored { slot, text } => (*text, Some(*slot)),
-				};
+				let (text, slot) = segment.parts();
 
 				!text.is_empty() && plan.resolves(*block_index, slot, *paintable)
 			}),

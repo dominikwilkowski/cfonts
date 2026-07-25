@@ -1,3 +1,5 @@
+//! Hosts resolve runtime capabilities into a context and perform the output action
+
 use crate::{
 	environments::{Environment, Rendered},
 	options::Options,

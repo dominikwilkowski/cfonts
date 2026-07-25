@@ -1,27 +1,25 @@
 import {
 	Align,
-	Cfonts as WasmCfonts,
 	Color,
 	ColorLevel,
 	Font,
 	GradientPreset,
-	Valign,
 	type Rendered,
+	Valign,
+	Cfonts as WasmCfonts,
 } from "../pkg/cfonts_wasm.js";
 import {
-	normalizeColor,
-	normalizeGradient,
 	type ColorInput,
 	type GradientInput,
 	type GradientStopInput,
+	normalizeColor,
+	normalizeGradient,
 	type RgbInput,
 } from "./color-input.js";
-import { BrowserConsoleEnv, BrowserEnv, CliEnv, renderEnvironment, type Environment } from "./environments/index.js";
+import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, renderEnvironment } from "./environments/index.js";
 import type { Host } from "./hosts/types.js";
 import { normalizeRenderContext, type RenderContext, type RenderOverrides } from "./render-context.js";
 import { expectEnum, expectString, expectU32 } from "./validation.js";
-
-export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Color, ColorLevel, Font, GradientPreset, Valign };
 
 export type {
 	ColorInput,
@@ -34,6 +32,7 @@ export type {
 	RenderOverrides,
 	RgbInput,
 };
+export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Color, ColorLevel, Font, GradientPreset, Valign };
 
 /**
  * A fluent cfonts composition builder

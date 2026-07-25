@@ -17,13 +17,13 @@ use ratatui::{
 	},
 };
 
-use cfonts::{Align, Cfonts, CfontsWidget, Font, Options};
+use cfonts::{Align, Cfonts, CfontsWidget, Color, Font, Options};
 
 fn run(options: &Options) -> std::io::Result<()> {
 	let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
 	terminal.draw(|frame| {
-		frame.render_widget(&CfontsWidget { options }, frame.area());
+		frame.render_widget(&CfontsWidget { options, seed: 0 }, frame.area());
 	})?;
 
 	event::read()?;
@@ -34,7 +34,12 @@ fn run(options: &Options) -> std::io::Result<()> {
 fn main() -> std::io::Result<()> {
 	// the builder is the primary API; the widget consumes the underlying options
 	// and re-wraps and re-aligns on every terminal resize
-	let options: Options = Cfonts::text("hello").font(Font::Block).word_wrap().align(Align::Center).into();
+	let options: Options = Cfonts::text("hello")
+		.font(Font::Block)
+		.word_wrap()
+		.align(Align::Center)
+		.color(vec![Color::Yellow, Color::Blue])
+		.into();
 
 	enable_raw_mode()?;
 

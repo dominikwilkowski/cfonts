@@ -1,8 +1,11 @@
+//! Positioning: text and fonts become rows of glyph entries at a canvas width
+
 use crate::{
 	fonts::{GlyphRef, GlyphRow},
 	options::{Align, BlockOptions, Options, Valign},
 };
 
+/// One glyph staged on a layout line, tagged with its block for paint
 #[derive(Debug, Copy, Clone)]
 pub struct LayoutGlyph {
 	/// The rows and column width of this glyph; letter spaces and buffer seams travel as glyphs too
@@ -26,6 +29,7 @@ impl LayoutGlyph {
 	}
 }
 
+/// One entry of an output row: glyph data or blank valign padding
 #[derive(Debug, PartialEq, Eq)]
 pub enum RowEntry {
 	/// One row of a glyph, tagged with the block it came from so the render
@@ -66,7 +70,7 @@ enum Break {
 ///
 /// Gradient ramps span these: a block ramp over its own block's columns,
 /// the global ramp over the whole row
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockSpan {
 	/// The block these columns belong to
 	pub block_index: usize,
@@ -76,7 +80,7 @@ pub struct BlockSpan {
 }
 
 /// A row of glyphs for a single line in the layout
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LayoutRow {
 	/// All glyphs of a line
 	pub entries: Vec<RowEntry>,
@@ -439,21 +443,25 @@ impl<'a> Layout<'a> {
 			}
 		}
 
+		// The spans depend only on the line's glyphs, never on the row, so the
+		// merge runs once and every row of the line clones the small result
+		let mut line_spans: Vec<BlockSpan> = Vec::new();
+		for glyph in self.line.iter() {
+			match line_spans.last_mut() {
+				Some(span) if span.block_index == glyph.block_index => span.width += glyph.width(),
+				_ => line_spans.push(BlockSpan {
+					block_index: glyph.block_index,
+					width: glyph.width(),
+				}),
+			}
+		}
+
 		for row in 0..rows_to_push {
 			let mut entries = Vec::with_capacity(self.line.len());
-			let mut block_spans: Vec<BlockSpan> = Vec::new();
 			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
 					padding = Self::vertical_padding(self.options.valign, rows_to_push, glyph.rows().len());
 					current_block = Some(glyph.block_index);
-				}
-
-				match block_spans.last_mut() {
-					Some(span) if span.block_index == glyph.block_index => span.width += glyph.width(),
-					_ => block_spans.push(BlockSpan {
-						block_index: glyph.block_index,
-						width: glyph.width(),
-					}),
 				}
 
 				let entry = if row < padding || row >= padding + glyph.rows().len() {
@@ -476,7 +484,7 @@ impl<'a> Layout<'a> {
 				entries,
 				width: line_width,
 				align_offset,
-				block_spans,
+				block_spans: line_spans.clone(),
 			});
 		}
 
@@ -557,8 +565,8 @@ mod tests {
 	}
 
 	// The structural output of a full build, for equivalence comparisons
-	fn output_debug(options: &Options) -> String {
-		format!("{:?}", Layout::build(options, None).output) // TODO: use PartialEq trait to compare directly
+	fn output_rows(options: &Options) -> Vec<LayoutRow> {
+		Layout::build(options, None).output
 	}
 
 	// Flush one line holding a tall Block glyph and a short Tiny glyph and return the
@@ -1189,7 +1197,7 @@ mod tests {
 
 	#[test]
 	fn lowercase_input_produces_blank_output() {
-		// the library does not change case; a public uppercasing entry point will
+		// the layout does not change case; the public entry points uppercase input
 		let lines = line_widths(&options(Valign::Top, None, vec![block("hello", Font::Block, false)]));
 		assert_eq!(lines, vec![vec![0; 6]]);
 	}
@@ -1249,7 +1257,7 @@ mod tests {
 		for text in ["HELLO WORLD", "A  B", "X | Y", "DON'T (X-RAY)"] {
 			let off = options(Valign::Top, None, vec![block(text, Font::Tiny, false)]);
 			let on = options(Valign::Top, None, vec![block(text, Font::Tiny, true)]);
-			assert_eq!(output_debug(&off), output_debug(&on), "word_wrap changed the output of {text:?}");
+			assert_eq!(output_rows(&off), output_rows(&on), "word_wrap changed the output of {text:?}");
 		}
 	}
 
@@ -1259,8 +1267,8 @@ mod tests {
 		let wrapped = options(Valign::Top, Some(max_length), vec![block(text, Font::Tiny, true)]);
 		let oracle = options(Valign::Top, Some(max_length), vec![block(piped, Font::Tiny, false)]);
 		assert_eq!(
-			output_debug(&wrapped),
-			output_debug(&oracle),
+			output_rows(&wrapped),
+			output_rows(&oracle),
 			"{text:?} at max_length {max_length} must wrap like {piped:?}",
 		);
 	}
@@ -1444,7 +1452,7 @@ mod tests {
 		for letter_spacing in [0, 2] {
 			let off = options(Valign::Top, None, vec![spaced_block("AA BB", letter_spacing, false)]);
 			let on = options(Valign::Top, None, vec![spaced_block("AA BB", letter_spacing, true)]);
-			assert_eq!(output_debug(&off), output_debug(&on), "letter_spacing {letter_spacing} changed the output");
+			assert_eq!(output_rows(&off), output_rows(&on), "letter_spacing {letter_spacing} changed the output");
 		}
 	}
 
@@ -1455,8 +1463,8 @@ mod tests {
 			let wrapped = options(Valign::Top, Some(2), vec![spaced_block("AAAA", letter_spacing, true)]);
 			let oracle = options(Valign::Top, Some(2), vec![spaced_block("AA|AA", letter_spacing, false)]);
 			assert_eq!(
-				output_debug(&wrapped),
-				output_debug(&oracle),
+				output_rows(&wrapped),
+				output_rows(&oracle),
 				"split with letter_spacing {letter_spacing} must wrap like the piped text",
 			);
 		}
@@ -1467,7 +1475,7 @@ mod tests {
 		// the <= boundary of word_fits: a word that exactly fills the line stays on it
 		let off = options(Valign::Top, Some(4), vec![block("AAAA", Font::Tiny, false)]);
 		let on = options(Valign::Top, Some(4), vec![block("AAAA", Font::Tiny, true)]);
-		assert_eq!(output_debug(&off), output_debug(&on));
+		assert_eq!(output_rows(&off), output_rows(&on));
 		assert_eq!(line_widths(&on).len(), 1);
 	}
 
@@ -1475,7 +1483,7 @@ mod tests {
 	fn leading_spaces_survive_word_wrap() {
 		let off = options(Valign::Top, None, vec![block(" AB", Font::Tiny, false)]);
 		let on = options(Valign::Top, None, vec![block(" AB", Font::Tiny, true)]);
-		assert_eq!(output_debug(&off), output_debug(&on));
+		assert_eq!(output_rows(&off), output_rows(&on));
 	}
 
 	#[test]

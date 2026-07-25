@@ -1,4 +1,4 @@
-use cfonts::{Align, Cfonts, Font, RenderOverrides, RustHost};
+use cfonts::{Align, Cfonts, Color, Font, GradientPreset, RenderOverrides, RustHost};
 
 fn main() -> std::io::Result<()> {
 	// say delegates width detection and stdout output to the host
@@ -11,6 +11,15 @@ fn main() -> std::io::Result<()> {
 	let rendered = Cfonts::text("hello world").font(Font::Tiny).align(Align::Center).render(&host);
 
 	println!("{}", rendered.text);
+
+	// colors paint through the host's resolved support level
+	Cfonts::text("colors").font(Font::Block).color(vec![Color::Red, Color::Blue]).say(&RustHost::default())?;
+
+	// candy sprinkles a fresh assortment pick per painted segment
+	Cfonts::text("candy").font(Font::Tiny).color(vec![Color::Candy]).say(&RustHost::default())?;
+
+	// gradients ramp one color per column, presets are transitions
+	Cfonts::text("pride").font(Font::Block).global_color(GradientPreset::Pride).say(&RustHost::default())?;
 
 	Ok(())
 }

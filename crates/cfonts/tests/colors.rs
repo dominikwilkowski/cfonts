@@ -86,7 +86,7 @@ fn candy_paints_only_assortment_codes() {
 			.text;
 
 	// candy picks named colors, so every start is a fixed sixteen color code from
-	// the assortment: five base and six bright, no blue and no white
+	// the assortment: five base and six bright, no base blue and no white
 	let assortment = ["31", "32", "33", "35", "36", "91", "92", "93", "94", "95", "96"];
 	let mut runs = 0;
 
@@ -574,4 +574,39 @@ fn leading_space_glyphs_consume_the_ramp() {
 	assert!(!first_row.starts_with("\u{1b}[38;2;255;0;0m\u{1b}[39m\u{1b}[38;2;255;0;0m▄"), "sanity");
 	assert!(first_row.contains("\u{1b}[38;2;255;0;0m"), "the ramp start paints the leading blank column");
 	assert!(first_row.contains("\u{1b}[38;2;0;0;255m"), "the ramp end still lands on the last column");
+}
+
+#[test]
+fn the_browser_aligns_fixed_gradient_columns_between_lines() {
+	// aligned rows pad physically inside the widest-line frame, so the same
+	// visual column paints the same ramp color on every line
+	let options: Options = Cfonts::text("A|ABC")
+		.font(Font::Tiny)
+		.align(Align::Center)
+		.valign(Valign::Top)
+		.spaceless()
+		.line_height(0)
+		.global_color(GradientOption::TwoStop {
+			start: GradientStop::Red,
+			end: GradientStop::Blue,
+			independent_gradient: false,
+		})
+		.into();
+
+	let rendered = render_with(&options, &BrowserEnv, RenderContext::colored(ColorLevel::TrueColor));
+	let content_start = rendered.text.find('>').expect("wrapper div present") + 1;
+	let lines: Vec<&str> = rendered.text[content_start..].split("<br>").collect();
+
+	let widest = 11; // three tiny glyphs and their two letter spaces
+	let mut ramp = GradientColors::new();
+	ramp.fill(&[GradientStop::Red.to_rgb(), GradientStop::Blue.to_rgb()], false, widest);
+	let padded_start = ramp.colors()[(widest - 3) / 2];
+
+	assert!(lines[0].starts_with("    "), "the short centered line pads left: {}", lines[0]);
+	assert!(
+		lines[0].contains(&format!("color:{}", padded_start.to_hex())),
+		"the padded line samples its absolute column: {}",
+		lines[0]
+	);
+	assert!(!lines[0].contains("color:#ff0000"), "the padded line never shows the ramp start");
 }

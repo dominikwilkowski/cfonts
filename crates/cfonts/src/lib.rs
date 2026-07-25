@@ -1,3 +1,8 @@
+//! Sexy fonts for the console: cfonts renders text as banner art
+//!
+//! [`Cfonts`] is the builder, a [`Host`] resolves runtime capabilities and
+//! performs output, and pure environments format the artifact for their target
+
 mod builder;
 pub mod color;
 mod components;
@@ -20,10 +25,10 @@ pub use hosts::RustHost;
 
 #[cfg(feature = "dioxus")]
 pub use components::CfontsDioxus;
-#[cfg(feature = "leptos")]
-pub use components::CfontsLeptos;
 #[cfg(feature = "ratatui")]
 pub use components::CfontsWidget;
+#[cfg(feature = "leptos")]
+pub use components::{CfontsLeptos, console_say};
 
 #[cfg(test)]
 mod tests;

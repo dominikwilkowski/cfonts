@@ -1,3 +1,5 @@
+//! The configuration types a composition is built from
+
 use std::num::NonZeroUsize;
 
 use crate::{color::ColorOption, fonts::Font};
