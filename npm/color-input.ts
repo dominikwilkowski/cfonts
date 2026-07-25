@@ -1,5 +1,5 @@
-import { Color, GradientPreset } from "../pkg/cfonts_wasm.js";
-import { expectBoolean, expectEnum, expectU8 } from "./validation.js";
+import { Color, GradientPreset, hexToRgb as wasmHexToRgb } from "../pkg/cfonts_wasm.js";
+import { expectBoolean, expectEnum, expectString, expectU8 } from "./validation.js";
 
 /**
  * An RGB color as channel values
@@ -16,9 +16,9 @@ export interface RgbInput {
 export type ColorInput = Color | string | RgbInput;
 
 /**
- * One gradient stop: a stop name such as `"red"`, a hex value, or channel values
+ * One gradient stop: a base `Color`, a stop name such as `"red"`, a hex value, or channel values
  */
-export type GradientStopInput = string | RgbInput;
+export type GradientStopInput = Color | string | RgbInput;
 
 /**
  * A gradient: a preset, two stops, or a transition across two or more stops
@@ -38,6 +38,43 @@ export type NormalizedGradient =
 	| { kind: "transition"; stops: string[]; independentGradient: boolean };
 
 /**
+ * The base colors every gradient stop accepts
+ *
+ * System has no color to blend, Candy rolls per segment, and the bright variants
+ * have no gradient names in cfonts; hex values and channel values cover any other color
+ */
+const GRADIENT_STOP_COLORS: ReadonlySet<Color> = new Set([
+	Color.Black,
+	Color.Red,
+	Color.Green,
+	Color.Blue,
+	Color.Yellow,
+	Color.Magenta,
+	Color.Cyan,
+	Color.White,
+	Color.Gray,
+]);
+
+/**
+ * Converts a hex value into RGB channel values
+ *
+ * Accepts three or six hex digits with an optional leading `#`;
+ * the parsing itself happens once, in Rust
+ * The result plugs into every color and gradient stop input
+ *
+ * @example
+ * hexToRgb("#ff8800"); // { red: 255, green: 136, blue: 0 }
+ *
+ * @example
+ * Cfonts.text("hello").gradient({ start: hexToRgb("#ff8800"), end: Color.Blue });
+ */
+export function hexToRgb(hex: string): RgbInput {
+	const [red, green, blue] = wasmHexToRgb(expectString(hex, "hexToRgb"));
+
+	return Object.freeze({ red, green, blue });
+}
+
+/**
  * Validates one color's shape and encodes it for the boundary
  *
  * Enum selections travel as their names and channel values as hex;
@@ -48,21 +85,50 @@ export function normalizeColor(input: ColorInput, method: string): string {
 		return Color[expectEnum<Color>(input, Color, method)];
 	}
 
-	return normalizeStop(input, method);
-}
-
-/**
- * Validates one gradient stop's shape and encodes it for the boundary
- */
-export function normalizeStop(input: GradientStopInput, method: string): string {
 	if (typeof input === "string") {
 		return input;
 	}
 
 	if (input === null || typeof input !== "object") {
-		throw new TypeError(`\`${method}()\` expects colors as names, hex values, or RGB objects`);
+		throw new TypeError(
+			`\`${method}()\` expects colors as Color values, names, hex values, or {red, green, blue} channels`,
+		);
 	}
 
+	return encodeRgb(input, method);
+}
+
+/**
+ * Validates one gradient stop's shape and encodes it for the boundary
+ *
+ * Stops take the base colors only; hex values and channel values cover any other color
+ */
+export function normalizeStop(input: GradientStopInput, method: string): string {
+	if (typeof input === "number") {
+		const color = expectEnum<Color>(input, Color, method);
+
+		if (!GRADIENT_STOP_COLORS.has(color)) {
+			throw stopColorError(method);
+		}
+
+		return Color[color];
+	}
+
+	if (typeof input === "string") {
+		return input;
+	}
+
+	if (input === null || typeof input !== "object") {
+		throw stopColorError(method);
+	}
+
+	return encodeRgb(input, method);
+}
+
+/**
+ * Validates channel values and encodes them as the boundary's hex spelling
+ */
+function encodeRgb(input: RgbInput, method: string): string {
 	const red = expectU8(input.red, method);
 	const green = expectU8(input.green, method);
 	const blue = expectU8(input.blue, method);
@@ -72,6 +138,23 @@ export function normalizeStop(input: GradientStopInput, method: string): string 
 
 function hexByte(value: number): string {
 	return value.toString(16).padStart(2, "0");
+}
+
+function stopColorError(method: string): TypeError {
+	return new TypeError(
+		`\`${method}()\` gradient stops take the base colors Color.Black, Color.Red, Color.Green, Color.Blue, ` +
+			`Color.Yellow, Color.Magenta, Color.Cyan, Color.White and Color.Gray, a stop name such as "red", ` +
+			`a hex value such as "#ff8800", or {red, green, blue} channels from hexToRgb()`,
+	);
+}
+
+function gradientShapeError(method: string): TypeError {
+	return new TypeError(
+		`\`${method}()\` expects exactly one gradient shape: {start: Color.Red, end: Color.Blue}, ` +
+			`{transition: [Color.Red, "#8899dd", Color.Blue]}, {preset: GradientPreset.Pride}, ` +
+			`or the GradientPreset value itself; every object shape also takes independentGradient: true ` +
+			`to give each line its own gradient instead of one ramp across the widest line`,
+	);
 }
 
 /**
@@ -87,13 +170,13 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 	}
 
 	if (input === null || typeof input !== "object") {
-		throw new TypeError(`\`${method}()\` expects a gradient preset, {start, end}, {transition}, or {preset}`);
+		throw gradientShapeError(method);
 	}
 
 	const shapes = ["preset" in input, "start" in input || "end" in input, "transition" in input].filter(Boolean).length;
 
 	if (shapes !== 1) {
-		throw new TypeError(`\`${method}()\` expects exactly one gradient shape: {start, end}, {transition}, or {preset}`);
+		throw gradientShapeError(method);
 	}
 
 	const independentGradient =
@@ -109,7 +192,10 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 
 	if ("transition" in input) {
 		if (!Array.isArray(input.transition)) {
-			throw new TypeError(`\`${method}()\` expects transition stops as an array`);
+			throw new TypeError(
+				`\`${method}()\` expects transition stops as an array of two or more colors, ` +
+					`such as {transition: [Color.Red, Color.Green, "#0000ff"]}`,
+			);
 		}
 
 		return {
@@ -120,7 +206,9 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 	}
 
 	if (!("start" in input) || !("end" in input)) {
-		throw new TypeError(`\`${method}()\` expects a gradient with both start and end`);
+		throw new TypeError(
+			`\`${method}()\` expects a gradient with both start and end, such as {start: Color.Red, end: "#8899dd"}`,
+		);
 	}
 
 	return {

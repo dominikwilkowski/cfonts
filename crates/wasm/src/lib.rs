@@ -2,4 +2,4 @@ mod builder;
 mod types;
 
 pub use builder::Cfonts;
-pub use types::{Align, Color, ColorLevel, Font, GradientPreset, Rendered, Valign};
+pub use types::{Align, Color, ColorLevel, Font, GradientPreset, Rendered, Valign, hex_to_rgb};

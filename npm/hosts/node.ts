@@ -21,7 +21,13 @@ export class NodeHost implements Host {
 	/**
 	 * Creates a Node host with explicit capability overrides
 	 *
-	 * FORCE_SIZE and FORCE_COLOR still take precedence over these values
+	 * FORCE_SIZE, FORCE_COLOR and NO_COLOR still take precedence over these values
+	 *
+	 * @example
+	 * NodeHost.fromOverrides({ canvasWidth: 40, color: ColorLevel.Basic });
+	 *
+	 * @example
+	 * NodeHost.fromOverrides({ color: false }); // paints nothing
 	 */
 	static fromOverrides(overrides: RenderOverrides): NodeHost {
 		const host = new NodeHost();

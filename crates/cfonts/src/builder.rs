@@ -154,6 +154,18 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///
 	/// assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
 	/// ```
+	///
+	/// ```
+	/// use cfonts::{Cfonts, GradientOption, GradientPreset, GradientStop};
+	///
+	/// let _ramped = Cfonts::text("hello").color(GradientOption::TwoStop {
+	///     start: GradientStop::Red,
+	///     end: GradientStop::Blue,
+	///     independent_gradient: false,
+	/// });
+	///
+	/// let _preset = Cfonts::text("hello").color(GradientPreset::Pride);
+	/// ```
 	pub fn color(mut self, color: impl Into<ColorOption>) -> Self {
 		self.current_block_mut().color = Some(color.into());
 		self
@@ -441,10 +453,17 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	/// *This is a global setting and may only be configured once*
 	///
 	/// ```
-	/// use cfonts::{Cfonts, Color, GradientPreset};
+	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset, GradientStop};
 	///
 	/// let _banner = Cfonts::text("hello")
 	///     .global_color(vec![Color::Red]);
+	///
+	/// let _ramped = Cfonts::text("hello")
+	///     .global_color(GradientOption::TwoStop {
+	///         start: GradientStop::Red,
+	///         end: GradientStop::Blue,
+	///         independent_gradient: false,
+	///     });
 	///
 	/// let _preset = Cfonts::text("hello")
 	///     .global_color(GradientPreset::Pride);

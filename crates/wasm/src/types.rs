@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::{
 	Align as CoreAlign, Color as CoreColor, ColorLevel as CoreColorLevel, Font as CoreFont,
-	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Valign as CoreValign,
+	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Rgb, Valign as CoreValign,
 };
 
 macro_rules! bridge_enum {
@@ -132,4 +132,16 @@ impl From<CoreRendered> for Rendered {
 			styles: rendered.styles,
 		}
 	}
+}
+
+/// Parses a hex value such as `#ff8800` into RGB channel values
+///
+/// The channels cross the boundary as `[red, green, blue]`;
+/// TypeScript reshapes them into its `{red, green, blue}` object
+/// so hex parsing has exactly one home in Rust
+#[wasm_bindgen(js_name = hexToRgb)]
+pub fn hex_to_rgb(hex: &str) -> Result<Vec<u8>, JsError> {
+	let rgb = Rgb::from_hex(hex).map_err(|error| JsError::new(&error.to_string()))?;
+
+	Ok(vec![rgb.red, rgb.green, rgb.blue])
 }

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import * as packageExports from "cfonts";
 
@@ -13,9 +16,12 @@ const {
 	ColorLevel,
 	Font,
 	GradientPreset,
+	hexToRgb,
 	NodeHost,
 	Valign,
 } = packageExports;
+
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 const INVALID_STRINGS = [0, true, null, undefined, {}, []];
 
@@ -49,6 +55,28 @@ function withEnv(name, value, operation) {
 		} else {
 			process.env[name] = original;
 		}
+	}
+}
+
+function withColorEnv(forceColor, noColor, operation) {
+	const originalForce = process.env.FORCE_COLOR;
+	const originalNo = process.env.NO_COLOR;
+	const apply = (name, value) => {
+		if (value === undefined) {
+			delete process.env[name];
+		} else {
+			process.env[name] = value;
+		}
+	};
+
+	apply("FORCE_COLOR", forceColor);
+	apply("NO_COLOR", noColor);
+
+	try {
+		return operation();
+	} finally {
+		apply("FORCE_COLOR", originalForce);
+		apply("NO_COLOR", originalNo);
 	}
 }
 
@@ -545,6 +573,67 @@ test("gradient shapes are validated", () => {
 	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), Error); // system is not a gradient stop
 });
 
+test("gradient stops accept the base Color values", () => {
+	const context = { colorLevel: ColorLevel.TrueColor };
+	const named = Cfonts.text("A").gradient({ start: "red", end: "blue" }).renderWith(CliEnv, context).text;
+	const typed = Cfonts.text("A").gradient({ start: Color.Red, end: Color.Blue }).renderWith(CliEnv, context).text;
+	assert.equal(typed, named);
+
+	const transition = Cfonts.text("A")
+		.gradient({ transition: [Color.Red, "#8899dd", { red: 0, green: 0, blue: 255 }] })
+		.renderWith(CliEnv, context).text;
+	const spelled = Cfonts.text("A")
+		.gradient({ transition: ["red", "#8899dd", "#0000ff"] })
+		.renderWith(CliEnv, context).text;
+	assert.equal(transition, spelled);
+
+	const global = Cfonts.text("A").globalGradient({ start: Color.Yellow, end: Color.Gray }).renderWith(CliEnv, context);
+	assert.ok(global.text.includes("\u001b[38;2;"));
+});
+
+test("gradient stops reject colors outside the base palette", () => {
+	for (const color of [Color.System, Color.Candy, Color.RedBright]) {
+		assert.throws(() => Cfonts.text("A").gradient({ start: color, end: Color.Blue }), {
+			name: "TypeError",
+			message: /Color\.Gray.*hexToRgb/,
+		});
+	}
+
+	assert.throws(() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.WhiteBright] }), TypeError);
+});
+
+test("gradient shape errors teach the shapes", () => {
+	assert.throws(() => Cfonts.text("A").gradient({}), {
+		name: "TypeError",
+		message: /start: Color\.Red.*independentGradient/,
+	});
+	assert.throws(() => Cfonts.text("A").gradient({ start: Color.Red }), {
+		name: "TypeError",
+		message: /both start and end/,
+	});
+	assert.throws(() => Cfonts.text("A").gradient({ transition: "red" }), {
+		name: "TypeError",
+		message: /two or more/,
+	});
+});
+
+test("hexToRgb converts hex values into channels", () => {
+	assert.deepEqual(hexToRgb("#ff8800"), { red: 255, green: 136, blue: 0 });
+	assert.deepEqual(hexToRgb("f80"), { red: 255, green: 136, blue: 0 });
+	assert.ok(Object.isFrozen(hexToRgb("#ff8800")));
+
+	assert.throws(() => hexToRgb("#ff88"), Error); // four digits are invalid
+	assert.throws(() => hexToRgb("teal"), Error); // names are not hex values
+	assert.throws(() => hexToRgb(42), TypeError);
+
+	const context = { colorLevel: ColorLevel.TrueColor };
+	const channeled = Cfonts.text("A")
+		.gradient({ start: hexToRgb("#ff8800"), end: Color.Blue })
+		.renderWith(CliEnv, context).text;
+	const spelled = Cfonts.text("A").gradient({ start: "#ff8800", end: "blue" }).renderWith(CliEnv, context).text;
+	assert.equal(channeled, spelled);
+});
+
 test("gradients accept every shape and paint nothing without a color level", () => {
 	const plain = Cfonts.text("A").renderWith(CliEnv).text;
 
@@ -613,6 +702,48 @@ test("colors paint through the node host", () => {
 	);
 
 	assert.ok(rendered.includes("\u001b[31m"));
+});
+
+test("the conformance table drives the host resolution chain", () => {
+	// the same table drives the Rust host tests, so both chains share one truth
+	const table = readFileSync(join(ROOT, "tests", "color-level-conformance.txt"), "utf8");
+	const levels = { basic: ColorLevel.Basic, ansi256: ColorLevel.Ansi256, truecolor: ColorLevel.TrueColor };
+	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors([Color.Red]);
+	let exercised = 0;
+	let skipped = 0;
+
+	const rows = table
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line !== "" && !line.startsWith("#"));
+
+	for (const row of rows) {
+		const [inputs, expected] = row.split("→").map((part) => part.trim());
+		const [forced, noColor, override, detect] = inputs.split("|").map((part) => part.trim());
+
+		if (detect !== "-") {
+			skipped += 1; // detection cannot be stubbed through the public host, the Rust suite owns these rows
+			continue;
+		}
+
+		const overrides = { canvasWidth: 0 };
+		if (override === "disabled") {
+			overrides.color = false;
+		} else if (override !== "-") {
+			overrides.color = levels[override];
+		}
+
+		const rendered = withColorEnv(forced === "-" ? undefined : forced, noColor === "set" ? "" : undefined, () =>
+			NodeHost.fromOverrides(overrides).render(banner()),
+		);
+		const reference = banner().renderWith(CliEnv, expected === "none" ? undefined : { colorLevel: levels[expected] });
+
+		assert.equal(rendered.text, reference.text, row);
+		exercised += 1;
+	}
+
+	assert.equal(exercised, 12, "every environment-reachable row ran");
+	assert.equal(skipped, 4, "the detection rows belong to the Rust suite");
 });
 
 test("console styles pair with their markers through renderWith", () => {

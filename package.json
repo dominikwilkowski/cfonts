@@ -49,7 +49,7 @@
 		"example:browser": "pnpm run build && vite crates/cfonts/examples/browser",
 		"example:browser-console": "pnpm run build && vite crates/cfonts/examples/browser_console",
 		"example:leptos": "cd crates/cfonts/examples/leptos && trunk serve",
-		"example:dioxus": "cd crates/cfonts/examples/dioxus && dx serve --platform web",
+		"example:dioxus": "cd crates/cfonts/examples/dioxus && trunk serve",
 		"prepublishOnly": "pnpm run test"
 	},
 	"dependencies": {

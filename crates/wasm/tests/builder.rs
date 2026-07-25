@@ -4,7 +4,7 @@ use cfonts::{
 	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont, Options,
 	RenderContext, Valign as CoreValign,
 };
-use cfonts_wasm::{Align, Cfonts, ColorLevel, Font, GradientPreset, Rendered, Valign};
+use cfonts_wasm::{Align, Cfonts, ColorLevel, Font, GradientPreset, Rendered, Valign, hex_to_rgb};
 
 #[derive(Debug, Clone, Copy)]
 enum Target {
@@ -315,4 +315,12 @@ fn gradients_paint_across_the_boundary() {
 
 	let console = banner.render_browser_console(None, Some(ColorLevel::TrueColor), None);
 	assert_eq!(console.text.matches("%c").count(), console.styles.len());
+}
+
+#[wasm_bindgen_test]
+fn hex_values_convert_into_channel_values() {
+	assert_eq!(hex_to_rgb("#ff8800").expect("valid hex"), vec![255, 136, 0]);
+	assert_eq!(hex_to_rgb("f80").expect("valid short hex"), vec![255, 136, 0]);
+	assert!(hex_to_rgb("#ff88").is_err(), "four hex digits are invalid");
+	assert!(hex_to_rgb("teal").is_err(), "names are not hex values");
 }

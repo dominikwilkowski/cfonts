@@ -1,4 +1,7 @@
-use cfonts::{Align, Cfonts, Color, Font, GradientPreset, RenderOverrides, RustHost};
+use cfonts::{
+	Align, Cfonts, Color, Font, GradientOption, GradientPreset, GradientStop, RenderOverrides, Rgb, RustHost,
+	TransitionStops,
+};
 
 fn main() -> std::io::Result<()> {
 	// say delegates width detection and stdout output to the host
@@ -20,6 +23,37 @@ fn main() -> std::io::Result<()> {
 
 	// gradients ramp one color per column, presets are transitions
 	Cfonts::text("pride").font(Font::Block).global_color(GradientPreset::Pride).say(&RustHost::default())?;
+
+	// a block's own gradient overrides the global one for its columns, the global ramp resumes after
+	Cfonts::text("say ")
+		.font(Font::Tiny)
+		.global_color(GradientOption::TwoStop {
+			start: GradientStop::Green,
+			end: GradientStop::Magenta,
+			independent_gradient: false,
+		})
+		.new_text("fire")
+		.font(Font::Tiny)
+		.color(GradientOption::TwoStop {
+			start: GradientStop::Red,
+			end: GradientStop::Yellow,
+			independent_gradient: false,
+		})
+		.say(&RustHost::default())?;
+
+	// transitions travel through every stop; hex values pin exact colors
+	Cfonts::text("ocean")
+		.font(Font::Tiny)
+		.global_color(GradientOption::Transition {
+			stops: TransitionStops::try_from(vec![
+				GradientStop::Blue,
+				GradientStop::Cyan,
+				GradientStop::Rgb(Rgb::from_hex("#8899dd").expect("a valid hex value")),
+			])
+			.expect("two or more stops"),
+			independent_gradient: true,
+		})
+		.say(&RustHost::default())?;
 
 	Ok(())
 }

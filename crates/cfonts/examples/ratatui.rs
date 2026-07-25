@@ -17,7 +17,7 @@ use ratatui::{
 	},
 };
 
-use cfonts::{Align, Cfonts, CfontsWidget, Color, Font, Options};
+use cfonts::{Align, Cfonts, CfontsWidget, Color, Font, GradientOption, GradientStop, Options};
 
 fn run(options: &Options) -> std::io::Result<()> {
 	let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
@@ -34,11 +34,19 @@ fn run(options: &Options) -> std::io::Result<()> {
 fn main() -> std::io::Result<()> {
 	// the builder is the primary API; the widget consumes the underlying options
 	// and re-wraps and re-aligns on every terminal resize
+	// gradients are block colors too: the widget ramps them one cell per column
 	let options: Options = Cfonts::text("hello")
 		.font(Font::Block)
 		.word_wrap()
 		.align(Align::Center)
 		.color(vec![Color::Yellow, Color::Blue])
+		.new_text(" there")
+		.font(Font::Tiny)
+		.color(GradientOption::TwoStop {
+			start: GradientStop::Red,
+			end: GradientStop::Blue,
+			independent_gradient: false,
+		})
 		.into();
 
 	enable_raw_mode()?;

@@ -1,9 +1,0 @@
-[application]
-name = "cfonts-dioxus"
-out_dir = "dist"
-
-[web.app]
-title = "cfonts Dioxus example"
-
-[web.watcher]
-watch_path = ["src"]

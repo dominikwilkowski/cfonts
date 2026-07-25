@@ -1,4 +1,4 @@
-import { BrowserConsoleEnv, Cfonts, Color, Font, GradientPreset, NodeHost } from "cfonts";
+import { BrowserConsoleEnv, Cfonts, Color, Font, GradientPreset, hexToRgb, NodeHost } from "cfonts";
 
 const banner = Cfonts.text("hello").font(Font.Block);
 const host = NodeHost.fromOverrides({ canvasWidth: 80 });
@@ -16,6 +16,11 @@ const colorful = Cfonts.text("colors")
 	.globalGradient({ start: "red", end: "#0000ff", independentGradient: true });
 
 colorful.gradient({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff00"] });
+colorful.gradient({ start: Color.Red, end: hexToRgb("#0000ff") });
+colorful.gradient({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
+
+const channels: { red: number; green: number; blue: number } = hexToRgb("#ff8800");
+console.log(channels.red);
 colorful.gradient({ preset: GradientPreset.Lesbian, independentGradient: true });
 colorful.render(host);
 

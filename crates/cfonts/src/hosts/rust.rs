@@ -233,70 +233,45 @@ mod tests {
 	// resolve_color_level
 
 	#[test]
-	fn force_color_zero_disables_colors_even_with_an_api_override() {
-		let resolved = RustHost::resolve_color_level(Some("0"), false, ColorOverride::Level(ColorLevel::TrueColor), || {
-			panic!("a forced color level must skip detection")
-		});
+	fn the_conformance_table_drives_the_resolution_chain() {
+		// the same table drives the npm host tests, so both chains share one truth
+		let table = include_str!("../../../../tests/color-level-conformance.txt");
+		let level = |token: &str| match token {
+			"basic" => Some(ColorLevel::Basic),
+			"ansi256" => Some(ColorLevel::Ansi256),
+			"truecolor" => Some(ColorLevel::TrueColor),
+			"none" => None,
+			other => panic!("unknown level token `{other}`"),
+		};
+		let mut rows = 0;
 
-		assert_eq!(resolved, None);
-	}
+		for line in table.lines().map(str::trim).filter(|line| !line.is_empty() && !line.starts_with('#')) {
+			let (inputs, expected) = line.split_once('→').expect("every row separates inputs from the expectation");
+			let fields = inputs.split('|').map(str::trim).collect::<Vec<&str>>();
+			let [forced, no_color, override_color, detect] = fields[..] else {
+				panic!("every row carries four inputs: {line}");
+			};
 
-	#[test]
-	fn force_color_sets_fixed_levels() {
-		for (forced, expected) in [
-			("1", ColorLevel::Basic),
-			("2", ColorLevel::Ansi256),
-			("3", ColorLevel::TrueColor),
-		] {
-			let resolved = RustHost::resolve_color_level(Some(forced), false, ColorOverride::Auto, || {
-				panic!("a forced color level must skip detection")
-			});
+			let forced = (forced != "-").then_some(forced);
+			let no_color = no_color == "set";
+			let override_color = match override_color {
+				"-" => ColorOverride::Auto,
+				"disabled" => ColorOverride::Disabled,
+				token => ColorOverride::Level(level(token).expect("a level override")),
+			};
 
-			assert_eq!(resolved, Some(expected), "{forced:?}");
+			let resolved = match detect {
+				"-" => RustHost::resolve_color_level(forced, no_color, override_color, || {
+					panic!("this row must not consult detection: {line}")
+				}),
+				token => RustHost::resolve_color_level(forced, no_color, override_color, || level(token)),
+			};
+
+			assert_eq!(resolved, level(expected.trim()), "{line}");
+			rows += 1;
 		}
-	}
 
-	#[test]
-	fn invalid_force_color_is_treated_as_absent() {
-		for forced in ["", "abc", "4", "true"] {
-			let resolved =
-				RustHost::resolve_color_level(Some(forced), false, ColorOverride::Level(ColorLevel::Basic), || {
-					panic!("an api override must skip detection")
-				});
-
-			assert_eq!(resolved, Some(ColorLevel::Basic), "{forced:?}");
-		}
-	}
-
-	#[test]
-	fn force_color_wins_over_no_color() {
-		let resolved = RustHost::resolve_color_level(Some("3"), true, ColorOverride::Auto, || {
-			panic!("a forced color level must skip detection")
-		});
-
-		assert_eq!(resolved, Some(ColorLevel::TrueColor));
-	}
-
-	#[test]
-	fn no_color_wins_over_the_api_override() {
-		let resolved = RustHost::resolve_color_level(None, true, ColorOverride::Level(ColorLevel::TrueColor), || {
-			panic!("no-color must skip detection")
-		});
-
-		assert_eq!(resolved, None);
-	}
-
-	#[test]
-	fn the_api_override_skips_detection() {
-		let disabled = RustHost::resolve_color_level(None, false, ColorOverride::Disabled, || {
-			panic!("a disabled override must skip detection")
-		});
-		let fixed = RustHost::resolve_color_level(None, false, ColorOverride::Level(ColorLevel::Ansi256), || {
-			panic!("a fixed override must skip detection")
-		});
-
-		assert_eq!(disabled, None);
-		assert_eq!(fixed, Some(ColorLevel::Ansi256));
+		assert_eq!(rows, 16, "the table holds the whole conformance matrix");
 	}
 
 	#[test]
@@ -310,13 +285,6 @@ mod tests {
 
 		assert_eq!(resolved, Some(ColorLevel::Ansi256));
 		assert_eq!(detection_calls.get(), 1);
-	}
-
-	#[test]
-	fn auto_falls_back_to_full_color_when_detection_is_blind() {
-		let resolved = RustHost::resolve_color_level(None, false, ColorOverride::Auto, || None);
-
-		assert_eq!(resolved, Some(ColorLevel::TrueColor));
 	}
 
 	// entropy

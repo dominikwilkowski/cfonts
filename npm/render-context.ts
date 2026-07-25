@@ -22,6 +22,12 @@ export interface RenderContext {
 	readonly seed?: number;
 }
 
+/**
+ * Capability requests a host resolves against its own detection
+ *
+ * The environment variables `FORCE_SIZE`, `FORCE_COLOR` and `NO_COLOR`
+ * take precedence over every override
+ */
 export interface RenderOverrides {
 	/**
 	 * Width requested by the consumer
