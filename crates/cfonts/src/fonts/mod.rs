@@ -200,10 +200,25 @@ mod tests {
 		'%', '&', '(', ')', '/', ':', ';', ',', '\'', '"', ' ',
 	];
 
+	pub const ALL_FONTS: &[Font] = &[
+		Font::Block,
+		Font::Chrome,
+		Font::Console,
+		Font::Font3D,
+		Font::Grid,
+		Font::Huge,
+		Font::Pallet,
+		Font::Shade,
+		Font::Simple3D,
+		Font::SimpleBlock,
+		Font::Slick,
+		Font::Tiny,
+	];
+
 	pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
 		let missing = SUPPORTED.iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
-
-		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name,);
+		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name);
+		assert!(font.get_glyph('ü').is_none());
 	}
 
 	/// Assert the font uses every color it declares: the highest slot used must be `colors - 1`
@@ -349,21 +364,7 @@ mod tests {
 
 	#[test]
 	fn font_enum_maps_to_distinct_fonts() {
-		let all = [
-			Font::Block,
-			Font::Chrome,
-			Font::Console,
-			Font::Font3D,
-			Font::Grid,
-			Font::Huge,
-			Font::Pallet,
-			Font::Shade,
-			Font::Simple3D,
-			Font::SimpleBlock,
-			Font::Slick,
-			Font::Tiny,
-		];
-		let mut names: Vec<&str> = all.iter().map(|f| f.get_font().name()).collect();
+		let mut names: Vec<&str> = ALL_FONTS.iter().map(|f| f.get_font().name()).collect();
 		let count = names.len();
 		names.sort_unstable();
 		names.dedup();
