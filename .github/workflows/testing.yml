@@ -135,6 +135,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install the playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Check the core WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
 
@@ -146,23 +149,8 @@ jobs:
       - name: Build the package
         run: pnpm run build
 
-      - name: Build the package
-        run: pnpm run build
-
-      - name: Check formatting and linting
-        run: pnpm run test:format && pnpm run test:lint
-
-      - name: Check TypeScript and the consumer types
-        run: pnpm run test:typecheck && pnpm run test:types
-
-      - name: Run WASM tests
-        run: pnpm run test:wasm
-
-      - name: Install the playwright browser
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Run package tests
-        run: pnpm run test:js && pnpm run test:browser
+      - name: Run package.json test
+        run: pnpm run test
 
   coverage:
     name: Coverage
