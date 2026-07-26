@@ -13,6 +13,8 @@
 			"npm/**/*.js",
 			"npm/**/*.ts",
 			"package.json",
+			"playwright.config.ts",
+			"tests/**/*.ts",
 			"tsconfig.json"
 		]
 	},

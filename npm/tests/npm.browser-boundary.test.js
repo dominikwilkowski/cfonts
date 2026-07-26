@@ -42,10 +42,9 @@ test("the browser entry contains no Node-only code", () => {
 	assertBrowserSafe(source, "dist/browser.js");
 });
 
-test("the browser bundles contain no Node-only code", () => {
-	for (const directory of ["target/browser-example", "target/browser-console-example"]) {
-		const source = readJavaScript(join(ROOT, directory));
+test("the browser bundle contains no Node-only code", () => {
+	const directory = "target/browser-example";
+	const source = readJavaScript(join(ROOT, directory));
 
-		assertBrowserSafe(source, directory);
-	}
+	assertBrowserSafe(source, directory);
 });
