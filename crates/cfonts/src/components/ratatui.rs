@@ -10,7 +10,8 @@ use ::ratatui::{
 
 use crate::{
 	color::Color,
-	layout::{Layout, RowEntry},
+	environments::RowEvent,
+	layout::Layout,
 	options::Options,
 	render::{ColorLevel, GradientPlans, PaintDomain, PaintPlan, RenderContext},
 };
@@ -71,81 +72,76 @@ impl Widget for &CfontsWidget<'_> {
 		let mut plan = PaintPlan::build(self.options, &context, style_for);
 		let mut gradients = GradientPlans::build(self.options, &context, &rows);
 
-		for (row_offset, row) in rows.iter().take(area.height as usize).enumerate() {
-			let y = area.y.saturating_add(row_offset as u16);
-			if y >= area.bottom() {
-				break;
-			}
+		// The shared traversal visits every row; rows below the area paint nothing
+		let mut row_index = 0_usize;
+		let mut y = area.y;
+		let mut x = area.x;
+		let mut visible = false;
 
-			gradients.start_row(row);
+		RowEvent::each(&rows, |event| match event {
+			RowEvent::Break => row_index += 1,
+			RowEvent::RowStart { row } => {
+				y = area.y.saturating_add(row_index as u16);
+				visible = row_index < area.height as usize && y < area.bottom();
 
-			// the layout computed each row's alignment inside the canvas already
-			let mut x = area.x.saturating_add(row.align_offset as u16);
-			for entry in &row.entries {
-				if x >= area.right() {
-					break;
-				}
-
-				match entry {
-					RowEntry::Data {
-						glyph_row,
-						block_index,
-						width,
-						paintable,
-					} => {
-						let domain = plan.domain(*block_index);
-
-						for segment in glyph_row.segments {
-							let (text, slot) = segment.parts();
-
-							match domain {
-								PaintDomain::Slots => {
-									let style = plan.paint_for(*block_index, slot, *paintable).copied().unwrap_or_default();
-									let (next_x, _) = buffer.set_stringn(x, y, text, (area.right() - x) as usize, style);
-									x = next_x;
-								}
-								PaintDomain::Block | PaintDomain::Global => {
-									// gradients paint one cell per column, each with its ramp color
-									for character in text.chars() {
-										if x >= area.right() {
-											break;
-										}
-
-										let rgb = match domain {
-											PaintDomain::Global => gradients.global_window().first().copied(),
-											_ => gradients.block_window(*block_index).first().copied(),
-										};
-										let style = rgb
-											.map(|rgb| Style::default().fg(TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue)))
-											.unwrap_or_default();
-
-										let mut encoded = [0_u8; 4];
-										let (next_x, _) = buffer.set_stringn(x, y, character.encode_utf8(&mut encoded), 1, style);
-										x = next_x;
-
-										match domain {
-											PaintDomain::Global => gradients.advance_global(1),
-											_ => gradients.advance_block(1),
-										}
-									}
-								}
-							}
-						}
-
-						// entries outside the global domain claim their global ramp columns whole
-						if domain != PaintDomain::Global {
-							gradients.advance_global(*width);
-						}
-					}
-					// Blank columns leave cells untouched so the widget stays transparent
-					// Background colors can paint these cells once background support lands
-					RowEntry::Blank { width, block_index } => {
-						x = (x as usize).saturating_add(*width).min(area.right() as usize) as u16;
-						gradients.skip_blank(*width, *block_index);
-					}
+				if visible {
+					gradients.start_row(row);
+					// the layout computed each row's alignment inside the canvas already
+					x = area.x.saturating_add(row.align_offset as u16);
 				}
 			}
-		}
+			RowEvent::Text {
+				text,
+				block_index,
+				slot,
+				paintable,
+			} if visible => match plan.domain(block_index) {
+				PaintDomain::Slots => {
+					if x < area.right() {
+						let style = plan.paint_for(block_index, slot, paintable).copied().unwrap_or_default();
+						let (next_x, _) = buffer.set_stringn(x, y, text, (area.right() - x) as usize, style);
+						x = next_x;
+					}
+				}
+				domain => {
+					// gradients paint one cell per column, each with its ramp color
+					for character in text.chars() {
+						let rgb = match domain {
+							PaintDomain::Global => gradients.global_window().first().copied(),
+							_ => gradients.block_window(block_index).first().copied(),
+						};
+
+						if x < area.right() {
+							let style = rgb
+								.map(|rgb| Style::default().fg(TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue)))
+								.unwrap_or_default();
+
+							let mut encoded = [0_u8; 4];
+							let (next_x, _) = buffer.set_stringn(x, y, character.encode_utf8(&mut encoded), 1, style);
+							x = next_x;
+						}
+
+						match domain {
+							PaintDomain::Global => gradients.advance_global(1),
+							_ => gradients.advance_block(1),
+						}
+					}
+				}
+			},
+			RowEvent::EntryEnd { width, block_index } if visible => {
+				// entries outside the global domain claim their global ramp columns whole
+				if plan.domain(block_index) != PaintDomain::Global {
+					gradients.advance_global(width);
+				}
+			}
+			// Blank columns leave cells untouched so the widget stays transparent
+			// Background colors can paint these cells once background support lands
+			RowEvent::Blank { width, block_index } if visible => {
+				x = (x as usize).saturating_add(width).min(area.right() as usize) as u16;
+				gradients.skip_blank(width, block_index);
+			}
+			_ => {}
+		});
 	}
 }
 

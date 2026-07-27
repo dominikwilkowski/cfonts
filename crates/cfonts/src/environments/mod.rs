@@ -50,6 +50,19 @@ impl ColorTokens {
 	}
 }
 
+/// Walks `text` one column at a time, handing each character its ramp color
+/// while the ramp lasts, and returns the columns consumed
+pub(crate) fn each_ramp_column(text: &str, colors: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {
+	let mut consumed = 0;
+
+	for character in text.chars() {
+		paint(character, colors.get(consumed));
+		consumed += 1;
+	}
+
+	consumed
+}
+
 impl Default for ColorTokens {
 	/// The empty pair: paints nothing
 	fn default() -> Self {

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, Rendered},
+	environments::{ColorTokens, Environment, Rendered, each_ramp_column},
 	options::Options,
 	render::RenderContext,
 };
@@ -68,20 +68,10 @@ impl Environment for BrowserEnv {
 
 	/// Every column gets its own span so each character carries its ramp color
 	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
-		let mut consumed = 0;
-
-		for character in text.chars() {
-			match colors.get(consumed) {
-				Some(rgb) => {
-					Self::push_span(&rgb.to_hex(), |out| Self::push_escaped_char(character, out), &mut out.text);
-				}
-				None => Self::push_escaped_char(character, &mut out.text),
-			}
-
-			consumed += 1;
-		}
-
-		consumed
+		each_ramp_column(text, colors, |character, rgb| match rgb {
+			Some(rgb) => Self::push_span(&rgb.to_hex(), |out| Self::push_escaped_char(character, out), &mut out.text),
+			None => Self::push_escaped_char(character, &mut out.text),
+		})
 	}
 
 	/// The start token is the CSS color value; the span markup is the paint

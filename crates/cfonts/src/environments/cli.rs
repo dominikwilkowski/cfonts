@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, Rendered},
+	environments::{ColorTokens, Environment, Rendered, each_ramp_column},
 	render::{ColorLevel, RenderContext},
 };
 
@@ -51,22 +51,14 @@ impl Environment for CliEnv {
 			return text.chars().count();
 		};
 
-		let mut consumed = 0;
-
-		for character in text.chars() {
-			match colors.get(consumed) {
-				Some(rgb) => {
-					out.text.push_str(&Self::rgb_start(*rgb, level));
-					out.text.push(character);
-					out.text.push_str(RESET);
-				}
-				None => out.text.push(character),
+		each_ramp_column(text, colors, |character, rgb| match rgb {
+			Some(rgb) => {
+				out.text.push_str(&Self::rgb_start(*rgb, level));
+				out.text.push(character);
+				out.text.push_str(RESET);
 			}
-
-			consumed += 1;
-		}
-
-		consumed
+			None => out.text.push(character),
+		})
 	}
 
 	fn top_padding(&self, out: &mut Rendered) {

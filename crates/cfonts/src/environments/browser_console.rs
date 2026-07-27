@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, Rendered},
+	environments::{ColorTokens, Environment, Rendered, each_ramp_column},
 	render::RenderContext,
 };
 
@@ -65,20 +65,12 @@ impl Environment for BrowserConsoleEnv {
 	///
 	/// Gradient domains always style, so the percent escaping always applies here
 	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
-		let mut consumed = 0;
-
-		for character in text.chars() {
-			match colors.get(consumed) {
-				Some(rgb) => {
-					Self::push_pair(format!("color:{}", rgb.to_hex()), |out| Self::push_escaped_char(character, out), out);
-				}
-				None => Self::push_escaped_char(character, &mut out.text),
+		each_ramp_column(text, colors, |character, rgb| match rgb {
+			Some(rgb) => {
+				Self::push_pair(format!("color:{}", rgb.to_hex()), |out| Self::push_escaped_char(character, out), out);
 			}
-
-			consumed += 1;
-		}
-
-		consumed
+			None => Self::push_escaped_char(character, &mut out.text),
+		})
 	}
 
 	/// Painted text becomes a `%c` pair: the style value, the escaped text, the reset

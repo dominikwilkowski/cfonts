@@ -27,6 +27,17 @@ pub enum Align {
 	Right,
 }
 
+impl Align {
+	/// Columns of leading padding that place a row inside `gap` leftover columns
+	pub(crate) fn offset(self, gap: usize) -> usize {
+		match self {
+			Self::Left => 0,
+			Self::Center => gap / 2,
+			Self::Right => gap,
+		}
+	}
+}
+
 /// Options for one text block in a composed render
 ///
 /// A block owns the text plus settings that may differ from neighbouring blocks, such as font, spacing, color mode, and word wrapping

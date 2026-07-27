@@ -5,7 +5,7 @@
 //! This file proves the whole chain: painted output through a host, the browser's padded expression, and the option's builder behavior
 
 mod common;
-use common::{ALL_FONTS, browser_content, with_force_size};
+use common::{browser_content, with_force_size};
 
 use cfonts::{Align, BrowserEnv, Cfonts, Font, Options, RenderContext, Valign, hosts::RustHost};
 
@@ -117,11 +117,11 @@ fn the_default_alignment_is_left() {
 #[test]
 fn single_line_rows_are_their_own_frame_and_need_no_padding() {
 	// One line spans the whole widest-line frame, so no alignment can pad it
-	for font in ALL_FONTS {
-		let left = Cfonts::text("HI").font(*font).align(Align::Left).render_with(&BrowserEnv, RenderContext::unlimited());
+	for font in Font::ALL {
+		let left = Cfonts::text("HI").font(font).align(Align::Left).render_with(&BrowserEnv, RenderContext::unlimited());
 		let center =
-			Cfonts::text("HI").font(*font).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
-		let right = Cfonts::text("HI").font(*font).align(Align::Right).render_with(&BrowserEnv, RenderContext::unlimited());
+			Cfonts::text("HI").font(font).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
+		let right = Cfonts::text("HI").font(font).align(Align::Right).render_with(&BrowserEnv, RenderContext::unlimited());
 
 		assert_eq!(browser_content(&left), browser_content(&center), "{font:?} center");
 		assert_eq!(browser_content(&left), browser_content(&right), "{font:?} right");

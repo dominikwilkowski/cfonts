@@ -13,7 +13,7 @@ import {
 	type GradientInput,
 	type GradientStopInput,
 	hexToRgb,
-	normalizeColor,
+	normalizeColorList,
 	normalizeGradient,
 	type RgbInput,
 } from "./color-input.js";
@@ -119,11 +119,7 @@ export class Cfonts {
 	 * Cfonts.text("party").colors([Color.Candy]); // a fresh pick per painted segment
 	 */
 	colors(colors: ColorInput[]): this {
-		if (!Array.isArray(colors)) {
-			throw new TypeError("`colors()` expects an array of colors");
-		}
-
-		this.#inner.colors(colors.map((color) => normalizeColor(color, "colors")));
+		this.#inner.colors(normalizeColorList(colors, "colors"));
 		return this;
 	}
 
@@ -207,11 +203,7 @@ export class Cfonts {
 	 * Cfonts.text("hello ").newText("world").globalColors([Color.Red, "#8899dd"]);
 	 */
 	globalColors(colors: ColorInput[]): this {
-		if (!Array.isArray(colors)) {
-			throw new TypeError("`globalColors()` expects an array of colors");
-		}
-
-		this.#inner.globalColors(colors.map((color) => normalizeColor(color, "globalColors")));
+		this.#inner.globalColors(normalizeColorList(colors, "globalColors"));
 		return this;
 	}
 

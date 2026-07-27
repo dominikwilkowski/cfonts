@@ -2,7 +2,7 @@
 
 use crate::{
 	fonts::{GlyphRef, GlyphRow},
-	options::{Align, BlockOptions, Options, Valign},
+	options::{BlockOptions, Options, Valign},
 };
 
 /// One glyph staged on a layout line, tagged with its block for paint
@@ -179,7 +179,7 @@ impl<'a> Layout<'a> {
 
 	/// Lays out one block: the seam to the previous block, then every glyph of its text;
 	/// the one traversal of this block's source text
-	fn layout_block(&mut self, block_index: usize, block: &BlockOptions, terminal_width: Option<usize>) {
+	fn layout_block(&mut self, block_index: usize, block: &BlockOptions, canvas_width: Option<usize>) {
 		let font = block.font.get_font();
 		self.current_font_rows = font.rows();
 		self.space_pending = false;
@@ -205,8 +205,8 @@ impl<'a> Layout<'a> {
 		for ch in block.text.chars() {
 			// `|` forces a logical line break, including empty lines
 			if ch == '|' {
-				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
-				self.flush_line(terminal_width);
+				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
+				self.flush_line(canvas_width);
 				self.push_glyph(buffer_start);
 				continue; // Skip as `|` does not print anything
 			}
@@ -219,20 +219,20 @@ impl<'a> Layout<'a> {
 			let break_class = Self::how_to_break_char(ch, block.word_wrap);
 			match break_class {
 				Break::Both => {
-					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 					self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index);
-					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 				}
 				Break::After => {
 					self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index);
-					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 				}
 				Break::None => self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index),
 			}
 		}
 
 		// The end of a block always commits the pending word (words do not span blocks)
-		self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, terminal_width);
+		self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 
 		// Close the block with its buffer_end, mirroring the buffer_start that opened it, so lines ending in a slanted font keep uniform row widths
 		self.push_glyph(LayoutGlyph {
@@ -300,13 +300,13 @@ impl<'a> Layout<'a> {
 	}
 
 	/// Whether the pending word (plus its leading letter spaces) fits on the current line
-	fn word_fits(&self, letter_space_width: usize, letter_spacing: usize, terminal_width: Option<usize>) -> bool {
+	fn word_fits(&self, letter_space_width: usize, letter_spacing: usize, canvas_width: Option<usize>) -> bool {
 		let leading = if self.space_pending {
 			letter_spacing * letter_space_width
 		} else {
 			0
 		};
-		terminal_width.is_none_or(|terminal_width| self.line_output_width + leading + self.word_width <= terminal_width)
+		canvas_width.is_none_or(|canvas_width| self.line_output_width + leading + self.word_width <= canvas_width)
 			&& self
 				.options
 				.max_length
@@ -319,21 +319,21 @@ impl<'a> Layout<'a> {
 		buffer_start: LayoutGlyph,
 		letter_space_glyph: LayoutGlyph,
 		letter_spacing: usize,
-		terminal_width: Option<usize>,
+		canvas_width: Option<usize>,
 	) {
 		if self.word.is_empty() {
 			return;
 		}
 
-		let mut fits = self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width);
+		let mut fits = self.word_fits(letter_space_glyph.width(), letter_spacing, canvas_width);
 
 		// Wrap only if this line already holds printable content:
 		// a word that fits no line at all starts here and gets split below instead
 		if !fits && self.line_glyph_count > 0 {
-			self.flush_line(terminal_width);
+			self.flush_line(canvas_width);
 			self.push_glyph(buffer_start);
 			// The flush emptied the line so the verdict must be recomputed
-			fits = self.word_fits(letter_space_glyph.width(), letter_spacing, terminal_width);
+			fits = self.word_fits(letter_space_glyph.width(), letter_spacing, canvas_width);
 		}
 
 		if fits {
@@ -365,11 +365,11 @@ impl<'a> Layout<'a> {
 
 				// A glyph wider than the canvas overflows on the spot:
 				// wrapping the still empty line would only add a blank line in front of it
-				if (terminal_width.is_some_and(|terminal_width| self.line_output_width + next_glyph_width > terminal_width)
+				if (canvas_width.is_some_and(|canvas_width| self.line_output_width + next_glyph_width > canvas_width)
 					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get()))
 					&& self.line_glyph_count > 0
 				{
-					self.flush_line(terminal_width);
+					self.flush_line(canvas_width);
 					self.push_glyph(buffer_start);
 				} else {
 					for _ in 0..letter_spacing_count {
@@ -398,8 +398,8 @@ impl<'a> Layout<'a> {
 	/// Columns of leading padding that place a row of `row_width` inside the canvas
 	///
 	/// Empty rows and rows without a canvas have nothing to align against
-	fn align_offset(&self, row_width: usize, terminal_width: Option<usize>) -> usize {
-		let Some(terminal_width) = terminal_width else {
+	fn align_offset(&self, row_width: usize, canvas_width: Option<usize>) -> usize {
+		let Some(canvas_width) = canvas_width else {
 			return 0;
 		};
 
@@ -407,20 +407,14 @@ impl<'a> Layout<'a> {
 			return 0;
 		}
 
-		let gap = terminal_width.saturating_sub(row_width);
-
-		match self.options.align {
-			Align::Left => 0,
-			Align::Center => gap / 2,
-			Align::Right => gap,
-		}
+		self.options.align.offset(canvas_width.saturating_sub(row_width))
 	}
 
 	/// Flushing a complete line to our output
-	fn flush_line(&mut self, terminal_width: Option<usize>) {
+	fn flush_line(&mut self, canvas_width: Option<usize>) {
 		let mut current_block: Option<usize> = None;
 		let line_width = self.line_output_width;
-		let align_offset = self.align_offset(line_width, terminal_width);
+		let align_offset = self.align_offset(line_width, canvas_width);
 		let mut padding = 0;
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
@@ -508,7 +502,7 @@ mod tests {
 	use super::*;
 	use crate::{
 		fonts::{Font, Segment},
-		options::BlockOptions,
+		options::{Align, BlockOptions},
 		tests::{block, options, spaced_block},
 	};
 

@@ -3,7 +3,7 @@ import { Align, BrowserConsoleEnv, BrowserHost, Cfonts, Color, ColorLevel, Font,
 const host = new BrowserHost();
 
 // Render to HTML
-const banner = document.querySelector("#banner");
+const banner = document.getElementById("banner");
 banner.innerHTML = Cfonts.text("hello")
 	.font(Font.Block)
 	.align(Align.Center)

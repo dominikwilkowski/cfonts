@@ -592,11 +592,7 @@ pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, 
 		let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
 
 		for row in rows.iter_mut().filter(|row| !row.entries.is_empty()) {
-			row.align_offset = match options.align {
-				Align::Left => 0,
-				Align::Center => (widest - row.width) / 2,
-				Align::Right => widest - row.width,
-			};
+			row.align_offset = options.align.offset(widest - row.width);
 		}
 	}
 

@@ -45,7 +45,12 @@ const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, "0", "Block", true, null, 
 
 function withEnv(name, value, operation) {
 	const original = process.env[name];
-	process.env[name] = value;
+
+	if (value === undefined) {
+		delete process.env[name];
+	} else {
+		process.env[name] = value;
+	}
 
 	try {
 		return operation();
@@ -59,55 +64,23 @@ function withEnv(name, value, operation) {
 }
 
 function withColorEnv(forceColor, noColor, operation) {
-	const originalForce = process.env.FORCE_COLOR;
-	const originalNo = process.env.NO_COLOR;
-	const apply = (name, value) => {
-		if (value === undefined) {
-			delete process.env[name];
-		} else {
-			process.env[name] = value;
-		}
-	};
-
-	apply("FORCE_COLOR", forceColor);
-	apply("NO_COLOR", noColor);
-
-	try {
-		return operation();
-	} finally {
-		apply("FORCE_COLOR", originalForce);
-		apply("NO_COLOR", originalNo);
-	}
+	return withEnv("FORCE_COLOR", forceColor, () => withEnv("NO_COLOR", noColor, operation));
 }
 
 function withTerminal(columns, forceSize, operation) {
-	const originalForceSize = process.env.FORCE_SIZE;
+	return withEnv("FORCE_SIZE", forceSize, () => {
+		const restoreGetWindowSize = overrideProperty(process.stdout, "getWindowSize", () => [columns, 24]);
+		const restoreColumns = overrideProperty(process.stdout, "columns", columns);
+		const restoreRows = overrideProperty(process.stdout, "rows", 24);
 
-	const restoreGetWindowSize = overrideProperty(process.stdout, "getWindowSize", () => [columns, 24]);
-
-	const restoreColumns = overrideProperty(process.stdout, "columns", columns);
-
-	const restoreRows = overrideProperty(process.stdout, "rows", 24);
-
-	if (forceSize === undefined) {
-		delete process.env.FORCE_SIZE;
-	} else {
-		process.env.FORCE_SIZE = forceSize;
-	}
-
-	try {
-		return operation();
-	} finally {
-		restoreRows();
-		restoreColumns();
-		restoreGetWindowSize();
-
-		if (originalForceSize === undefined) {
-			delete process.env.FORCE_SIZE;
-		} else {
-			process.env.FORCE_SIZE = originalForceSize;
+		try {
+			return operation();
+		} finally {
+			restoreRows();
+			restoreColumns();
+			restoreGetWindowSize();
 		}
-	}
+	});
 }
 
 function assertTypeErrors(values, invoke, message) {

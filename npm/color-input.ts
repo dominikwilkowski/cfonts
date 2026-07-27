@@ -99,6 +99,17 @@ export function normalizeColor(input: ColorInput, method: string): string {
 }
 
 /**
+ * Validates a color list's shape and encodes each entry for the boundary
+ */
+export function normalizeColorList(colors: ColorInput[], method: string): string[] {
+	if (!Array.isArray(colors)) {
+		throw new TypeError(`\`${method}()\` expects an array of colors`);
+	}
+
+	return colors.map((color) => normalizeColor(color, method));
+}
+
+/**
  * Validates one gradient stop's shape and encodes it for the boundary
  *
  * Stops take the base colors only; hex values and channel values cover any other color

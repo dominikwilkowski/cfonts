@@ -134,6 +134,22 @@ impl Font {
 			Self::Tiny => &FONT_TINY,
 		}
 	}
+
+	/// Every font, in enum order
+	pub const ALL: [Self; 12] = [
+		Self::Block,
+		Self::Chrome,
+		Self::Console,
+		Self::Font3D,
+		Self::Grid,
+		Self::Huge,
+		Self::Pallet,
+		Self::Shade,
+		Self::Simple3D,
+		Self::SimpleBlock,
+		Self::Slick,
+		Self::Tiny,
+	];
 }
 
 /// A font consisting of a set of glyphs and color/size information
@@ -198,21 +214,6 @@ mod tests {
 		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
 		'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '?', '.', '+', '-', '_', '=', '@', '#', '$',
 		'%', '&', '(', ')', '/', ':', ';', ',', '\'', '"', ' ',
-	];
-
-	pub const ALL_FONTS: &[Font] = &[
-		Font::Block,
-		Font::Chrome,
-		Font::Console,
-		Font::Font3D,
-		Font::Grid,
-		Font::Huge,
-		Font::Pallet,
-		Font::Shade,
-		Font::Simple3D,
-		Font::SimpleBlock,
-		Font::Slick,
-		Font::Tiny,
 	];
 
 	pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
@@ -364,7 +365,7 @@ mod tests {
 
 	#[test]
 	fn font_enum_maps_to_distinct_fonts() {
-		let mut names: Vec<&str> = ALL_FONTS.iter().map(|f| f.get_font().name()).collect();
+		let mut names: Vec<&str> = Font::ALL.iter().map(|f| f.get_font().name()).collect();
 		let count = names.len();
 		names.sort_unstable();
 		names.dedup();
