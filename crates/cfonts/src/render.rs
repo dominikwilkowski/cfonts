@@ -129,17 +129,6 @@ impl RenderContext {
 		}
 	}
 
-	/// Creates a context from an optional resolved width
-	///
-	/// `None` and `Some(0)` mean unlimited
-	#[must_use]
-	pub fn from_canvas_width(canvas_width: Option<usize>) -> Self {
-		Self {
-			canvas_width: canvas_width.and_then(NonZeroUsize::new),
-			..Self::unlimited()
-		}
-	}
-
 	/// Creates a context from an already validated width but expects NonZeroUsize instead of usize
 	///
 	/// Only the native host resolves to `NonZeroUsize` directly; the wasm boundary passes `Option<usize>`

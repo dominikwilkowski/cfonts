@@ -2,7 +2,7 @@
 
 use crate::{
 	fonts::{GlyphRef, GlyphRow},
-	options::{BlockOptions, Options, Valign},
+	options::{BlockOptions, Options},
 };
 
 /// One glyph staged on a layout line, tagged with its block for paint
@@ -249,18 +249,6 @@ impl<'a> Layout<'a> {
 		self.line_max_rows = self.line_max_rows.max(font.rows());
 	}
 
-	/// Calculates the vertical padding for a line of glyphs, given the valign and line/block height
-	/// line_rows must be >= glyph_rows (guaranteed by flush_line's height tracking)
-	fn vertical_padding(valign: Valign, line_rows: usize, current_glyph_rows: usize) -> usize {
-		let extra = line_rows - current_glyph_rows;
-
-		match valign {
-			Valign::Top => 0,
-			Valign::Middle => extra / 2,
-			Valign::Bottom => extra,
-		}
-	}
-
 	/// The single place that defines where words may soft-wrap
 	fn how_to_break_char(character: char, word_wrap: bool) -> Break {
 		// With word_wrap off every glyph is its own one-glyph word, breakable on both sides
@@ -454,7 +442,8 @@ impl<'a> Layout<'a> {
 			let mut entries = Vec::with_capacity(self.line.len());
 			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
-					padding = Self::vertical_padding(self.options.valign, rows_to_push, glyph.rows().len());
+					// rows_to_push >= the glyph's rows is guaranteed by flush_line's height tracking
+					padding = self.options.valign.offset(rows_to_push - glyph.rows().len());
 					current_block = Some(glyph.block_index);
 				}
 
@@ -501,8 +490,8 @@ impl<'a> Layout<'a> {
 mod tests {
 	use super::*;
 	use crate::{
-		fonts::{Font, Segment},
-		options::{Align, BlockOptions},
+		fonts::Font,
+		options::{Align, BlockOptions, Valign},
 		tests::{block, options, spaced_block},
 	};
 
@@ -513,13 +502,9 @@ mod tests {
 		row
 			.iter()
 			.map(|entry| match entry {
-				RowEntry::Data { glyph_row, .. } => glyph_row
-					.segments
-					.iter()
-					.map(|segment| match segment {
-						Segment::Plain(text) | Segment::Colored { text, .. } => text.chars().count(),
-					})
-					.sum(),
+				RowEntry::Data { glyph_row, .. } => {
+					glyph_row.segments.iter().map(|segment| segment.parts().0.chars().count()).sum()
+				}
 				RowEntry::Blank { width, .. } => *width,
 			})
 			.sum()
@@ -653,14 +638,14 @@ mod tests {
 	// vertical_padding
 
 	#[test]
-	fn vertical_padding_distributes_extra_rows() {
-		assert_eq!(Layout::vertical_padding(Valign::Top, 6, 2), 0);
-		assert_eq!(Layout::vertical_padding(Valign::Middle, 6, 2), 2);
-		assert_eq!(Layout::vertical_padding(Valign::Bottom, 6, 2), 4);
+	fn valign_offset_distributes_extra_rows() {
+		assert_eq!(Valign::Top.offset(4), 0);
+		assert_eq!(Valign::Middle.offset(4), 2);
+		assert_eq!(Valign::Bottom.offset(4), 4);
 		// odd extra rows: Middle rounds the top padding down, the glyph sits above center
-		assert_eq!(Layout::vertical_padding(Valign::Middle, 7, 2), 2);
+		assert_eq!(Valign::Middle.offset(5), 2);
 		// a glyph as tall as the line needs no padding under any valign
-		assert_eq!(Layout::vertical_padding(Valign::Bottom, 6, 6), 0);
+		assert_eq!(Valign::Bottom.offset(0), 0);
 	}
 
 	// how_to_break_char

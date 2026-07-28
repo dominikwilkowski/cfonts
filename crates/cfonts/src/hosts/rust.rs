@@ -67,7 +67,12 @@ impl RustHost {
 		detect: impl FnOnce() -> Option<NonZeroUsize>,
 	) -> Option<NonZeroUsize> {
 		// The outer Option distinguishes invalid input from valid FORCE_SIZE=0
-		if let Some(forced_width) = forced.and_then(|value| value.parse::<usize>().ok()).map(NonZeroUsize::new) {
+		// Digits only and at most u32::MAX: the same rule the npm host applies
+		if let Some(forced_width) = forced
+			.filter(|value| value.bytes().all(|byte| byte.is_ascii_digit()))
+			.and_then(|value| value.parse::<u32>().ok())
+			.map(|value| NonZeroUsize::new(value as usize))
+		{
 			return forced_width;
 		}
 
@@ -182,7 +187,8 @@ mod tests {
 
 	#[test]
 	fn invalid_force_size_falls_through_to_the_api_override() {
-		for forced in ["", "abc", "-1", "12.5"] {
+		// "+5" and 2^32 parse as numbers in Rust but not under the npm host's rule
+		for forced in ["", "abc", "-1", "12.5", "+5", "4294967296"] {
 			let resolved = RustHost::resolve_canvas_width(Some(forced), CanvasWidth::Columns(width(42)), || {
 				panic!("explicit columns must skip detection")
 			});

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, Rendered, each_ramp_column},
+	environments::{ColorTokens, Environment, Rendered, each_ramp_column, push_escaped},
 	render::RenderContext,
 };
 
@@ -14,15 +14,6 @@ use crate::{
 pub struct BrowserConsoleEnv;
 
 impl BrowserConsoleEnv {
-	/// Pushes glyph text with `%` doubled so the console cannot mistake it for a format marker
-	///
-	/// Only logs with style arguments interpret `%`, so this runs only when the render styles
-	fn push_escaped(text: &str, out: &mut String) {
-		for character in text.chars() {
-			Self::push_escaped_char(character, out);
-		}
-	}
-
 	/// Emits one painted run as a `%c` pair: the style value, the content, the reset
 	///
 	/// The pair pushes exactly two style values so markers and styles always match;
@@ -35,7 +26,9 @@ impl BrowserConsoleEnv {
 		out.styles.push(String::new());
 	}
 
-	/// Pushes one character with `%` doubled
+	/// Pushes one character with `%` doubled so the console cannot mistake it for a format marker
+	///
+	/// Only logs with style arguments interpret `%`, so this runs only when the render styles
 	fn push_escaped_char(character: char, out: &mut String) {
 		match character {
 			'%' => out.push_str("%%"),
@@ -83,11 +76,11 @@ impl Environment for BrowserConsoleEnv {
 		}
 
 		if !tokens.paints() {
-			Self::push_escaped(text, &mut out.text);
+			push_escaped(text, Self::push_escaped_char, &mut out.text);
 			return;
 		}
 
-		Self::push_pair(tokens.start.to_string(), |out| Self::push_escaped(text, out), out);
+		Self::push_pair(tokens.start.to_string(), |out| push_escaped(text, Self::push_escaped_char, out), out);
 	}
 }
 

@@ -27,7 +27,7 @@ impl Target {
 	fn render_core(self, canvas_width: Option<usize>) -> String {
 		let options: Options = CoreCfonts::text("AA").font(CoreFont::Tiny).line_height(0).spaceless().into();
 
-		let context = RenderContext::from_canvas_width(canvas_width);
+		let context = RenderContext::with_canvas_width(canvas_width.unwrap_or(0));
 
 		match self {
 			Self::Cli => cfonts::render_with(&options, &CliEnv, context).text,
@@ -323,4 +323,30 @@ fn hex_values_convert_into_channel_values() {
 	assert_eq!(hex_to_rgb("f80").expect("valid short hex"), vec![255, 136, 0]);
 	assert!(hex_to_rgb("#ff88").is_err(), "four hex digits are invalid");
 	assert!(hex_to_rgb("teal").is_err(), "names are not hex values");
+}
+
+#[wasm_bindgen_test]
+fn the_font_bridge_covers_every_core_font() {
+	// mirrors the bridge_enum list in types.rs: a new core font must land in both
+	let bridged = [
+		Font::Block,
+		Font::Chrome,
+		Font::Console,
+		Font::Font3D,
+		Font::Grid,
+		Font::Huge,
+		Font::Pallet,
+		Font::Shade,
+		Font::Simple3D,
+		Font::SimpleBlock,
+		Font::Slick,
+		Font::Tiny,
+	]
+	.map(CoreFont::from);
+
+	assert_eq!(bridged.len(), CoreFont::ALL.len(), "the wasm bridge and the core font list disagree");
+
+	for font in CoreFont::ALL {
+		assert!(bridged.contains(&font), "{font:?} is not reachable through the wasm bridge");
+	}
 }

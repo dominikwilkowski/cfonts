@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, Rendered, each_ramp_column},
+	environments::{ColorTokens, Environment, Rendered, each_ramp_column, push_escaped},
 	options::Options,
 	render::RenderContext,
 };
@@ -12,14 +12,6 @@ use crate::{
 pub struct BrowserEnv;
 
 impl BrowserEnv {
-	/// Escapes the HTML-special characters of glyph text
-	/// (the console font's `&` glyph and simple3d's `</` art would otherwise parse as HTML markup)
-	fn push_escaped(text: &str, out: &mut String) {
-		for character in text.chars() {
-			Self::push_escaped_char(character, out);
-		}
-	}
-
 	/// Wraps escaped content in the span markup that carries one CSS color
 	///
 	/// Both the slot and the gradient paint paths route through this,
@@ -33,6 +25,7 @@ impl BrowserEnv {
 	}
 
 	/// Escapes one HTML-special character
+	/// (the console font's `&` glyph and simple3d's `</` art would otherwise parse as HTML markup)
 	fn push_escaped_char(character: char, out: &mut String) {
 		match character {
 			'&' => out.push_str("&amp;"),
@@ -77,11 +70,11 @@ impl Environment for BrowserEnv {
 	/// The start token is the CSS color value; the span markup is the paint
 	fn paint(&self, text: &str, tokens: &ColorTokens, _will_style: bool, _context: &RenderContext, out: &mut Rendered) {
 		if tokens.start.is_empty() {
-			Self::push_escaped(text, &mut out.text);
+			push_escaped(text, Self::push_escaped_char, &mut out.text);
 			return;
 		}
 
-		Self::push_span(&tokens.start, |out| Self::push_escaped(text, out), &mut out.text);
+		Self::push_span(&tokens.start, |out| push_escaped(text, Self::push_escaped_char, out), &mut out.text);
 	}
 
 	fn row_break(&self, out: &mut Rendered) {

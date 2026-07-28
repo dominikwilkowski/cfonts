@@ -50,6 +50,16 @@ impl ColorTokens {
 	}
 }
 
+impl Default for ColorTokens {
+	/// The empty pair: paints nothing
+	fn default() -> Self {
+		Self {
+			start: Cow::Borrowed(""),
+			end: Cow::Borrowed(""),
+		}
+	}
+}
+
 /// Walks `text` one column at a time, handing each character its ramp color
 /// while the ramp lasts, and returns the columns consumed
 pub(crate) fn each_ramp_column(text: &str, colors: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {
@@ -63,13 +73,10 @@ pub(crate) fn each_ramp_column(text: &str, colors: &[Rgb], mut paint: impl FnMut
 	consumed
 }
 
-impl Default for ColorTokens {
-	/// The empty pair: paints nothing
-	fn default() -> Self {
-		Self {
-			start: Cow::Borrowed(""),
-			end: Cow::Borrowed(""),
-		}
+/// Pushes `text` through an environment's one-character escaper
+pub(crate) fn push_escaped(text: &str, escape: impl Fn(char, &mut String), out: &mut String) {
+	for character in text.chars() {
+		escape(character, out);
 	}
 }
 

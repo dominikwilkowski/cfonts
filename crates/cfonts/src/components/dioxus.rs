@@ -6,8 +6,8 @@ use super::render_browser;
 
 /// Renders cfonts HTML inside a Dioxus element
 ///
-/// Colors paint at full support because the artifact is CSS; the canvas stays
-/// unlimited because browser capability discovery belongs to the application host
+/// The artifact always paints in full color and never wraps:
+/// constrain and place it with your own page styles
 ///
 /// The seed makes candy picks reproducible across renders
 #[component]

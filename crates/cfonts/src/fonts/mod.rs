@@ -303,13 +303,7 @@ mod tests {
 
 	/// Column width of a single row: the char count across all its segments
 	fn row_width(row: &GlyphRow) -> usize {
-		row
-			.segments
-			.iter()
-			.map(|segment| match segment {
-				Segment::Plain(text) | Segment::Colored { text, .. } => text.chars().count(),
-			})
-			.sum()
+		row.segments.iter().map(|segment| segment.parts().0.chars().count()).sum()
 	}
 
 	/// Assert `buffer_size` matches the widest row of a buffer

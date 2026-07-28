@@ -233,7 +233,8 @@ impl Cfonts {
 	}
 
 	fn context(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: Option<u32>) -> RenderContext {
-		RenderContext::from_canvas_width(canvas_width)
+		// None and Some(0) both mean unlimited
+		RenderContext::with_canvas_width(canvas_width.unwrap_or(0))
 			.with_color_level(color_level.map(Into::into))
 			.with_seed(seed.map_or(0, u64::from))
 	}

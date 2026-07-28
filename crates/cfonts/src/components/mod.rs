@@ -18,8 +18,9 @@ use crate::{BrowserEnv, ColorLevel, Options, RenderContext, Rendered, render_wit
 
 /// Adapts cfonts options to the HTML artifact the framework components consume
 ///
-/// Colors paint at full support because the artifact is CSS; the canvas stays
-/// unlimited because browser capability discovery belongs to the application host
+/// The one home of the component render policy: colors paint at full support
+/// because the artifact is CSS, and the canvas stays unlimited because browser
+/// capability discovery belongs to the application host
 /// The seed makes candy picks reproducible across renders
 #[cfg(any(feature = "leptos", feature = "dioxus"))]
 pub(crate) fn render_browser(options: &Options, seed: u64) -> Rendered {

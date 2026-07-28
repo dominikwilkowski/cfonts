@@ -17,6 +17,17 @@ pub enum Valign {
 	Bottom,
 }
 
+impl Valign {
+	/// Rows of leading padding that place a glyph inside `extra` leftover rows
+	pub(crate) fn offset(self, extra: usize) -> usize {
+		match self {
+			Self::Top => 0,
+			Self::Middle => extra / 2,
+			Self::Bottom => extra,
+		}
+	}
+}
+
 /// The supported horizontal alignment modes
 ///
 /// ![The align option and its output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
