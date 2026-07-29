@@ -28,7 +28,7 @@ pub use components::CfontsDioxus;
 #[cfg(feature = "ratatui")]
 pub use components::CfontsWidget;
 #[cfg(feature = "leptos")]
-pub use components::{CfontsLeptos, console_say};
+pub use components::{CfontsLeptos, LeptosHost};
 
 #[cfg(test)]
 mod tests;

@@ -1,4 +1,4 @@
-use cfonts::{Align, Cfonts, CfontsLeptos, Font, GradientPreset, Options, console_say};
+use cfonts::{Align, Cfonts, CfontsLeptos, Font, GradientPreset, LeptosHost, Options};
 use leptos::prelude::*;
 
 /// Shows the feature-gated cfonts Leptos adapter
@@ -8,7 +8,11 @@ fn App() -> impl IntoView {
 		Cfonts::text("hello").font(Font::Block).align(Align::Center).global_color(GradientPreset::Pride).into();
 
 	// the console artifact logs with its styles, straight from Rust
-	console_say(&Cfonts::text("hello world").font(Font::Block).global_color(GradientPreset::Transgender).into(), 0);
+	Cfonts::text("hello world")
+		.font(Font::Block)
+		.global_color(GradientPreset::Transgender)
+		.say(&LeptosHost::default())
+		.expect("the page console cannot fail");
 
 	view! {
 		<main>

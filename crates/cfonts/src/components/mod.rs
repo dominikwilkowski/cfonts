@@ -6,7 +6,7 @@ pub use dioxus::CfontsDioxus;
 #[cfg(feature = "leptos")]
 mod leptos;
 #[cfg(feature = "leptos")]
-pub use leptos::{CfontsLeptos, console_say};
+pub use leptos::{CfontsLeptos, LeptosHost};
 
 #[cfg(feature = "ratatui")]
 mod ratatui;
@@ -14,21 +14,45 @@ mod ratatui;
 pub use ratatui::CfontsWidget;
 
 #[cfg(any(feature = "leptos", feature = "dioxus"))]
-use crate::{BrowserEnv, ColorLevel, Options, RenderContext, Rendered, render_with};
+use crate::{ColorLevel, RenderContext};
 
-/// Adapts cfonts options to the HTML artifact the framework components consume
-///
+#[cfg(feature = "dioxus")]
+use crate::{BrowserEnv, Options, Rendered, render_with};
+
 /// The one home of the component render policy: colors paint at full support
 /// because the artifact is CSS, and the canvas stays unlimited because browser
 /// capability discovery belongs to the application host
 /// The seed makes candy picks reproducible across renders
 #[cfg(any(feature = "leptos", feature = "dioxus"))]
+pub(crate) fn render_context(seed: u64) -> RenderContext {
+	RenderContext::colored(ColorLevel::TrueColor).with_seed(seed)
+}
+
+/// Adapts cfonts options to the HTML artifact the Dioxus component consumes
+///
+/// Dioxus is multi-renderer and re-exports no browser bindings, so it gets the
+/// render adapter without a say action
+#[cfg(feature = "dioxus")]
 pub(crate) fn render_browser(options: &Options, seed: u64) -> Rendered {
-	render_with(options, &BrowserEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(seed))
+	render_with(options, &BrowserEnv, render_context(seed))
 }
 
 #[cfg(all(test, any(feature = "leptos", feature = "dioxus")))]
 mod tests {
+	use super::*;
+
+	#[test]
+	fn the_component_context_paints_at_full_support_without_a_canvas() {
+		let context = render_context(42);
+
+		assert_eq!(context.color_level(), Some(ColorLevel::TrueColor));
+		assert_eq!(context.canvas_width(), None);
+		assert_eq!(context.seed(), 42);
+	}
+}
+
+#[cfg(all(test, feature = "dioxus"))]
+mod dioxus_tests {
 	use super::*;
 	use crate::{Cfonts, Color, Font, Valign};
 
