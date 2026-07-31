@@ -603,12 +603,40 @@ mod tests {
 	}
 
 	#[test]
-	fn lines_ending_in_a_slanted_font_have_uniform_row_widths() {
-		// the block's closing buffer_end must square the line off, or align would shear the slant
-		let lines = line_widths(&options(Valign::Top, None, vec![block("X", Font::Font3D, false)]));
-		for line in &lines {
-			assert!(line.iter().all(|width| *width == line[0]), "rows of one line must span equal columns: {line:?}");
-		}
+	fn a_block_following_a_slanted_font_starts_at_one_column_on_every_row() {
+		// the closing buffer_end squares the staircase off: without it the slant
+		// would shear the next block sideways row by row
+		let options = options(Valign::Top, None, vec![block("X", Font::Font3D, false), block("X", Font::Tiny, false)]);
+		let layout = Layout::build(&options, None);
+		assert_eq!(layout.output.len(), 9); // Font3D dictates the line height
+
+		let starts: Vec<usize> = layout
+			.output
+			.iter()
+			.map(|row| {
+				let seam = row
+					.entries
+					.iter()
+					.position(|entry| match entry {
+						RowEntry::Data { block_index, .. } | RowEntry::Blank { block_index, .. } => *block_index == 1,
+					})
+					.expect("every row holds entries of the second block");
+
+				row_width(&row.entries[..seam])
+			})
+			.collect();
+
+		assert!(starts.iter().all(|start| *start == starts[0]), "the second block must start at one column: {starts:?}");
+	}
+
+	#[test]
+	fn lines_ending_in_a_slanted_font_square_off_their_actual_columns() {
+		// the closing buffer_end must square the line off, or align would shear the slant
+		let options = options(Valign::Top, None, vec![block("X", Font::Font3D, false)]);
+		let layout = Layout::build(&options, None);
+
+		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
+		assert!(widths.iter().all(|width| *width == widths[0]), "rows must span equal actual columns: {widths:?}");
 	}
 
 	#[test]
@@ -1198,11 +1226,13 @@ mod tests {
 	#[test]
 	fn ragged_buffers_stay_column_aligned_on_valign_padding_rows() {
 		// regression: 3D's staircase buffers used to shift following blocks on padding rows
-		let lines =
-			line_widths(&options(Valign::Top, None, vec![block("X", Font::Font3D, false), block("X", Font::Huge, false)]));
-		for line in &lines {
-			assert!(line.iter().all(|width| *width == line[0]), "rows of one line must span equal columns: {line:?}");
-		}
+		// Huge is taller than Font3D, so the 3D buffers sit on Blank padding rows here
+		let options = options(Valign::Top, None, vec![block("X", Font::Font3D, false), block("X", Font::Huge, false)]);
+		let layout = Layout::build(&options, None);
+
+		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
+		assert_eq!(widths.len(), 11); // Huge dictates the line height
+		assert!(widths.iter().all(|width| *width == widths[0]), "rows must span equal actual columns: {widths:?}");
 	}
 
 	// start: max_length
