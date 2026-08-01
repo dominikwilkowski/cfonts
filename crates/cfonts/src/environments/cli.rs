@@ -107,6 +107,21 @@ mod tests {
 	}
 
 	#[test]
+	fn rgb_black_levels_down_to_ansi_black() {
+		let black = Color::Rgb(Rgb {
+			red: 0,
+			green: 0,
+			blue: 0,
+		});
+		let tokens = CliEnv.color_tokens(black, &RenderContext::colored(ColorLevel::Basic));
+
+		assert_eq!(tokens.start, "\u{1b}[30m");
+		assert_eq!(tokens.end, "\u{1b}[39m");
+		// the RGB path and the named path agree on black at the basic level
+		assert_eq!(tokens, CliEnv.color_tokens(Color::Black, &RenderContext::colored(ColorLevel::Basic)));
+	}
+
+	#[test]
 	fn system_candy_and_unleveled_contexts_paint_nothing() {
 		// the paint plan rolls candy into a named color before tokens resolve, so raw candy never paints
 		assert!(!CliEnv.color_tokens(Color::System, &RenderContext::colored(ColorLevel::TrueColor)).paints());

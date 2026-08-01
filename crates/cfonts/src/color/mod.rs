@@ -94,7 +94,7 @@ impl Rgb {
 	/// The closest ANSI 16 foreground sequence, hand curated
 	pub fn ansi16_sgr(self) -> &'static str {
 		match self.ansi256_index() {
-			16 => "\x1b[0m",
+			16 => "\x1b[30m",
 			17..=19 => "\x1b[34m",
 			20..=21 | 25..=27 => "\x1b[94m",
 			22..=24
@@ -709,6 +709,16 @@ mod tests {
 
 	#[test]
 	fn ansi16_sgr_matches() {
+		// index 16 is the cube's black: it must paint black, not reset to the default foreground
+		assert_eq!(
+			Rgb {
+				red: 0,
+				green: 0,
+				blue: 0
+			}
+			.ansi16_sgr(),
+			"\x1b[30m"
+		);
 		assert_eq!(
 			Rgb {
 				red: 255,
