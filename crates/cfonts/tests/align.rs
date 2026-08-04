@@ -145,6 +145,31 @@ fn browser_alignment_pads_rows_within_the_widest_line() {
 }
 
 #[test]
+fn browser_alignment_leaves_zero_width_lines_unpadded() {
+	// the `||` line has zero width: no alignment mode can pad nothing,
+	// and the unbounded frame must agree with an explicit canvas about that
+	let expected = "▄▀█<br>█▀█<br><br><br>█▄▄<br>█▄█";
+
+	for align in [Align::Left, Align::Center, Align::Right] {
+		let unbounded = Cfonts::text("A||B")
+			.font(Font::Tiny)
+			.line_height(0)
+			.spaceless()
+			.align(align)
+			.render_with(&BrowserEnv, RenderContext::unlimited());
+		assert_eq!(browser_content(&unbounded), expected, "{align:?} unbounded");
+
+		let canvased = Cfonts::text("A||B")
+			.font(Font::Tiny)
+			.line_height(0)
+			.spaceless()
+			.align(align)
+			.render_with(&BrowserEnv, RenderContext::with_canvas_width(3));
+		assert_eq!(browser_content(&canvased), expected, "{align:?} explicit canvas");
+	}
+}
+
+#[test]
 fn spaceless_keeps_the_wrapper() {
 	// The spaceless option has no effect on the wrapper
 	let rendered = Cfonts::text("A")

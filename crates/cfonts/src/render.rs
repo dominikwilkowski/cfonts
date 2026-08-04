@@ -580,7 +580,9 @@ pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, 
 	if context.canvas_width().is_none() && environment.frames_alignment_to_widest() && options.align != Align::Left {
 		let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
 
-		for row in rows.iter_mut().filter(|row| !row.entries.is_empty()) {
+		// Zero-width rows have nothing to align, matching Layout::align_offset's canvas rule:
+		// empty `||` lines still carry their zero-width buffer entries, so width is the real test
+		for row in rows.iter_mut().filter(|row| row.width > 0) {
 			row.align_offset = options.align.offset(widest - row.width);
 		}
 	}
