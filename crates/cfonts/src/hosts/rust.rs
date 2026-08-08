@@ -5,7 +5,10 @@ use std::{
 
 use terminal_size::{Width, terminal_size};
 
-use crate::{CanvasWidth, CliEnv, ColorLevel, ColorOverride, Host, RenderContext, RenderOverrides, Rendered};
+use crate::{
+	CanvasWidth, CliEnv, ColorLevel, ColorOverride, Host, RenderContext, RenderOverrides, Rendered,
+	hosts::{ColorDecision, decide_color, decide_detected},
+};
 
 const FALLBACK_WIDTH: usize = 80;
 
@@ -87,32 +90,20 @@ impl RustHost {
 		terminal_size().and_then(|(Width(width), _)| NonZeroUsize::new(width as usize))
 	}
 
-	/// FORCE_COLOR wins over NO_COLOR, which wins over the API override, which skips detection;
-	/// None means paint nothing
+	/// Composes the shared chain with this host's detection: FORCE_COLOR wins over
+	/// NO_COLOR, which wins over the API override, which skips detection
+	///
+	/// Detection only runs when nothing else resolves the level, so the detection
+	/// library never sees a FORCE_COLOR or NO_COLOR it could reinterpret
 	fn resolve_color_level(
 		forced: Option<&str>,
 		no_color: bool,
 		override_color: ColorOverride,
 		detect: impl FnOnce() -> Option<ColorLevel>,
 	) -> Option<ColorLevel> {
-		match forced {
-			Some("0") => return None,
-			Some("1") => return Some(ColorLevel::Basic),
-			Some("2") => return Some(ColorLevel::Ansi256),
-			Some("3") => return Some(ColorLevel::TrueColor),
-			// any other value is treated as absent
-			_ => {}
-		}
-
-		if no_color {
-			return None;
-		}
-
-		match override_color {
-			// terminals that cannot be detected still get full color
-			ColorOverride::Auto => Some(detect().unwrap_or(ColorLevel::TrueColor)),
-			ColorOverride::Disabled => None,
-			ColorOverride::Level(level) => Some(level),
+		match decide_color(forced, no_color, override_color) {
+			ColorDecision::Resolved(level) => level,
+			ColorDecision::Detect => decide_detected(detect()),
 		}
 	}
 
@@ -239,45 +230,30 @@ mod tests {
 	// resolve_color_level
 
 	#[test]
-	fn the_conformance_table_drives_the_resolution_chain() {
-		// the same table drives the npm host tests, so both chains share one truth
-		let table = include_str!("../../../../tests/color-level-conformance.txt");
-		let level = |token: &str| match token {
-			"basic" => Some(ColorLevel::Basic),
-			"ansi256" => Some(ColorLevel::Ansi256),
-			"truecolor" => Some(ColorLevel::TrueColor),
-			"none" => None,
-			other => panic!("unknown level token `{other}`"),
-		};
-		let mut rows = 0;
+	fn resolved_decisions_never_consult_detection() {
+		let never = || panic!("this input must not consult detection");
 
-		for line in table.lines().map(str::trim).filter(|line| !line.is_empty() && !line.starts_with('#')) {
-			let (inputs, expected) = line.split_once('→').expect("every row separates inputs from the expectation");
-			let fields = inputs.split('|').map(str::trim).collect::<Vec<&str>>();
-			let [forced, no_color, override_color, detect] = fields[..] else {
-				panic!("every row carries four inputs: {line}");
-			};
+		// a present FORCE_COLOR beats NO_COLOR and the override alike
+		assert_eq!(
+			RustHost::resolve_color_level(Some("3"), true, ColorOverride::Disabled, never),
+			Some(ColorLevel::TrueColor)
+		);
+		assert_eq!(RustHost::resolve_color_level(Some("junk"), false, ColorOverride::Auto, never), Some(ColorLevel::Basic));
+		assert_eq!(RustHost::resolve_color_level(Some("false"), false, ColorOverride::Auto, never), None);
 
-			let forced = (forced != "-").then_some(forced);
-			let no_color = no_color == "set";
-			let override_color = match override_color {
-				"-" => ColorOverride::Auto,
-				"disabled" => ColorOverride::Disabled,
-				token => ColorOverride::Level(level(token).expect("a level override")),
-			};
+		// NO_COLOR and explicit overrides resolve before detection too
+		assert_eq!(RustHost::resolve_color_level(None, true, ColorOverride::Auto, never), None);
+		assert_eq!(RustHost::resolve_color_level(None, false, ColorOverride::Disabled, never), None);
+		assert_eq!(
+			RustHost::resolve_color_level(None, false, ColorOverride::Level(ColorLevel::Ansi256), never),
+			Some(ColorLevel::Ansi256)
+		);
+	}
 
-			let resolved = match detect {
-				"-" => RustHost::resolve_color_level(forced, no_color, override_color, || {
-					panic!("this row must not consult detection: {line}")
-				}),
-				token => RustHost::resolve_color_level(forced, no_color, override_color, || level(token)),
-			};
-
-			assert_eq!(resolved, level(expected.trim()), "{line}");
-			rows += 1;
-		}
-
-		assert_eq!(rows, 16, "the table holds the whole conformance matrix");
+	#[test]
+	fn auto_falls_back_to_full_color_when_detection_fails() {
+		// terminals that cannot be detected still get full color
+		assert_eq!(RustHost::resolve_color_level(None, false, ColorOverride::Auto, || None), Some(ColorLevel::TrueColor));
 	}
 
 	#[test]
@@ -291,6 +267,22 @@ mod tests {
 
 		assert_eq!(resolved, Some(ColorLevel::Ansi256));
 		assert_eq!(detection_calls.get(), 1);
+	}
+
+	#[test]
+	fn forced_junk_resolves_through_the_real_environment_without_detection() {
+		// junk forces basic and beats NO_COLOR; the detection library never runs,
+		// so its own reading of FORCE_COLOR cannot reinterpret the value
+		temp_env::with_vars(
+			[
+				("FORCE_SIZE", None::<&str>),
+				("FORCE_COLOR", Some("junk")),
+				("NO_COLOR", Some("")),
+			],
+			|| {
+				assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));
+			},
+		);
 	}
 
 	// entropy

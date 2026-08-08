@@ -1,8 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::Options;
-
-use super::render_browser;
+use crate::{Options, components::render_browser};
 
 /// Renders cfonts HTML inside a Dioxus element
 ///

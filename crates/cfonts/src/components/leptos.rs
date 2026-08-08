@@ -2,9 +2,7 @@ use std::convert::Infallible;
 
 use leptos::prelude::*;
 
-use crate::{BrowserConsoleEnv, BrowserEnv, Host, Options, RenderContext, Rendered};
-
-use super::render_context;
+use crate::{BrowserConsoleEnv, BrowserEnv, Host, Options, RenderContext, Rendered, components::render_context};
 
 /// The Leptos host: `render` returns the HTML artifact, `say` writes through the page's console
 ///

@@ -350,3 +350,29 @@ fn the_font_bridge_covers_every_core_font() {
 		assert!(bridged.contains(&font), "{font:?} is not reachable through the wasm bridge");
 	}
 }
+
+#[wasm_bindgen_test]
+fn the_color_decision_crosses_the_boundary() {
+	use cfonts_wasm::{decide_color, decide_detected};
+
+	// a forced value resolves without detection
+	let forced = decide_color(Some(String::from("2")), false, false, None);
+	assert!(!forced.detect());
+	assert_eq!(forced.level(), Some(ColorLevel::Ansi256));
+
+	// a disabled override resolves to no color
+	let disabled = decide_color(None, false, true, None);
+	assert!(!disabled.detect());
+	assert_eq!(disabled.level(), None);
+
+	// a level override passes through
+	let leveled = decide_color(None, false, false, Some(ColorLevel::Basic));
+	assert!(!leveled.detect());
+	assert_eq!(leveled.level(), Some(ColorLevel::Basic));
+
+	// nothing set: the host must detect, and the fallback paints full color
+	let auto = decide_color(None, false, false, None);
+	assert!(auto.detect());
+	assert_eq!(decide_detected(None), ColorLevel::TrueColor);
+	assert_eq!(decide_detected(Some(ColorLevel::Basic)), ColorLevel::Basic);
+}

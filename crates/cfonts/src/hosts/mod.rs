@@ -3,13 +3,74 @@
 use crate::{
 	environments::{Environment, Rendered},
 	options::Options,
-	render::{RenderContext, render_with},
+	render::{ColorLevel, ColorOverride, RenderContext, render_with},
 };
 
 #[cfg(not(target_arch = "wasm32"))]
 mod rust;
 #[cfg(not(target_arch = "wasm32"))]
 pub use rust::RustHost;
+
+/// The color decision before capability detection: either the chain resolved,
+/// or nothing claims the level and the host must detect
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorDecision {
+	/// The chain resolved without consulting the terminal; `None` paints nothing
+	Resolved(Option<ColorLevel>),
+
+	/// No environment variable or override claims the level:
+	/// detect capabilities and finish with [`decide_detected`]
+	Detect,
+}
+
+/// The one home of the color precedence: FORCE_COLOR, then NO_COLOR, then the API override
+///
+/// Every present FORCE_COLOR value resolves the chain the way the wider ecosystem
+/// reads the variable, so a set variable never falls through to detection
+///
+/// That totality is what keeps detection pure: detection libraries interpret
+/// FORCE_COLOR and NO_COLOR themselves, and [`ColorDecision::Detect`] is only
+/// returned when neither variable is present for them to reinterpret
+/// Anything beyond those two variables is deliberately delegated to detection
+pub fn decide_color(forced: Option<&str>, no_color: bool, override_color: ColorOverride) -> ColorDecision {
+	if let Some(forced) = forced {
+		return ColorDecision::Resolved(forced_color_level(forced));
+	}
+
+	if no_color {
+		return ColorDecision::Resolved(None);
+	}
+
+	match override_color {
+		ColorOverride::Auto => ColorDecision::Detect,
+		ColorOverride::Disabled => ColorDecision::Resolved(None),
+		ColorOverride::Level(level) => ColorDecision::Resolved(Some(level)),
+	}
+}
+
+/// Finishes a [`ColorDecision::Detect`]: terminals that cannot be detected still get full color
+pub fn decide_detected(detected: Option<ColorLevel>) -> Option<ColorLevel> {
+	Some(detected.unwrap_or(ColorLevel::TrueColor))
+}
+
+/// The level a present FORCE_COLOR value forces, total over every possible value
+///
+/// `true`, the empty string and `1` force basic; `false` and `0` force no color;
+/// `2` and `3` force their levels; numbers above three clamp to full color the
+/// way the detection libraries read them; anything else forces basic
+fn forced_color_level(forced: &str) -> Option<ColorLevel> {
+	match forced {
+		"false" => None,
+		"true" | "" => Some(ColorLevel::Basic),
+		value => match value.parse::<u64>() {
+			Ok(0) => None,
+			Ok(1) => Some(ColorLevel::Basic),
+			Ok(2) => Some(ColorLevel::Ansi256),
+			Ok(_) => Some(ColorLevel::TrueColor),
+			Err(_) => Some(ColorLevel::Basic),
+		},
+	}
+}
 
 /// Resolves runtime capabilities and performs host-specific output
 ///
@@ -62,8 +123,8 @@ mod tests {
 		convert::Infallible,
 	};
 
-	use super::Host;
-	use crate::{Environment, Options, RenderContext, Rendered};
+	use super::{ColorDecision, Host, decide_color, decide_detected};
+	use crate::{ColorLevel, ColorOverride, Environment, Options, RenderContext, Rendered};
 
 	struct SpyEnvironment {
 		marker: &'static str,
@@ -159,5 +220,51 @@ mod tests {
 		assert_eq!(host.say_environment.render_calls.get(), 1,);
 		assert_eq!(host.write_calls.get(), 1);
 		assert_eq!(host.written.borrow().as_str(), "say",);
+	}
+
+	// decide_color
+
+	#[test]
+	fn every_present_force_color_value_resolves_without_detection() {
+		for (value, resolved) in [
+			("0", None),
+			("false", None),
+			("1", Some(ColorLevel::Basic)),
+			("true", Some(ColorLevel::Basic)),
+			("", Some(ColorLevel::Basic)),
+			("2", Some(ColorLevel::Ansi256)),
+			("3", Some(ColorLevel::TrueColor)),
+			("4", Some(ColorLevel::TrueColor)),
+			("04", Some(ColorLevel::TrueColor)),
+			("+5", Some(ColorLevel::TrueColor)),
+			("junk", Some(ColorLevel::Basic)),
+			("-1", Some(ColorLevel::Basic)),
+			("TRUE", Some(ColorLevel::Basic)),
+		] {
+			assert_eq!(decide_color(Some(value), false, ColorOverride::Auto), ColorDecision::Resolved(resolved), "{value:?}");
+			// a present FORCE_COLOR also beats NO_COLOR and any override
+			assert_eq!(
+				decide_color(Some(value), true, ColorOverride::Disabled),
+				ColorDecision::Resolved(resolved),
+				"{value:?} with NO_COLOR and a disabled override"
+			);
+		}
+	}
+
+	#[test]
+	fn no_color_beats_the_override_and_only_auto_detects() {
+		assert_eq!(decide_color(None, true, ColorOverride::Level(ColorLevel::TrueColor)), ColorDecision::Resolved(None));
+		assert_eq!(decide_color(None, false, ColorOverride::Disabled), ColorDecision::Resolved(None));
+		assert_eq!(
+			decide_color(None, false, ColorOverride::Level(ColorLevel::Ansi256)),
+			ColorDecision::Resolved(Some(ColorLevel::Ansi256))
+		);
+		assert_eq!(decide_color(None, false, ColorOverride::Auto), ColorDecision::Detect);
+	}
+
+	#[test]
+	fn undetectable_terminals_get_full_color() {
+		assert_eq!(decide_detected(None), Some(ColorLevel::TrueColor));
+		assert_eq!(decide_detected(Some(ColorLevel::Basic)), Some(ColorLevel::Basic));
 	}
 }
