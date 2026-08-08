@@ -35,3 +35,6 @@ console.log(text, artifact.text, styles.length);
 
 // @ts-expect-error BrowserHost is not exported from the Node entry
 import { BrowserHost } from "cfonts";
+
+// @ts-expect-error the Node entry must not inject DOM globals
+document;
