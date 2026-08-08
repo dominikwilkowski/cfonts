@@ -537,8 +537,9 @@ test("gradient shapes are validated", () => {
 	assert.throws(() => Cfonts.text("A").gradient({ transition: "red" }), TypeError); // not an array
 	assert.throws(() => Cfonts.text("A").gradient({ preset: 99 }), TypeError); // not a preset
 	assert.throws(() => Cfonts.text("A").gradient(99), TypeError);
-	assert.throws(() => Cfonts.text("A").gradient({ transition: ["red"] }), Error); // one stop, rejected in Rust
-	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), Error); // system is not a gradient stop
+	assert.throws(() => Cfonts.text("A").gradient({ transition: [] }), /at least two stops, this one holds 0/); // empty, rejected in Rust
+	assert.throws(() => Cfonts.text("A").gradient({ transition: ["red"] }), /at least two stops, this one holds 1/); // one stop, rejected in Rust
+	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), /Unsupported color/); // system is not a gradient stop
 });
 
 test("gradient stops accept the base Color values", () => {
@@ -559,15 +560,19 @@ test("gradient stops accept the base Color values", () => {
 	assert.ok(global.text.includes("\u001b[38;2;"));
 });
 
-test("gradient stops reject colors outside the base palette", () => {
+test("gradient stops outside the base palette are rejected in Rust", () => {
+	// valid enum members travel as their names; which colors may blend is Rust's decision
 	for (const color of [Color.System, Color.Candy, Color.RedBright]) {
-		assert.throws(() => Cfonts.text("A").gradient({ start: color, end: Color.Blue }), {
-			name: "TypeError",
-			message: /Color\.Gray.*hexToRgb/,
-		});
+		assert.throws(() => Cfonts.text("A").gradient({ start: color, end: Color.Blue }), /Unsupported color/);
 	}
 
-	assert.throws(() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.WhiteBright] }), TypeError);
+	assert.throws(() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.WhiteBright] }), /Unsupported color/);
+
+	// an unknown number is still a shape error, caught at the boundary
+	assert.throws(() => Cfonts.text("A").gradient({ start: 99, end: Color.Blue }), {
+		name: "TypeError",
+		message: /supported enum value/,
+	});
 });
 
 test("gradient shape errors teach the shapes", () => {

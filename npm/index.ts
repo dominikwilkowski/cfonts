@@ -10,8 +10,10 @@ import {
 } from "../pkg/cfonts_wasm.js";
 import {
 	type ColorInput,
+	type GradientColor,
 	type GradientInput,
 	type GradientStopInput,
+	type GradientStops,
 	hexToRgb,
 	normalizeColorList,
 	normalizeGradient,
@@ -25,8 +27,10 @@ import { expectEnum, expectString, expectU32 } from "./validation.js";
 export type {
 	ColorInput,
 	Environment,
+	GradientColor,
 	GradientInput,
 	GradientStopInput,
+	GradientStops,
 	Host,
 	RenderContext,
 	Rendered,

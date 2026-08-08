@@ -16,18 +16,49 @@ export interface RgbInput {
 export type ColorInput = Color | string | RgbInput;
 
 /**
- * One gradient stop: a base `Color`, a stop name such as `"red"`, a hex value, or channel values
+ * The base colors a gradient stop accepts
+ *
+ * System has no color to blend, Candy rolls per segment, and the bright variants
+ * have no gradient names; hex values and channel values cover any other color
  */
-export type GradientStopInput = Color | string | RgbInput;
+export type GradientColor =
+	| Color.Black
+	| Color.Red
+	| Color.Green
+	| Color.Blue
+	| Color.Yellow
+	| Color.Magenta
+	| Color.Cyan
+	| Color.White
+	| Color.Gray;
+
+/**
+ * One gradient stop: a base color, a stop name such as `"red"`, a hex value, or channel values
+ */
+export type GradientStopInput = GradientColor | string | RgbInput;
+
+/**
+ * Two or more gradient stops, with the minimum count part of the type
+ */
+export type GradientStops = readonly [GradientStopInput, GradientStopInput, ...GradientStopInput[]];
 
 /**
  * A gradient: a preset, two stops, or a transition across two or more stops
+ *
+ * The `never` members make the shapes mutually exclusive at the type level;
+ * the runtime shape check covers plain JavaScript
  */
 export type GradientInput =
 	| GradientPreset
-	| { preset: GradientPreset; independentGradient?: boolean }
-	| { start: GradientStopInput; end: GradientStopInput; independentGradient?: boolean }
-	| { transition: GradientStopInput[]; independentGradient?: boolean };
+	| { preset: GradientPreset; independentGradient?: boolean; start?: never; end?: never; transition?: never }
+	| {
+			start: GradientStopInput;
+			end: GradientStopInput;
+			independentGradient?: boolean;
+			preset?: never;
+			transition?: never;
+	  }
+	| { transition: GradientStops; independentGradient?: boolean; preset?: never; start?: never; end?: never };
 
 /**
  * The gradient shapes after validation, each mapping to one boundary call
@@ -36,24 +67,6 @@ export type NormalizedGradient =
 	| { kind: "preset"; preset: GradientPreset; independentGradient: boolean }
 	| { kind: "twoStop"; start: string; end: string; independentGradient: boolean }
 	| { kind: "transition"; stops: string[]; independentGradient: boolean };
-
-/**
- * The base colors every gradient stop accepts
- *
- * System has no color to blend, Candy rolls per segment, and the bright variants
- * have no gradient names in cfonts; hex values and channel values cover any other color
- */
-const GRADIENT_STOP_COLORS: ReadonlySet<Color> = new Set([
-	Color.Black,
-	Color.Red,
-	Color.Green,
-	Color.Blue,
-	Color.Yellow,
-	Color.Magenta,
-	Color.Cyan,
-	Color.White,
-	Color.Gray,
-]);
 
 /**
  * Converts a hex value into RGB channel values
@@ -112,17 +125,12 @@ export function normalizeColorList(colors: ColorInput[], method: string): string
 /**
  * Validates one gradient stop's shape and encodes it for the boundary
  *
- * Stops take the base colors only; hex values and channel values cover any other color
+ * Enum selections travel as their names and channel values as hex;
+ * which colors may participate in a gradient is decided once, in Rust
  */
 export function normalizeStop(input: GradientStopInput, method: string): string {
 	if (typeof input === "number") {
-		const color = expectEnum<Color>(input, Color, method);
-
-		if (!GRADIENT_STOP_COLORS.has(color)) {
-			throw stopColorError(method);
-		}
-
-		return Color[color];
+		return Color[expectEnum<Color>(input, Color, method)];
 	}
 
 	if (typeof input === "string") {

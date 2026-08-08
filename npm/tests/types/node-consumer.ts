@@ -38,3 +38,15 @@ import { BrowserHost } from "cfonts";
 
 // @ts-expect-error the Node entry must not inject DOM globals
 document;
+
+// @ts-expect-error System has no color to blend into a gradient
+colorful.gradient({ start: Color.System, end: Color.Blue });
+
+// @ts-expect-error bright colors have no gradient stop names
+colorful.gradient({ transition: [Color.Red, Color.WhiteBright] });
+
+// @ts-expect-error a transition holds at least two stops
+colorful.gradient({ transition: [Color.Red] });
+
+// @ts-expect-error a gradient takes exactly one shape
+colorful.gradient({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
