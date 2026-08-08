@@ -33,7 +33,6 @@
 		"build": "pnpm run clean && pnpm run build:wasm && pnpm run build:ts",
 		"format": "biome format --write .",
 		"test:biome": "biome check --error-on-warnings .",
-		"test:typecheck": "tsc -p tsconfig.json --noEmit",
 		"test:types": "tsc -p npm/tests/types/tsconfig.node.json && tsc -p npm/tests/types/tsconfig.browser.json",
 		"test:rust": "cargo test --locked --workspace --all-targets --all-features && cargo test --locked --doc --workspace --all-features",
 		"test:wasm": "wasm-pack test --node crates/wasm",

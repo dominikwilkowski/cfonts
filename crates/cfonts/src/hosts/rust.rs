@@ -48,7 +48,10 @@ impl Host for RustHost {
 		let width =
 			Self::resolve_canvas_width(forced_width.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
 
-		let forced_color = std::env::var("FORCE_COLOR").ok();
+		// var() would turn a present non-Unicode value into an absent one and let
+		// detection run against the guard; lossy conversion keeps the presence and
+		// classifies the value like any other unrecognized one
+		let forced_color = std::env::var_os("FORCE_COLOR").map(|value| value.to_string_lossy().into_owned());
 		let no_color = std::env::var_os("NO_COLOR").is_some();
 		let color_level =
 			Self::resolve_color_level(forced_color.as_deref(), no_color, self.overrides.color(), Self::detect_color_level);
@@ -278,6 +281,27 @@ mod tests {
 				("FORCE_SIZE", None::<&str>),
 				("FORCE_COLOR", Some("junk")),
 				("NO_COLOR", Some("")),
+			],
+			|| {
+				assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));
+			},
+		);
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_non_unicode_force_color_still_forces_basic() {
+		use std::os::unix::ffi::OsStringExt;
+
+		// a present value that is not valid UTF-8 must keep its presence:
+		// it classifies as unrecognized instead of letting detection run
+		let garbage = std::ffi::OsString::from_vec(vec![b'j', b'u', b'n', b'k', 0xFF]);
+
+		temp_env::with_vars(
+			[
+				("FORCE_SIZE", None::<std::ffi::OsString>),
+				("FORCE_COLOR", Some(garbage)),
+				("NO_COLOR", Some(std::ffi::OsString::new())),
 			],
 			|| {
 				assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));

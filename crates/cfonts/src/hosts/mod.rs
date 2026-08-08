@@ -56,19 +56,26 @@ pub fn decide_detected(detected: Option<ColorLevel>) -> Option<ColorLevel> {
 /// The level a present FORCE_COLOR value forces, total over every possible value
 ///
 /// `true`, the empty string and `1` force basic; `false` and `0` force no color;
-/// `2` and `3` force their levels; numbers above three clamp to full color the
-/// way the detection libraries read them; anything else forces basic
+/// `2` and `3` force their levels; every number above three clamps to full color;
+/// anything else forces basic
 fn forced_color_level(forced: &str) -> Option<ColorLevel> {
 	match forced {
 		"false" => None,
 		"true" | "" => Some(ColorLevel::Basic),
-		value => match value.parse::<u64>() {
-			Ok(0) => None,
-			Ok(1) => Some(ColorLevel::Basic),
-			Ok(2) => Some(ColorLevel::Ansi256),
-			Ok(_) => Some(ColorLevel::TrueColor),
-			Err(_) => Some(ColorLevel::Basic),
-		},
+		value => {
+			let digits = value.strip_prefix('+').unwrap_or(value);
+			let numeric = !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit());
+
+			match value.parse::<u64>() {
+				Ok(0) => None,
+				Ok(1) => Some(ColorLevel::Basic),
+				Ok(2) => Some(ColorLevel::Ansi256),
+				Ok(_) => Some(ColorLevel::TrueColor),
+				// an all-digit parse failure is an overflow, which necessarily exceeds three
+				Err(_) if numeric => Some(ColorLevel::TrueColor),
+				Err(_) => Some(ColorLevel::Basic),
+			}
+		}
 	}
 }
 
@@ -237,7 +244,10 @@ mod tests {
 			("4", Some(ColorLevel::TrueColor)),
 			("04", Some(ColorLevel::TrueColor)),
 			("+5", Some(ColorLevel::TrueColor)),
+			("18446744073709551616", Some(ColorLevel::TrueColor)),
+			("+18446744073709551616", Some(ColorLevel::TrueColor)),
 			("junk", Some(ColorLevel::Basic)),
+			("+", Some(ColorLevel::Basic)),
 			("-1", Some(ColorLevel::Basic)),
 			("TRUE", Some(ColorLevel::Basic)),
 		] {
