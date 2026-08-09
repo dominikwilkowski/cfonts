@@ -172,6 +172,10 @@ pub enum Color {
 }
 
 impl Color {
+	/// The ANSI foreground reset that closes every painted run,
+	/// returning the terminal to the default foreground that [`Color::System`] stands for
+	pub(crate) const ANSI_RESET: &str = "\x1b[39m";
+
 	/// Looks up a color by its name, case insensitively
 	///
 	/// Hex values are not names: they go through [`Rgb::from_hex`]
@@ -287,10 +291,10 @@ impl Color {
 	/// The fixed ANSI 16 foreground sequence of a named color
 	///
 	/// Named colors never level up or down so they respect the terminal's own palette;
-	/// `Candy` and `Rgb` resolve elsewhere and yield None
-	pub(crate) fn ansi16_sgr(self) -> Option<&'static str> {
+	/// `System` paints nothing, `Candy` and `Rgb` resolve elsewhere; all three yield None
+	pub(crate) const fn ansi16_sgr(self) -> Option<&'static str> {
 		match self {
-			Self::System => Some("\x1b[39m"),
+			Self::System => None,
 			Self::Black => Some("\x1b[30m"),
 			Self::Red => Some("\x1b[31m"),
 			Self::Green => Some("\x1b[32m"),
@@ -851,7 +855,7 @@ mod tests {
 
 	#[test]
 	fn named_colors_carry_the_sgr_codes() {
-		assert_eq!(Color::System.ansi16_sgr(), Some("\x1b[39m"));
+		assert_eq!(Color::System.ansi16_sgr(), None);
 		assert_eq!(Color::Black.ansi16_sgr(), Some("\x1b[30m"));
 		assert_eq!(Color::Red.ansi16_sgr(), Some("\x1b[31m"));
 		assert_eq!(Color::White.ansi16_sgr(), Some("\x1b[37m"));

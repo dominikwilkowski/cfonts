@@ -20,21 +20,17 @@ pub(crate) fn options(valign: Valign, max_length: Option<usize>, blocks: Vec<Blo
 
 /// A convenience wrapper around BlockOptions for tests
 pub(crate) fn block(text: &str, font: Font, word_wrap: bool) -> BlockOptions {
-	BlockOptions {
-		text: text.into(),
-		font,
-		word_wrap,
-		..Default::default()
-	}
+	let mut block = BlockOptions::new(text);
+	block.font = font;
+	block.word_wrap = word_wrap;
+	block
 }
 
 /// A convenience wrapper around BlockOptions for tests with the Tiny font
 pub(crate) fn spaced_block(text: &str, letter_spacing: usize, word_wrap: bool) -> BlockOptions {
-	BlockOptions {
-		text: text.into(),
-		font: Font::Tiny,
-		letter_spacing,
-		word_wrap,
-		..Default::default()
-	}
+	let mut block = BlockOptions::new(text);
+	block.font = Font::Tiny;
+	block.letter_spacing = letter_spacing;
+	block.word_wrap = word_wrap;
+	block
 }

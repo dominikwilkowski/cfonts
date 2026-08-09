@@ -56,7 +56,10 @@ impl Align {
 #[derive(Debug)]
 pub struct BlockOptions {
 	/// Text for this block
-	pub text: String,
+	///
+	/// Private so every construction path runs through [`BlockOptions::new`],
+	/// which normalizes to the uppercase glyph set the fonts support
+	text: String,
 
 	/// Font used for this block
 	pub font: Font,
@@ -100,6 +103,12 @@ impl BlockOptions {
 			text,
 			..Default::default()
 		}
+	}
+
+	/// The normalized text of this block
+	#[must_use]
+	pub fn text(&self) -> &str {
+		&self.text
 	}
 }
 

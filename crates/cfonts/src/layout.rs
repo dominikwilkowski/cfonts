@@ -202,7 +202,7 @@ impl<'a> Layout<'a> {
 		};
 
 		// Now we iterate each character in this block
-		for ch in block.text.chars() {
+		for ch in block.text().chars() {
 			// `|` forces a logical line break, including empty lines
 			if ch == '|' {
 				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
@@ -1194,19 +1194,9 @@ mod tests {
 	#[test]
 	fn blocks_with_only_skipped_chars_do_not_panic() {
 		// lowercase chars have no glyphs and are skipped; the block contributes only buffers
-		let lines = line_widths(&options(
-			Valign::Middle,
-			None,
-			vec![block("skipped", Font::Block, false), block("B", Font::Tiny, false)],
-		));
+		let lines =
+			line_widths(&options(Valign::Middle, None, vec![block("", Font::Block, false), block("B", Font::Tiny, false)]));
 		assert_eq!(lines.len(), 1);
-	}
-
-	#[test]
-	fn lowercase_input_produces_blank_output() {
-		// the layout does not change case; the public entry points uppercase input
-		let lines = line_widths(&options(Valign::Top, None, vec![block("hello", Font::Block, false)]));
-		assert_eq!(lines, vec![vec![0; 6]]);
 	}
 
 	#[test]
@@ -1357,11 +1347,11 @@ mod tests {
 		let lines = line_widths(&options(
 			Valign::Top,
 			None,
-			vec![BlockOptions {
-				text: String::from("AB"),
-				font: Font::Tiny,
-				letter_spacing: 2,
-				..Default::default()
+			vec![{
+				let mut block = BlockOptions::new("AB");
+				block.font = Font::Tiny;
+				block.letter_spacing = 2;
+				block
 			}],
 		));
 		assert_eq!(lines, vec![vec![expected, expected]]);
@@ -1374,11 +1364,11 @@ mod tests {
 		let lines = line_widths(&options(
 			Valign::Top,
 			None,
-			vec![BlockOptions {
-				text: String::from("AB"),
-				font: Font::Tiny,
-				letter_spacing: 0,
-				..Default::default()
+			vec![{
+				let mut block = BlockOptions::new("AB");
+				block.font = Font::Tiny;
+				block.letter_spacing = 0;
+				block
 			}],
 		));
 		assert_eq!(lines, vec![vec![expected, expected]]);
@@ -1420,11 +1410,11 @@ mod tests {
 		let options = options(
 			Valign::Top,
 			None,
-			vec![BlockOptions {
-				text: String::from("A|B"),
-				font: Font::Tiny,
-				line_height: 2,
-				..Default::default()
+			vec![{
+				let mut block = BlockOptions::new("A|B");
+				block.font = Font::Tiny;
+				block.line_height = 2;
+				block
 			}],
 		);
 		let layout = Layout::build(&options, None);
@@ -1441,11 +1431,11 @@ mod tests {
 		let options = options(
 			Valign::Top,
 			None,
-			vec![BlockOptions {
-				text: String::from("A|B"),
-				font: Font::Tiny,
-				line_height: 0,
-				..Default::default()
+			vec![{
+				let mut block = BlockOptions::new("A|B");
+				block.font = Font::Tiny;
+				block.line_height = 0;
+				block
 			}],
 		);
 		let layout = Layout::build(&options, None);

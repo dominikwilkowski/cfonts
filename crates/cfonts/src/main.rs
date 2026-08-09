@@ -1,5 +1,7 @@
 use std::env;
 
+use cfonts::{Host, RustHost, cli_parser};
+
 // terminology
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
 // `line` = one logical line of glyphs, `n` rows tall. This is the thing terminated by `|`, by `max-length`, or by terminal width
@@ -18,29 +20,15 @@ fn main() -> std::io::Result<()> {
 	let args = env::args().skip(1).collect::<Vec<String>>();
 
 	// parsing args
-	// match cli::parse(&args) {
-	// 	Ok(cfg) => { /* render */ }
-	// 	Err(e) => {
-	// 		eprintln!("{e}");
-	// 		std::process::exit(64);
-	// 	}
-	// }
+	let config = match cli_parser::parse_args(&args) {
+		Ok(cfg) => cfg,
+		Err(error) => {
+			eprintln!("{error}");
+			std::process::exit(64);
+		}
+	};
+	println!("{config:#?}");
+	RustHost::default().say(&config)?;
 
-	// TODO: config will come from the CLI args parser above
-	let input = args[0].clone();
-	cfonts::Cfonts::text(input)
-		.valign(cfonts::Valign::Middle)
-		.max_length(20)
-		.font(cfonts::Font::Font3D)
-		.align(cfonts::Align::Right)
-		.letter_spacing(2)
-		.word_wrap()
-		// .new_text("hello")
-		// .font(cfonts::Font::Tiny)
-		// .new_text("world")
-		// .font(cfonts::Font::Font3D)
-		// .line_height(3)
-		// .new_text("end")
-		// .font(cfonts::Font::Tiny)
-		.say(&cfonts::RustHost::default())
+	Ok(())
 }

@@ -6,9 +6,6 @@ use crate::{
 	render::{ColorLevel, RenderContext},
 };
 
-/// The foreground reset that closes every painted run
-const RESET: &str = "\x1b[39m";
-
 impl CliEnv {
 	/// The foreground start code of one RGB value at one support level
 	fn rgb_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
@@ -40,7 +37,7 @@ impl Environment for CliEnv {
 
 		ColorTokens {
 			start,
-			end: Cow::Borrowed(RESET),
+			end: Cow::Borrowed(Color::ANSI_RESET),
 		}
 	}
 
@@ -55,7 +52,7 @@ impl Environment for CliEnv {
 			Some(rgb) => {
 				out.text.push_str(&Self::rgb_start(*rgb, level));
 				out.text.push(character);
-				out.text.push_str(RESET);
+				out.text.push_str(Color::ANSI_RESET);
 			}
 			None => out.text.push(character),
 		})

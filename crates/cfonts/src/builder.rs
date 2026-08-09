@@ -44,7 +44,7 @@ impl Cfonts {
 	///     .into();
 	///
 	/// assert_eq!(options.blocks.len(), 1);
-	/// assert_eq!(options.blocks[0].text, "HELLO");
+	/// assert_eq!(options.blocks[0].text(), "HELLO");
 	/// assert_eq!(options.blocks[0].font, Font::Tiny);
 	/// ```
 	pub fn text(input: impl Into<String>) -> Self {
@@ -509,9 +509,9 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 ///     .into();
 ///
 /// assert_eq!(options.blocks.len(), 2);
-/// assert_eq!(options.blocks[0].text, "HELLO");
+/// assert_eq!(options.blocks[0].text(), "HELLO");
 /// assert_eq!(options.blocks[0].font, Font::Block);
-/// assert_eq!(options.blocks[1].text, "WORLD");
+/// assert_eq!(options.blocks[1].text(), "WORLD");
 /// assert_eq!(options.blocks[1].font, Font::Font3D);
 /// ```
 impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
