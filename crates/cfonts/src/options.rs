@@ -3,9 +3,10 @@
 use std::num::NonZeroUsize;
 
 use crate::{color::ColorOption, fonts::Font};
+use cfonts_macros::All;
 
 /// The supported vertical alignment modes for mixed-height font blocks
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, All)]
 pub enum Valign {
 	/// Align shorter font blocks to the top of the tallest line
 	Top,
@@ -31,7 +32,7 @@ impl Valign {
 /// The supported horizontal alignment modes
 ///
 /// ![The align option and its output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, All)]
 pub enum Align {
 	Left,
 	Center,

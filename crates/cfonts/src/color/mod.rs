@@ -6,6 +6,8 @@
 pub mod gradient;
 pub use gradient::{GradientColors, GradientPreset};
 
+use cfonts_macros::All;
+
 /// The error for color values that cannot be parsed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorError {
@@ -142,7 +144,7 @@ impl Rgb {
 /// One foreground color assignable to a font color slot
 ///
 /// This enum is the currency all internal color handling deals in
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum Color {
 	/// The terminal's or page's own foreground; paints nothing
 	System,
@@ -165,6 +167,7 @@ pub enum Color {
 	/// A random pick from the candy assortment, re-rolled per painted segment
 	Candy,
 	/// Any RGB color; leveled down for terminals that support less
+	#[all(skip)]
 	Rgb(Rgb),
 }
 
@@ -314,7 +317,7 @@ impl Color {
 /// Gradient names map to canonical values (red is `#ff0000`), unlike the slot color table (where red is `#ea3223`):
 /// both mappings are behavior from older versions, kept apart by the two types
 /// `System` and `Candy` cannot be gradient stops, and every stop has an RGB value
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum GradientStop {
 	Black,
 	Red,
@@ -325,6 +328,7 @@ pub enum GradientStop {
 	Cyan,
 	White,
 	Gray,
+	#[all(skip)]
 	Rgb(Rgb),
 }
 

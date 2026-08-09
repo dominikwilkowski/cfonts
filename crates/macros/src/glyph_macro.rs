@@ -1,31 +1,7 @@
 use proc_macro::{TokenStream, TokenTree};
 use std::str::FromStr;
 
-/// Build a glyph from marker-annotated rows
-///
-/// Only raw string literals are accepted:
-///
-/// ```ignore
-/// glyph!(
-///     r"<c1>Hello</c1>",
-///     r#"plain "quoted" text"#,
-/// )
-/// ```
-///
-/// `<cN>…</cN>` is 1-based in source and becomes:
-///
-/// ```ignore
-/// Segment::Colored { slot: N - 1, text }
-/// ```
-///
-/// Untagged text becomes:
-///
-/// ```ignore
-/// Segment::Plain(text)
-/// ```
-///
-/// `Segment` must be in scope at the call site
-/// The row count is checked against `Glyph<ROWS>` at the assignment, not here
+/// Does the work for `glyph!`
 pub(crate) fn expand(input: TokenStream) -> TokenStream {
 	let rows: Vec<String> = match parse_input(input) {
 		Ok(rows) => rows,

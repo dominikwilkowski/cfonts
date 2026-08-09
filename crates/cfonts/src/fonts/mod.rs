@@ -25,6 +25,8 @@ pub use slick::FONT_SLICK;
 mod tiny;
 pub use tiny::FONT_TINY;
 
+use cfonts_macros::All;
+
 /// One segment within a GlyphRow that tells us what parts are color and with what color
 #[derive(Debug, PartialEq, Eq)]
 pub enum Segment {
@@ -100,7 +102,7 @@ pub trait FontData {
 }
 
 /// The cfonts font enum for config
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum Font {
 	Block,
 	Chrome,
@@ -134,22 +136,6 @@ impl Font {
 			Self::Tiny => &FONT_TINY,
 		}
 	}
-
-	/// Every font, in enum order
-	pub const ALL: [Self; 12] = [
-		Self::Block,
-		Self::Chrome,
-		Self::Console,
-		Self::Font3D,
-		Self::Grid,
-		Self::Huge,
-		Self::Pallet,
-		Self::Shade,
-		Self::Simple3D,
-		Self::SimpleBlock,
-		Self::Slick,
-		Self::Tiny,
-	];
 }
 
 /// A font consisting of a set of glyphs and color/size information
