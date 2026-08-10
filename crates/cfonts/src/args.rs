@@ -1,5 +1,6 @@
 use crate::{
-	Align, /*Background,*/ Color, Font, Valign,
+	Align, BlockOptions, /*Background,*/ Color, ColorOption, Font, Options, Rgb, Valign,
+	cli_parser::ParseError,
 	color::GradientStop,
 	helper::{const_concat, const_join},
 };
@@ -75,7 +76,7 @@ pub enum Args {
 }
 
 impl Args {
-	pub(crate) fn parse(input: &'static str) -> Option<Self> {
+	pub(crate) fn parse(input: &str) -> Option<Self> {
 		#[deny(unreachable_patterns)]
 		match input {
 			// Global config
@@ -103,6 +104,139 @@ impl Args {
 			"help" | "h" => Some(Self::Help),
 			_ => None,
 		}
+	}
+
+	/// Helper function to get the current block options
+	fn current_block<'a>(options: &mut Options) -> Result<&mut BlockOptions, ParseError<'a>> {
+		options.blocks.last_mut().ok_or(ParseError::NoTextSupplied)
+	}
+
+	/// Parses the argument value for the given argument type
+	pub(crate) fn parse_argument<'a>(self, value: &'a str, options: &mut Options) -> Result<(), ParseError<'a>> {
+		match self {
+			// Global config
+			Self::Align => {
+				if let Some(align) = Align::from_name(value) {
+					options.align = align;
+				} else {
+					return Err(ParseError::InvalidValue {
+						argument: self,
+						value,
+						source: None,
+					});
+				}
+			}
+			Self::Valign => {
+				if let Some(valign) = Valign::from_name(value) {
+					options.valign = valign;
+				} else {
+					return Err(ParseError::InvalidValue {
+						argument: self,
+						value,
+						source: None,
+					});
+				}
+			}
+			Self::MaxLength => {
+				let max_length = value.parse().map_err(|_| ParseError::InvalidValue {
+					argument: self,
+					value,
+					source: None,
+				})?;
+
+				options.max_length = Some(max_length);
+			}
+
+			// Block config
+			Self::Next => {
+				options.blocks.push(BlockOptions::new(value));
+			}
+			Self::Font => {
+				let block = Self::current_block(options)?;
+				if let Some(font) = Font::from_name(value) {
+					block.font = font;
+				} else {
+					return Err(ParseError::InvalidValue {
+						argument: self,
+						value,
+						source: None,
+					});
+				}
+			}
+			Self::Color => {
+				let block = Self::current_block(options)?;
+				let mut colors = Vec::new();
+				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
+					let color_str = color_str.trim();
+					let color = if color_str.starts_with('#') {
+						match Rgb::from_hex(color_str) {
+							Ok(color) => Color::Rgb(color),
+							Err(error) => {
+								return Err(ParseError::InvalidValue {
+									argument: self,
+									value: color_str,
+									source: Some(error),
+								});
+							}
+						}
+					} else {
+						match Color::from_name(color_str) {
+							Some(color) => color,
+							None => {
+								return Err(ParseError::InvalidValue {
+									argument: self,
+									value: color_str,
+									source: None,
+								});
+							}
+						}
+					};
+					colors.push(color);
+				}
+
+				block.color = Some(ColorOption::Colors(colors));
+			}
+			Self::Background => {
+				// TODO: add background parsing
+			}
+			Self::LetterSpacing => {
+				let block = Self::current_block(options)?;
+				let letter_spacing = value.parse().map_err(|_| ParseError::InvalidValue {
+					argument: self,
+					value,
+					source: None,
+				})?;
+
+				block.letter_spacing = letter_spacing;
+			}
+			Self::LineHeight => {
+				let block = Self::current_block(options)?;
+				let line_height = value.parse().map_err(|_| ParseError::InvalidValue {
+					argument: self,
+					value,
+					source: None,
+				})?;
+
+				block.line_height = line_height;
+			}
+
+			// CLI specific config
+			Self::Gradient => {
+				let block = Self::current_block(options)?;
+				// TODO: add gradient parsing and look for transition flags or independent gradient flags
+			}
+			// Explicit flags carry no value
+			Self::Spaceless
+			| Self::RawMode
+			| Self::Debug
+			| Self::WordWrap
+			| Self::IndependentGradient
+			| Self::TransitionGradient
+			| Self::Version
+			| Self::Help => {}
+		}
+
+		Ok(())
 	}
 
 	pub(crate) const fn infos(self) -> ArgInfo {

@@ -1008,4 +1008,11 @@ mod tests {
 			assert!(rng.pick() < CANDY.len());
 		}
 	}
+
+	#[test]
+	fn every_list_name_parses_back() {
+		for name in Color::LIST.split(", ") {
+			assert!(Color::from_name(name).is_some(), "color {name:?} does not parse");
+		}
+	}
 }

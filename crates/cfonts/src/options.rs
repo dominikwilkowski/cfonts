@@ -27,6 +27,16 @@ impl Valign {
 			Self::Bottom => extra,
 		}
 	}
+
+	/// Looks up a valign option by its name, case insensitively
+	pub(crate) fn from_name(value: &str) -> Option<Self> {
+		match value.to_ascii_lowercase().as_str() {
+			"top" => Some(Valign::Top),
+			"middle" => Some(Valign::Middle),
+			"bottom" => Some(Valign::Bottom),
+			_ => None,
+		}
+	}
 }
 
 /// The supported horizontal alignment modes
@@ -46,6 +56,16 @@ impl Align {
 			Self::Left => 0,
 			Self::Center => gap / 2,
 			Self::Right => gap,
+		}
+	}
+
+	/// Looks up an align option by its name, case insensitively
+	pub(crate) fn from_name(value: &str) -> Option<Self> {
+		match value.to_ascii_lowercase().as_str() {
+			"left" => Some(Self::Left),
+			"center" => Some(Self::Center),
+			"right" => Some(Self::Right),
+			_ => None,
 		}
 	}
 }
@@ -159,5 +179,26 @@ impl Default for Options {
 			debug: false,
 			blocks: Vec::new(),
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn every_list_name_parses_back() {
+		for name in Align::LIST.split(", ") {
+			assert!(Align::from_name(name).is_some(), "align {name:?} does not parse");
+		}
+		for name in Valign::LIST.split(", ") {
+			assert!(Valign::from_name(name).is_some(), "valign {name:?} does not parse");
+		}
+	}
+
+	#[test]
+	fn from_name_is_case_insensitive() {
+		assert!(Align::from_name("CENTER").is_some());
+		assert!(Valign::from_name("Middle").is_some());
 	}
 }

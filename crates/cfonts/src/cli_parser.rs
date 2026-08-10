@@ -3,7 +3,7 @@ use std::{
 	fmt::{Display, Formatter},
 };
 
-use crate::{BlockOptions, Color, Options, args::Args};
+use crate::{BlockOptions, Color, ColorError, Options, args::Args};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ErrorType {
@@ -12,27 +12,31 @@ pub enum ErrorType {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum ParseError {
+pub enum ParseError<'a> {
 	NoTextSupplied,
-	UnknownFlag(&'static str),
+	UnknownFlag(&'a str),
 	MissingValue(Args),
-	InvalidValue(Args, &'static str),
+	InvalidValue {
+		argument: Args,
+		value: &'a str,
+		source: Option<ColorError>,
+	},
 	MidClusterArgumentRequired(Args),
 }
 
-impl ParseError {
+impl ParseError<'_> {
 	fn error_type(&self) -> ErrorType {
 		match self {
 			Self::NoTextSupplied => ErrorType::Error,
 			Self::UnknownFlag(_) => ErrorType::Warning,
 			Self::MissingValue(_) => ErrorType::Error,
-			Self::InvalidValue(_, _) => ErrorType::Error,
+			Self::InvalidValue { .. } => ErrorType::Error,
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
 		}
 	}
 }
 
-impl Display for ParseError {
+impl Display for ParseError<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		let flag = match self.error_type() {
 			ErrorType::Warning => "WARNING",
@@ -56,13 +60,22 @@ impl Display for ParseError {
 					args.help()
 				)
 			}
-			Self::InvalidValue(args, value) => {
+			Self::InvalidValue {
+				argument,
+				value,
+				source,
+			} => {
 				write!(
 					f,
-					"{flag}: The option \"{open}{}{close}\" was given an invalid value \"{open}{value}{close}\"\n{}",
-					args.infos().long,
-					args.help()
-				)
+					"{flag}: The option \"{open}{}{close}\" was given an invalid value \"{open}{value}{close}\"",
+					argument.infos().long,
+				)?;
+
+				if let Some(source) = source {
+					write!(f, "\nCause: {source}")?;
+				}
+
+				write!(f, "\n{}", argument.help())
 			}
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
@@ -76,9 +89,18 @@ impl Display for ParseError {
 	}
 }
 
-impl Error for ParseError {}
+impl Error for ParseError<'_> {
+	fn source(&self) -> Option<&(dyn Error + 'static)> {
+		match self {
+			Self::InvalidValue {
+				source: Some(source), ..
+			} => Some(source),
+			_ => None,
+		}
+	}
+}
 
-pub fn parse_args(args: &[String]) -> Result<Options, ParseError> {
+pub fn parse_args<'a>(args: &'a [String]) -> Result<Options, ParseError<'a>> {
 	let mut options = Options::default();
 
 	if args.is_empty() {

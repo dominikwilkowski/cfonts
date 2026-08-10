@@ -107,6 +107,7 @@ pub enum Font {
 	Block,
 	Chrome,
 	Console,
+	#[all(rename = "3d")]
 	Font3D,
 	Grid,
 	Huge,
@@ -134,6 +135,25 @@ impl Font {
 			Self::SimpleBlock => &FONT_SIMPLE_BLOCK,
 			Self::Slick => &FONT_SLICK,
 			Self::Tiny => &FONT_TINY,
+		}
+	}
+
+	/// Looks up a valign option by its name, case insensitively
+	pub(crate) fn from_name(value: &str) -> Option<Self> {
+		match value.to_ascii_lowercase().as_str() {
+			"block" => Some(Font::Block),
+			"chrome" => Some(Font::Chrome),
+			"console" => Some(Font::Console),
+			"3d" | "font3d" => Some(Font::Font3D),
+			"grid" => Some(Font::Grid),
+			"huge" => Some(Font::Huge),
+			"pallet" => Some(Font::Pallet),
+			"shade" => Some(Font::Shade),
+			"simple3d" => Some(Font::Simple3D),
+			"simpleblock" => Some(Font::SimpleBlock),
+			"slick" => Some(Font::Slick),
+			"tiny" => Some(Font::Tiny),
+			_ => None,
 		}
 	}
 }
@@ -350,5 +370,18 @@ mod tests {
 		names.sort_unstable();
 		names.dedup();
 		assert_eq!(names.len(), count, "two Font variants map to the same font data");
+	}
+
+	#[test]
+	fn every_list_name_parses_back() {
+		for name in Font::LIST.split(", ") {
+			assert!(Font::from_name(name).is_some(), "font {name:?} does not parse");
+		}
+	}
+
+	#[test]
+	fn from_name_is_case_insensitive() {
+		assert!(Font::from_name("TINY").is_some());
+		assert!(Font::from_name("3D").is_some());
 	}
 }

@@ -121,3 +121,16 @@ fn skip_marked_variants_are_left_out_of_all_and_list() {
 	assert_eq!(Color::ALL, [Color::System, Color::Candy]);
 	assert_eq!(Color::LIST, "system, candy");
 }
+
+#[test]
+fn rename_marked_variants_change_list_but_not_all() {
+	#[derive(Debug, PartialEq, All)]
+	enum Font {
+		Console,
+		#[all(rename = "3d")]
+		Font3D,
+	}
+
+	assert_eq!(Font::ALL, [Font::Console, Font::Font3D]);
+	assert_eq!(Font::LIST, "console, 3d");
+}
