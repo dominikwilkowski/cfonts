@@ -1,6 +1,6 @@
 use std::env;
 
-use cfonts::{Host, RustHost, cli_parser};
+use cfonts::{Host, RustHost, cli::parse_args};
 
 // terminology
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
@@ -20,14 +20,18 @@ fn main() -> std::io::Result<()> {
 	let args = env::args().skip(1).collect::<Vec<String>>();
 
 	// parsing args
-	let config = match cli_parser::parse_args(&args) {
-		Ok(cfg) => cfg,
+	let (config, warnings) = match parse_args(&args) {
+		Ok(parsed) => parsed,
 		Err(error) => {
 			eprintln!("{error}");
 			std::process::exit(64);
 		}
 	};
-	println!("{config:#?}");
+
+	for warning in &warnings {
+		eprintln!("{warning}");
+	}
+
 	RustHost::default().say(&config)?;
 
 	Ok(())

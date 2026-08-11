@@ -1,6 +1,6 @@
 use crate::{
-	Align, BlockOptions, /*Background,*/ Color, ColorOption, Font, Options, Rgb, Valign,
-	cli_parser::ParseError,
+	Align, BlockOptions, /*Background,*/ Color, ColorOption, Font, Rgb, Valign,
+	cli::{ParseError, ParseState},
 	color::GradientStop,
 	helper::{const_concat, const_join},
 };
@@ -107,17 +107,17 @@ impl Args {
 	}
 
 	/// Helper function to get the current block options
-	fn current_block<'a>(options: &mut Options) -> Result<&mut BlockOptions, ParseError<'a>> {
-		options.blocks.last_mut().ok_or(ParseError::NoTextSupplied)
+	fn current_block<'a>(state: &mut ParseState) -> Result<&mut BlockOptions, ParseError<'a>> {
+		state.options.blocks.last_mut().ok_or(ParseError::NoTextSupplied)
 	}
 
 	/// Parses the argument value for the given argument type
-	pub(crate) fn parse_argument<'a>(self, value: &'a str, options: &mut Options) -> Result<(), ParseError<'a>> {
+	pub(crate) fn parse_argument<'a>(self, value: &'a str, state: &mut ParseState) -> Result<(), ParseError<'a>> {
 		match self {
 			// Global config
 			Self::Align => {
 				if let Some(align) = Align::from_name(value) {
-					options.align = align;
+					state.options.align = align;
 				} else {
 					return Err(ParseError::InvalidValue {
 						argument: self,
@@ -128,7 +128,7 @@ impl Args {
 			}
 			Self::Valign => {
 				if let Some(valign) = Valign::from_name(value) {
-					options.valign = valign;
+					state.options.valign = valign;
 				} else {
 					return Err(ParseError::InvalidValue {
 						argument: self,
@@ -144,15 +144,15 @@ impl Args {
 					source: None,
 				})?;
 
-				options.max_length = Some(max_length);
+				state.options.max_length = Some(max_length);
 			}
 
 			// Block config
 			Self::Next => {
-				options.blocks.push(BlockOptions::new(value));
+				state.options.blocks.push(BlockOptions::new(value));
 			}
 			Self::Font => {
-				let block = Self::current_block(options)?;
+				let block = Self::current_block(state)?;
 				if let Some(font) = Font::from_name(value) {
 					block.font = font;
 				} else {
@@ -164,7 +164,7 @@ impl Args {
 				}
 			}
 			Self::Color => {
-				let block = Self::current_block(options)?;
+				let block = Self::current_block(state)?;
 				let mut colors = Vec::new();
 				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
 					let color_str = color_str.trim();
@@ -200,7 +200,7 @@ impl Args {
 				// TODO: add background parsing
 			}
 			Self::LetterSpacing => {
-				let block = Self::current_block(options)?;
+				let block = Self::current_block(state)?;
 				let letter_spacing = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
 					value,
@@ -210,7 +210,7 @@ impl Args {
 				block.letter_spacing = letter_spacing;
 			}
 			Self::LineHeight => {
-				let block = Self::current_block(options)?;
+				let block = Self::current_block(state)?;
 				let line_height = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
 					value,
@@ -222,8 +222,36 @@ impl Args {
 
 			// CLI specific config
 			Self::Gradient => {
-				let block = Self::current_block(options)?;
-				// TODO: add gradient parsing and look for transition flags or independent gradient flags
+				let mut colors = Vec::new();
+				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
+					let color_str = color_str.trim();
+					let color = if color_str.starts_with('#') {
+						match Rgb::from_hex(color_str) {
+							Ok(color) => GradientStop::Rgb(color),
+							Err(error) => {
+								return Err(ParseError::InvalidValue {
+									argument: self,
+									value: color_str,
+									source: Some(error),
+								});
+							}
+						}
+					} else {
+						match GradientStop::from_name(color_str) {
+							Some(color) => color,
+							None => {
+								return Err(ParseError::InvalidValue {
+									argument: self,
+									value: color_str,
+									source: None,
+								});
+							}
+						}
+					};
+					colors.push(color);
+				}
+
+				state.gradient_stops = Some(colors);
 			}
 			// Explicit flags carry no value
 			Self::Spaceless
@@ -416,6 +444,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::cli::ParseState;
 
 	#[test]
 	fn parse_test() {
@@ -443,5 +472,24 @@ mod tests {
 			"--spaceless, -s\nUse to disable the padding around the whole output\n$ cfonts --spaceless"
 		);
 		assert_eq!(Args::Version.help(), "--version, -v, -V\nUse to display the version of cfonts\n$ cfonts --version");
+	}
+
+	#[test]
+	fn gradients_reject_colors_that_are_not_stops() {
+		for name in ["system", "candy"] {
+			let mut state = ParseState::default();
+			state.options.blocks.push(BlockOptions::new("HI"));
+
+			assert_eq!(
+				Args::Gradient.parse_argument(name, &mut state),
+				Err(ParseError::InvalidValue {
+					argument: Args::Gradient,
+					value: name,
+					source: None,
+				}),
+				"{name} must not be accepted as a gradient stop"
+			);
+			assert_eq!(state.gradient_stops, None);
+		}
 	}
 }

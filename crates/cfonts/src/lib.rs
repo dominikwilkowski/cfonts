@@ -3,9 +3,8 @@
 //! [`Cfonts`] is the builder, a [`Host`] resolves runtime capabilities and
 //! performs output, and pure environments format the artifact for their target
 
-mod args;
 mod builder;
-pub mod cli_parser;
+pub mod cli;
 pub mod color;
 mod components;
 pub mod environments;
