@@ -242,14 +242,14 @@ mod tests {
 
 	#[test]
 	fn const_concat_accepts_one_empty_part() {
-		const TEXT: &'static str = const_concat!("");
+		const TEXT: &str = const_concat!("");
 
 		assert_eq!(TEXT, "");
 	}
 
 	#[test]
 	fn const_concat_builds_static_utf8_across_empty_and_nul_parts() {
-		const TEXT: &'static str = const_concat!("é", "", "\0", "", "🦀",);
+		const TEXT: &str = const_concat!("é", "", "\0", "", "🦀",);
 
 		assert_eq!(TEXT, "é\0🦀");
 	}
@@ -257,7 +257,7 @@ mod tests {
 	#[test]
 	fn const_join_accepts_no_parts() {
 		const PARTS: &[&str] = &[];
-		const TEXT: &'static str = const_join!(PARTS, "ignored");
+		const TEXT: &str = const_join!(PARTS, "ignored");
 
 		assert_eq!(TEXT, "");
 	}
@@ -265,7 +265,7 @@ mod tests {
 	#[test]
 	fn const_join_ignores_the_separator_for_one_part() {
 		const PARTS: &[&str] = &["🦀"];
-		const TEXT: &'static str = const_join!(PARTS, "ignored");
+		const TEXT: &str = const_join!(PARTS, "ignored");
 
 		assert_eq!(TEXT, "🦀");
 	}
@@ -273,7 +273,7 @@ mod tests {
 	#[test]
 	fn const_join_keeps_multibyte_separators_around_empty_parts() {
 		const PARTS: &[&str] = &["", "é", "", "A\0", ""];
-		const TEXT: &'static str = const_join!(PARTS, "🦀>");
+		const TEXT: &str = const_join!(PARTS, "🦀>");
 
 		assert_eq!(TEXT, "🦀>é🦀>🦀>A\0🦀>");
 	}

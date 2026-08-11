@@ -476,12 +476,12 @@ mod tests {
 		assert_eq!(
 			Args::Align.help(),
 			&format!(
-				"--align, -a\nUse to align your text output\n$ cfonts --align center\nPossible arguments: [ {open}left, center, right{close} ]"
+				"--align, -a\nUse to align your text output\nThis will apply globally.\n$ cfonts --align center\nPossible arguments: [ {open}left, center, right{close} ]"
 			),
 		);
 		assert_eq!(
 			Args::Spaceless.help(),
-			"--spaceless, -s\nUse to disable the padding around the whole output\n$ cfonts --spaceless"
+			"--spaceless, -s\nUse to disable the padding around the whole output\nThis will apply globally.\n$ cfonts --spaceless"
 		);
 		assert_eq!(Args::Version.help(), "--version, -v, -V\nUse to display the version of cfonts\n$ cfonts --version");
 	}
