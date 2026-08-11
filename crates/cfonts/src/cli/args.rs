@@ -266,7 +266,7 @@ impl Args {
 				state.gradient_stops = Some(colors);
 			}
 
-			// Explicit flags which carry no value
+			// Boolean flags
 			Self::Spaceless => state.options.spaceless = true,
 			Self::RawMode => state.options.raw_mode = true,
 			Self::Debug => state.options.debug = true,
@@ -276,8 +276,8 @@ impl Args {
 			}
 			Self::IndependentGradient => state.independent = true,
 			Self::TransitionGradient => state.transition = true,
-			Self::Version => {}
-			Self::Help => {}
+			Self::Version => state.show_version = true,
+			Self::Help => state.show_help = true,
 		}
 
 		Ok(())
