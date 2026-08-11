@@ -234,28 +234,26 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 	}
 
 	// help and version work without text when they are the only argument
-	if args.len() == 1 {
-		let name = args[0].strip_prefix("--").or_else(|| args[0].strip_prefix('-')).unwrap_or("");
+	let name = args[0].strip_prefix("--").or_else(|| args[0].strip_prefix('-')).unwrap_or("");
 
-		match Args::parse(name) {
-			Some(Args::Help) => {
-				return Ok(ParsedArgs {
-					options: state.options,
-					warnings,
-					show_help: true,
-					show_version: false,
-				});
-			}
-			Some(Args::Version) => {
-				return Ok(ParsedArgs {
-					options: state.options,
-					warnings,
-					show_help: false,
-					show_version: true,
-				});
-			}
-			_ => {}
+	match Args::parse(name) {
+		Some(Args::Help) => {
+			return Ok(ParsedArgs {
+				options: state.options,
+				warnings,
+				show_help: true,
+				show_version: false,
+			});
 		}
+		Some(Args::Version) => {
+			return Ok(ParsedArgs {
+				options: state.options,
+				warnings,
+				show_help: false,
+				show_version: true,
+			});
+		}
+		_ => {}
 	}
 	state.options.blocks.push(BlockOptions::new(args[0].clone()));
 
@@ -278,8 +276,26 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 			if cluster.is_empty() {
 				// TODO: lone `-`: decide (conventionally: stdin placeholder; probably UnknownFlag for cfonts)
 			} else {
-				for _character in cluster.chars() {
-					// todo
+				for (index, short) in cluster.char_indices() {
+					let length = short.len_utf8();
+					let short_str = &cluster[index..index + length];
+
+					if let Some(arg) = Args::parse(short_str) {
+						let takes_value = arg.infos().arguments.is_some();
+
+						if takes_value && index + length < cluster.len() {
+							return Err(ParseError::MidClusterArgumentRequired(arg));
+						}
+
+						let value = if takes_value {
+							args_iter.next().map(String::as_str)
+						} else {
+							None
+						};
+						arg.apply(value, &mut state)?;
+					} else {
+						warnings.push(ParseError::UnknownFlag(short_str));
+					}
 				}
 			}
 		} else {
@@ -287,29 +303,13 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 		}
 	}
 
-	// iterate over each arg
-	// 	if it starts with -- and is larger than 2
-	// 		if takes_argument
-	// 			call next() and parse as value -> maybe InvalidValue/MissingValue
-	// 		else
-	// 			add to options
-	// 	else if starts with - and larger than 1
-	// 		iterate over each character after -
-	// 			if takes_argument and not at end
-	// 				MidClusterArgumentRequired
-	// 			else takes_argument
-	// 				break and make outer loop add the next() item -> maybe InvalidValue/MissingValue
-	// 			else
-	// 				add to options
-	// 	else
-	// 		UnknownFlag
-
 	warnings.extend(state.gradient_flag_warnings());
 
 	Ok(ParsedArgs {
 		warnings,
 		show_help: state.show_help,
 		show_version: state.show_version,
+		// Moving options down here to avoid lifetime issues for `state`
 		options: state.try_into()?,
 	})
 }
@@ -323,6 +323,12 @@ mod resolve_tests {
 		let mut state = ParseState::default();
 		state.options.blocks.push(BlockOptions::new("HI"));
 		state
+	}
+
+	fn run(args: &[&str]) -> ParsedArgs<'static> {
+		let args: Vec<String> = args.iter().map(|arg| String::from(*arg)).collect();
+		let args: &'static [String] = Box::leak(args.into_boxed_slice());
+		parse_args(args).unwrap()
 	}
 
 	#[test]
@@ -436,5 +442,19 @@ mod resolve_tests {
 			transition: false,
 		};
 		assert_eq!(error.error_type(), ErrorType::Error);
+	}
+
+	#[test]
+	fn help_and_version_win_in_first_position() {
+		assert!(run(&["--version", "hi"]).show_version);
+		assert!(run(&["--help", "hi"]).show_help);
+		assert!(run(&["hi", "-v"]).show_version);
+		assert!(run(&["-h"]).show_help);
+	}
+
+	#[test]
+	fn other_flag_shaped_first_arguments_stay_text() {
+		let parsed = run(&["--font"]);
+		assert_eq!(parsed.options.blocks[0].text(), "--FONT");
 	}
 }
