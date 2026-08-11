@@ -278,7 +278,7 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 			if cluster.is_empty() {
 				// TODO: lone `-`: decide (conventionally: stdin placeholder; probably UnknownFlag for cfonts)
 			} else {
-				for character in cluster.chars() {
+				for _character in cluster.chars() {
 					// todo
 				}
 			}
