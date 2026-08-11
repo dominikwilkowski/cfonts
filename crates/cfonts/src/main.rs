@@ -1,6 +1,9 @@
 use std::env;
 
-use cfonts::{Host, RustHost, cli::parse_args};
+use cfonts::{
+	Host, RustHost,
+	cli::{ParsedArgs, parse_args},
+};
 
 // terminology
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
@@ -20,7 +23,12 @@ fn main() -> std::io::Result<()> {
 	let args = env::args().skip(1).collect::<Vec<String>>();
 
 	// parsing args
-	let (config, warnings) = match parse_args(&args) {
+	let ParsedArgs {
+		options,
+		warnings,
+		show_help,
+		show_version,
+	} = match parse_args(&args) {
 		Ok(parsed) => parsed,
 		Err(error) => {
 			eprintln!("{error}");
@@ -32,7 +40,15 @@ fn main() -> std::io::Result<()> {
 		eprintln!("{warning}");
 	}
 
-	RustHost::default().say(&config)?;
+	if show_help {
+		// TODO
+	}
+
+	if show_version {
+		// TODO
+	}
+
+	RustHost::default().say(&options)?;
 
 	Ok(())
 }

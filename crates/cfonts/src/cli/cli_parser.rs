@@ -138,6 +138,8 @@ pub(crate) struct ParseState {
 	pub(crate) gradient_stops: Option<Vec<GradientStop>>,
 	pub(crate) independent: bool,
 	pub(crate) transition: bool,
+	pub(crate) show_help: bool,
+	pub(crate) show_version: bool,
 }
 
 impl ParseState {
@@ -167,6 +169,7 @@ impl TryFrom<ParseState> for Options {
 			gradient_stops,
 			independent,
 			transition,
+			..
 		} = state;
 
 		match gradient_stops {
@@ -214,14 +217,67 @@ impl TryFrom<ParseState> for Options {
 	}
 }
 
-pub fn parse_args<'a>(args: &'a [String]) -> Result<(Options, Vec<ParseError<'a>>), ParseError<'a>> {
+#[derive(Debug, Default)]
+pub struct ParsedArgs<'a> {
+	pub options: Options,
+	pub warnings: Vec<ParseError<'a>>,
+	pub show_help: bool,
+	pub show_version: bool,
+}
+
+pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'a>> {
 	let mut warnings: Vec<ParseError<'a>> = Vec::new();
 	let mut state = ParseState::default();
 
 	if args.is_empty() {
 		return Err(ParseError::NoTextSupplied);
 	} else {
-		state.options.blocks.push(BlockOptions::new(args[0].clone()));
+		// supporting help and version only flags
+		if args.len() == 1 && (args[0] == "--version" || args[0] == "-v" || args[0] == "-V") {
+			return Ok(ParsedArgs {
+				options: state.options,
+				warnings,
+				show_help: false,
+				show_version: true,
+			});
+		} else if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
+			return Ok(ParsedArgs {
+				options: state.options,
+				warnings,
+				show_help: true,
+				show_version: false,
+			});
+		} else {
+			state.options.blocks.push(BlockOptions::new(args[0].clone()));
+		}
+	}
+
+	let mut args_iter = args.iter().skip(1);
+	while let Some(arg_str) = args_iter.next() {
+		if let Some(name) = arg_str.strip_prefix("--") {
+			if name.is_empty() {
+				// TODO: bare `--`: decide what it means (conventionally: end of flags)
+			} else if let Some(arg) = Args::parse(name) {
+				let value = if arg.infos().arguments.is_some() {
+					args_iter.next().map(String::as_str)
+				} else {
+					None
+				};
+				arg.apply(value, &mut state)?;
+			} else {
+				warnings.push(ParseError::UnknownFlag(name));
+			}
+		} else if let Some(cluster) = arg_str.strip_prefix('-') {
+			if cluster.is_empty() {
+				// TODO: lone `-`: decide (conventionally: stdin placeholder; probably UnknownFlag for cfonts)
+			} else {
+				for character in cluster.chars() {
+					// todo
+				}
+			}
+		} else {
+			warnings.push(ParseError::UnknownFlag(&arg_str[2..]));
+		}
 	}
 
 	// iterate over each arg
@@ -243,7 +299,12 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<(Options, Vec<ParseError<'a>
 
 	warnings.extend(state.gradient_flag_warnings());
 
-	Ok((state.try_into()?, warnings))
+	Ok(ParsedArgs {
+		warnings,
+		show_help: state.show_help,
+		show_version: state.show_version,
+		options: state.try_into()?,
+	})
 }
 
 #[cfg(test)]

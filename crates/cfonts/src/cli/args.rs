@@ -111,11 +111,14 @@ impl Args {
 		state.options.blocks.last_mut().ok_or(ParseError::NoTextSupplied)
 	}
 
-	/// Parses the argument value for the given argument type
-	pub(crate) fn parse_argument<'a>(self, value: &'a str, state: &mut ParseState) -> Result<(), ParseError<'a>> {
+	/// Apply the argument to our parse state including any values passed in
+	pub(crate) fn apply<'a>(self, value: Option<&'a str>, state: &mut ParseState) -> Result<(), ParseError<'a>> {
+		debug_assert!(value.is_none() || self.infos().arguments.is_some(), "{self:?} takes no value but was given one");
+
 		match self {
 			// Global config
 			Self::Align => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				if let Some(align) = Align::from_name(value) {
 					state.options.align = align;
 				} else {
@@ -127,6 +130,7 @@ impl Args {
 				}
 			}
 			Self::Valign => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				if let Some(valign) = Valign::from_name(value) {
 					state.options.valign = valign;
 				} else {
@@ -138,6 +142,7 @@ impl Args {
 				}
 			}
 			Self::MaxLength => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				let max_length = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
 					value,
@@ -149,9 +154,11 @@ impl Args {
 
 			// Block config
 			Self::Next => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				state.options.blocks.push(BlockOptions::new(value));
 			}
 			Self::Font => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				let block = Self::current_block(state)?;
 				if let Some(font) = Font::from_name(value) {
 					block.font = font;
@@ -164,6 +171,7 @@ impl Args {
 				}
 			}
 			Self::Color => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				let block = Self::current_block(state)?;
 				let mut colors = Vec::new();
 				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
@@ -197,9 +205,11 @@ impl Args {
 				block.color = Some(ColorOption::Colors(colors));
 			}
 			Self::Background => {
+				let _value = value.ok_or(ParseError::MissingValue(self))?;
 				// TODO: add background parsing
 			}
 			Self::LetterSpacing => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				let block = Self::current_block(state)?;
 				let letter_spacing = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
@@ -210,6 +220,7 @@ impl Args {
 				block.letter_spacing = letter_spacing;
 			}
 			Self::LineHeight => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				let block = Self::current_block(state)?;
 				let line_height = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
@@ -222,6 +233,7 @@ impl Args {
 
 			// CLI specific config
 			Self::Gradient => {
+				let value = value.ok_or(ParseError::MissingValue(self))?;
 				let mut colors = Vec::new();
 				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
 					let color_str = color_str.trim();
@@ -253,15 +265,19 @@ impl Args {
 
 				state.gradient_stops = Some(colors);
 			}
-			// Explicit flags carry no value
-			Self::Spaceless
-			| Self::RawMode
-			| Self::Debug
-			| Self::WordWrap
-			| Self::IndependentGradient
-			| Self::TransitionGradient
-			| Self::Version
-			| Self::Help => {}
+
+			// Explicit flags which carry no value
+			Self::Spaceless => state.options.spaceless = true,
+			Self::RawMode => state.options.raw_mode = true,
+			Self::Debug => state.options.debug = true,
+			Self::WordWrap => {
+				let block = Self::current_block(state)?;
+				block.word_wrap = true;
+			}
+			Self::IndependentGradient => state.independent = true,
+			Self::TransitionGradient => state.transition = true,
+			Self::Version => {}
+			Self::Help => {}
 		}
 
 		Ok(())
@@ -407,10 +423,6 @@ impl Args {
 		}
 	}
 
-	pub(crate) const fn takes_argument(self) -> bool {
-		self.infos().arguments.is_some()
-	}
-
 	/// One help line per arg, built at compile time, shared by the help screen and the error messages
 	pub(crate) const fn help(self) -> &'static str {
 		match self {
@@ -481,7 +493,7 @@ mod tests {
 			state.options.blocks.push(BlockOptions::new("HI"));
 
 			assert_eq!(
-				Args::Gradient.parse_argument(name, &mut state),
+				Args::Gradient.apply(Some(name), &mut state),
 				Err(ParseError::InvalidValue {
 					argument: Args::Gradient,
 					value: name,
@@ -490,6 +502,21 @@ mod tests {
 				"{name} must not be accepted as a gradient stop"
 			);
 			assert_eq!(state.gradient_stops, None);
+		}
+	}
+
+	#[test]
+	fn the_arguments_field_matches_what_apply_demands() {
+		for argument in Args::ALL {
+			let mut state = ParseState::default();
+			state.options.blocks.push(BlockOptions::new("HI"));
+
+			let demands_value = matches!(argument.apply(None, &mut state), Err(ParseError::MissingValue(_)));
+			assert_eq!(
+				demands_value,
+				argument.infos().arguments.is_some(),
+				"{argument:?} routing disagrees with its infos().arguments"
+			);
 		}
 	}
 }
