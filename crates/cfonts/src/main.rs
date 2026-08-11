@@ -42,13 +42,11 @@ fn main() -> std::io::Result<()> {
 
 	if show_help {
 		// TODO
+	} else if show_version {
+		println!("v{}", env!("CARGO_PKG_VERSION"));
+	} else {
+		RustHost::default().say(&options)?;
 	}
-
-	if show_version {
-		// TODO
-	}
-
-	RustHost::default().say(&options)?;
 
 	Ok(())
 }

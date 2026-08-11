@@ -231,26 +231,33 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 
 	if args.is_empty() {
 		return Err(ParseError::NoTextSupplied);
-	} else {
-		// supporting help and version only flags
-		if args.len() == 1 && (args[0] == "--version" || args[0] == "-v" || args[0] == "-V") {
-			return Ok(ParsedArgs {
-				options: state.options,
-				warnings,
-				show_help: false,
-				show_version: true,
-			});
-		} else if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
-			return Ok(ParsedArgs {
-				options: state.options,
-				warnings,
-				show_help: true,
-				show_version: false,
-			});
-		} else {
-			state.options.blocks.push(BlockOptions::new(args[0].clone()));
+	}
+
+	// help and version work without text when they are the only argument
+	if args.len() == 1 {
+		let name = args[0].strip_prefix("--").or_else(|| args[0].strip_prefix('-')).unwrap_or("");
+
+		match Args::parse(name) {
+			Some(Args::Help) => {
+				return Ok(ParsedArgs {
+					options: state.options,
+					warnings,
+					show_help: true,
+					show_version: false,
+				});
+			}
+			Some(Args::Version) => {
+				return Ok(ParsedArgs {
+					options: state.options,
+					warnings,
+					show_help: false,
+					show_version: true,
+				});
+			}
+			_ => {}
 		}
 	}
+	state.options.blocks.push(BlockOptions::new(args[0].clone()));
 
 	let mut args_iter = args.iter().skip(1);
 	while let Some(arg_str) = args_iter.next() {
@@ -265,7 +272,7 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 				};
 				arg.apply(value, &mut state)?;
 			} else {
-				warnings.push(ParseError::UnknownFlag(name));
+				warnings.push(ParseError::UnknownFlag(arg_str));
 			}
 		} else if let Some(cluster) = arg_str.strip_prefix('-') {
 			if cluster.is_empty() {
@@ -276,7 +283,7 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 				}
 			}
 		} else {
-			warnings.push(ParseError::UnknownFlag(&arg_str[2..]));
+			warnings.push(ParseError::UnknownFlag(arg_str));
 		}
 	}
 
