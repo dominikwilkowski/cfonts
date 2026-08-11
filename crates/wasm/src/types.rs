@@ -109,6 +109,7 @@ bridge_enum!(Font => CoreFont {
 	Huge,
 	Pallet,
 	Shade,
+	Simple,
 	Simple3D,
 	SimpleBlock,
 	Slick,

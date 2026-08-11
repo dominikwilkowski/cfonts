@@ -337,6 +337,7 @@ fn the_font_bridge_covers_every_core_font() {
 		Font::Huge,
 		Font::Pallet,
 		Font::Shade,
+		Font::Simple,
 		Font::Simple3D,
 		Font::SimpleBlock,
 		Font::Slick,

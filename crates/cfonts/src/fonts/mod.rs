@@ -16,6 +16,8 @@ mod pallet;
 pub use pallet::FONT_PALLET;
 mod shade;
 pub use shade::FONT_SHADE;
+mod simple;
+pub use simple::FONT_SIMPLE;
 mod simple_3d;
 pub use simple_3d::FONT_SIMPLE_3D;
 mod simple_block;
@@ -113,6 +115,7 @@ pub enum Font {
 	Huge,
 	Pallet,
 	Shade,
+	Simple,
 	Simple3D,
 	SimpleBlock,
 	Slick,
@@ -131,6 +134,7 @@ impl Font {
 			Self::Huge => &FONT_HUGE,
 			Self::Pallet => &FONT_PALLET,
 			Self::Shade => &FONT_SHADE,
+			Self::Simple => &FONT_SIMPLE,
 			Self::Simple3D => &FONT_SIMPLE_3D,
 			Self::SimpleBlock => &FONT_SIMPLE_BLOCK,
 			Self::Slick => &FONT_SLICK,
@@ -149,6 +153,7 @@ impl Font {
 			"huge" => Some(Font::Huge),
 			"pallet" => Some(Font::Pallet),
 			"shade" => Some(Font::Shade),
+			"simple" => Some(Font::Simple),
 			"simple3d" => Some(Font::Simple3D),
 			"simpleblock" => Some(Font::SimpleBlock),
 			"slick" => Some(Font::Slick),
