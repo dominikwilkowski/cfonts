@@ -326,7 +326,7 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 }
 
 #[cfg(test)]
-mod resolve_tests {
+mod gradient_resolution {
 	use super::*;
 	use crate::GradientOption;
 
@@ -469,5 +469,458 @@ mod resolve_tests {
 	fn other_flag_shaped_first_arguments_stay_text() {
 		let parsed = run(&["--font"]);
 		assert_eq!(parsed.options.blocks[0].text(), "--FONT");
+	}
+}
+
+#[cfg(test)]
+mod argument_parsing {
+	use super::*;
+	use crate::{Align, Color, ColorOption, Font, GradientOption, Rgb, Valign};
+
+	fn args(list: &[&str]) -> Vec<String> {
+		list.iter().map(|item| String::from(*item)).collect()
+	}
+
+	#[test]
+	fn the_first_argument_becomes_the_text_block() {
+		let input = args(&["my|text"]);
+		let parsed = parse_args(&input).unwrap();
+
+		assert_eq!(parsed.options.blocks.len(), 1);
+		assert_eq!(parsed.options.blocks[0].text(), "MY|TEXT");
+	}
+
+	#[test]
+	fn no_arguments_error() {
+		assert_eq!(parse_args(&[]).unwrap_err(), ParseError::NoTextSupplied);
+	}
+
+	#[test]
+	fn boolean_flags_work_long_short_and_stacked() {
+		for invocation in [
+			args(&["my text", "--spaceless", "--debug", "--raw-mode"]),
+			args(&["my text", "-s", "-d", "-r"]),
+			args(&["my text", "-sdr"]),
+		] {
+			let parsed = parse_args(&invocation).unwrap();
+			assert!(parsed.options.spaceless);
+			assert!(parsed.options.debug);
+			assert!(parsed.options.raw_mode);
+		}
+	}
+
+	#[test]
+	fn number_flags_error_without_or_with_bad_values() {
+		let missing = args(&["my text", "-l"]);
+		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::LetterSpacing));
+
+		let negative = args(&["my text", "-l", "-1"]);
+		assert!(matches!(
+			parse_args(&negative).unwrap_err(),
+			ParseError::InvalidValue {
+				argument: Args::LetterSpacing,
+				..
+			}
+		));
+	}
+
+	#[test]
+	fn number_flags_apply_to_the_block_and_globals() {
+		let input = args(&["my text", "-l", "9", "-z", "2", "-m", "100"]);
+		let parsed = parse_args(&input).unwrap();
+
+		assert_eq!(parsed.options.blocks[0].letter_spacing, 9);
+		assert_eq!(parsed.options.blocks[0].line_height, 2);
+		assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
+	}
+
+	#[test]
+	fn fonts_parse_every_list_name_case_insensitively() {
+		for name in Font::LIST.split(", ") {
+			let expected = Font::from_name(name).unwrap();
+
+			let lower = args(&["my text", "-f", name]);
+			assert_eq!(parse_args(&lower).unwrap().options.blocks[0].font, expected, "{name}");
+
+			let upper = name.to_uppercase();
+			let upper = args(&["my text", "--font", &upper]);
+			assert_eq!(parse_args(&upper).unwrap().options.blocks[0].font, expected, "{name} uppercased");
+		}
+	}
+
+	#[test]
+	fn fonts_error_on_missing_or_unknown_values() {
+		let missing = args(&["my text", "-f"]);
+		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::Font));
+
+		let unknown = args(&["my text", "-f", "unknown"]);
+		assert!(matches!(
+			parse_args(&unknown).unwrap_err(),
+			ParseError::InvalidValue {
+				argument: Args::Font,
+				..
+			}
+		));
+	}
+
+	#[test]
+	fn align_and_valign_parse_case_insensitively() {
+		for (value, expected) in [
+			("left", Align::Left),
+			("cEnTeR", Align::Center),
+			("RIGHT", Align::Right),
+		] {
+			let input = args(&["my text", "-a", value]);
+			assert_eq!(parse_args(&input).unwrap().options.align, expected, "{value}");
+		}
+
+		for (value, expected) in [
+			("top", Valign::Top),
+			("mIdDlE", Valign::Middle),
+			("BOTTOM", Valign::Bottom),
+		] {
+			let input = args(&["my text", "-y", value]);
+			assert_eq!(parse_args(&input).unwrap().options.valign, expected, "{value}");
+		}
+
+		let unknown = args(&["my text", "-a", "unknown"]);
+		assert!(parse_args(&unknown).is_err());
+	}
+
+	#[test]
+	fn colors_parse_names_hex_values_and_lists() {
+		for name in Color::LIST.split(", ") {
+			let expected = Color::from_name(name).unwrap();
+			let input = args(&["my text", "-c", name]);
+			assert_eq!(
+				parse_args(&input).unwrap().options.blocks[0].color,
+				Some(ColorOption::Colors(vec![expected])),
+				"{name}"
+			);
+		}
+
+		let gray = Rgb {
+			red: 136,
+			green: 136,
+			blue: 136,
+		};
+		for hex in ["#888", "#888888"] {
+			let input = args(&["my text", "-c", hex]);
+			assert_eq!(
+				parse_args(&input).unwrap().options.blocks[0].color,
+				Some(ColorOption::Colors(vec![Color::Rgb(gray)])),
+				"{hex}"
+			);
+		}
+
+		let list = args(&["my text", "--color", "bLuE,#888888,GREY"]);
+		assert_eq!(
+			parse_args(&list).unwrap().options.blocks[0].color,
+			Some(ColorOption::Colors(vec![Color::Blue, Color::Rgb(gray), Color::Gray]))
+		);
+	}
+
+	#[test]
+	fn colors_error_on_missing_unknown_and_malformed_hex_values() {
+		let missing = args(&["my text", "-c"]);
+		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::Color));
+
+		let unknown = args(&["my text", "-c", "unknown"]);
+		assert!(parse_args(&unknown).is_err());
+
+		// v3 forgave malformed hex by padding; v4 rejects it loudly
+		for bad_hex in ["#88", "#fffffff", "#xxx"] {
+			let input = args(&["my text", "-c", bad_hex]);
+			assert!(
+				matches!(
+					parse_args(&input).unwrap_err(),
+					ParseError::InvalidValue {
+						argument: Args::Color,
+						source: Some(_),
+						..
+					}
+				),
+				"{bad_hex} must be rejected with a cause"
+			);
+		}
+	}
+
+	#[test]
+	fn gradients_parse_stops_and_enforce_the_count_rules() {
+		let two = args(&["my text", "-g", "rEd,GREEN"]);
+		assert_eq!(
+			parse_args(&two).unwrap().options.global_color,
+			Some(ColorOption::Gradient(GradientOption::TwoStop {
+				start: GradientStop::Red,
+				end: GradientStop::Green,
+				independent_gradient: false,
+			}))
+		);
+
+		let independent = args(&["my text", "-g", "red,green", "-i"]);
+		assert_eq!(
+			parse_args(&independent).unwrap().options.global_color,
+			Some(ColorOption::Gradient(GradientOption::TwoStop {
+				start: GradientStop::Red,
+				end: GradientStop::Green,
+				independent_gradient: true,
+			}))
+		);
+
+		let one_stop_transition = args(&["my text", "-g", "red", "-t"]);
+		assert_eq!(
+			parse_args(&one_stop_transition).unwrap_err(),
+			ParseError::BadGradientColors {
+				count: 1,
+				transition: true,
+			}
+		);
+
+		let three_without_transition = args(&["my text", "-g", "red,green,blue"]);
+		assert_eq!(
+			parse_args(&three_without_transition).unwrap_err(),
+			ParseError::BadGradientColors {
+				count: 3,
+				transition: false,
+			}
+		);
+
+		let three_with_transition = args(&["my text", "-g", "red,green,blue", "-t"]);
+		match parse_args(&three_with_transition).unwrap().options.global_color {
+			Some(ColorOption::Gradient(GradientOption::Transition { stops, .. })) => assert_eq!(stops.len(), 3),
+			other => panic!("expected a transition gradient, got {other:?}"),
+		}
+	}
+
+	#[test]
+	fn unknown_flags_warn_and_are_ignored() {
+		let input = args(&["my text", "-u", "--unknown"]);
+		let parsed = parse_args(&input).unwrap();
+
+		assert_eq!(parsed.warnings.len(), 2);
+		assert!(parsed.warnings.iter().all(|warning| matches!(warning, ParseError::UnknownFlag(_))));
+		assert!(parsed.warnings.iter().all(|warning| warning.error_type() == ErrorType::Warning));
+	}
+
+	#[test]
+	fn everything_together_long_short_and_stacked() {
+		for invocation in [
+			args(&[
+				"long text|with new line",
+				"--font",
+				"simple3d",
+				"--align",
+				"center",
+				"--valign",
+				"top",
+				"--color",
+				"blue,white",
+				"--letter-spacing",
+				"9",
+				"--line-height",
+				"2",
+				"--spaceless",
+				"--max-length",
+				"100",
+				"--gradient",
+				"red,blue",
+				"--independent-gradient",
+				"--transition-gradient",
+				"--debug",
+				"--raw-mode",
+			]),
+			args(&[
+				"long text|with new line",
+				"-f",
+				"simple3d",
+				"-a",
+				"center",
+				"-y",
+				"top",
+				"-c",
+				"blue,white",
+				"-l",
+				"9",
+				"-z",
+				"2",
+				"-m",
+				"100",
+				"-g",
+				"red,blue",
+				"-sitdr",
+			]),
+		] {
+			let parsed = parse_args(&invocation).unwrap();
+			let block = &parsed.options.blocks[0];
+
+			assert_eq!(block.text(), "LONG TEXT|WITH NEW LINE");
+			assert_eq!(block.font, Font::Simple3D);
+			assert_eq!(block.letter_spacing, 9);
+			assert_eq!(block.line_height, 2);
+			assert_eq!(block.color, Some(ColorOption::Colors(vec![Color::Blue, Color::White])));
+			assert_eq!(parsed.options.align, Align::Center);
+			assert_eq!(parsed.options.valign, Valign::Top);
+			assert!(parsed.options.spaceless);
+			assert!(parsed.options.debug);
+			assert!(parsed.options.raw_mode);
+			assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
+
+			match &parsed.options.global_color {
+				Some(ColorOption::Gradient(GradientOption::Transition {
+					stops,
+					independent_gradient: true,
+				})) => assert_eq!(stops.len(), 2),
+				other => panic!("expected an independent transition gradient, got {other:?}"),
+			}
+		}
+	}
+}
+
+#[cfg(test)]
+mod preset_tests {
+	use super::*;
+
+	fn args(list: &[&str]) -> Vec<String> {
+		list.iter().map(|item| String::from(*item)).collect()
+	}
+
+	fn preset_of(parsed: &ParsedArgs) -> GradientPreset {
+		match parsed.options.global_color {
+			Some(ColorOption::Gradient(GradientOption::Preset { preset, .. })) => preset,
+			ref other => panic!("expected a preset gradient, got {other:?}"),
+		}
+	}
+
+	#[test]
+	fn every_preset_and_alias_parses_case_insensitively() {
+		let expectations = [
+			("pride", GradientPreset::Pride),
+			("lgbt", GradientPreset::Pride),
+			("lgbtq", GradientPreset::Pride),
+			("lgbtqa", GradientPreset::Pride),
+			("LGBT", GradientPreset::Pride),
+			("lGbT", GradientPreset::Pride),
+			("agender", GradientPreset::Agender),
+			("aromantic", GradientPreset::Aromantic),
+			("asexual", GradientPreset::Asexual),
+			("bisexual", GradientPreset::Bisexual),
+			("bi", GradientPreset::Bisexual),
+			("genderfluid", GradientPreset::Genderfluid),
+			("genderqueer", GradientPreset::Genderqueer),
+			("intersex", GradientPreset::Intersex),
+			("lesbian", GradientPreset::Lesbian),
+			("nonbinary", GradientPreset::Nonbinary),
+			("pansexual", GradientPreset::Pansexual),
+			("pan", GradientPreset::Pansexual),
+			("polysexual", GradientPreset::Polysexual),
+			("poly", GradientPreset::Polysexual),
+			("transgender", GradientPreset::Transgender),
+			("trans", GradientPreset::Transgender),
+		];
+
+		for (name, expected) in expectations {
+			let input = args(&["my text", "-g", name]);
+			assert_eq!(preset_of(&parse_args(&input).unwrap()), expected, "{name}");
+		}
+	}
+
+	#[test]
+	fn presets_take_the_independent_flag_and_tolerate_the_transition_flag() {
+		let independent = args(&["my text", "-g", "pride", "-i"]);
+		assert_eq!(
+			parse_args(&independent).unwrap().options.global_color,
+			Some(ColorOption::Gradient(GradientOption::Preset {
+				preset: GradientPreset::Pride,
+				independent_gradient: true,
+			}))
+		);
+
+		// presets are bundled transitions; a redundant -t neither errors nor warns
+		let redundant = args(&["my text", "-g", "trans", "-t"]);
+		let parsed = parse_args(&redundant).unwrap();
+		assert_eq!(preset_of(&parsed), GradientPreset::Transgender);
+		assert!(parsed.warnings.is_empty());
+	}
+
+	#[test]
+	fn preset_names_do_not_shadow_stop_lists() {
+		let stops = args(&["my text", "-g", "red,blue"]);
+		assert!(matches!(
+			parse_args(&stops).unwrap().options.global_color,
+			Some(ColorOption::Gradient(GradientOption::TwoStop { .. }))
+		));
+	}
+}
+
+#[cfg(test)]
+mod block_composition {
+	use super::*;
+	use crate::{Color, ColorOption, Font};
+
+	fn args(list: &[&str]) -> Vec<String> {
+		list.iter().map(|item| String::from(*item)).collect()
+	}
+
+	#[test]
+	fn next_starts_additional_text_blocks() {
+		let input = args(&["first", "--next", "second", "-n", "third"]);
+		let parsed = parse_args(&input).unwrap();
+
+		let texts: Vec<&str> = parsed.options.blocks.iter().map(|block| block.text()).collect();
+		assert_eq!(texts, ["FIRST", "SECOND", "THIRD"]);
+	}
+
+	#[test]
+	fn next_errors_without_a_value() {
+		let input = args(&["first", "--next"]);
+		assert_eq!(parse_args(&input).unwrap_err(), ParseError::MissingValue(Args::Next));
+	}
+
+	#[test]
+	fn block_options_bind_to_the_block_before_them() {
+		let input = args(&["one", "-f", "tiny", "-c", "red", "--next", "two", "-f", "block", "-w"]);
+		let parsed = parse_args(&input).unwrap();
+		let blocks = &parsed.options.blocks;
+
+		assert_eq!(blocks.len(), 2);
+		assert_eq!(blocks[0].font, Font::Tiny);
+		assert_eq!(blocks[0].color, Some(ColorOption::Colors(vec![Color::Red])));
+		assert!(!blocks[0].word_wrap);
+		assert_eq!(blocks[1].font, Font::Block);
+		assert_eq!(blocks[1].color, None);
+		assert!(blocks[1].word_wrap);
+	}
+
+	#[test]
+	fn word_wrap_flags_only_the_current_block() {
+		let input = args(&["one", "-w", "--next", "two"]);
+		let parsed = parse_args(&input).unwrap();
+
+		assert!(parsed.options.blocks[0].word_wrap);
+		assert!(!parsed.options.blocks[1].word_wrap);
+	}
+
+	#[test]
+	fn word_wrap_works_inside_a_cluster() {
+		let input = args(&["one", "-sw"]);
+		let parsed = parse_args(&input).unwrap();
+
+		assert!(parsed.options.spaceless);
+		assert!(parsed.options.blocks[0].word_wrap);
+	}
+
+	#[test]
+	fn valign_errors_on_missing_and_unknown_values() {
+		let missing = args(&["my text", "-y"]);
+		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::Valign));
+
+		let unknown = args(&["my text", "-y", "diagonal"]);
+		assert!(matches!(
+			parse_args(&unknown).unwrap_err(),
+			ParseError::InvalidValue {
+				argument: Args::Valign,
+				..
+			}
+		));
 	}
 }
