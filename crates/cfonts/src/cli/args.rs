@@ -1,6 +1,6 @@
 use crate::{
-	Align, BlockOptions, /*Background,*/ Color, ColorOption, Font, Rgb, Valign,
-	cli::{ParseError, ParseState},
+	Align, BlockOptions, /*Background,*/ Color, ColorOption, Font, GradientPreset, Rgb, Valign,
+	cli::{GradientInput, ParseError, ParseState},
 	color::GradientStop,
 	helper::{const_concat, const_join},
 };
@@ -234,6 +234,13 @@ impl Args {
 			// CLI specific config
 			Self::Gradient => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
+
+				// a preset name covers the whole value; anything else is a list of stops
+				if let Some(preset) = GradientPreset::from_name(value) {
+					state.gradient = Some(GradientInput::Preset(preset));
+					return Ok(());
+				}
+
 				let mut colors = Vec::new();
 				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
 					let color_str = color_str.trim();
@@ -263,7 +270,7 @@ impl Args {
 					colors.push(color);
 				}
 
-				state.gradient_stops = Some(colors);
+				state.gradient = Some(GradientInput::Stops(colors));
 			}
 
 			// Boolean flags
@@ -501,7 +508,7 @@ mod tests {
 				}),
 				"{name} must not be accepted as a gradient stop"
 			);
-			assert_eq!(state.gradient_stops, None);
+			assert_eq!(state.gradient, None);
 		}
 	}
 

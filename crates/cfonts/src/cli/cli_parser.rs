@@ -4,7 +4,8 @@ use std::{
 };
 
 use crate::{
-	BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientStop, Options, TransitionStops, cli::Args,
+	BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, Options, TransitionStops,
+	cli::Args,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -132,10 +133,17 @@ impl Error for ParseError<'_> {
 	}
 }
 
+/// The two ways a gradient can arrive from the command line
+#[derive(Debug, PartialEq)]
+pub(crate) enum GradientInput {
+	Stops(Vec<GradientStop>),
+	Preset(GradientPreset),
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct ParseState {
 	pub(crate) options: Options,
-	pub(crate) gradient_stops: Option<Vec<GradientStop>>,
+	pub(crate) gradient: Option<GradientInput>,
 	pub(crate) independent: bool,
 	pub(crate) transition: bool,
 	pub(crate) show_help: bool,
@@ -147,7 +155,7 @@ impl ParseState {
 	fn gradient_flag_warnings(&self) -> Vec<ParseError<'static>> {
 		let mut warnings = Vec::new();
 
-		if self.gradient_stops.is_none() {
+		if self.gradient.is_none() {
 			if self.independent {
 				warnings.push(ParseError::FlagIgnored(Args::IndependentGradient));
 			}
@@ -166,14 +174,17 @@ impl TryFrom<ParseState> for Options {
 	fn try_from(state: ParseState) -> Result<Self, Self::Error> {
 		let ParseState {
 			mut options,
-			gradient_stops,
+			gradient,
 			independent,
 			transition,
 			..
 		} = state;
 
-		match gradient_stops {
-			Some(stops) if transition => {
+		match gradient {
+			Some(GradientInput::Preset(preset)) => {
+				options.global_color = Some(ColorOption::Gradient(preset.to_gradient(independent)));
+			}
+			Some(GradientInput::Stops(stops)) if transition => {
 				let count = stops.len();
 				let mut stops = stops.into_iter();
 
@@ -193,7 +204,7 @@ impl TryFrom<ParseState> for Options {
 					independent_gradient: independent,
 				}));
 			}
-			Some(stops) => match stops.as_slice() {
+			Some(GradientInput::Stops(stops)) => match stops.as_slice() {
 				&[start, end] => {
 					options.global_color = Some(ColorOption::Gradient(GradientOption::TwoStop {
 						start,
@@ -340,7 +351,7 @@ mod resolve_tests {
 	#[test]
 	fn two_stops_resolve_to_a_two_stop_gradient() {
 		let mut with_gradient = state();
-		with_gradient.gradient_stops = Some(vec![GradientStop::Red, GradientStop::Blue]);
+		with_gradient.gradient = Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue]));
 		with_gradient.independent = true;
 
 		let options: Options = with_gradient.try_into().unwrap();
@@ -357,7 +368,8 @@ mod resolve_tests {
 	#[test]
 	fn three_stops_without_transition_are_rejected() {
 		let mut with_gradient = state();
-		with_gradient.gradient_stops = Some(vec![GradientStop::Red, GradientStop::Blue, GradientStop::White]);
+		with_gradient.gradient =
+			Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue, GradientStop::White]));
 
 		assert_eq!(
 			Options::try_from(with_gradient).unwrap_err(),
@@ -371,7 +383,8 @@ mod resolve_tests {
 	#[test]
 	fn transition_gradients_take_more_stops() {
 		let mut with_gradient = state();
-		with_gradient.gradient_stops = Some(vec![GradientStop::Red, GradientStop::Blue, GradientStop::White]);
+		with_gradient.gradient =
+			Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue, GradientStop::White]));
 		with_gradient.transition = true;
 
 		let options: Options = with_gradient.try_into().unwrap();
@@ -387,7 +400,7 @@ mod resolve_tests {
 	#[test]
 	fn a_transition_with_one_stop_is_rejected() {
 		let mut with_gradient = state();
-		with_gradient.gradient_stops = Some(vec![GradientStop::Red]);
+		with_gradient.gradient = Some(GradientInput::Stops(vec![GradientStop::Red]));
 		with_gradient.transition = true;
 
 		assert_eq!(
@@ -429,7 +442,7 @@ mod resolve_tests {
 	#[test]
 	fn gradient_flags_with_a_gradient_produce_no_warnings() {
 		let mut with_gradient = state();
-		with_gradient.gradient_stops = Some(vec![GradientStop::Red, GradientStop::Blue]);
+		with_gradient.gradient = Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue]));
 		with_gradient.independent = true;
 
 		assert_eq!(with_gradient.gradient_flag_warnings(), vec![]);

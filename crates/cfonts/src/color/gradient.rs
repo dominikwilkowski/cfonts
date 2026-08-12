@@ -7,6 +7,8 @@ use std::f64::consts::{PI, TAU};
 
 use crate::color::{GradientOption, Rgb};
 
+use cfonts_macros::All;
+
 /// Hue in degrees, saturation and value in percent
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Hsv(pub f64, pub f64, pub f64);
@@ -256,7 +258,7 @@ impl GradientColors {
 /// The bundled transition gradient presets
 ///
 /// ![The gradient option and its output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/transition-gradient.png)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum GradientPreset {
 	Pride,
 	Agender,
@@ -274,6 +276,26 @@ pub enum GradientPreset {
 }
 
 impl GradientPreset {
+	/// Looks up a preset by its name or its aliases, case insensitively
+	pub fn from_name(name: &str) -> Option<Self> {
+		match name.to_ascii_lowercase().as_str() {
+			"pride" | "lgbt" | "lgbtq" | "lgbtqa" => Some(Self::Pride),
+			"agender" => Some(Self::Agender),
+			"aromantic" => Some(Self::Aromantic),
+			"asexual" => Some(Self::Asexual),
+			"bisexual" | "bi" => Some(Self::Bisexual),
+			"genderfluid" => Some(Self::Genderfluid),
+			"genderqueer" => Some(Self::Genderqueer),
+			"intersex" => Some(Self::Intersex),
+			"lesbian" => Some(Self::Lesbian),
+			"nonbinary" => Some(Self::Nonbinary),
+			"pansexual" | "pan" => Some(Self::Pansexual),
+			"polysexual" | "poly" => Some(Self::Polysexual),
+			"transgender" | "trans" => Some(Self::Transgender),
+			_ => None,
+		}
+	}
+
 	/// The stops of this preset
 	pub const fn stops(self) -> &'static [Rgb] {
 		match self {
@@ -912,5 +934,13 @@ mod tests {
 				independent_gradient: false,
 			}
 		);
+	}
+
+	#[test]
+	fn every_preset_has_a_parseable_name() {
+		for preset in GradientPreset::ALL {
+			let name = format!("{preset:?}").to_lowercase();
+			assert!(GradientPreset::from_name(&name).is_some(), "{name} does not parse back to {preset:?}");
+		}
 	}
 }
