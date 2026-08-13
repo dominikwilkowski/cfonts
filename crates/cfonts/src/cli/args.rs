@@ -55,11 +55,13 @@ pub enum Args {
 	Valign,
 	Spaceless,
 	MaxLength,
+	Stdin,
 	RawMode,
 	Debug,
 
 	// Block config
 	Next,
+	NextStdin,
 	Font,
 	Color,
 	Background,
@@ -84,11 +86,13 @@ impl Args {
 			"valign" | "y" => Some(Self::Valign),
 			"spaceless" | "s" => Some(Self::Spaceless),
 			"max-length" | "m" => Some(Self::MaxLength),
+			"stdin" => Some(Self::Stdin),
 			"raw-mode" | "r" => Some(Self::RawMode),
 			"debug" | "d" => Some(Self::Debug),
 
 			// Block config
 			"next" | "n" => Some(Self::Next),
+			"next-stdin" | "N" => Some(Self::NextStdin),
 			"font" | "f" => Some(Self::Font),
 			"color" | "c" => Some(Self::Color),
 			"background" | "b" => Some(Self::Background),
@@ -106,14 +110,13 @@ impl Args {
 		}
 	}
 
-	/// Helper function to get the current block options
-	fn current_block<'a>(state: &mut ParseState) -> Result<&mut CliBlockOptions, ParseError<'a>> {
-		state.options.blocks.last_mut().ok_or(ParseError::NoTextSupplied)
-	}
-
 	/// Apply the argument to our parse state including any values passed in
 	pub(crate) fn apply<'a>(self, value: Option<&'a str>, state: &mut ParseState) -> Result<(), ParseError<'a>> {
 		debug_assert!(value.is_none() || self.infos().arguments.is_some(), "{self:?} takes no value but was given one");
+		debug_assert!(
+			!state.options.blocks.is_empty(),
+			"apply expects that the state always has at least one block already set"
+		);
 
 		match self {
 			// Global config
@@ -151,17 +154,29 @@ impl Args {
 
 				state.options.max_length = Some(max_length);
 			}
+			Self::Stdin => {
+				// The options that are passed in keep the promise that there is always at least one block present
+				if state.options.blocks[0].text.is_some() {
+					return Err(ParseError::TextAlreadySupplied("--stdin"));
+				}
+				state.options.blocks[0].stdin = true;
+			}
 
 			// Block config
 			Self::Next => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
 				state.options.blocks.push(CliBlockOptions::new(value));
 			}
+			Self::NextStdin => {
+				state.options.blocks.push(CliBlockOptions {
+					stdin: true,
+					..Default::default()
+				});
+			}
 			Self::Font => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let block = Self::current_block(state)?;
 				if let Some(font) = Font::from_name(value) {
-					block.font = font;
+					state.options.blocks.last_mut().unwrap().font = font;
 				} else {
 					return Err(ParseError::InvalidValue {
 						argument: self,
@@ -172,7 +187,6 @@ impl Args {
 			}
 			Self::Color => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let block = Self::current_block(state)?;
 				let mut colors = Vec::new();
 				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
 					let color_str = color_str.trim();
@@ -202,7 +216,7 @@ impl Args {
 					colors.push(color);
 				}
 
-				block.color = Some(ColorOption::Colors(colors));
+				state.options.blocks.last_mut().unwrap().color = Some(ColorOption::Colors(colors));
 			}
 			Self::Background => {
 				let _value = value.ok_or(ParseError::MissingValue(self))?;
@@ -210,25 +224,23 @@ impl Args {
 			}
 			Self::LetterSpacing => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let block = Self::current_block(state)?;
 				let letter_spacing = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
 					value,
 					source: None,
 				})?;
 
-				block.letter_spacing = letter_spacing;
+				state.options.blocks.last_mut().unwrap().letter_spacing = letter_spacing;
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let block = Self::current_block(state)?;
 				let line_height = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
 					value,
 					source: None,
 				})?;
 
-				block.line_height = line_height;
+				state.options.blocks.last_mut().unwrap().line_height = line_height;
 			}
 
 			// CLI specific config
@@ -277,10 +289,7 @@ impl Args {
 			Self::Spaceless => state.options.spaceless = true,
 			Self::RawMode => state.options.raw_mode = true,
 			Self::Debug => state.options.debug = true,
-			Self::WordWrap => {
-				let block = Self::current_block(state)?;
-				block.word_wrap = true;
-			}
+			Self::WordWrap => state.options.blocks.last_mut().unwrap().word_wrap = true,
 			Self::IndependentGradient => state.independent = true,
 			Self::TransitionGradient => state.transition = true,
 			Self::Version => state.show_version = true,
@@ -321,6 +330,13 @@ impl Args {
 				example: "cfonts --max-length 10",
 				arguments: Some("10, 20, 42..."),
 			},
+			Self::Stdin => ArgInfo {
+				long: "stdin",
+				short: &[],
+				description: "Use to read text from stdin instead of a file\nThis will apply only to the first block.",
+				example: "echo \"Hello \" | cfonts --stdin --next World",
+				arguments: None,
+			},
 			Self::RawMode => ArgInfo {
 				long: "raw-mode",
 				short: &["r"],
@@ -343,6 +359,13 @@ impl Args {
 				description: "Use to add a new text block",
 				example: "cfonts hello --next world",
 				arguments: Some("any text you want to style with cfonts"),
+			},
+			Self::NextStdin => ArgInfo {
+				long: "next-stdin",
+				short: &[],
+				description: "Use to add a new text block but take the text from stdin",
+				example: "echo \" World\" | cfonts Hello --next-stdin",
+				arguments: None,
 			},
 			Self::Font => ArgInfo {
 				long: "font",
@@ -438,11 +461,13 @@ impl Args {
 			Self::Valign => help_line!(Args::Valign),
 			Self::Spaceless => help_line!(Args::Spaceless),
 			Self::MaxLength => help_line!(Args::MaxLength),
+			Self::Stdin => help_line!(Args::Stdin),
 			Self::RawMode => help_line!(Args::RawMode),
 			Self::Debug => help_line!(Args::Debug),
 
 			// Block config
 			Self::Next => help_line!(Args::Next),
+			Self::NextStdin => help_line!(Args::NextStdin),
 			Self::Font => help_line!(Args::Font),
 			Self::Color => help_line!(Args::Color),
 			Self::Background => help_line!(Args::Background),

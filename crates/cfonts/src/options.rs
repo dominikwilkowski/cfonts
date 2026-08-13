@@ -75,7 +75,7 @@ impl Align {
 /// Options for one text block in a composed render
 ///
 /// A block owns the text plus settings that may differ from neighbouring blocks, such as font, spacing, color mode, and word wrapping
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct BlockOptions {
 	/// Text for this block
 	///

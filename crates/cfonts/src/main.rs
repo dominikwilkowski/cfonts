@@ -1,8 +1,11 @@
-use std::env;
+use std::{
+	env,
+	io::{IsTerminal, Read, stdin},
+};
 
 use cfonts::{
 	Host, RustHost,
-	cli::{ParsedArgs, parse_args},
+	cli::{ParsedArgs, StdinProvider, parse_args},
 };
 
 // terminology
@@ -22,13 +25,26 @@ use cfonts::{
 fn main() -> std::io::Result<()> {
 	let args = env::args().skip(1).collect::<Vec<String>>();
 
+	let std_provider = StdinProvider {
+		interactive: stdin().is_terminal(),
+		read: || {
+			if stdin().is_terminal() {
+				let eof_key = if cfg!(windows) { "Ctrl-Z then Enter" } else { "Ctrl-D" };
+				eprintln!("Start typing, end with {eof_key} on an empty line…");
+			}
+			let mut buffer = String::new();
+			stdin().read_to_string(&mut buffer).unwrap_or_default();
+			buffer
+		},
+	};
+
 	// parsing args
 	let ParsedArgs {
 		options,
 		warnings,
 		show_help,
 		show_version,
-	} = match parse_args(&args) {
+	} = match parse_args(&args, std_provider) {
 		Ok(parsed) => parsed,
 		Err(error) => {
 			eprintln!("{error}");

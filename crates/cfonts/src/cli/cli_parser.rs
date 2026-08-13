@@ -1,7 +1,6 @@
 use std::{
 	error::Error,
 	fmt::{Display, Formatter},
-	io::IsTerminal,
 	num::NonZeroUsize,
 };
 
@@ -33,6 +32,7 @@ pub enum ParseError<'a> {
 		transition: bool,
 	},
 	FlagIgnored(Args),
+	EmptyStdin,
 }
 
 impl ParseError<'_> {
@@ -46,6 +46,7 @@ impl ParseError<'_> {
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
 			Self::BadGradientColors { .. } => ErrorType::Error,
 			Self::FlagIgnored(_) => ErrorType::Warning,
+			Self::EmptyStdin => ErrorType::Error,
 		}
 	}
 }
@@ -61,7 +62,10 @@ impl Display for ParseError<'_> {
 
 		match self {
 			Self::NoTextSupplied => {
-				write!(f, "{flag}: You have to give cfonts something to style, no text was supplied")
+				write!(
+					f,
+					"{flag}: You have to give cfonts something to style, no text was supplied by either pipe or argument\n$ cfonts Hello"
+				)
 			}
 			Self::TextAlreadySupplied(text) => {
 				write!(f, "{flag}: Text was already supplied so \"{open}{text}{close}\" was ignored")
@@ -97,7 +101,7 @@ impl Display for ParseError<'_> {
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
 					f,
-					"{flag}: The option \"{open}{}{close}\" was supplied in a cluster without a value,\nto keep it in a cluster, make sure you add it to the end of it.\n{}",
+					"{flag}: The option \"{open}{}{close}\" was supplied in a cluster without a value,\nto keep it in a cluster, make sure you add it to the end of it\n{}",
 					args.infos().long,
 					args.help()
 				)
@@ -120,10 +124,13 @@ impl Display for ParseError<'_> {
 			Self::FlagIgnored(args) => {
 				write!(
 					f,
-					"{flag}: The flag \"{open}{}{close}\" was ignored because no gradient was specified.\n{}",
+					"{flag}: The flag \"{open}{}{close}\" was ignored because no gradient was specified\n{}",
 					args.infos().long,
 					args.help()
 				)
+			}
+			Self::EmptyStdin => {
+				write!(f, "{flag}: Text from stdin was expected but stdin was empty,\ncheck the command you are piping from")
 			}
 		}
 	}
@@ -159,7 +166,7 @@ pub(crate) struct CliOptions {
 	pub blocks: Vec<CliBlockOptions>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct CliBlockOptions {
 	pub(crate) text: Option<String>,
 	pub(crate) font: Font,
@@ -167,6 +174,7 @@ pub(crate) struct CliBlockOptions {
 	pub(crate) letter_spacing: usize,
 	pub(crate) line_height: usize,
 	pub(crate) word_wrap: bool,
+	pub(crate) stdin: bool,
 }
 
 impl CliBlockOptions {
@@ -182,7 +190,21 @@ impl CliBlockOptions {
 	}
 }
 
-#[derive(Debug, Default)]
+impl Default for CliBlockOptions {
+	fn default() -> Self {
+		Self {
+			text: None,
+			font: Font::Block,
+			color: None,
+			letter_spacing: 1,
+			line_height: 1,
+			word_wrap: false,
+			stdin: false,
+		}
+	}
+}
+
+#[derive(Debug)]
 pub(crate) struct ParseState {
 	pub(crate) options: CliOptions,
 	pub(crate) gradient: Option<GradientInput>,
@@ -210,6 +232,23 @@ impl ParseState {
 	}
 }
 
+impl Default for ParseState {
+	fn default() -> Self {
+		Self {
+			options: CliOptions {
+				// adding a block without text so parsing can always assume there is at least one block available
+				blocks: vec![CliBlockOptions::default()],
+				..CliOptions::default()
+			},
+			gradient: None,
+			independent: false,
+			transition: false,
+			show_help: false,
+			show_version: false,
+		}
+	}
+}
+
 impl TryFrom<ParseState> for Options {
 	type Error = ParseError<'static>;
 
@@ -226,7 +265,11 @@ impl TryFrom<ParseState> for Options {
 
 		for cli_block in options.blocks {
 			let Some(text) = cli_block.text else {
-				return Err(ParseError::NoTextSupplied);
+				return Err(if cli_block.stdin {
+					ParseError::EmptyStdin
+				} else {
+					ParseError::NoTextSupplied
+				});
 			};
 
 			let mut block = BlockOptions::new(text);
@@ -305,22 +348,20 @@ pub struct ParsedArgs<'a> {
 	pub show_version: bool,
 }
 
+pub struct StdinProvider {
+	pub interactive: bool,
+	pub read: fn() -> String,
+}
+
 /// The one door into the warnings channel; only warning-typed problems may pass
 fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
 	debug_assert_eq!(warning.error_type(), ErrorType::Warning, "{warning:?} is not a warning");
 	warnings.push(warning);
 }
 
-pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'a>> {
+pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result<ParsedArgs<'a>, ParseError<'a>> {
 	let mut warnings: Vec<ParseError<'a>> = Vec::new();
 	let mut state = ParseState::default();
-
-	if args.is_empty() {
-		return Err(ParseError::NoTextSupplied);
-	}
-
-	// adding a block without text so parsing can always assume there is at least one block available
-	state.options.blocks.push(CliBlockOptions::default());
 
 	let mut args_iter = args.iter();
 	while let Some(arg_str) = args_iter.next() {
@@ -379,6 +420,28 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 		}
 	}
 
+	let implicit = state.options.blocks[0].text.is_none() && !std_provider.interactive;
+	if implicit || state.options.blocks.iter().any(|block| block.stdin) {
+		// some shadowing fun and I won't apologize for it either!
+		let buffer = (std_provider.read)();
+		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
+		let buffer = buffer.strip_suffix('\r').unwrap_or(buffer);
+		let buffer = buffer.replace("\r\n", "|").replace('\n', "|").to_string();
+
+		// an empty buffer fills nothing, try_from reads the leftover markers to name the cause
+		if !buffer.is_empty() {
+			for block in state.options.blocks.iter_mut().filter(|block| block.stdin) {
+				block.text = Some(buffer.clone());
+			}
+		}
+
+		// an empty implicit read keeps the block unset so the no-text error can teach
+		// this is for the case when no stdin flag was given but we detected stdin so we will pipe it to the first block
+		if implicit && !buffer.is_empty() {
+			state.options.blocks[0].text = Some(buffer.clone());
+		}
+	}
+
 	warnings.extend(state.gradient_flag_warnings());
 
 	let show_help = state.show_help;
@@ -399,20 +462,36 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 }
 
 #[cfg(test)]
+pub(crate) mod helpers {
+	use super::*;
+
+	pub(crate) fn tty() -> StdinProvider {
+		StdinProvider {
+			interactive: true,
+			read: || panic!("stdin must never be read in this test"),
+		}
+	}
+
+	pub(crate) fn args(list: &[&str]) -> Vec<String> {
+		list.iter().map(|item| String::from(*item)).collect()
+	}
+
+	pub(crate) fn run(args: &[&str]) -> ParsedArgs<'static> {
+		let args: Vec<String> = args.iter().map(|arg| String::from(*arg)).collect();
+		let args: &'static [String] = Box::leak(args.into_boxed_slice());
+		parse_args(args, tty()).unwrap()
+	}
+}
+
+#[cfg(test)]
 mod gradient_resolution {
 	use super::*;
 	use crate::GradientOption;
 
 	fn state() -> ParseState {
 		let mut state = ParseState::default();
-		state.options.blocks.push(CliBlockOptions::new("HI"));
+		state.options.blocks[0].text = Some(String::from("HI"));
 		state
-	}
-
-	fn run(args: &[&str]) -> ParsedArgs<'static> {
-		let args: Vec<String> = args.iter().map(|arg| String::from(*arg)).collect();
-		let args: &'static [String] = Box::leak(args.into_boxed_slice());
-		parse_args(args).unwrap()
 	}
 
 	#[test]
@@ -529,29 +608,18 @@ mod gradient_resolution {
 		};
 		assert_eq!(error.error_type(), ErrorType::Error);
 	}
-
-	#[test]
-	fn help_and_version_win_in_first_position() {
-		assert!(run(&["--version", "hi"]).show_version);
-		assert!(run(&["--help", "hi"]).show_help);
-		assert!(run(&["hi", "-v"]).show_version);
-		assert!(run(&["-h"]).show_help);
-	}
 }
 
 #[cfg(test)]
 mod argument_parsing {
+	use super::helpers::*;
 	use super::*;
 	use crate::{Align, Color, ColorOption, Font, GradientOption, Rgb, Valign};
-
-	fn args(list: &[&str]) -> Vec<String> {
-		list.iter().map(|item| String::from(*item)).collect()
-	}
 
 	#[test]
 	fn the_first_argument_becomes_the_text_block() {
 		let input = args(&["my|text"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 
 		assert_eq!(parsed.options.blocks.len(), 1);
 		assert_eq!(parsed.options.blocks[0].text(), "MY|TEXT");
@@ -559,7 +627,7 @@ mod argument_parsing {
 
 	#[test]
 	fn no_arguments_error() {
-		assert_eq!(parse_args(&[]).unwrap_err(), ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], tty()).unwrap_err(), ParseError::NoTextSupplied);
 	}
 
 	#[test]
@@ -569,7 +637,7 @@ mod argument_parsing {
 			args(&["my text", "-s", "-d", "-r"]),
 			args(&["my text", "-sdr"]),
 		] {
-			let parsed = parse_args(&invocation).unwrap();
+			let parsed = parse_args(&invocation, tty()).unwrap();
 			assert!(parsed.options.spaceless);
 			assert!(parsed.options.debug);
 			assert!(parsed.options.raw_mode);
@@ -579,11 +647,11 @@ mod argument_parsing {
 	#[test]
 	fn number_flags_error_without_or_with_bad_values() {
 		let missing = args(&["my text", "-l"]);
-		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::LetterSpacing));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::LetterSpacing));
 
 		let negative = args(&["my text", "-l", "-1"]);
 		assert!(matches!(
-			parse_args(&negative).unwrap_err(),
+			parse_args(&negative, tty()).unwrap_err(),
 			ParseError::InvalidValue {
 				argument: Args::LetterSpacing,
 				..
@@ -594,7 +662,7 @@ mod argument_parsing {
 	#[test]
 	fn number_flags_apply_to_the_block_and_globals() {
 		let input = args(&["my text", "-l", "9", "-z", "2", "-m", "100"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 
 		assert_eq!(parsed.options.blocks[0].letter_spacing, 9);
 		assert_eq!(parsed.options.blocks[0].line_height, 2);
@@ -607,22 +675,22 @@ mod argument_parsing {
 			let expected = Font::from_name(name).unwrap();
 
 			let lower = args(&["my text", "-f", name]);
-			assert_eq!(parse_args(&lower).unwrap().options.blocks[0].font, expected, "{name}");
+			assert_eq!(parse_args(&lower, tty()).unwrap().options.blocks[0].font, expected, "{name}");
 
 			let upper = name.to_uppercase();
 			let upper = args(&["my text", "--font", &upper]);
-			assert_eq!(parse_args(&upper).unwrap().options.blocks[0].font, expected, "{name} uppercased");
+			assert_eq!(parse_args(&upper, tty()).unwrap().options.blocks[0].font, expected, "{name} uppercased");
 		}
 	}
 
 	#[test]
 	fn fonts_error_on_missing_or_unknown_values() {
 		let missing = args(&["my text", "-f"]);
-		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::Font));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::Font));
 
 		let unknown = args(&["my text", "-f", "unknown"]);
 		assert!(matches!(
-			parse_args(&unknown).unwrap_err(),
+			parse_args(&unknown, tty()).unwrap_err(),
 			ParseError::InvalidValue {
 				argument: Args::Font,
 				..
@@ -638,7 +706,7 @@ mod argument_parsing {
 			("RIGHT", Align::Right),
 		] {
 			let input = args(&["my text", "-a", value]);
-			assert_eq!(parse_args(&input).unwrap().options.align, expected, "{value}");
+			assert_eq!(parse_args(&input, tty()).unwrap().options.align, expected, "{value}");
 		}
 
 		for (value, expected) in [
@@ -647,11 +715,11 @@ mod argument_parsing {
 			("BOTTOM", Valign::Bottom),
 		] {
 			let input = args(&["my text", "-y", value]);
-			assert_eq!(parse_args(&input).unwrap().options.valign, expected, "{value}");
+			assert_eq!(parse_args(&input, tty()).unwrap().options.valign, expected, "{value}");
 		}
 
 		let unknown = args(&["my text", "-a", "unknown"]);
-		assert!(parse_args(&unknown).is_err());
+		assert!(parse_args(&unknown, tty()).is_err());
 	}
 
 	#[test]
@@ -660,7 +728,7 @@ mod argument_parsing {
 			let expected = Color::from_name(name).unwrap();
 			let input = args(&["my text", "-c", name]);
 			assert_eq!(
-				parse_args(&input).unwrap().options.blocks[0].color,
+				parse_args(&input, tty()).unwrap().options.blocks[0].color,
 				Some(ColorOption::Colors(vec![expected])),
 				"{name}"
 			);
@@ -674,7 +742,7 @@ mod argument_parsing {
 		for hex in ["#888", "#888888"] {
 			let input = args(&["my text", "-c", hex]);
 			assert_eq!(
-				parse_args(&input).unwrap().options.blocks[0].color,
+				parse_args(&input, tty()).unwrap().options.blocks[0].color,
 				Some(ColorOption::Colors(vec![Color::Rgb(gray)])),
 				"{hex}"
 			);
@@ -682,7 +750,7 @@ mod argument_parsing {
 
 		let list = args(&["my text", "--color", "bLuE,#888888,GREY"]);
 		assert_eq!(
-			parse_args(&list).unwrap().options.blocks[0].color,
+			parse_args(&list, tty()).unwrap().options.blocks[0].color,
 			Some(ColorOption::Colors(vec![Color::Blue, Color::Rgb(gray), Color::Gray]))
 		);
 	}
@@ -690,17 +758,17 @@ mod argument_parsing {
 	#[test]
 	fn colors_error_on_missing_unknown_and_malformed_hex_values() {
 		let missing = args(&["my text", "-c"]);
-		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::Color));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::Color));
 
 		let unknown = args(&["my text", "-c", "unknown"]);
-		assert!(parse_args(&unknown).is_err());
+		assert!(parse_args(&unknown, tty()).is_err());
 
 		// v3 forgave malformed hex by padding; v4 rejects it loudly
 		for bad_hex in ["#88", "#fffffff", "#xxx"] {
 			let input = args(&["my text", "-c", bad_hex]);
 			assert!(
 				matches!(
-					parse_args(&input).unwrap_err(),
+					parse_args(&input, tty()).unwrap_err(),
 					ParseError::InvalidValue {
 						argument: Args::Color,
 						source: Some(_),
@@ -716,7 +784,7 @@ mod argument_parsing {
 	fn gradients_parse_stops_and_enforce_the_count_rules() {
 		let two = args(&["my text", "-g", "rEd,GREEN"]);
 		assert_eq!(
-			parse_args(&two).unwrap().options.global_color,
+			parse_args(&two, tty()).unwrap().options.global_color,
 			Some(ColorOption::Gradient(GradientOption::TwoStop {
 				start: GradientStop::Red,
 				end: GradientStop::Green,
@@ -726,7 +794,7 @@ mod argument_parsing {
 
 		let independent = args(&["my text", "-g", "red,green", "-i"]);
 		assert_eq!(
-			parse_args(&independent).unwrap().options.global_color,
+			parse_args(&independent, tty()).unwrap().options.global_color,
 			Some(ColorOption::Gradient(GradientOption::TwoStop {
 				start: GradientStop::Red,
 				end: GradientStop::Green,
@@ -736,7 +804,7 @@ mod argument_parsing {
 
 		let one_stop_transition = args(&["my text", "-g", "red", "-t"]);
 		assert_eq!(
-			parse_args(&one_stop_transition).unwrap_err(),
+			parse_args(&one_stop_transition, tty()).unwrap_err(),
 			ParseError::BadGradientColors {
 				count: 1,
 				transition: true,
@@ -745,7 +813,7 @@ mod argument_parsing {
 
 		let three_without_transition = args(&["my text", "-g", "red,green,blue"]);
 		assert_eq!(
-			parse_args(&three_without_transition).unwrap_err(),
+			parse_args(&three_without_transition, tty()).unwrap_err(),
 			ParseError::BadGradientColors {
 				count: 3,
 				transition: false,
@@ -753,7 +821,7 @@ mod argument_parsing {
 		);
 
 		let three_with_transition = args(&["my text", "-g", "red,green,blue", "-t"]);
-		match parse_args(&three_with_transition).unwrap().options.global_color {
+		match parse_args(&three_with_transition, tty()).unwrap().options.global_color {
 			Some(ColorOption::Gradient(GradientOption::Transition { stops, .. })) => assert_eq!(stops.len(), 3),
 			other => panic!("expected a transition gradient, got {other:?}"),
 		}
@@ -762,7 +830,7 @@ mod argument_parsing {
 	#[test]
 	fn unknown_flags_warn_and_are_ignored() {
 		let input = args(&["my text", "-u", "--unknown"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 
 		assert_eq!(parsed.warnings.len(), 2);
 		assert!(parsed.warnings.iter().all(|warning| matches!(warning, ParseError::UnknownFlag(_))));
@@ -817,7 +885,7 @@ mod argument_parsing {
 				"-sitdr",
 			]),
 		] {
-			let parsed = parse_args(&invocation).unwrap();
+			let parsed = parse_args(&invocation, tty()).unwrap();
 			let block = &parsed.options.blocks[0];
 
 			assert_eq!(block.text(), "LONG TEXT|WITH NEW LINE");
@@ -841,15 +909,20 @@ mod argument_parsing {
 			}
 		}
 	}
+
+	#[test]
+	fn help_and_version_win_in_first_position() {
+		assert!(run(&["--version", "hi"]).show_version);
+		assert!(run(&["--help", "hi"]).show_help);
+		assert!(run(&["hi", "-v"]).show_version);
+		assert!(run(&["-h"]).show_help);
+	}
 }
 
 #[cfg(test)]
 mod preset_tests {
+	use super::helpers::*;
 	use super::*;
-
-	fn args(list: &[&str]) -> Vec<String> {
-		list.iter().map(|item| String::from(*item)).collect()
-	}
 
 	fn preset_of(parsed: &ParsedArgs) -> GradientPreset {
 		match parsed.options.global_color {
@@ -887,7 +960,7 @@ mod preset_tests {
 
 		for (name, expected) in expectations {
 			let input = args(&["my text", "-g", name]);
-			assert_eq!(preset_of(&parse_args(&input).unwrap()), expected, "{name}");
+			assert_eq!(preset_of(&parse_args(&input, tty()).unwrap()), expected, "{name}");
 		}
 	}
 
@@ -895,7 +968,7 @@ mod preset_tests {
 	fn presets_take_the_independent_flag_and_tolerate_the_transition_flag() {
 		let independent = args(&["my text", "-g", "pride", "-i"]);
 		assert_eq!(
-			parse_args(&independent).unwrap().options.global_color,
+			parse_args(&independent, tty()).unwrap().options.global_color,
 			Some(ColorOption::Gradient(GradientOption::Preset {
 				preset: GradientPreset::Pride,
 				independent_gradient: true,
@@ -904,7 +977,7 @@ mod preset_tests {
 
 		// presets are bundled transitions; a redundant -t neither errors nor warns
 		let redundant = args(&["my text", "-g", "trans", "-t"]);
-		let parsed = parse_args(&redundant).unwrap();
+		let parsed = parse_args(&redundant, tty()).unwrap();
 		assert_eq!(preset_of(&parsed), GradientPreset::Transgender);
 		assert!(parsed.warnings.is_empty());
 	}
@@ -913,7 +986,7 @@ mod preset_tests {
 	fn preset_names_do_not_shadow_stop_lists() {
 		let stops = args(&["my text", "-g", "red,blue"]);
 		assert!(matches!(
-			parse_args(&stops).unwrap().options.global_color,
+			parse_args(&stops, tty()).unwrap().options.global_color,
 			Some(ColorOption::Gradient(GradientOption::TwoStop { .. }))
 		));
 	}
@@ -921,17 +994,14 @@ mod preset_tests {
 
 #[cfg(test)]
 mod block_composition {
+	use super::helpers::*;
 	use super::*;
 	use crate::{Color, ColorOption, Font};
-
-	fn args(list: &[&str]) -> Vec<String> {
-		list.iter().map(|item| String::from(*item)).collect()
-	}
 
 	#[test]
 	fn next_starts_additional_text_blocks() {
 		let input = args(&["first", "--next", "second", "-n", "third"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 
 		let texts: Vec<&str> = parsed.options.blocks.iter().map(|block| block.text()).collect();
 		assert_eq!(texts, ["FIRST", "SECOND", "THIRD"]);
@@ -940,13 +1010,13 @@ mod block_composition {
 	#[test]
 	fn next_errors_without_a_value() {
 		let input = args(&["first", "--next"]);
-		assert_eq!(parse_args(&input).unwrap_err(), ParseError::MissingValue(Args::Next));
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::MissingValue(Args::Next));
 	}
 
 	#[test]
 	fn block_options_bind_to_the_block_before_them() {
 		let input = args(&["one", "-f", "tiny", "-c", "red", "--next", "two", "-f", "block", "-w"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 		let blocks = &parsed.options.blocks;
 
 		assert_eq!(blocks.len(), 2);
@@ -961,7 +1031,7 @@ mod block_composition {
 	#[test]
 	fn word_wrap_flags_only_the_current_block() {
 		let input = args(&["one", "-w", "--next", "two"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 
 		assert!(parsed.options.blocks[0].word_wrap);
 		assert!(!parsed.options.blocks[1].word_wrap);
@@ -970,7 +1040,7 @@ mod block_composition {
 	#[test]
 	fn word_wrap_works_inside_a_cluster() {
 		let input = args(&["one", "-sw"]);
-		let parsed = parse_args(&input).unwrap();
+		let parsed = parse_args(&input, tty()).unwrap();
 
 		assert!(parsed.options.spaceless);
 		assert!(parsed.options.blocks[0].word_wrap);
@@ -979,37 +1049,78 @@ mod block_composition {
 	#[test]
 	fn valign_errors_on_missing_and_unknown_values() {
 		let missing = args(&["my text", "-y"]);
-		assert_eq!(parse_args(&missing).unwrap_err(), ParseError::MissingValue(Args::Valign));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::Valign));
 
 		let unknown = args(&["my text", "-y", "diagonal"]);
 		assert!(matches!(
-			parse_args(&unknown).unwrap_err(),
+			parse_args(&unknown, tty()).unwrap_err(),
 			ParseError::InvalidValue {
 				argument: Args::Valign,
 				..
 			}
 		));
 	}
+
+	#[test]
+	fn next_with_dashed_text_and_no_pipe_errors() {
+		// cfonts --next -v  → no version output, no styled dash-v, a teaching error
+		let input = args(&["--next", "-v"]);
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::NoTextSupplied);
+	}
+
+	#[test]
+	fn an_empty_literal_first_text_is_the_escape_hatch() {
+		// cfonts '' --next -v  → Some("") block zero passes, literal -v styled in block one
+		let input = args(&["", "--next", "-v"]);
+		let parsed = parse_args(&input, tty()).unwrap();
+
+		assert_eq!(parsed.options.blocks[0].text(), "");
+		assert_eq!(parsed.options.blocks[1].text(), "-V");
+		assert!(!parsed.show_version);
+	}
+
+	#[test]
+	fn an_empty_block_renders_as_nothing() {
+		use crate::render::RenderContext;
+		use crate::{CliEnv, render_with};
+
+		let hatch = args(&["", "--next", "hello"]);
+		let plain = args(&["hello"]);
+		let with_empty = parse_args(&hatch, tty()).unwrap();
+		let without = parse_args(&plain, tty()).unwrap();
+
+		let context = RenderContext::from_validated_width(None);
+		assert_eq!(
+			render_with(&with_empty.options, &CliEnv, context).text,
+			render_with(&without.options, &CliEnv, context).text,
+		);
+	}
+
+	#[test]
+	fn a_default_cli_block_converts_to_a_default_render_block() {
+		// pins CliBlockOptions::default() against BlockOptions::default() through the real conversion
+		let input = args(&["X"]);
+		let parsed = parse_args(&input, tty()).unwrap();
+
+		assert_eq!(parsed.options.blocks[0], BlockOptions::new("X"));
+	}
 }
 
 #[cfg(test)]
 mod text_supply_rules {
+	use super::helpers::*;
 	use super::*;
-
-	fn args(list: &[&str]) -> Vec<String> {
-		list.iter().map(|item| String::from(*item)).collect()
-	}
 
 	#[test]
 	fn a_second_global_text_is_a_hard_error() {
 		let input = args(&["hello", "world"]);
-		assert_eq!(parse_args(&input).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("world"));
 	}
 
 	#[test]
 	fn bare_text_after_next_is_a_hard_error() {
 		let input = args(&["hello", "--next", "hi", "world"]);
-		assert_eq!(parse_args(&input).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("world"));
 	}
 
 	#[test]
@@ -1021,6 +1132,126 @@ mod text_supply_rules {
 	fn flags_between_texts_do_not_confuse_the_rule() {
 		// the flag and its value are consumed as a unit; only the bare token trips the rule
 		let input = args(&["hello", "-f", "tiny", "world"]);
-		assert_eq!(parse_args(&input).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+	}
+}
+
+#[cfg(test)]
+mod stdin_handling {
+	use super::helpers::*;
+	use super::*;
+
+	use std::sync::atomic::{AtomicUsize, Ordering};
+
+	fn piped(read: fn() -> String) -> StdinProvider {
+		StdinProvider {
+			interactive: false,
+			read,
+		}
+	}
+
+	#[test]
+	fn a_pipe_fills_the_empty_global_text() {
+		// echo test | cfonts
+		let parsed = parse_args(&[], piped(|| String::from("test\n"))).unwrap();
+		assert_eq!(parsed.options.blocks[0].text(), "TEST");
+	}
+
+	#[test]
+	fn supplied_text_never_touches_the_pipe() {
+		// yes | cfonts hello
+		let input = args(&["hello"]);
+		let never = piped(|| panic!("stdin must not be read when text was supplied"));
+
+		let parsed = parse_args(&input, never).unwrap();
+		assert_eq!(parsed.options.blocks[0].text(), "HELLO");
+	}
+
+	#[test]
+	fn a_terminal_is_never_read_implicitly() {
+		// cfonts (bare, in a terminal)
+		assert_eq!(parse_args(&[], tty()).unwrap_err(), ParseError::NoTextSupplied);
+	}
+
+	#[test]
+	fn the_stdin_flag_fills_the_global_block() {
+		// echo hi | cfonts --stdin
+		let input = args(&["--stdin"]);
+		let parsed = parse_args(&input, piped(|| String::from("hi"))).unwrap();
+		assert_eq!(parsed.options.blocks[0].text(), "HI");
+	}
+
+	#[test]
+	fn the_stdin_flag_conflicts_with_supplied_text() {
+		// the error fires before any read; the panicking tty provider proves it
+		let input = args(&["hello", "--stdin"]);
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("--stdin"));
+	}
+
+	#[test]
+	fn one_read_feeds_every_consumer() {
+		// echo hi | cfonts --next world --next-stdin
+		static READS: AtomicUsize = AtomicUsize::new(0);
+		fn counted_read() -> String {
+			READS.fetch_add(1, Ordering::SeqCst);
+			String::from("hi")
+		}
+
+		let input = args(&["--next", "world", "--next-stdin"]);
+		let parsed = parse_args(&input, piped(counted_read)).unwrap();
+
+		let texts: Vec<&str> = parsed.options.blocks.iter().map(|block| block.text()).collect();
+		assert_eq!(texts, ["HI", "WORLD", "HI"]);
+		assert_eq!(READS.load(Ordering::SeqCst), 1, "stdin must be read exactly once");
+	}
+
+	#[test]
+	fn an_empty_implicit_read_still_teaches() {
+		// cfonts < /dev/null
+		assert_eq!(parse_args(&[], piped(String::new)).unwrap_err(), ParseError::NoTextSupplied);
+	}
+
+	#[test]
+	fn a_newline_only_pipe_counts_as_empty() {
+		assert_eq!(parse_args(&[], piped(|| String::from("\n"))).unwrap_err(), ParseError::NoTextSupplied);
+	}
+
+	#[test]
+	fn an_empty_read_for_an_explicit_flag_is_an_error() {
+		// echo | cfonts test --next-stdin
+		let next_stdin = args(&["test", "--next-stdin"]);
+		assert_eq!(parse_args(&next_stdin, piped(String::new)).unwrap_err(), ParseError::EmptyStdin);
+
+		// echo | cfonts --stdin
+		let stdin_flag = args(&["--stdin"]);
+		assert_eq!(parse_args(&stdin_flag, piped(String::new)).unwrap_err(), ParseError::EmptyStdin);
+	}
+
+	#[test]
+	fn newlines_become_pipes_and_one_trailing_newline_drops() {
+		let unix = parse_args(&[], piped(|| String::from("a\nb\n"))).unwrap();
+		assert_eq!(unix.options.blocks[0].text(), "A|B");
+
+		let windows = parse_args(&[], piped(|| String::from("a\r\nb\r\n"))).unwrap();
+		assert_eq!(windows.options.blocks[0].text(), "A|B");
+	}
+
+	#[test]
+	fn explicit_stdin_flags_share_the_buffer() {
+		// echo hello | cfonts --stdin --next-stdin  → same text styled in two blocks
+		let input = args(&["--stdin", "--next-stdin"]);
+		let parsed = parse_args(&input, piped(|| String::from("hello"))).unwrap();
+
+		let texts: Vec<&str> = parsed.options.blocks.iter().map(|block| block.text()).collect();
+		assert_eq!(texts, ["HELLO", "HELLO"]);
+	}
+
+	#[test]
+	fn piped_dashed_text_is_text_not_flags() {
+		// echo "-v" | cfonts  → styles a literal -v
+		let parsed = parse_args(&[], piped(|| String::from("-v\n"))).unwrap();
+
+		assert_eq!(parsed.options.blocks[0].text(), "-V");
+		assert!(!parsed.show_version);
 	}
 }
