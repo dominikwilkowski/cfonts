@@ -1,6 +1,6 @@
 use crate::{
-	Align, BlockOptions, /*Background,*/ Color, ColorOption, Font, GradientPreset, Rgb, Valign,
-	cli::{GradientInput, ParseError, ParseState},
+	Align, /*Background,*/ Color, ColorOption, Font, GradientPreset, Rgb, Valign,
+	cli::{CliBlockOptions, GradientInput, ParseError, ParseState},
 	color::GradientStop,
 	helper::{const_concat, const_join},
 };
@@ -107,7 +107,7 @@ impl Args {
 	}
 
 	/// Helper function to get the current block options
-	fn current_block<'a>(state: &mut ParseState) -> Result<&mut BlockOptions, ParseError<'a>> {
+	fn current_block<'a>(state: &mut ParseState) -> Result<&mut CliBlockOptions, ParseError<'a>> {
 		state.options.blocks.last_mut().ok_or(ParseError::NoTextSupplied)
 	}
 
@@ -155,7 +155,7 @@ impl Args {
 			// Block config
 			Self::Next => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.options.blocks.push(BlockOptions::new(value));
+				state.options.blocks.push(CliBlockOptions::new(value));
 			}
 			Self::Font => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
@@ -497,7 +497,7 @@ mod tests {
 	fn gradients_reject_colors_that_are_not_stops() {
 		for name in ["system", "candy"] {
 			let mut state = ParseState::default();
-			state.options.blocks.push(BlockOptions::new("HI"));
+			state.options.blocks.push(CliBlockOptions::new("HI"));
 
 			assert_eq!(
 				Args::Gradient.apply(Some(name), &mut state),
@@ -516,7 +516,7 @@ mod tests {
 	fn the_arguments_field_matches_what_apply_demands() {
 		for argument in Args::ALL {
 			let mut state = ParseState::default();
-			state.options.blocks.push(BlockOptions::new("HI"));
+			state.options.blocks.push(CliBlockOptions::new("HI"));
 
 			let demands_value = matches!(argument.apply(None, &mut state), Err(ParseError::MissingValue(_)));
 			assert_eq!(

@@ -104,8 +104,9 @@ pub trait FontData {
 }
 
 /// The cfonts font enum for config
-#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, All)]
 pub enum Font {
+	#[default]
 	Block,
 	Chrome,
 	Console,

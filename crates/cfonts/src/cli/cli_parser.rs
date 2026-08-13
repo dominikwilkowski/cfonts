@@ -1,11 +1,13 @@
 use std::{
 	error::Error,
 	fmt::{Display, Formatter},
+	io::IsTerminal,
+	num::NonZeroUsize,
 };
 
 use crate::{
-	BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, Options, TransitionStops,
-	cli::Args,
+	Align, BlockOptions, Color, ColorError, ColorOption, Font, GradientOption, GradientPreset, GradientStop, Options,
+	TransitionStops, Valign, cli::Args,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -17,6 +19,7 @@ pub enum ErrorType {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ParseError<'a> {
 	NoTextSupplied,
+	TextAlreadySupplied(&'a str),
 	UnknownFlag(&'a str),
 	MissingValue(Args),
 	InvalidValue {
@@ -36,6 +39,7 @@ impl ParseError<'_> {
 	fn error_type(&self) -> ErrorType {
 		match self {
 			Self::NoTextSupplied => ErrorType::Error,
+			Self::TextAlreadySupplied(_) => ErrorType::Error,
 			Self::UnknownFlag(_) => ErrorType::Warning,
 			Self::MissingValue(_) => ErrorType::Error,
 			Self::InvalidValue { .. } => ErrorType::Error,
@@ -58,6 +62,9 @@ impl Display for ParseError<'_> {
 		match self {
 			Self::NoTextSupplied => {
 				write!(f, "{flag}: You have to give cfonts something to style, no text was supplied")
+			}
+			Self::TextAlreadySupplied(text) => {
+				write!(f, "{flag}: Text was already supplied so \"{open}{text}{close}\" was ignored")
 			}
 			Self::UnknownFlag(unknown_flag) => {
 				write!(f, "{flag}: An unknown flag \"{open}{unknown_flag}{close}\" was used and ignored")
@@ -141,8 +148,43 @@ pub(crate) enum GradientInput {
 }
 
 #[derive(Debug, Default)]
+pub(crate) struct CliOptions {
+	pub align: Align,
+	pub valign: Valign,
+	pub spaceless: bool,
+	pub max_length: Option<NonZeroUsize>,
+	pub global_color: Option<ColorOption>,
+	pub raw_mode: bool,
+	pub debug: bool,
+	pub blocks: Vec<CliBlockOptions>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct CliBlockOptions {
+	pub(crate) text: Option<String>,
+	pub(crate) font: Font,
+	pub(crate) color: Option<ColorOption>,
+	pub(crate) letter_spacing: usize,
+	pub(crate) line_height: usize,
+	pub(crate) word_wrap: bool,
+}
+
+impl CliBlockOptions {
+	/// Builds one text block and normalizes text to the supported uppercase glyph set
+	pub(crate) fn new(text: impl Into<String>) -> Self {
+		let mut text = text.into();
+		text.make_ascii_uppercase();
+
+		Self {
+			text: Some(text),
+			..Default::default()
+		}
+	}
+}
+
+#[derive(Debug, Default)]
 pub(crate) struct ParseState {
-	pub(crate) options: Options,
+	pub(crate) options: CliOptions,
 	pub(crate) gradient: Option<GradientInput>,
 	pub(crate) independent: bool,
 	pub(crate) transition: bool,
@@ -157,10 +199,10 @@ impl ParseState {
 
 		if self.gradient.is_none() {
 			if self.independent {
-				warnings.push(ParseError::FlagIgnored(Args::IndependentGradient));
+				warn(&mut warnings, ParseError::FlagIgnored(Args::IndependentGradient));
 			}
 			if self.transition {
-				warnings.push(ParseError::FlagIgnored(Args::TransitionGradient));
+				warn(&mut warnings, ParseError::FlagIgnored(Args::TransitionGradient));
 			}
 		}
 
@@ -173,16 +215,43 @@ impl TryFrom<ParseState> for Options {
 
 	fn try_from(state: ParseState) -> Result<Self, Self::Error> {
 		let ParseState {
-			mut options,
+			options,
 			gradient,
 			independent,
 			transition,
 			..
 		} = state;
 
+		let mut blocks = Vec::with_capacity(options.blocks.len());
+
+		for cli_block in options.blocks {
+			let Some(text) = cli_block.text else {
+				return Err(ParseError::NoTextSupplied);
+			};
+
+			let mut block = BlockOptions::new(text);
+			block.font = cli_block.font;
+			block.color = cli_block.color;
+			block.letter_spacing = cli_block.letter_spacing;
+			block.line_height = cli_block.line_height;
+			block.word_wrap = cli_block.word_wrap;
+			blocks.push(block);
+		}
+
+		let mut converted = Options {
+			align: options.align,
+			valign: options.valign,
+			spaceless: options.spaceless,
+			max_length: options.max_length,
+			global_color: options.global_color,
+			raw_mode: options.raw_mode,
+			debug: options.debug,
+			blocks,
+		};
+
 		match gradient {
 			Some(GradientInput::Preset(preset)) => {
-				options.global_color = Some(ColorOption::Gradient(preset.to_gradient(independent)));
+				converted.global_color = Some(ColorOption::Gradient(preset.to_gradient(independent)));
 			}
 			Some(GradientInput::Stops(stops)) if transition => {
 				let count = stops.len();
@@ -195,7 +264,7 @@ impl TryFrom<ParseState> for Options {
 					});
 				};
 
-				options.global_color = Some(ColorOption::Gradient(GradientOption::Transition {
+				converted.global_color = Some(ColorOption::Gradient(GradientOption::Transition {
 					stops: TransitionStops {
 						first,
 						second,
@@ -206,7 +275,7 @@ impl TryFrom<ParseState> for Options {
 			}
 			Some(GradientInput::Stops(stops)) => match stops.as_slice() {
 				&[start, end] => {
-					options.global_color = Some(ColorOption::Gradient(GradientOption::TwoStop {
+					converted.global_color = Some(ColorOption::Gradient(GradientOption::TwoStop {
 						start,
 						end,
 						independent_gradient: independent,
@@ -224,7 +293,7 @@ impl TryFrom<ParseState> for Options {
 			None => {}
 		}
 
-		Ok(options)
+		Ok(converted)
 	}
 }
 
@@ -236,6 +305,12 @@ pub struct ParsedArgs<'a> {
 	pub show_version: bool,
 }
 
+/// The one door into the warnings channel; only warning-typed problems may pass
+fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
+	debug_assert_eq!(warning.error_type(), ErrorType::Warning, "{warning:?} is not a warning");
+	warnings.push(warning);
+}
+
 pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'a>> {
 	let mut warnings: Vec<ParseError<'a>> = Vec::new();
 	let mut state = ParseState::default();
@@ -244,35 +319,15 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 		return Err(ParseError::NoTextSupplied);
 	}
 
-	// help and version work without text when they are the only argument
-	let name = args[0].strip_prefix("--").or_else(|| args[0].strip_prefix('-')).unwrap_or("");
+	// adding a block without text so parsing can always assume there is at least one block available
+	state.options.blocks.push(CliBlockOptions::default());
 
-	match Args::parse(name) {
-		Some(Args::Help) => {
-			return Ok(ParsedArgs {
-				options: state.options,
-				warnings,
-				show_help: true,
-				show_version: false,
-			});
-		}
-		Some(Args::Version) => {
-			return Ok(ParsedArgs {
-				options: state.options,
-				warnings,
-				show_help: false,
-				show_version: true,
-			});
-		}
-		_ => {}
-	}
-	state.options.blocks.push(BlockOptions::new(args[0].clone()));
-
-	let mut args_iter = args.iter().skip(1);
+	let mut args_iter = args.iter();
 	while let Some(arg_str) = args_iter.next() {
+		// Long flags
 		if let Some(name) = arg_str.strip_prefix("--") {
 			if name.is_empty() {
-				// TODO: bare `--`: decide what it means (conventionally: end of flags)
+				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
 			} else if let Some(arg) = Args::parse(name) {
 				let value = if arg.infos().arguments.is_some() {
 					args_iter.next().map(String::as_str)
@@ -281,11 +336,13 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 				};
 				arg.apply(value, &mut state)?;
 			} else {
-				warnings.push(ParseError::UnknownFlag(arg_str));
+				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
 			}
+		// Short flags
 		} else if let Some(cluster) = arg_str.strip_prefix('-') {
 			if cluster.is_empty() {
-				// TODO: lone `-`: decide (conventionally: stdin placeholder; probably UnknownFlag for cfonts)
+				// Conventionally this is a stdin placeholder for paths but since `-` can be styled we can't use it in cfonts
+				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
 			} else {
 				for (index, short) in cluster.char_indices() {
 					let length = short.len_utf8();
@@ -305,23 +362,39 @@ pub fn parse_args<'a>(args: &'a [String]) -> Result<ParsedArgs<'a>, ParseError<'
 						};
 						arg.apply(value, &mut state)?;
 					} else {
-						warnings.push(ParseError::UnknownFlag(short_str));
+						warn(&mut warnings, ParseError::UnknownFlag(short_str));
 					}
 				}
 			}
+		// Text arguments for the first block
+		} else if state.options.blocks.len() == 1 {
+			if state.options.blocks[0].text.is_some() {
+				return Err(ParseError::TextAlreadySupplied(arg_str));
+			} else {
+				state.options.blocks[0].text = Some(arg_str.to_string());
+			}
+		// Text arguments for subsequent blocks are not allowed and require `--next`
 		} else {
-			warnings.push(ParseError::UnknownFlag(arg_str));
+			return Err(ParseError::TextAlreadySupplied(arg_str));
 		}
 	}
 
 	warnings.extend(state.gradient_flag_warnings());
 
+	let show_help = state.show_help;
+	let show_version = state.show_version;
+	let options = if show_help || show_version {
+		// help and version render nothing, so their invocations need no text and skip the conversion
+		Options::default()
+	} else {
+		state.try_into()?
+	};
+
 	Ok(ParsedArgs {
 		warnings,
-		show_help: state.show_help,
-		show_version: state.show_version,
-		// Moving options down here to avoid lifetime issues for `state`
-		options: state.try_into()?,
+		options,
+		show_help,
+		show_version,
 	})
 }
 
@@ -332,7 +405,7 @@ mod gradient_resolution {
 
 	fn state() -> ParseState {
 		let mut state = ParseState::default();
-		state.options.blocks.push(BlockOptions::new("HI"));
+		state.options.blocks.push(CliBlockOptions::new("HI"));
 		state
 	}
 
@@ -463,12 +536,6 @@ mod gradient_resolution {
 		assert!(run(&["--help", "hi"]).show_help);
 		assert!(run(&["hi", "-v"]).show_version);
 		assert!(run(&["-h"]).show_help);
-	}
-
-	#[test]
-	fn other_flag_shaped_first_arguments_stay_text() {
-		let parsed = run(&["--font"]);
-		assert_eq!(parsed.options.blocks[0].text(), "--FONT");
 	}
 }
 
@@ -922,5 +989,38 @@ mod block_composition {
 				..
 			}
 		));
+	}
+}
+
+#[cfg(test)]
+mod text_supply_rules {
+	use super::*;
+
+	fn args(list: &[&str]) -> Vec<String> {
+		list.iter().map(|item| String::from(*item)).collect()
+	}
+
+	#[test]
+	fn a_second_global_text_is_a_hard_error() {
+		let input = args(&["hello", "world"]);
+		assert_eq!(parse_args(&input).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+	}
+
+	#[test]
+	fn bare_text_after_next_is_a_hard_error() {
+		let input = args(&["hello", "--next", "hi", "world"]);
+		assert_eq!(parse_args(&input).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+	}
+
+	#[test]
+	fn text_already_supplied_is_error_typed() {
+		assert_eq!(ParseError::TextAlreadySupplied("world").error_type(), ErrorType::Error);
+	}
+
+	#[test]
+	fn flags_between_texts_do_not_confuse_the_rule() {
+		// the flag and its value are consumed as a unit; only the bare token trips the rule
+		let input = args(&["hello", "-f", "tiny", "world"]);
+		assert_eq!(parse_args(&input).unwrap_err(), ParseError::TextAlreadySupplied("world"));
 	}
 }
