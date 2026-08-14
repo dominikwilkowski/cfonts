@@ -331,7 +331,7 @@ impl Args {
 
 			// Boolean flags
 			Self::Spaceless => state.options.spaceless = true,
-			Self::RawMode => state.options.raw_mode = true,
+			Self::RawMode => state.raw_mode = true,
 			Self::Debug => state.options.debug = true,
 			Self::WordWrap => state.options.blocks.last_mut().unwrap().word_wrap = true,
 			Self::IndependentGradient => state.independent = true,

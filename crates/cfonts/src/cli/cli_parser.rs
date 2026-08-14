@@ -206,7 +206,6 @@ pub(crate) struct CliOptions {
 	pub spaceless: bool,
 	pub max_length: Option<NonZeroUsize>,
 	pub global_color: Option<ColorOption>,
-	pub raw_mode: bool,
 	pub debug: bool,
 	pub blocks: Vec<CliBlockOptions>,
 }
@@ -255,6 +254,7 @@ pub(crate) struct ParseState {
 	pub(crate) gradient: Option<GradientInput>,
 	pub(crate) independent: bool,
 	pub(crate) transition: bool,
+	pub(crate) raw_mode: bool,
 	pub(crate) show_help: bool,
 	pub(crate) show_version: bool,
 }
@@ -288,6 +288,7 @@ impl Default for ParseState {
 			gradient: None,
 			independent: false,
 			transition: false,
+			raw_mode: false,
 			show_help: false,
 			show_version: false,
 		}
@@ -332,7 +333,6 @@ impl TryFrom<ParseState> for Options {
 			spaceless: options.spaceless,
 			max_length: options.max_length,
 			global_color: options.global_color,
-			raw_mode: options.raw_mode,
 			debug: options.debug,
 			blocks,
 		};
@@ -389,6 +389,7 @@ impl TryFrom<ParseState> for Options {
 pub struct ParsedArgs<'a> {
 	pub options: Options,
 	pub warnings: Vec<ParseError<'a>>,
+	pub raw_mode: bool,
 	pub show_help: bool,
 	pub show_version: bool,
 }
@@ -491,6 +492,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 
 	let show_help = state.show_help;
 	let show_version = state.show_version;
+	let raw_mode = state.raw_mode;
 	let options = if show_help || show_version {
 		// help and version render nothing, so their invocations need no text and skip the conversion
 		Options::default()
@@ -501,6 +503,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 	Ok(ParsedArgs {
 		warnings,
 		options,
+		raw_mode,
 		show_help,
 		show_version,
 	})
@@ -685,7 +688,7 @@ mod argument_parsing {
 			let parsed = parse_args(&invocation, tty()).unwrap();
 			assert!(parsed.options.spaceless);
 			assert!(parsed.options.debug);
-			assert!(parsed.options.raw_mode);
+			assert!(parsed.raw_mode);
 		}
 	}
 
@@ -943,7 +946,7 @@ mod argument_parsing {
 			assert_eq!(parsed.options.valign, Valign::Top);
 			assert!(parsed.options.spaceless);
 			assert!(parsed.options.debug);
-			assert!(parsed.options.raw_mode);
+			assert!(parsed.raw_mode);
 			assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 
 			match &parsed.options.global_color {
@@ -1139,8 +1142,8 @@ mod block_composition {
 
 		let context = RenderContext::from_validated_width(None);
 		assert_eq!(
-			render_with(&with_empty.options, &CliEnv, context).text,
-			render_with(&without.options, &CliEnv, context).text,
+			render_with(&with_empty.options, &CliEnv::default(), context).text,
+			render_with(&without.options, &CliEnv::default(), context).text,
 		);
 	}
 

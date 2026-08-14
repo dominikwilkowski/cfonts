@@ -30,7 +30,7 @@ impl Target {
 		let context = RenderContext::with_canvas_width(canvas_width.unwrap_or(0));
 
 		match self {
-			Self::Cli => cfonts::render_with(&options, &CliEnv, context).text,
+			Self::Cli => cfonts::render_with(&options, &CliEnv::default(), context).text,
 			Self::Browser => cfonts::render_with(&options, &BrowserEnv, context).text,
 			Self::BrowserConsole => cfonts::render_with(&options, &BrowserConsoleEnv, context).text,
 		}

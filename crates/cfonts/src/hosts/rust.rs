@@ -6,7 +6,7 @@ use std::{
 use terminal_size::{Width, terminal_size};
 
 use crate::{
-	CanvasWidth, CliEnv, ColorLevel, ColorOverride, Host, RenderContext, RenderOverrides, Rendered,
+	CanvasWidth, CliEnv, ColorLevel, ColorOverride, Environment, Host, RenderContext, RenderOverrides, Rendered,
 	hosts::{ColorDecision, decide_color, decide_detected},
 };
 
@@ -20,12 +20,27 @@ pub struct RustHost {
 }
 
 impl RustHost {
+	/// Renders with `\r\n` line endings for terminals in raw mode
+	#[must_use]
+	pub const fn with_raw_mode(mut self, raw_mode: bool) -> Self {
+		self.environment = CliEnv::new(raw_mode);
+		self
+	}
+
+	/// Writes the artifact and the closing line break the environment expects
+	fn write_into(&self, rendered: &Rendered, out: &mut impl Write) -> io::Result<()> {
+		let mut closing = Rendered::default();
+		self.environment.row_break(&mut closing);
+
+		write!(out, "{}{}", rendered.text, closing.text)
+	}
+
 	/// Creates a native host with explicit overrides
 	#[must_use]
 	pub fn from_overrides(overrides: RenderOverrides) -> Self {
 		Self {
 			overrides,
-			environment: CliEnv,
+			environment: CliEnv::default(),
 		}
 	}
 }
@@ -62,7 +77,7 @@ impl Host for RustHost {
 	}
 
 	fn write(&self, rendered: &Rendered) -> Result<(), Self::Error> {
-		writeln!(io::stdout().lock(), "{}", rendered.text)
+		self.write_into(rendered, &mut io::stdout().lock())
 	}
 }
 
@@ -380,5 +395,39 @@ mod tests {
 				RustHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)));
 			assert!(host.resolve_context().color_level().is_none(), "a set NO_COLOR must win over the override");
 		});
+	}
+
+	#[test]
+	fn with_raw_mode_reaches_the_rendered_output() {
+		// the host builds its environment before options exist, so the raw flag arrives through the builder method
+		temp_env::with_vars(
+			[
+				("FORCE_SIZE", None::<&str>),
+				("FORCE_COLOR", Some("0")),
+				("NO_COLOR", None),
+			],
+			|| {
+				let options = crate::Options::from(crate::Cfonts::text("A").font(crate::Font::Tiny));
+				let raw = RustHost::default().with_raw_mode(true).render(&options);
+				let neutral = RustHost::default().with_raw_mode(false).render(&options);
+
+				assert!(raw.text.contains("\r\n"));
+				assert!(!neutral.text.contains('\r'));
+			},
+		);
+	}
+
+	#[test]
+	fn the_closing_line_break_follows_the_environment() {
+		let mut rendered = Rendered::default();
+		rendered.text.push_str("ART");
+
+		let mut raw = Vec::new();
+		let mut plain = Vec::new();
+		RustHost::default().with_raw_mode(true).write_into(&rendered, &mut raw).unwrap();
+		RustHost::default().write_into(&rendered, &mut plain).unwrap();
+
+		assert_eq!(raw, b"ART\r\n");
+		assert_eq!(plain, b"ART\n");
 	}
 }

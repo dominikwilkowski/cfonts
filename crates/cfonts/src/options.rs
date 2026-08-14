@@ -159,9 +159,6 @@ pub struct Options {
 	/// and a global gradient's ramp resumes after them
 	pub global_color: Option<ColorOption>,
 
-	/// Whether raw mode should bypass normal output decoration
-	pub raw_mode: bool, // TODO: implement
-
 	/// Whether debug output should be enabled
 	pub debug: bool, // TODO: implement
 
@@ -177,7 +174,6 @@ impl Default for Options {
 			spaceless: false,
 			max_length: None,
 			global_color: None,
-			raw_mode: false,
 			debug: false,
 			blocks: Vec::new(),
 		}

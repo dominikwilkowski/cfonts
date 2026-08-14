@@ -207,7 +207,7 @@ impl Cfonts {
 		color_level: Option<ColorLevel>,
 		seed: Option<u32>,
 	) -> Rendered {
-		cfonts::render_with(&self.options, &CliEnv, Self::context(canvas_width, color_level, seed)).into()
+		cfonts::render_with(&self.options, &CliEnv::default(), Self::context(canvas_width, color_level, seed)).into()
 	}
 
 	/// Renders an HTML fragment through the core Rust library

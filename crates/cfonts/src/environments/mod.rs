@@ -232,7 +232,7 @@ pub trait Environment {
 
 	/// Renders precomputed layout rows in one paint-stream traversal
 	fn render_rows(&self, rows: &[LayoutRow], options: &Options, context: &RenderContext) -> Rendered {
-		// Benchmarks showed that preallocation was either inaccurate or slower
+		// Benchmarks showed that pre-allocation was either inaccurate or slower
 		// Let the string grow amortized to keep rendering single-pass
 		let mut out = Rendered::default();
 		let mut plan = PaintPlan::build(options, context, |color| {
@@ -429,7 +429,7 @@ mod tests {
 			start: Cow::Borrowed("<start>"),
 			end: Cow::Borrowed("<end>"),
 		};
-		CliEnv.paint("TEXT", &tokens, true, &RenderContext::unlimited(), &mut out);
+		CliEnv::default().paint("TEXT", &tokens, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 
@@ -444,7 +444,7 @@ mod tests {
 			block_spans: Vec::new(),
 		};
 		let mut out = Rendered::default();
-		CliEnv.row_start(&row, &Options::default(), &mut out);
+		CliEnv::default().row_start(&row, &Options::default(), &mut out);
 
 		assert_eq!(out.text, "    ");
 	}
@@ -469,7 +469,7 @@ mod tests {
 	#[test]
 	fn render_produces_the_plain_rows() {
 		let rendered =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&CliEnv, RenderContext::unlimited());
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&CliEnv::default(), RenderContext::unlimited());
 
 		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}

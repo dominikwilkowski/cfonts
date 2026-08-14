@@ -42,6 +42,7 @@ fn main() -> std::io::Result<()> {
 	let ParsedArgs {
 		options,
 		warnings,
+		raw_mode,
 		show_help,
 		show_version,
 	} = match parse_args(&args, std_provider) {
@@ -61,7 +62,7 @@ fn main() -> std::io::Result<()> {
 	} else if show_version {
 		println!("v{}", env!("CARGO_PKG_VERSION"));
 	} else {
-		RustHost::default().say(&options)?;
+		RustHost::default().with_raw_mode(raw_mode).say(&options)?;
 	}
 
 	Ok(())

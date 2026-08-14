@@ -1,4 +1,4 @@
-use crate::{Color, Font, GradientOption, GradientStop, Host, RustHost, Valign, cli::Args};
+use crate::{CliEnv, Color, Font, GradientOption, GradientStop, Host, RustHost, Valign, cli::Args};
 
 pub fn cli_help() -> String {
 	cli_help_with(RustHost::default().resolve_context().color_level().is_some())
@@ -25,7 +25,7 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 		.font(Font::Console)
 		.valign(Valign::Bottom)
 		.color(vec![Color::System])
-		.render_with(&crate::CliEnv, context);
+		.render_with(&CliEnv::default(), context);
 
 	const USAGE: &str = concat!(
 		"Usage: cfonts <text> [options] [--next <text> [options]]...\n",

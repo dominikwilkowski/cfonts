@@ -24,6 +24,7 @@ pub struct Cfonts<
 	SpacelessState = Unset,
 	MaxLengthState = Unset,
 	GlobalColorState = Unset,
+	// TODO: add stdin flag
 > {
 	options: Options,
 	_state: PhantomData<(AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState)>,
@@ -626,6 +627,8 @@ mod tests {
 
 	// test hosts
 
+	const CLI: CliEnv = CliEnv::new(false);
+
 	/// A host that captures its write instead of touching stdout
 	#[derive(Default)]
 	struct CaptureHost {
@@ -638,11 +641,11 @@ mod tests {
 		type Error = std::convert::Infallible;
 
 		fn render_environment(&self) -> &CliEnv {
-			&CliEnv
+			&CLI
 		}
 
 		fn say_environment(&self) -> &CliEnv {
-			&CliEnv
+			&CLI
 		}
 
 		fn resolve_context(&self) -> RenderContext {
@@ -664,11 +667,11 @@ mod tests {
 		type Error = &'static str;
 
 		fn render_environment(&self) -> &CliEnv {
-			&CliEnv
+			&CLI
 		}
 
 		fn say_environment(&self) -> &CliEnv {
-			&CliEnv
+			&CLI
 		}
 
 		fn resolve_context(&self) -> RenderContext {

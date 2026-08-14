@@ -17,8 +17,8 @@ fn render_overrides_distinguish_auto_unlimited_and_columns() {
 fn explicit_context_controls_wrapping_without_detection() {
 	let options: Options = Cfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
 
-	let narrow = render_with(&options, &CliEnv, RenderContext::with_canvas_width(3));
-	let unlimited = render_with(&options, &CliEnv, RenderContext::unlimited());
+	let narrow = render_with(&options, &CliEnv::default(), RenderContext::with_canvas_width(3));
+	let unlimited = render_with(&options, &CliEnv::default(), RenderContext::unlimited());
 
 	assert_ne!(narrow.text, unlimited.text);
 }
@@ -48,8 +48,8 @@ fn contexts_default_to_colorless_and_carry_what_they_are_given() {
 fn a_color_level_without_color_options_paints_nothing() {
 	// capabilities alone paint nothing: only configured colors consume the level
 	let banner = Cfonts::text("HI").font(Font::Tiny);
-	let plain = banner.render_with(&CliEnv, RenderContext::unlimited());
-	let leveled = banner.render_with(&CliEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(42));
+	let plain = banner.render_with(&CliEnv::default(), RenderContext::unlimited());
+	let leveled = banner.render_with(&CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(42));
 
 	assert_eq!(plain.text, leveled.text);
 }

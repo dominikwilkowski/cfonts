@@ -25,7 +25,7 @@ fn named_colors_paint_their_fixed_codes_at_every_level() {
 	let expected = "\u{1b}[31m▄▀█\u{1b}[39m\n\u{1b}[31m█▀█\u{1b}[39m";
 
 	for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-		assert_eq!(render_with(&options, &CliEnv, RenderContext::colored(level)).text, expected, "{level:?}");
+		assert_eq!(render_with(&options, &CliEnv::default(), RenderContext::colored(level)).text, expected, "{level:?}");
 	}
 }
 
@@ -40,9 +40,9 @@ fn rgb_colors_level_down_the_chain() {
 		})],
 	);
 
-	let true_color = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
-	let ansi256 = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::Ansi256)).text;
-	let basic = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::Basic)).text;
+	let true_color = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
+	let ansi256 = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Ansi256)).text;
+	let basic = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
 
 	assert_eq!(true_color, "\u{1b}[38;2;255;136;0m▄▀█\u{1b}[39m\n\u{1b}[38;2;255;136;0m█▀█\u{1b}[39m");
 	assert_eq!(ansi256, "\u{1b}[38;5;214m▄▀█\u{1b}[39m\n\u{1b}[38;5;214m█▀█\u{1b}[39m");
@@ -51,17 +51,17 @@ fn rgb_colors_level_down_the_chain() {
 
 #[test]
 fn no_color_level_paints_nothing() {
-	let plain = render_with(&tiny("A", vec![]), &CliEnv, RenderContext::unlimited()).text;
-	let colored = render_with(&tiny("A", vec![Color::Red]), &CliEnv, RenderContext::unlimited()).text;
+	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderContext::unlimited()).text;
+	let colored = render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), RenderContext::unlimited()).text;
 
 	assert_eq!(colored, plain);
 }
 
 #[test]
 fn system_paints_nothing() {
-	let plain = render_with(&tiny("A", vec![]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 	let system =
-		render_with(&tiny("A", vec![Color::System]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+		render_with(&tiny("A", vec![Color::System]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	assert_eq!(system, plain);
 }
@@ -71,9 +71,9 @@ fn candy_renders_are_deterministic_for_a_seed() {
 	let options = tiny("AB", vec![Color::Candy]);
 	let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
 
-	let one = render_with(&options, &CliEnv, seeded).text;
-	let two = render_with(&options, &CliEnv, seeded).text;
-	let other = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(43)).text;
+	let one = render_with(&options, &CliEnv::default(), seeded).text;
+	let two = render_with(&options, &CliEnv::default(), seeded).text;
+	let other = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(43)).text;
 
 	assert_eq!(one, two);
 	assert_ne!(one, other);
@@ -82,7 +82,7 @@ fn candy_renders_are_deterministic_for_a_seed() {
 #[test]
 fn candy_paints_only_assortment_codes() {
 	let rendered =
-		render_with(&tiny("ABC", vec![Color::Candy]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor).with_seed(7))
+		render_with(&tiny("ABC", vec![Color::Candy]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(7))
 			.text;
 
 	// candy picks named colors, so every start is a fixed sixteen color code from
@@ -104,9 +104,9 @@ fn candy_paints_only_assortment_codes() {
 
 #[test]
 fn excess_colors_beyond_the_fonts_slots_are_ignored() {
-	let one = render_with(&tiny("A", vec![Color::Red]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let one = render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 	let two =
-		render_with(&tiny("A", vec![Color::Red, Color::Blue]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+		render_with(&tiny("A", vec![Color::Red, Color::Blue]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	assert_eq!(two, one);
 }
@@ -114,7 +114,7 @@ fn excess_colors_beyond_the_fonts_slots_are_ignored() {
 #[test]
 fn letter_spaces_paint_in_single_color_fonts() {
 	let rendered =
-		render_with(&tiny("AB", vec![Color::Red]), &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+		render_with(&tiny("AB", vec![Color::Red]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// every segment paints its own run: glyph, letter space, glyph
 	assert_eq!(
@@ -128,7 +128,7 @@ fn multi_slot_fonts_paint_each_tagged_slot() {
 	let options: Options =
 		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().color(vec![Color::Red, Color::Blue]).into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	assert!(rendered.contains("\u{1b}[31m"));
 	assert!(rendered.contains("\u{1b}[34m"));
@@ -139,7 +139,7 @@ fn missing_slots_stay_bare() {
 	let options: Options =
 		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().color(vec![Color::Red]).into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	assert!(rendered.contains("\u{1b}[31m"));
 	assert!(!rendered.contains("\u{1b}[34m"));
@@ -153,7 +153,7 @@ fn letter_spaces_stay_bare_in_tagged_fonts() {
 	let options: Options =
 		Cfonts::text("AB").font(Font::Block).valign(Valign::Top).spaceless().color(vec![Color::Red, Color::Blue]).into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	assert!(!rendered.contains("\u{1b}[31m \u{1b}[39m"));
 	assert!(!rendered.contains("\u{1b}[34m \u{1b}[39m"));
@@ -171,7 +171,7 @@ fn global_colors_cover_blocks_without_their_own() {
 		.global_color(vec![Color::Blue])
 		.into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	assert!(rendered.contains("\u{1b}[31m"));
 	assert!(rendered.contains("\u{1b}[34m"));
@@ -190,7 +190,7 @@ fn an_empty_color_list_suppresses_the_global_color() {
 
 	let context = RenderContext::colored(ColorLevel::TrueColor);
 
-	assert_eq!(render_with(&suppressed, &CliEnv, context).text, render_with(&plain, &CliEnv, context).text);
+	assert_eq!(render_with(&suppressed, &CliEnv::default(), context).text, render_with(&plain, &CliEnv::default(), context).text);
 }
 
 #[test]
@@ -200,14 +200,14 @@ fn gradients_paint_nothing_without_a_color_level() {
 		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().color(GradientPreset::Pride).into();
 
 	assert_eq!(
-		render_with(&ramped, &CliEnv, RenderContext::unlimited()).text,
-		render_with(&plain, &CliEnv, RenderContext::unlimited()).text
+		render_with(&ramped, &CliEnv::default(), RenderContext::unlimited()).text,
+		render_with(&plain, &CliEnv::default(), RenderContext::unlimited()).text
 	);
 }
 
 #[test]
 fn two_stop_gradients_paint_every_column_of_the_ramp() {
-	let plain = render_with(&tiny("AB", vec![]), &CliEnv, RenderContext::unlimited()).text;
+	let plain = render_with(&tiny("AB", vec![]), &CliEnv::default(), RenderContext::unlimited()).text;
 	let ramped: Options = Cfonts::text("AB")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
@@ -219,7 +219,7 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 		})
 		.into();
 
-	let rendered = render_with(&ramped, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// one ramp over the row width, every column painted with its own run, letter spaces included
 	let mut ramp = GradientColors::new();
@@ -243,7 +243,7 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 		})
 		.into();
 
-	let rendered = render_with(&ramped, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// both lines start on the first stop and end on the last, whatever their width
 	for row in rendered.lines() {
@@ -255,11 +255,11 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 
 #[test]
 fn transition_presets_paint_their_stop_colors() {
-	let plain = render_with(&tiny("A", vec![]), &CliEnv, RenderContext::unlimited()).text;
+	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderContext::unlimited()).text;
 	let ramped: Options =
 		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().color(GradientPreset::Pride).into();
 
-	let rendered = render_with(&ramped, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	let mut ramp = GradientColors::new();
 	ramp.fill(GradientPreset::Pride.stops(), true, 3);
@@ -284,7 +284,7 @@ fn the_global_gradient_resumes_after_a_statically_painted_block() {
 		})
 		.into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// the first block paints its static red, the second continues the global
 	// ramp at its absolute column, not at the ramp's start
@@ -314,8 +314,8 @@ fn gradients_level_down_per_column() {
 		})
 		.into();
 
-	let basic = render_with(&ramped, &CliEnv, RenderContext::colored(ColorLevel::Basic)).text;
-	let ansi256 = render_with(&ramped, &CliEnv, RenderContext::colored(ColorLevel::Ansi256)).text;
+	let basic = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
+	let ansi256 = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::Ansi256)).text;
 
 	assert!(!basic.contains("\u{1b}[38;"));
 	assert!(basic.contains("\u{1b}[9") || basic.contains("\u{1b}[3"));
@@ -400,7 +400,7 @@ fn the_console_pairs_markers_with_styles_in_order() {
 fn only_the_console_fills_styles() {
 	let context = RenderContext::colored(ColorLevel::TrueColor);
 
-	assert!(render_with(&tiny("A", vec![Color::Red]), &CliEnv, context).styles.is_empty());
+	assert!(render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), context).styles.is_empty());
 	assert!(render_with(&tiny("A", vec![Color::Red]), &BrowserEnv, context).styles.is_empty());
 }
 
@@ -453,7 +453,7 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 		.into();
 
 	let context = RenderContext::with_canvas_width(7).with_color_level(Some(ColorLevel::TrueColor));
-	let rendered = render_with(&options, &CliEnv, context).text;
+	let rendered = render_with(&options, &CliEnv::default(), context).text;
 
 	// the ramp anchors at the widest row, so the short right aligned row samples
 	// its absolute columns and converges on the end color at the shared right edge
@@ -490,7 +490,7 @@ fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 		.spaceless()
 		.into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// the second block's ramp spans its own three columns, restarting on the stop color
 	let mut ramp = GradientColors::new();
@@ -521,7 +521,7 @@ fn a_wrapped_block_gradient_fixes_its_ramp_over_the_widest_row() {
 		})
 		.into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// the fixed block ramp spans the widest row, so the narrow row only walks its start
 	let lines: Vec<&str> = rendered.lines().collect();
@@ -544,7 +544,7 @@ fn an_independent_global_gradient_ramps_each_line() {
 		})
 		.into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	for row in rendered.lines() {
 		assert!(row.starts_with("\u{1b}[38;2;255;0;0m"), "every row starts on red: {row}");
@@ -568,7 +568,7 @@ fn leading_space_glyphs_consume_the_ramp() {
 		})
 		.into();
 
-	let rendered = render_with(&options, &CliEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	let first_row = rendered.lines().next().expect("two rows");
 	assert!(!first_row.starts_with("\u{1b}[38;2;255;0;0m\u{1b}[39m\u{1b}[38;2;255;0;0m▄"), "sanity");
