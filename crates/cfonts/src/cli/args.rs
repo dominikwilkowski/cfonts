@@ -23,7 +23,16 @@ macro_rules! help_line {
 	($arg:expr, $colored:literal) => {{
 		const INFO: ArgInfo = $arg.infos();
 		const BOLD: &str = if $colored { "\x1B[1m" } else { "" };
-		const ITALIC: &str = if $colored { "\x1B[3m" } else { "" };
+		const ITALIC: &str = match INFO.scope.len() {
+			0 => "",
+			_ => {
+				if $colored {
+					"\x1B[3m"
+				} else {
+					""
+				}
+			}
+		};
 		const RESET: &str = if $colored { "\x1B[0m" } else { "" };
 		const VALUE: &str = if $colored {
 			Color::Green.ansi16_sgr().unwrap()
@@ -508,7 +517,7 @@ impl Args {
 
 	/// Whether the host allows colored output right now
 	#[cfg(not(target_arch = "wasm32"))]
-	fn color_enabled() -> bool {
+	pub(crate) fn color_enabled() -> bool {
 		use crate::{Host, RustHost};
 
 		RustHost::default().resolve_context().color_level().is_some()
@@ -516,17 +525,8 @@ impl Args {
 
 	/// The wasm targets render through their own environments and never see this help
 	#[cfg(target_arch = "wasm32")]
-	fn color_enabled() -> bool {
+	pub(crate) fn color_enabled() -> bool {
 		false
-	}
-
-	/// One help line per arg, selected at runtime from two compile time variants
-	pub(crate) fn help(self) -> &'static str {
-		if Self::color_enabled() {
-			self.help_colored()
-		} else {
-			self.help_plain()
-		}
 	}
 
 	/// The styled help line, built at compile time

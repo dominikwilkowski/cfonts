@@ -31,7 +31,7 @@ pub enum ParseError<'a> {
 		count: usize,
 		transition: bool,
 	},
-	FlagIgnored(Args),
+	GradientFlagIgnored(Args),
 	EmptyStdin,
 }
 
@@ -45,94 +45,139 @@ impl ParseError<'_> {
 			Self::InvalidValue { .. } => ErrorType::Error,
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
 			Self::BadGradientColors { .. } => ErrorType::Error,
-			Self::FlagIgnored(_) => ErrorType::Warning,
+			Self::GradientFlagIgnored(_) => ErrorType::Warning,
 			Self::EmptyStdin => ErrorType::Error,
 		}
 	}
-}
 
-impl Display for ParseError<'_> {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		let flag = match self.error_type() {
-			ErrorType::Warning => "WARNING",
-			ErrorType::Error => "ERROR",
+	fn write_message(&self, f: &mut impl std::fmt::Write, color_enabled: bool) -> std::fmt::Result {
+		let open = if color_enabled {
+			Color::Yellow.ansi16_sgr().unwrap_or("")
+		} else {
+			""
 		};
-		let open = Color::Yellow.ansi16_sgr().unwrap_or("");
-		let close = Color::ANSI_RESET;
+		let close = if color_enabled { Color::ANSI_RESET } else { "" };
+		let prompt = if color_enabled { "  \x1B[1m$\x1B[0m " } else { "  $ " };
+		let warning_open = if color_enabled { "\x1B[43m\x1B[30m" } else { "" };
+		let error_open = if color_enabled { "\x1B[41m\x1B[37m" } else { "" };
+		let reset = if color_enabled { "\x1B[0m" } else { "" };
+		let flag = match self.error_type() {
+			ErrorType::Warning => format!("{warning_open} WARNING {reset}"),
+			ErrorType::Error => format!("{error_open} ERROR {reset}"),
+		};
 
 		match self {
 			Self::NoTextSupplied => {
 				write!(
 					f,
-					"{flag}: You have to give cfonts something to style, no text was supplied by either pipe or argument\n$ cfonts Hello"
+					"{flag} You have to give cfonts something to style\nNo text was supplied by either pipe or argument\n\n{prompt} cfonts Hello"
 				)
 			}
 			Self::TextAlreadySupplied(text) => {
-				write!(f, "{flag}: Text was already supplied so \"{open}{text}{close}\" was ignored")
+				write!(f, "{flag} Text was already supplied so \"{open}{text}{close}\" was ignored")
 			}
 			Self::UnknownFlag(unknown_flag) => {
-				write!(f, "{flag}: An unknown flag \"{open}{unknown_flag}{close}\" was used and ignored")
+				write!(f, "{flag} An unknown flag \"{open}{unknown_flag}{close}\" was used and ignored")
 			}
 			Self::MissingValue(args) => {
 				write!(
 					f,
-					"{flag}: The option \"{open}{}{close}\" was supplied but no value was given\n{}",
+					"{flag} The option \"{open}{}{close}\" was supplied but no value was given\n\n{}",
 					args.infos().long,
-					args.help()
+					if color_enabled {
+						args.help_colored()
+					} else {
+						args.help_plain()
+					}
 				)
 			}
 			Self::InvalidValue {
-				argument,
+				argument: args,
 				value,
 				source,
 			} => {
 				write!(
 					f,
-					"{flag}: The option \"{open}{}{close}\" was given an invalid value \"{open}{value}{close}\"",
-					argument.infos().long,
+					"{flag} The option \"{open}{}{close}\" was given an invalid value \"{open}{value}{close}\"",
+					args.infos().long,
 				)?;
 
 				if let Some(source) = source {
 					write!(f, "\nCause: {source}")?;
 				}
 
-				write!(f, "\n{}", argument.help())
+				write!(
+					f,
+					"\n\n{}",
+					if color_enabled {
+						args.help_colored()
+					} else {
+						args.help_plain()
+					}
+				)
 			}
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
 					f,
-					"{flag}: The option \"{open}{}{close}\" was supplied in a cluster without a value,\nto keep it in a cluster, make sure you add it to the end of it\n{}",
+					"{flag} The option \"{open}{}{close}\" was supplied in a cluster without a value\nTo keep it in a cluster, make sure you add it to the end of it\n\n{}",
 					args.infos().long,
-					args.help()
+					if color_enabled {
+						args.help_colored()
+					} else {
+						args.help_plain()
+					}
 				)
 			}
 			Self::BadGradientColors { count, transition } => {
 				if *transition {
 					write!(
 						f,
-						"{flag}: A transition gradient holds at least two colors, this one holds {open}{count}{close}\n{}",
-						Args::Gradient.help()
+						"{flag} A transition gradient holds at least two colors, this one holds {open}{count}{close}\n\n{}",
+						if color_enabled {
+							Args::Gradient.help_colored()
+						} else {
+							Args::Gradient.help_plain()
+						}
 					)
 				} else {
 					write!(
 						f,
-						"{flag}: A gradient holds exactly two colors, this one holds {open}{count}{close},\nfor more colors use the transition gradient option\n{}",
-						Args::Gradient.help()
+						"{flag} A gradient holds exactly two colors, this one holds {open}{count}{close}\nFor more colors use the transition gradient option\n\n{}",
+						if color_enabled {
+							Args::Gradient.help_colored()
+						} else {
+							Args::Gradient.help_plain()
+						}
 					)
 				}
 			}
-			Self::FlagIgnored(args) => {
+			Self::GradientFlagIgnored(args) => {
 				write!(
 					f,
-					"{flag}: The flag \"{open}{}{close}\" was ignored because no gradient was specified\n{}",
+					"{flag} \"{open}{}{close}\" was ignored because no gradient was specified\n\n{}\n\n{}",
 					args.infos().long,
-					args.help()
+					if color_enabled {
+						Args::Gradient.help_colored()
+					} else {
+						Args::Gradient.help_plain()
+					},
+					if color_enabled {
+						args.help_colored()
+					} else {
+						args.help_plain()
+					}
 				)
 			}
 			Self::EmptyStdin => {
-				write!(f, "{flag}: Text from stdin was expected but stdin was empty,\ncheck the command you are piping from")
+				write!(f, "{flag} Text from stdin was expected but stdin was empty,\ncheck the command you are piping from")
 			}
 		}
+	}
+}
+
+impl Display for ParseError<'_> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		self.write_message(f, Args::color_enabled())
 	}
 }
 
@@ -221,10 +266,10 @@ impl ParseState {
 
 		if self.gradient.is_none() {
 			if self.independent {
-				warn(&mut warnings, ParseError::FlagIgnored(Args::IndependentGradient));
+				warn(&mut warnings, ParseError::GradientFlagIgnored(Args::IndependentGradient));
 			}
 			if self.transition {
-				warn(&mut warnings, ParseError::FlagIgnored(Args::TransitionGradient));
+				warn(&mut warnings, ParseError::GradientFlagIgnored(Args::TransitionGradient));
 			}
 		}
 
@@ -584,8 +629,8 @@ mod gradient_resolution {
 		assert_eq!(
 			warnings,
 			vec![
-				ParseError::FlagIgnored(Args::IndependentGradient),
-				ParseError::FlagIgnored(Args::TransitionGradient),
+				ParseError::GradientFlagIgnored(Args::IndependentGradient),
+				ParseError::GradientFlagIgnored(Args::TransitionGradient),
 			]
 		);
 		assert!(warnings.iter().all(|warning| warning.error_type() == ErrorType::Warning));
@@ -1273,5 +1318,109 @@ mod stdin_handling {
 		let with_flag = args(&["--stdin", "--help"]);
 		let parsed = parse_args(&with_flag, piped(|| panic!("help must not read stdin, even with --stdin"))).unwrap();
 		assert!(parsed.show_help);
+	}
+}
+
+#[cfg(test)]
+mod error_messages {
+	use super::*;
+
+	/// One exemplar per variant; the match below breaks compilation when the enum grows
+	fn samples() -> Vec<ParseError<'static>> {
+		let samples = vec![
+			ParseError::NoTextSupplied,
+			ParseError::TextAlreadySupplied("world"),
+			ParseError::UnknownFlag("--unknown"),
+			ParseError::MissingValue(Args::Font),
+			ParseError::InvalidValue {
+				argument: Args::Color,
+				value: "nope",
+				source: None,
+			},
+			ParseError::InvalidValue {
+				argument: Args::Color,
+				value: "#zz",
+				source: Some(ColorError::HexCharacter),
+			},
+			ParseError::MidClusterArgumentRequired(Args::Font),
+			ParseError::BadGradientColors {
+				count: 3,
+				transition: false,
+			},
+			ParseError::BadGradientColors {
+				count: 1,
+				transition: true,
+			},
+			ParseError::GradientFlagIgnored(Args::IndependentGradient),
+			ParseError::EmptyStdin,
+		];
+
+		// adding a ParseError variant makes this match non-exhaustive,
+		// forcing the sample list above to learn about it
+		for sample in &samples {
+			match sample {
+				ParseError::NoTextSupplied
+				| ParseError::TextAlreadySupplied(_)
+				| ParseError::UnknownFlag(_)
+				| ParseError::MissingValue(_)
+				| ParseError::InvalidValue { .. }
+				| ParseError::MidClusterArgumentRequired(_)
+				| ParseError::BadGradientColors { .. }
+				| ParseError::GradientFlagIgnored(_)
+				| ParseError::EmptyStdin => {}
+			}
+		}
+
+		samples
+	}
+
+	#[test]
+	fn every_arm_renders_with_its_severity_label() {
+		for error in samples() {
+			let mut message = String::new();
+			error.write_message(&mut message, false).unwrap();
+
+			let expected = match error.error_type() {
+				ErrorType::Warning => " WARNING ",
+				ErrorType::Error => " ERROR ",
+			};
+			assert!(message.starts_with(expected), "{error:?} renders {message:?}");
+			assert!(!message.contains('\x1B'), "{error:?} plain message contains escape codes");
+		}
+	}
+
+	#[test]
+	fn no_message_line_exceeds_eighty_columns() {
+		for error in samples() {
+			let mut message = String::new();
+			error.write_message(&mut message, false).unwrap();
+
+			for line in message.lines() {
+				assert!(line.chars().count() <= 80, "{error:?} renders a {} column line: {line:?}", line.chars().count());
+			}
+		}
+	}
+
+	#[test]
+	fn styled_and_plain_messages_differ_only_by_styling() {
+		for error in samples() {
+			let mut plain = String::new();
+			let mut styled = String::new();
+			error.write_message(&mut plain, false).unwrap();
+			error.write_message(&mut styled, true).unwrap();
+
+			let stripped = styled
+				.replace("\x1B[0m", "")
+				.replace("\x1B[1m", "")
+				.replace("\x1B[3m", "")
+				.replace("\x1B[30m", "")
+				.replace("\x1B[32m", "")
+				.replace("\x1B[33m", "")
+				.replace("\x1B[37m", "")
+				.replace("\x1B[39m", "")
+				.replace("\x1B[41m", "")
+				.replace("\x1B[43m", "");
+			assert_eq!(stripped, plain, "{error:?} variants differ beyond styling");
+		}
 	}
 }

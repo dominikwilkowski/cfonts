@@ -52,7 +52,7 @@ impl Host for RustHost {
 		// detection run against the guard; lossy conversion keeps the presence and
 		// classifies the value like any other unrecognized one
 		let forced_color = std::env::var_os("FORCE_COLOR").map(|value| value.to_string_lossy().into_owned());
-		let no_color = std::env::var_os("NO_COLOR").is_some();
+		let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
 		let color_level =
 			Self::resolve_color_level(forced_color.as_deref(), no_color, self.overrides.color(), Self::detect_color_level);
 
@@ -362,5 +362,23 @@ mod tests {
 
 		assert_eq!(resolved, Some(width(FALLBACK_WIDTH)));
 		assert_eq!(detection_calls.get(), 1);
+	}
+
+	#[test]
+	fn an_empty_no_color_is_treated_as_unset() {
+		temp_env::with_vars([("FORCE_COLOR", None::<&str>), ("NO_COLOR", Some(""))], || {
+			let host =
+				RustHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)));
+			assert!(host.resolve_context().color_level().is_some(), "empty NO_COLOR must not defeat the override");
+		});
+	}
+
+	#[test]
+	fn a_non_empty_no_color_defeats_the_override() {
+		temp_env::with_vars([("FORCE_COLOR", None::<&str>), ("NO_COLOR", Some("1"))], || {
+			let host =
+				RustHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)));
+			assert!(host.resolve_context().color_level().is_none(), "a set NO_COLOR must win over the override");
+		});
 	}
 }
