@@ -1,3 +1,5 @@
+//! Compile time string tools for the cli help and error output
+
 /// The summed byte length of all parts, computed at compile time
 pub(crate) const fn total_len(parts: &[&str]) -> usize {
 	let mut length = 0;
@@ -37,8 +39,8 @@ pub(crate) const fn concat_into<const LENGTH: usize>(parts: &[&str]) -> [u8; LEN
 macro_rules! const_concat {
 	($($part:expr),+ $(,)?) => {{
 		const PARTS: &[&str] = &[$($part),+];
-		const LENGTH: usize = crate::helper::total_len(PARTS);
-		const BUFFER: [u8; LENGTH] = crate::helper::concat_into(PARTS);
+		const LENGTH: usize = crate::cli::helper::total_len(PARTS);
+		const BUFFER: [u8; LENGTH] = crate::cli::helper::concat_into(PARTS);
 		const TEXT: &str = match std::str::from_utf8(&BUFFER) {
 			Ok(text) => text,
 			Err(_) => panic!("concatenating valid utf8 always yields valid utf8"),
@@ -101,8 +103,8 @@ pub(crate) const fn join_into<const LENGTH: usize>(parts: &[&str], separator: &s
 /// Joins `&'static str` parts with a separator into one `&'static str` at compile time
 macro_rules! const_join {
 	($parts:expr, $separator:expr) => {{
-		const LENGTH: usize = crate::helper::joined_len($parts, $separator);
-		const BUFFER: [u8; LENGTH] = crate::helper::join_into($parts, $separator);
+		const LENGTH: usize = crate::cli::helper::joined_len($parts, $separator);
+		const BUFFER: [u8; LENGTH] = crate::cli::helper::join_into($parts, $separator);
 		const TEXT: &str = match std::str::from_utf8(&BUFFER) {
 			Ok(text) => text,
 			Err(_) => panic!("joining valid utf8 always yields valid utf8"),

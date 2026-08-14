@@ -134,3 +134,21 @@ fn rename_marked_variants_change_list_but_not_all() {
 	assert_eq!(Font::ALL, [Font::Console, Font::Font3D]);
 	assert_eq!(Font::LIST, "console, 3d");
 }
+
+#[test]
+fn list_chunked_breaks_after_five_names() {
+	#[derive(All)]
+	enum Wide {
+		One,
+		Two,
+		Three,
+		Four,
+		Five,
+		Six,
+		Seven,
+	}
+
+	assert_eq!(Wide::ALL.len(), 7);
+	assert_eq!(Wide::LIST_CHUNKED, "one, two, three, four, five,\n      six, seven");
+	assert_eq!(Wide::LIST, "one, two, three, four, five, six, seven");
+}

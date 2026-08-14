@@ -94,14 +94,16 @@ fn expand(input: TokenStream) -> Result<TokenStream, String> {
 	let count = variants.len();
 	let variant_list =
 		variants.iter().map(|(variant, _)| format!("{name}::{variant}")).collect::<Vec<String>>().join(", ");
-	let value_list = variants
+	let names = variants
 		.iter()
 		.map(|(variant, rename)| rename.clone().unwrap_or_else(|| variant.to_lowercase()))
-		.collect::<Vec<String>>()
-		.join(", ");
+		.collect::<Vec<String>>();
+	let value_list = names.join(", ");
+	// five names per line for terminal display; the indent matches the help layout of the cli
+	let value_chunks = names.chunks(5).map(|chunk| chunk.join(", ")).collect::<Vec<String>>().join(",\n      ");
 
 	format!(
-		"impl {name} {{ pub const ALL: [{name}; {count}] = [{variant_list}]; pub const LIST: &str = {value_list:?}; }}"
+		"impl {name} {{ pub const ALL: [{name}; {count}] = [{variant_list}]; pub const LIST: &str = {value_list:?}; pub const LIST_CHUNKED: &str = {value_chunks:?}; }}"
 	)
 	.parse::<TokenStream>()
 	.map_err(|error| format!("generated impl for {name} failed to parse: {error}"))

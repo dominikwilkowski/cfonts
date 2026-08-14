@@ -5,7 +5,7 @@ use std::{
 
 use cfonts::{
 	Host, RustHost,
-	cli::{ParsedArgs, StdinProvider, parse_args},
+	cli::{ParsedArgs, StdinProvider, cli_help, parse_args},
 };
 
 // terminology
@@ -57,7 +57,7 @@ fn main() -> std::io::Result<()> {
 	}
 
 	if show_help {
-		// TODO
+		println!("{}", cli_help());
 	} else if show_version {
 		println!("v{}", env!("CARGO_PKG_VERSION"));
 	} else {

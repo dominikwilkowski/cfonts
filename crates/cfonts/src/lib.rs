@@ -4,12 +4,12 @@
 //! performs output, and pure environments format the artifact for their target
 
 mod builder;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
 pub mod color;
 mod components;
 pub mod environments;
 pub mod fonts;
-mod helper;
 pub mod hosts;
 pub mod layout;
 pub mod options;

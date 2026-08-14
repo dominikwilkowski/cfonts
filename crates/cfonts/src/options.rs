@@ -30,7 +30,7 @@ impl Valign {
 	}
 
 	/// Looks up a valign option by its name, case insensitively
-	pub(crate) fn from_name(value: &str) -> Option<Self> {
+	pub fn from_name(value: &str) -> Option<Self> {
 		match value.to_ascii_lowercase().as_str() {
 			"top" => Some(Valign::Top),
 			"middle" => Some(Valign::Middle),
@@ -62,7 +62,7 @@ impl Align {
 	}
 
 	/// Looks up an align option by its name, case insensitively
-	pub(crate) fn from_name(value: &str) -> Option<Self> {
+	pub fn from_name(value: &str) -> Option<Self> {
 		match value.to_ascii_lowercase().as_str() {
 			"left" => Some(Self::Left),
 			"center" => Some(Self::Center),

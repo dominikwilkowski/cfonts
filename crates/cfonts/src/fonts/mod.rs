@@ -144,7 +144,7 @@ impl Font {
 	}
 
 	/// Looks up a valign option by its name, case insensitively
-	pub(crate) fn from_name(value: &str) -> Option<Self> {
+	pub fn from_name(value: &str) -> Option<Self> {
 		match value.to_ascii_lowercase().as_str() {
 			"block" => Some(Font::Block),
 			"chrome" => Some(Font::Chrome),

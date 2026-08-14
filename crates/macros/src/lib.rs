@@ -25,8 +25,12 @@ mod glyph_macro;
 /// impl Align {
 ///     pub const ALL: [Align; 3] = [Align::Left, Align::Center, Align::Right];
 ///     pub const LIST: &str = "left, center, right";
+///     pub const LIST_CHUNKED: &str = "left, center, right";
 /// }
 /// ```
+///
+/// LIST holds every name on one line; LIST_CHUNKED holds the same names broken
+/// after every fifth, with a six space continuation indent for terminal display
 ///
 /// Variants appear in declaration order
 /// Attributes, doc comments, and explicit discriminants on variants are allowed and skipped

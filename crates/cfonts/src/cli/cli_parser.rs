@@ -421,7 +421,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 	}
 
 	let implicit = state.options.blocks[0].text.is_none() && !std_provider.interactive;
-	if implicit || state.options.blocks.iter().any(|block| block.stdin) {
+	if !state.show_help && !state.show_version && (implicit || state.options.blocks.iter().any(|block| block.stdin)) {
 		// some shadowing fun and I won't apologize for it either!
 		let buffer = (std_provider.read)();
 		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
@@ -728,7 +728,7 @@ mod argument_parsing {
 			let expected = Color::from_name(name).unwrap();
 			let input = args(&["my text", "-c", name]);
 			assert_eq!(
-				parse_args(&input, tty()).unwrap().options.blocks[0].color,
+				parse_args(&input, tty()).unwrap().options.global_color,
 				Some(ColorOption::Colors(vec![expected])),
 				"{name}"
 			);
@@ -742,15 +742,15 @@ mod argument_parsing {
 		for hex in ["#888", "#888888"] {
 			let input = args(&["my text", "-c", hex]);
 			assert_eq!(
-				parse_args(&input, tty()).unwrap().options.blocks[0].color,
+				parse_args(&input, tty()).unwrap().options.global_color,
 				Some(ColorOption::Colors(vec![Color::Rgb(gray)])),
 				"{hex}"
 			);
 		}
 
-		let list = args(&["my text", "--color", "bLuE,#888888,GREY"]);
+		let list = args(&["my text", "--colors", "bLuE,#888888,GREY"]);
 		assert_eq!(
-			parse_args(&list, tty()).unwrap().options.blocks[0].color,
+			parse_args(&list, tty()).unwrap().options.global_color,
 			Some(ColorOption::Colors(vec![Color::Blue, Color::Rgb(gray), Color::Gray]))
 		);
 	}
@@ -848,7 +848,7 @@ mod argument_parsing {
 				"center",
 				"--valign",
 				"top",
-				"--color",
+				"--colors",
 				"blue,white",
 				"--letter-spacing",
 				"9",
@@ -892,7 +892,8 @@ mod argument_parsing {
 			assert_eq!(block.font, Font::Simple3D);
 			assert_eq!(block.letter_spacing, 9);
 			assert_eq!(block.line_height, 2);
-			assert_eq!(block.color, Some(ColorOption::Colors(vec![Color::Blue, Color::White])));
+			// -g beats -c on the global scope, matching v3 precedence; the gradient assert below covers it
+			assert_eq!(block.color, None);
 			assert_eq!(parsed.options.align, Align::Center);
 			assert_eq!(parsed.options.valign, Valign::Top);
 			assert!(parsed.options.spaceless);
@@ -1021,7 +1022,9 @@ mod block_composition {
 
 		assert_eq!(blocks.len(), 2);
 		assert_eq!(blocks[0].font, Font::Tiny);
-		assert_eq!(blocks[0].color, Some(ColorOption::Colors(vec![Color::Red])));
+		// first block colors cascade to the global default
+		assert_eq!(blocks[0].color, None);
+		assert_eq!(parsed.options.global_color, Some(ColorOption::Colors(vec![Color::Red])));
 		assert!(!blocks[0].word_wrap);
 		assert_eq!(blocks[1].font, Font::Block);
 		assert_eq!(blocks[1].color, None);
@@ -1253,5 +1256,22 @@ mod stdin_handling {
 
 		assert_eq!(parsed.options.blocks[0].text(), "-V");
 		assert!(!parsed.show_version);
+	}
+
+	#[test]
+	fn help_and_version_never_read_stdin() {
+		// yes | cfonts --help  must not consume the pipe
+		let help = args(&["--help"]);
+		let parsed = parse_args(&help, piped(|| panic!("help must not read stdin"))).unwrap();
+		assert!(parsed.show_help);
+
+		let version = args(&["--version"]);
+		let parsed = parse_args(&version, piped(|| panic!("version must not read stdin"))).unwrap();
+		assert!(parsed.show_version);
+
+		// even an explicit stdin flag defers to help
+		let with_flag = args(&["--stdin", "--help"]);
+		let parsed = parse_args(&with_flag, piped(|| panic!("help must not read stdin, even with --stdin"))).unwrap();
+		assert!(parsed.show_help);
 	}
 }

@@ -1,8 +1,10 @@
 use crate::{
 	Align, /*Background,*/ Color, ColorOption, Font, GradientPreset, Rgb, Valign,
-	cli::{CliBlockOptions, GradientInput, ParseError, ParseState},
+	cli::{
+		CliBlockOptions, GradientInput, ParseError, ParseState,
+		helper::{const_concat, const_join},
+	},
 	color::GradientStop,
-	helper::{const_concat, const_join},
 };
 use cfonts_macros::All;
 
@@ -10,6 +12,7 @@ use cfonts_macros::All;
 pub(crate) struct ArgInfo {
 	pub(crate) long: &'static str,
 	pub(crate) short: &'static [&'static str],
+	pub(crate) scope: &'static str,
 	pub(crate) description: &'static str,
 	pub(crate) example: &'static str,
 	pub(crate) arguments: Option<&'static str>,
@@ -17,11 +20,28 @@ pub(crate) struct ArgInfo {
 
 /// One compile time help line from one arg's infos
 macro_rules! help_line {
-	($arg:expr) => {{
+	($arg:expr, $colored:literal) => {{
 		const INFO: ArgInfo = $arg.infos();
+		const BOLD: &str = if $colored { "\x1B[1m" } else { "" };
+		const ITALIC: &str = if $colored { "\x1B[3m" } else { "" };
+		const RESET: &str = if $colored { "\x1B[0m" } else { "" };
+		const VALUE: &str = if $colored {
+			Color::Green.ansi16_sgr().unwrap()
+		} else {
+			""
+		};
+		const VALUE_OFF: &str = if $colored { Color::ANSI_RESET } else { "" };
+		const SHORT_LEAD: &str = match INFO.short.len() {
+			0 => "",
+			_ => ", -",
+		};
 		const SHORT: &str = const_join!(INFO.short, ", -");
+		const SCOPE_LEAD: &str = match INFO.scope.len() {
+			0 => "",
+			_ => "\n  ",
+		};
 		const OPTIONS_OPEN: &str = match INFO.arguments {
-			Some(_) => const_concat!("\nPossible arguments: [ ", Color::Green.ansi16_sgr().unwrap()),
+			Some(_) => const_concat!("\n  Possible arguments:\n    [ ", VALUE),
 			None => "",
 		};
 		const OPTIONS: &str = match INFO.arguments {
@@ -29,17 +49,28 @@ macro_rules! help_line {
 			None => "",
 		};
 		const OPTIONS_CLOSE: &str = match INFO.arguments {
-			Some(_) => const_concat!(Color::ANSI_RESET, " ]"),
+			Some(_) => const_concat!(VALUE_OFF, " ]"),
 			None => "",
 		};
 		const_concat!(
-			"--",
-			INFO.long,
-			", -",
-			SHORT,
-			"\n",
+			"  ",
+			BOLD,
 			INFO.description,
-			"\n$ ",
+			RESET,
+			SCOPE_LEAD,
+			ITALIC,
+			INFO.scope,
+			RESET,
+			"\n",
+			"  --",
+			INFO.long,
+			SHORT_LEAD,
+			SHORT,
+			"\n  ",
+			BOLD,
+			"$",
+			RESET,
+			" ",
 			INFO.example,
 			OPTIONS_OPEN,
 			OPTIONS,
@@ -94,7 +125,7 @@ impl Args {
 			"next" | "n" => Some(Self::Next),
 			"next-stdin" | "N" => Some(Self::NextStdin),
 			"font" | "f" => Some(Self::Font),
-			"color" | "c" => Some(Self::Color),
+			"colors" | "c" => Some(Self::Color),
 			"background" | "b" => Some(Self::Background),
 			"letter-spacing" | "l" => Some(Self::LetterSpacing),
 			"line-height" | "z" => Some(Self::LineHeight),
@@ -216,7 +247,11 @@ impl Args {
 					colors.push(color);
 				}
 
-				state.options.blocks.last_mut().unwrap().color = Some(ColorOption::Colors(colors));
+				if state.options.blocks.len() == 1 {
+					state.options.global_color = Some(ColorOption::Colors(colors));
+				} else {
+					state.options.blocks.last_mut().unwrap().color = Some(ColorOption::Colors(colors));
+				}
 			}
 			Self::Background => {
 				let _value = value.ok_or(ParseError::MissingValue(self))?;
@@ -305,49 +340,56 @@ impl Args {
 			Self::Align => ArgInfo {
 				long: "align",
 				short: &["a"],
-				description: "Use to align your text output\nThis will apply globally.",
+				description: "Align the output horizontally",
+				scope: "This will apply globally",
 				example: "cfonts --align center",
-				arguments: Some(Align::LIST),
+				arguments: Some(Align::LIST_CHUNKED),
 			},
 			Self::Valign => ArgInfo {
 				long: "valign",
 				short: &["y"],
-				description: "Use to align your text output vertically\nThis will apply globally.",
+				description: "Align the output vertically against another text block",
+				scope: "This will apply globally",
 				example: "cfonts --valign middle",
-				arguments: Some(Valign::LIST),
+				arguments: Some(Valign::LIST_CHUNKED),
 			},
 			Self::Spaceless => ArgInfo {
 				long: "spaceless",
 				short: &["s"],
-				description: "Use to disable the padding around the whole output\nThis will apply globally.",
+				description: "Remove the padding around the output",
+				scope: "This will apply globally",
 				example: "cfonts --spaceless",
 				arguments: None,
 			},
 			Self::MaxLength => ArgInfo {
 				long: "max-length",
 				short: &["m"],
-				description: "Use to define the amount of maximum characters per line\nThis will apply globally.",
+				description: "Limit the characters per line",
+				scope: "This will apply globally",
 				example: "cfonts --max-length 10",
 				arguments: Some("10, 20, 42..."),
 			},
 			Self::Stdin => ArgInfo {
 				long: "stdin",
 				short: &[],
-				description: "Use to read text from stdin instead of a file\nThis will apply only to the first block.",
+				description: "Read the text from stdin instead of passing it as an argument",
+				scope: "This will apply only to the first block",
 				example: "echo \"Hello \" | cfonts --stdin --next World",
 				arguments: None,
 			},
 			Self::RawMode => ArgInfo {
 				long: "raw-mode",
 				short: &["r"],
-				description: "Use to enable newline rendering in raw mode in the terminal by adding \\r to line breaks\nThis will apply globally.",
+				description: "End lines with \\r\\n instead of \\n",
+				scope: "This will apply globally",
 				example: "cfonts --raw-mode",
 				arguments: None,
 			},
 			Self::Debug => ArgInfo {
 				long: "debug",
 				short: &["d"],
-				description: "Use to enable debug mode\nThis will apply globally.",
+				description: "Print debug information while rendering",
+				scope: "This will apply globally",
 				example: "cfonts --debug",
 				arguments: None,
 			},
@@ -356,59 +398,66 @@ impl Args {
 			Self::Next => ArgInfo {
 				long: "next",
 				short: &["n"],
-				description: "Use to add a new text block",
+				description: "Start a new text block",
+				scope: "",
 				example: "cfonts hello --next world",
 				arguments: Some("any text you want to style with cfonts"),
 			},
 			Self::NextStdin => ArgInfo {
 				long: "next-stdin",
 				short: &[],
-				description: "Use to add a new text block but take the text from stdin",
+				description: "Start a new text block, filled from stdin",
+				scope: "",
 				example: "echo \" World\" | cfonts Hello --next-stdin",
 				arguments: None,
 			},
 			Self::Font => ArgInfo {
 				long: "font",
 				short: &["f"],
-				description: "Use to define the font face",
+				description: "Set the font. Applies to the current text block",
+				scope: "",
 				example: "cfonts --font chrome",
-				arguments: Some(Font::LIST),
+				arguments: Some(Font::LIST_CHUNKED),
 			},
 			Self::Color => ArgInfo {
-				long: "color",
+				long: "colors",
 				short: &["c"],
-				description: "Use to define the font color, some fonts support multiple colors",
+				description: "Set the font colors. Applies to the current text block",
+				scope: "On the first text block this sets the color for all blocks\n  after --next it colors only that block",
 				example: "cfonts --colors red,blue",
-				arguments: Some(Color::LIST),
-				// TODO: add hex
+				arguments: Some(const_concat!(Color::LIST_CHUNKED, ",\n      any hex color like #ff8800 or #f80")),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
 				short: &["b"],
-				description: "Use to define background color",
+				description: "Set the background color",
+				scope: "",
 				example: "cfonts --background blue",
 				arguments: Some("TODO"),
-				// options: Some(Background::LIST),
-				// TODO: add hex
+				// arguments: Some(const_concat!(Background::LIST_CHUNKED, ",\n      any hex color like #ff8800 or #f80")),
+				// TODO: add background
 			},
 			Self::LetterSpacing => ArgInfo {
 				long: "letter-spacing",
 				short: &["l"],
-				description: "Use to define the space between letters",
+				description: "Set the space between letters",
+				scope: "",
 				example: "cfonts --letter-spacing 2",
 				arguments: Some("1, 2, 5, 20..."),
 			},
 			Self::LineHeight => ArgInfo {
 				long: "line-height",
 				short: &["z"],
-				description: "Use to define the space between lines",
+				description: "Set the space between lines",
+				scope: "",
 				example: "cfonts --line-height 5",
 				arguments: Some("2, 5, 10..."),
 			},
 			Self::WordWrap => ArgInfo {
 				long: "word-wrap",
 				short: &["w"],
-				description: "Use to enable word wrapping to avoid cutting words at the end of lines",
+				description: "Wrap whole words at the end of lines",
+				scope: "",
 				example: "cfonts --word-wrap",
 				arguments: None,
 			},
@@ -417,70 +466,128 @@ impl Args {
 			Self::Gradient => ArgInfo {
 				long: "gradient",
 				short: &["g"],
-				description: "Use to define a start and end color of a gradient",
+				description: "Paints a gradient across the whole output, spanning all text blocks",
+				scope: "Blocks with their own colors keep them; the gradient resumes after",
 				example: "cfonts --gradient red,blue",
-				arguments: Some(GradientStop::LIST),
-				// TODO: add hex
+				arguments: Some(const_concat!(GradientStop::LIST_CHUNKED, ",\n      any hex color like #ff8800 or #f80")),
 			},
 			Self::IndependentGradient => ArgInfo {
 				long: "independent-gradient",
 				short: &["i"],
-				description: "Use to define that a gradient is applied independently for each line",
+				description: "Restart the gradient fresh on every line",
+				scope: "",
 				example: "cfonts --gradient red,blue --independent-gradient",
 				arguments: None,
 			},
 			Self::TransitionGradient => ArgInfo {
 				long: "transition-gradient",
 				short: &["t"],
-				description: "Use to define that a gradient is a transition between the colors, allowing for more than two gradient stops",
+				description: "Allow more than two gradient colors, connected as transitions",
+				scope: "",
 				example: "cfonts --gradient red,blue,green --transition-gradient",
 				arguments: None,
 			},
 			Self::Version => ArgInfo {
 				long: "version",
 				short: &["v", "V"],
-				description: "Use to display the version of cfonts",
+				description: "Print the version and exit",
+				scope: "",
 				example: "cfonts --version",
 				arguments: None,
 			},
 			Self::Help => ArgInfo {
 				long: "help",
 				short: &["h"],
-				description: "Use to display this help",
+				description: "Print this help and exit",
+				scope: "",
 				example: "cfonts --help",
 				arguments: None,
 			},
 		}
 	}
 
-	/// One help line per arg, built at compile time, shared by the help screen and the error messages
-	pub(crate) const fn help(self) -> &'static str {
+	/// Whether the host allows colored output right now
+	#[cfg(not(target_arch = "wasm32"))]
+	fn color_enabled() -> bool {
+		use crate::{Host, RustHost};
+
+		RustHost::default().resolve_context().color_level().is_some()
+	}
+
+	/// The wasm targets render through their own environments and never see this help
+	#[cfg(target_arch = "wasm32")]
+	fn color_enabled() -> bool {
+		false
+	}
+
+	/// One help line per arg, selected at runtime from two compile time variants
+	pub(crate) fn help(self) -> &'static str {
+		if Self::color_enabled() {
+			self.help_colored()
+		} else {
+			self.help_plain()
+		}
+	}
+
+	/// The styled help line, built at compile time
+	pub(crate) const fn help_colored(self) -> &'static str {
 		match self {
 			// Global config
-			Self::Align => help_line!(Args::Align),
-			Self::Valign => help_line!(Args::Valign),
-			Self::Spaceless => help_line!(Args::Spaceless),
-			Self::MaxLength => help_line!(Args::MaxLength),
-			Self::Stdin => help_line!(Args::Stdin),
-			Self::RawMode => help_line!(Args::RawMode),
-			Self::Debug => help_line!(Args::Debug),
+			Self::Align => help_line!(Args::Align, true),
+			Self::Valign => help_line!(Args::Valign, true),
+			Self::Spaceless => help_line!(Args::Spaceless, true),
+			Self::MaxLength => help_line!(Args::MaxLength, true),
+			Self::Stdin => help_line!(Args::Stdin, true),
+			Self::RawMode => help_line!(Args::RawMode, true),
+			Self::Debug => help_line!(Args::Debug, true),
 
 			// Block config
-			Self::Next => help_line!(Args::Next),
-			Self::NextStdin => help_line!(Args::NextStdin),
-			Self::Font => help_line!(Args::Font),
-			Self::Color => help_line!(Args::Color),
-			Self::Background => help_line!(Args::Background),
-			Self::LetterSpacing => help_line!(Args::LetterSpacing),
-			Self::LineHeight => help_line!(Args::LineHeight),
-			Self::WordWrap => help_line!(Args::WordWrap),
+			Self::Next => help_line!(Args::Next, true),
+			Self::NextStdin => help_line!(Args::NextStdin, true),
+			Self::Font => help_line!(Args::Font, true),
+			Self::Color => help_line!(Args::Color, true),
+			Self::Background => help_line!(Args::Background, true),
+			Self::LetterSpacing => help_line!(Args::LetterSpacing, true),
+			Self::LineHeight => help_line!(Args::LineHeight, true),
+			Self::WordWrap => help_line!(Args::WordWrap, true),
 
 			// CLI specific config
-			Self::Gradient => help_line!(Args::Gradient),
-			Self::IndependentGradient => help_line!(Args::IndependentGradient),
-			Self::TransitionGradient => help_line!(Args::TransitionGradient),
-			Self::Version => help_line!(Args::Version),
-			Self::Help => help_line!(Args::Help),
+			Self::Gradient => help_line!(Args::Gradient, true),
+			Self::IndependentGradient => help_line!(Args::IndependentGradient, true),
+			Self::TransitionGradient => help_line!(Args::TransitionGradient, true),
+			Self::Version => help_line!(Args::Version, true),
+			Self::Help => help_line!(Args::Help, true),
+		}
+	}
+
+	/// The plain help line, built at compile time
+	pub(crate) const fn help_plain(self) -> &'static str {
+		match self {
+			// Global config
+			Self::Align => help_line!(Args::Align, false),
+			Self::Valign => help_line!(Args::Valign, false),
+			Self::Spaceless => help_line!(Args::Spaceless, false),
+			Self::MaxLength => help_line!(Args::MaxLength, false),
+			Self::Stdin => help_line!(Args::Stdin, false),
+			Self::RawMode => help_line!(Args::RawMode, false),
+			Self::Debug => help_line!(Args::Debug, false),
+
+			// Block config
+			Self::Next => help_line!(Args::Next, false),
+			Self::NextStdin => help_line!(Args::NextStdin, false),
+			Self::Font => help_line!(Args::Font, false),
+			Self::Color => help_line!(Args::Color, false),
+			Self::Background => help_line!(Args::Background, false),
+			Self::LetterSpacing => help_line!(Args::LetterSpacing, false),
+			Self::LineHeight => help_line!(Args::LineHeight, false),
+			Self::WordWrap => help_line!(Args::WordWrap, false),
+
+			// CLI specific config
+			Self::Gradient => help_line!(Args::Gradient, false),
+			Self::IndependentGradient => help_line!(Args::IndependentGradient, false),
+			Self::TransitionGradient => help_line!(Args::TransitionGradient, false),
+			Self::Version => help_line!(Args::Version, false),
+			Self::Help => help_line!(Args::Help, false),
 		}
 	}
 }
@@ -506,16 +613,35 @@ mod tests {
 		let close = Color::ANSI_RESET;
 
 		assert_eq!(
-			Args::Align.help(),
+			Args::Align.help_colored(),
 			&format!(
-				"--align, -a\nUse to align your text output\nThis will apply globally.\n$ cfonts --align center\nPossible arguments: [ {open}left, center, right{close} ]"
+				"  \x1B[1mAlign the output horizontally\x1B[0m\n  \x1B[3mThis will apply globally\x1B[0m\n  --align, -a\n  \x1B[1m$\x1B[0m cfonts --align center\n  Possible arguments:\n    [ {open}left, center, right{close} ]"
 			),
 		);
 		assert_eq!(
-			Args::Spaceless.help(),
-			"--spaceless, -s\nUse to disable the padding around the whole output\nThis will apply globally.\n$ cfonts --spaceless"
+			Args::Spaceless.help_colored(),
+			"  \x1B[1mRemove the padding around the output\x1B[0m\n  \x1B[3mThis will apply globally\x1B[0m\n  --spaceless, -s\n  \x1B[1m$\x1B[0m cfonts --spaceless"
 		);
-		assert_eq!(Args::Version.help(), "--version, -v, -V\nUse to display the version of cfonts\n$ cfonts --version");
+	}
+
+	#[test]
+	fn help_variants_differ_only_by_styling() {
+		for argument in Args::ALL {
+			let colored = argument.help_colored();
+			let plain = argument.help_plain();
+
+			assert!(!plain.contains('\x1B'), "{argument:?} plain variant contains escape codes");
+			assert_eq!(
+				colored
+					.replace("\x1B[1m", "")
+					.replace("\x1B[0m", "")
+					.replace("\x1B[32m", "")
+					.replace("\x1B[39m", "")
+					.replace("\x1B[3m", ""),
+				plain,
+				"{argument:?} variants differ beyond styling"
+			);
+		}
 	}
 
 	#[test]
@@ -548,6 +674,19 @@ mod tests {
 				demands_value,
 				argument.infos().arguments.is_some(),
 				"{argument:?} routing disagrees with its infos().arguments"
+			);
+		}
+	}
+
+	#[test]
+	fn every_example_uses_its_own_long_flag() {
+		for argument in Args::ALL {
+			let info = argument.infos();
+			let flag = format!("--{}", info.long);
+			assert!(
+				info.example.split_whitespace().any(|token| token == flag),
+				"the example for {:?} does not use {flag}",
+				argument
 			);
 		}
 	}
