@@ -61,7 +61,8 @@ fn no_color_level_paints_nothing() {
 fn system_paints_nothing() {
 	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 	let system =
-		render_with(&tiny("A", vec![Color::System]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
+		render_with(&tiny("A", vec![Color::System]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor))
+			.text;
 
 	assert_eq!(system, plain);
 }
@@ -73,7 +74,8 @@ fn candy_renders_are_deterministic_for_a_seed() {
 
 	let one = render_with(&options, &CliEnv::default(), seeded).text;
 	let two = render_with(&options, &CliEnv::default(), seeded).text;
-	let other = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(43)).text;
+	let other =
+		render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(43)).text;
 
 	assert_eq!(one, two);
 	assert_ne!(one, other);
@@ -81,9 +83,12 @@ fn candy_renders_are_deterministic_for_a_seed() {
 
 #[test]
 fn candy_paints_only_assortment_codes() {
-	let rendered =
-		render_with(&tiny("ABC", vec![Color::Candy]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(7))
-			.text;
+	let rendered = render_with(
+		&tiny("ABC", vec![Color::Candy]),
+		&CliEnv::default(),
+		RenderContext::colored(ColorLevel::TrueColor).with_seed(7),
+	)
+	.text;
 
 	// candy picks named colors, so every start is a fixed sixteen color code from
 	// the assortment: five base and six bright, no base blue and no white
@@ -104,9 +109,14 @@ fn candy_paints_only_assortment_codes() {
 
 #[test]
 fn excess_colors_beyond_the_fonts_slots_are_ignored() {
-	let one = render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
-	let two =
-		render_with(&tiny("A", vec![Color::Red, Color::Blue]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
+	let one =
+		render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
+	let two = render_with(
+		&tiny("A", vec![Color::Red, Color::Blue]),
+		&CliEnv::default(),
+		RenderContext::colored(ColorLevel::TrueColor),
+	)
+	.text;
 
 	assert_eq!(two, one);
 }
@@ -190,7 +200,10 @@ fn an_empty_color_list_suppresses_the_global_color() {
 
 	let context = RenderContext::colored(ColorLevel::TrueColor);
 
-	assert_eq!(render_with(&suppressed, &CliEnv::default(), context).text, render_with(&plain, &CliEnv::default(), context).text);
+	assert_eq!(
+		render_with(&suppressed, &CliEnv::default(), context).text,
+		render_with(&plain, &CliEnv::default(), context).text
+	);
 }
 
 #[test]

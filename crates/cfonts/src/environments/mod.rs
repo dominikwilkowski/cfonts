@@ -468,8 +468,10 @@ mod tests {
 
 	#[test]
 	fn render_produces_the_plain_rows() {
-		let rendered =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&CliEnv::default(), RenderContext::unlimited());
+		let rendered = Cfonts::text("A")
+			.font(Font::Tiny)
+			.valign(Valign::Top)
+			.render_with(&CliEnv::default(), RenderContext::unlimited());
 
 		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}
