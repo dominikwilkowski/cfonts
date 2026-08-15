@@ -33,6 +33,7 @@ pub enum ParseError<'a> {
 	},
 	GradientFlagIgnored(Args),
 	EmptyStdin,
+	StdinInsideBlock,
 }
 
 impl ParseError<'_> {
@@ -47,6 +48,7 @@ impl ParseError<'_> {
 			Self::BadGradientColors { .. } => ErrorType::Error,
 			Self::GradientFlagIgnored(_) => ErrorType::Warning,
 			Self::EmptyStdin => ErrorType::Error,
+			Self::StdinInsideBlock => ErrorType::Error,
 		}
 	}
 
@@ -170,6 +172,22 @@ impl ParseError<'_> {
 			}
 			Self::EmptyStdin => {
 				write!(f, "{flag} Text from stdin was expected but stdin was empty,\ncheck the command you are piping from")
+			}
+			Self::StdinInsideBlock => {
+				write!(
+					f,
+					"{flag} The stdin flag can't be used inside blocks,\nuse the --next-stdin flag instead\n\n{}\n\n{}",
+					if color_enabled {
+						Args::Stdin.help_colored()
+					} else {
+						Args::Stdin.help_plain()
+					},
+					if color_enabled {
+						Args::NextStdin.help_colored()
+					} else {
+						Args::NextStdin.help_plain()
+					}
+				)
 			}
 		}
 	}
@@ -1175,6 +1193,14 @@ mod text_supply_rules {
 	}
 
 	#[test]
+	fn the_stdin_flag_after_next_is_a_hard_error() {
+		// --stdin supplies the global text; past the first --next only --next-stdin can claim the buffer
+		for input in [args(&["--next", "hi", "--stdin"]), args(&["--next-stdin", "--stdin"])] {
+			assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::StdinInsideBlock);
+		}
+	}
+
+	#[test]
 	fn text_already_supplied_is_error_typed() {
 		assert_eq!(ParseError::TextAlreadySupplied("world").error_type(), ErrorType::Error);
 	}
@@ -1356,6 +1382,7 @@ mod error_messages {
 			},
 			ParseError::GradientFlagIgnored(Args::IndependentGradient),
 			ParseError::EmptyStdin,
+			ParseError::StdinInsideBlock,
 		];
 
 		// adding a ParseError variant makes this match non-exhaustive,
@@ -1370,7 +1397,8 @@ mod error_messages {
 				| ParseError::MidClusterArgumentRequired(_)
 				| ParseError::BadGradientColors { .. }
 				| ParseError::GradientFlagIgnored(_)
-				| ParseError::EmptyStdin => {}
+				| ParseError::EmptyStdin
+				| ParseError::StdinInsideBlock => {}
 			}
 		}
 

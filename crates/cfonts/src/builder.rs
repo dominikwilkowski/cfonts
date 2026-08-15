@@ -24,7 +24,6 @@ pub struct Cfonts<
 	SpacelessState = Unset,
 	MaxLengthState = Unset,
 	GlobalColorState = Unset,
-	// TODO: add stdin flag
 > {
 	options: Options,
 	_state: PhantomData<(AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState)>,

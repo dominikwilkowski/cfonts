@@ -196,6 +196,9 @@ impl Args {
 			}
 			Self::Stdin => {
 				// The options that are passed in keep the promise that there is always at least one block present
+				if state.options.blocks.len() > 1 {
+					return Err(ParseError::StdinInsideBlock);
+				}
 				if state.options.blocks[0].text.is_some() {
 					return Err(ParseError::TextAlreadySupplied("--stdin"));
 				}
