@@ -97,7 +97,6 @@ pub enum Args {
 	MaxLength,
 	Stdin,
 	RawMode,
-	Debug,
 
 	// Block config
 	Next,
@@ -128,7 +127,6 @@ impl Args {
 			"max-length" | "m" => Some(Self::MaxLength),
 			"stdin" => Some(Self::Stdin),
 			"raw-mode" | "r" => Some(Self::RawMode),
-			"debug" | "d" => Some(Self::Debug),
 
 			// Block config
 			"next" | "n" => Some(Self::Next),
@@ -335,7 +333,6 @@ impl Args {
 			// Boolean flags
 			Self::Spaceless => state.options.spaceless = true,
 			Self::RawMode => state.raw_mode = true,
-			Self::Debug => state.options.debug = true,
 			Self::WordWrap => state.options.blocks.last_mut().unwrap().word_wrap = true,
 			Self::IndependentGradient => state.independent = true,
 			Self::TransitionGradient => state.transition = true,
@@ -397,14 +394,6 @@ impl Args {
 				example: "cfonts --raw-mode",
 				arguments: None,
 			},
-			Self::Debug => ArgInfo {
-				long: "debug",
-				short: &["d"],
-				description: "Print debug information while rendering",
-				scope: "This will apply globally",
-				example: "cfonts --debug",
-				arguments: None,
-			},
 
 			// Block config
 			Self::Next => ArgInfo {
@@ -412,7 +401,7 @@ impl Args {
 				short: &["n"],
 				description: "Start a new text block",
 				scope: "",
-				example: "cfonts hello --next world",
+				example: "cfonts Hello --next world",
 				arguments: Some("any text you want to style with cfonts"),
 			},
 			Self::NextStdin => ArgInfo {
@@ -437,7 +426,7 @@ impl Args {
 				description: "Set the font colors. Applies to the current text block",
 				scope: "On the first text block this sets the color for all blocks\n  after --next it colors only that block",
 				example: "cfonts --colors red,blue",
-				arguments: Some(const_concat!(Color::LIST_CHUNKED, ",\n      any hex color like #ff8800 or #f80")),
+				arguments: Some(const_concat!(Color::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
@@ -446,7 +435,7 @@ impl Args {
 				scope: "",
 				example: "cfonts --background blue",
 				arguments: Some("TODO"),
-				// arguments: Some(const_concat!(Background::LIST_CHUNKED, ",\n      any hex color like #ff8800 or #f80")),
+				// arguments: Some(const_concat!(Background::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
 				// TODO: add background
 			},
 			Self::LetterSpacing => ArgInfo {
@@ -481,7 +470,7 @@ impl Args {
 				description: "Paints a gradient across the whole output, spanning all text blocks",
 				scope: "Blocks with their own colors keep them; the gradient resumes after",
 				example: "cfonts --gradient red,blue",
-				arguments: Some(const_concat!(GradientStop::LIST_CHUNKED, ",\n      any hex color like #ff8800 or #f80")),
+				arguments: Some(const_concat!(GradientStop::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
 			},
 			Self::IndependentGradient => ArgInfo {
 				long: "independent-gradient",
@@ -542,7 +531,6 @@ impl Args {
 			Self::MaxLength => help_line!(Args::MaxLength, true),
 			Self::Stdin => help_line!(Args::Stdin, true),
 			Self::RawMode => help_line!(Args::RawMode, true),
-			Self::Debug => help_line!(Args::Debug, true),
 
 			// Block config
 			Self::Next => help_line!(Args::Next, true),
@@ -573,7 +561,6 @@ impl Args {
 			Self::MaxLength => help_line!(Args::MaxLength, false),
 			Self::Stdin => help_line!(Args::Stdin, false),
 			Self::RawMode => help_line!(Args::RawMode, false),
-			Self::Debug => help_line!(Args::Debug, false),
 
 			// Block config
 			Self::Next => help_line!(Args::Next, false),

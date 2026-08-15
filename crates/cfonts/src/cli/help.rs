@@ -56,11 +56,12 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 	output.push_str("Examples:\n\n");
 	for example in [
 		"cfonts hello",
-		"cfonts \"hello world\" -f tiny -c red,blue -a center",
-		"cfonts hello -f tiny --next world -f block",
-		"cfonts \"line one|line two\"",
+		"cfonts \" hello world \" -f grid -c red,\"#45b3e0\" -a right",
+		"cfonts --align center Logo --font chrome --colors red,green,yellow \\\n    --next \"v1.2.0\" --font console --valign bottom --colors white",
+		"cfonts hello -f tiny --next \" world\" -f block \\\n    --next \"|Sexy fonts for the console\\!\" -f shade -w",
+		"cfonts \"line one|end\" -g red,blue -ia center",
 		"echo hello | cfonts",
-		"cat notes.txt | cfonts --stdin -f tiny",
+		"cat notes.txt | cfonts -f tiny",
 	] {
 		output.push_str(prompt);
 		output.push_str(example);

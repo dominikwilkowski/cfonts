@@ -59,7 +59,7 @@ impl ParseError<'_> {
 			""
 		};
 		let close = if color_enabled { Color::ANSI_RESET } else { "" };
-		let prompt = if color_enabled { "  \x1B[1m$\x1B[0m " } else { "  $ " };
+		let prompt = if color_enabled { "  \x1B[1m$\x1B[0m" } else { "  $" };
 		let warning_open = if color_enabled { "\x1B[43m\x1B[30m" } else { "" };
 		let error_open = if color_enabled { "\x1B[41m\x1B[37m" } else { "" };
 		let reset = if color_enabled { "\x1B[0m" } else { "" };
@@ -224,7 +224,6 @@ pub(crate) struct CliOptions {
 	pub spaceless: bool,
 	pub max_length: Option<NonZeroUsize>,
 	pub global_color: Option<ColorOption>,
-	pub debug: bool,
 	pub blocks: Vec<CliBlockOptions>,
 }
 
@@ -351,7 +350,6 @@ impl TryFrom<ParseState> for Options {
 			spaceless: options.spaceless,
 			max_length: options.max_length,
 			global_color: options.global_color,
-			debug: options.debug,
 			blocks,
 		};
 
@@ -403,7 +401,7 @@ impl TryFrom<ParseState> for Options {
 	}
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct ParsedArgs<'a> {
 	pub options: Options,
 	pub warnings: Vec<ParseError<'a>>,
@@ -699,13 +697,12 @@ mod argument_parsing {
 	#[test]
 	fn boolean_flags_work_long_short_and_stacked() {
 		for invocation in [
-			args(&["my text", "--spaceless", "--debug", "--raw-mode"]),
-			args(&["my text", "-s", "-d", "-r"]),
-			args(&["my text", "-sdr"]),
+			args(&["my text", "--spaceless", "--raw-mode"]),
+			args(&["my text", "-s", "-r"]),
+			args(&["my text", "-sr"]),
 		] {
 			let parsed = parse_args(&invocation, tty()).unwrap();
 			assert!(parsed.options.spaceless);
-			assert!(parsed.options.debug);
 			assert!(parsed.raw_mode);
 		}
 	}
@@ -927,7 +924,6 @@ mod argument_parsing {
 				"red,blue",
 				"--independent-gradient",
 				"--transition-gradient",
-				"--debug",
 				"--raw-mode",
 			]),
 			args(&[
@@ -948,7 +944,7 @@ mod argument_parsing {
 				"100",
 				"-g",
 				"red,blue",
-				"-sitdr",
+				"-sitr",
 			]),
 		] {
 			let parsed = parse_args(&invocation, tty()).unwrap();
@@ -963,7 +959,6 @@ mod argument_parsing {
 			assert_eq!(parsed.options.align, Align::Center);
 			assert_eq!(parsed.options.valign, Valign::Top);
 			assert!(parsed.options.spaceless);
-			assert!(parsed.options.debug);
 			assert!(parsed.raw_mode);
 			assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 

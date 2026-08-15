@@ -137,7 +137,7 @@ impl BlockOptions {
 /// Global render options for one cfonts composition
 ///
 /// Global settings apply to the whole composition, while [`BlockOptions`] settings apply to individual text blocks
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Options {
 	/// Horizontal alignment for the rendered composition
 	pub align: Align,
@@ -159,9 +159,6 @@ pub struct Options {
 	/// and a global gradient's ramp resumes after them
 	pub global_color: Option<ColorOption>,
 
-	/// Whether debug output should be enabled
-	pub debug: bool, // TODO: implement
-
 	/// Text blocks rendered as one composition
 	pub blocks: Vec<BlockOptions>,
 }
@@ -174,7 +171,6 @@ impl Default for Options {
 			spaceless: false,
 			max_length: None,
 			global_color: None,
-			debug: false,
 			blocks: Vec::new(),
 		}
 	}
