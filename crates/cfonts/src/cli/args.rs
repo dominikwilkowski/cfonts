@@ -292,13 +292,14 @@ impl Args {
 
 	/// Parses one comma separated color list through the core name-or-hex parser,
 	/// so both color flags share one list rule
+	/// Every segment must name a color: empty segments reject like any other non-color,
+	/// to skip a slot, use the [`Color::System`] color
 	fn parse_color_list<'a, T: std::str::FromStr<Err = ColorError>>(
 		self,
 		value: &'a str,
 	) -> Result<Vec<T>, ParseError<'a>> {
 		value
 			.split(',')
-			.filter(|segment| !segment.is_empty())
 			.map(|segment| {
 				let segment = segment.trim();
 				segment.parse().map_err(|error| ParseError::InvalidValue {

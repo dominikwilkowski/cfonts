@@ -76,7 +76,20 @@ impl ParseError<'_> {
 				)
 			}
 			Self::TextAlreadySupplied(text) => {
-				write!(f, "{flag} Text was already supplied so \"{open}{text}{close}\" was ignored")
+				write!(
+					f,
+					"{flag} Text was already supplied, so \"{open}{text}{close}\" can't be added\nUse --next for another text block, or --next-stdin to fill one from a pipe\n\n{}\n\n{}",
+					if color_enabled {
+						Args::Next.help_colored()
+					} else {
+						Args::Next.help_plain()
+					},
+					if color_enabled {
+						Args::NextStdin.help_colored()
+					} else {
+						Args::NextStdin.help_plain()
+					}
+				)
 			}
 			Self::UnknownFlag(unknown_flag) => {
 				write!(f, "{flag} An unknown flag \"{open}{unknown_flag}{close}\" was used and ignored")
@@ -829,6 +842,34 @@ mod argument_parsing {
 				"{bad_hex} must be rejected with a cause"
 			);
 		}
+	}
+
+	#[test]
+	fn empty_color_list_segments_are_rejected() {
+		// an empty segment can never name a color, and a silently empty list
+		// would even suppress a global color, so every malformed list rejects alike
+		for bad in ["", ",", "red,", ",red", "red, ,blue"] {
+			let input = args(&["my text", "-c", bad]);
+			assert!(
+				matches!(
+					parse_args(&input, tty()).unwrap_err(),
+					ParseError::InvalidValue {
+						argument: Args::Color,
+						..
+					}
+				),
+				"{bad:?} must be rejected"
+			);
+		}
+
+		let gradient = args(&["my text", "-g", "red,"]);
+		assert!(matches!(
+			parse_args(&gradient, tty()).unwrap_err(),
+			ParseError::InvalidValue {
+				argument: Args::Gradient,
+				..
+			}
+		));
 	}
 
 	#[test]
