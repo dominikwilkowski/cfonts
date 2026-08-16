@@ -208,7 +208,7 @@ impl ParseError<'_> {
 
 impl Display for ParseError<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		self.write_message(f, Args::color_enabled())
+		self.write_message(f, Args::stderr_color_enabled())
 	}
 }
 

@@ -69,7 +69,8 @@ export class NodeHost implements Host {
 	#resolveColorLevel(): ColorLevel | undefined {
 		const decision = decideColor(
 			process.env.FORCE_COLOR,
-			process.env.NO_COLOR !== undefined,
+			// NO_COLOR counts only when present and non-empty, as its spec asks https://no-color.org
+			(process.env.NO_COLOR ?? "") !== "",
 			this.#overrides.color === false,
 			this.#overrides.color === false ? undefined : this.#overrides.color,
 		);

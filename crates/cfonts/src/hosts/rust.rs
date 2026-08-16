@@ -63,13 +63,10 @@ impl Host for RustHost {
 		let width =
 			Self::resolve_canvas_width(forced_width.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
 
-		// var() would turn a present non-Unicode value into an absent one and let
-		// detection run against the guard; lossy conversion keeps the presence and
-		// classifies the value like any other unrecognized one
-		let forced_color = std::env::var_os("FORCE_COLOR").map(|value| value.to_string_lossy().into_owned());
-		let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
-		let color_level =
-			Self::resolve_color_level(forced_color.as_deref(), no_color, self.overrides.color(), Self::detect_color_level);
+		let (forced_color, no_color) = Self::color_environment();
+		let color_level = Self::resolve_color_level(forced_color.as_deref(), no_color, self.overrides.color(), || {
+			Self::detect_color_level(supports_color::Stream::Stdout)
+		});
 
 		RenderContext::from_validated_width(width)
 			.with_color_level(color_level)
@@ -125,8 +122,37 @@ impl RustHost {
 		}
 	}
 
-	fn detect_color_level() -> Option<ColorLevel> {
-		supports_color::on(supports_color::Stream::Stdout).map(|support| {
+	/// The color level for this host's error stream
+	///
+	/// FORCE_COLOR and NO_COLOR keep their precedence, but detection asks stderr:
+	/// decoration follows the stream it is written to
+	/// An undetectable error stream stays plain instead of taking the render
+	/// output's full color fallback, so piped stderr never receives color codes
+	pub(crate) fn stderr_color_level() -> Option<ColorLevel> {
+		let (forced, no_color) = Self::color_environment();
+
+		match decide_color(forced.as_deref(), no_color, ColorOverride::Auto) {
+			ColorDecision::Resolved(level) => level,
+			ColorDecision::Detect => Self::detect_color_level(supports_color::Stream::Stderr),
+		}
+	}
+
+	/// The color variables the chain interprets, gathered once per resolution
+	///
+	/// var() would turn a present non-Unicode value into an absent one and let
+	/// detection run against the guard; lossy conversion keeps the presence and
+	/// classifies the value like any other unrecognized one
+	/// NO_COLOR counts only when present and non-empty, as its spec asks
+	fn color_environment() -> (Option<String>, bool) {
+		let forced = std::env::var_os("FORCE_COLOR").map(|value| value.to_string_lossy().into_owned());
+		let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
+
+		(forced, no_color)
+	}
+
+	/// The color support one output stream reports
+	fn detect_color_level(stream: supports_color::Stream) -> Option<ColorLevel> {
+		supports_color::on(stream).map(|support| {
 			if support.has_16m {
 				ColorLevel::TrueColor
 			} else if support.has_256 {
@@ -301,6 +327,19 @@ mod tests {
 				assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));
 			},
 		);
+	}
+
+	#[test]
+	fn the_error_stream_follows_the_shared_chain() {
+		temp_env::with_vars([("FORCE_COLOR", Some("3")), ("NO_COLOR", None::<&str>)], || {
+			assert_eq!(RustHost::stderr_color_level(), Some(ColorLevel::TrueColor));
+		});
+		temp_env::with_vars([("FORCE_COLOR", Some("0")), ("NO_COLOR", None::<&str>)], || {
+			assert_eq!(RustHost::stderr_color_level(), None);
+		});
+		temp_env::with_vars([("FORCE_COLOR", None::<&str>), ("NO_COLOR", Some("1"))], || {
+			assert_eq!(RustHost::stderr_color_level(), None);
+		});
 	}
 
 	#[cfg(unix)]

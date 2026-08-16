@@ -475,18 +475,9 @@ impl Args {
 		}
 	}
 
-	/// Whether the host allows colored output right now
-	#[cfg(not(target_arch = "wasm32"))]
-	pub(crate) fn color_enabled() -> bool {
-		use crate::{Host, RustHost};
-
-		RustHost::default().resolve_context().color_level().is_some()
-	}
-
-	/// The wasm targets render through their own environments and never see this help
-	#[cfg(target_arch = "wasm32")]
-	pub(crate) fn color_enabled() -> bool {
-		false
+	/// Whether errors and warnings may color, following the stream they write to
+	pub(crate) fn stderr_color_enabled() -> bool {
+		crate::RustHost::stderr_color_level().is_some()
 	}
 
 	/// The styled help line, built at compile time

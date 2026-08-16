@@ -698,14 +698,14 @@ test("the host delegates color precedence to the shared chain", () => {
 			["", ColorLevel.Basic],
 			["false", undefined],
 		]) {
-			const rendered = withColorEnv(forced, "", () =>
+			const rendered = withColorEnv(forced, "1", () =>
 				NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(banner()),
 			);
 			assert.equal(rendered.text, reference(expected), `FORCE_COLOR=${JSON.stringify(forced)}`);
 		}
 
 		// NO_COLOR and the API override resolve without detection
-		const noColor = withColorEnv(undefined, "", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+		const noColor = withColorEnv(undefined, "1", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
 		assert.equal(noColor.text, reference(undefined));
 
 		const overridden = withColorEnv(undefined, undefined, () =>
@@ -714,6 +714,26 @@ test("the host delegates color precedence to the shared chain", () => {
 		assert.equal(overridden.text, reference(ColorLevel.Basic));
 
 		assert.equal(detections, 0, "forced values, NO_COLOR and overrides never detect");
+	} finally {
+		restoreDepth();
+	}
+});
+
+test("NO_COLOR counts only when present and non-empty", () => {
+	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
+	const reference = (colorLevel) =>
+		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
+
+	const restoreDepth = overrideProperty(process.stdout, "getColorDepth", () => 24);
+
+	try {
+		// an empty value is not set: the chain falls through to detection
+		const empty = withColorEnv(undefined, "", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+		assert.equal(empty.text, reference(ColorLevel.TrueColor));
+
+		// any non-empty value counts, zero included
+		const zero = withColorEnv(undefined, "0", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+		assert.equal(zero.text, reference(undefined));
 	} finally {
 		restoreDepth();
 	}
