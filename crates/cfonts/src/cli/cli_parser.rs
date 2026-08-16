@@ -708,6 +708,12 @@ mod argument_parsing {
 	}
 
 	#[test]
+	fn max_length_zero_means_unlimited() {
+		let unlimited = args(&["my text", "--max-length", "0"]);
+		assert_eq!(parse_args(&unlimited, tty()).unwrap().options.max_length, None);
+	}
+
+	#[test]
 	fn fonts_parse_every_list_name_case_insensitively() {
 		for name in Font::LIST.split(", ") {
 			let expected = Font::from_name(name).unwrap();

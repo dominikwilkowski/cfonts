@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use crate::{
 	Align, Color, /*Background,*/ ColorError, ColorOption, Font, GradientPreset, Valign,
 	cli::{
@@ -184,13 +186,14 @@ impl Args {
 			}
 			Self::MaxLength => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let max_length = value.parse().map_err(|_| ParseError::InvalidValue {
+				let max_length: usize = value.parse().map_err(|_| ParseError::InvalidValue {
 					argument: self,
 					value,
 					source: None,
 				})?;
 
-				state.options.max_length = Some(max_length);
+				// zero means unlimited
+				state.options.max_length = NonZeroUsize::new(max_length);
 			}
 			Self::Stdin => {
 				// The options that are passed in keep the promise that there is always at least one block present
@@ -340,7 +343,7 @@ impl Args {
 				description: "Limit the characters per line",
 				scope: "This will apply globally",
 				example: "cfonts --max-length 10",
-				arguments: Some("10, 20, 42..."),
+				arguments: Some("0 (unlimited), 10, 20, 42..."),
 			},
 			Self::Stdin => ArgInfo {
 				long: "stdin",
