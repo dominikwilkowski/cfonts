@@ -130,7 +130,7 @@ impl Args {
 
 			// Block config
 			"next" | "n" => Some(Self::Next),
-			"next-stdin" | "N" => Some(Self::NextStdin),
+			"next-stdin" => Some(Self::NextStdin),
 			"font" | "f" => Some(Self::Font),
 			"colors" | "c" => Some(Self::Color),
 			"background" | "b" => Some(Self::Background),
@@ -217,7 +217,7 @@ impl Args {
 			Self::Font => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
 				if let Some(font) = Font::from_name(value) {
-					state.options.blocks.last_mut().unwrap().font = font;
+					state.options.blocks.last_mut().unwrap().block.font = font;
 				} else {
 					return Err(ParseError::InvalidValue {
 						argument: self,
@@ -260,7 +260,7 @@ impl Args {
 				if state.options.blocks.len() == 1 {
 					state.options.global_color = Some(ColorOption::Colors(colors));
 				} else {
-					state.options.blocks.last_mut().unwrap().color = Some(ColorOption::Colors(colors));
+					state.options.blocks.last_mut().unwrap().block.color = Some(ColorOption::Colors(colors));
 				}
 			}
 			Self::Background => {
@@ -275,7 +275,7 @@ impl Args {
 					source: None,
 				})?;
 
-				state.options.blocks.last_mut().unwrap().letter_spacing = letter_spacing;
+				state.options.blocks.last_mut().unwrap().block.letter_spacing = letter_spacing;
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
@@ -285,7 +285,7 @@ impl Args {
 					source: None,
 				})?;
 
-				state.options.blocks.last_mut().unwrap().line_height = line_height;
+				state.options.blocks.last_mut().unwrap().block.line_height = line_height;
 			}
 
 			// CLI specific config
@@ -333,7 +333,7 @@ impl Args {
 			// Boolean flags
 			Self::Spaceless => state.options.spaceless = true,
 			Self::RawMode => state.raw_mode = true,
-			Self::WordWrap => state.options.blocks.last_mut().unwrap().word_wrap = true,
+			Self::WordWrap => state.options.blocks.last_mut().unwrap().block.word_wrap = true,
 			Self::IndependentGradient => state.independent = true,
 			Self::TransitionGradient => state.transition = true,
 			Self::Version => state.show_version = true,

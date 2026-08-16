@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-	Align, BlockOptions, Color, ColorError, ColorOption, Font, GradientOption, GradientPreset, GradientStop, Options,
+	Align, BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, Options,
 	TransitionStops, Valign, cli::Args,
 };
 
@@ -227,40 +227,19 @@ pub(crate) struct CliOptions {
 	pub blocks: Vec<CliBlockOptions>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub(crate) struct CliBlockOptions {
 	pub(crate) text: Option<String>,
-	pub(crate) font: Font,
-	pub(crate) color: Option<ColorOption>,
-	pub(crate) letter_spacing: usize,
-	pub(crate) line_height: usize,
-	pub(crate) word_wrap: bool,
 	pub(crate) stdin: bool,
+	pub(crate) block: BlockOptions,
 }
 
 impl CliBlockOptions {
 	/// Builds one text block and normalizes text to the supported uppercase glyph set
 	pub(crate) fn new(text: impl Into<String>) -> Self {
-		let mut text = text.into();
-		text.make_ascii_uppercase();
-
 		Self {
-			text: Some(text),
+			text: Some(text.into()),
 			..Default::default()
-		}
-	}
-}
-
-impl Default for CliBlockOptions {
-	fn default() -> Self {
-		Self {
-			text: None,
-			font: Font::Block,
-			color: None,
-			letter_spacing: 1,
-			line_height: 1,
-			word_wrap: false,
-			stdin: false,
 		}
 	}
 }
@@ -335,12 +314,8 @@ impl TryFrom<ParseState> for Options {
 				});
 			};
 
-			let mut block = BlockOptions::new(text);
-			block.font = cli_block.font;
-			block.color = cli_block.color;
-			block.letter_spacing = cli_block.letter_spacing;
-			block.line_height = cli_block.line_height;
-			block.word_wrap = cli_block.word_wrap;
+			let mut block = cli_block.block;
+			block.set_text(text);
 			blocks.push(block);
 		}
 

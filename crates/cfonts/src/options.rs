@@ -79,7 +79,7 @@ impl Align {
 pub struct BlockOptions {
 	/// Text for this block
 	///
-	/// Private so every construction path runs through [`BlockOptions::new`],
+	/// Private so every write runs through [`BlockOptions::set_text`],
 	/// which normalizes to the uppercase glyph set the fonts support
 	text: String,
 
@@ -118,19 +118,22 @@ impl Default for BlockOptions {
 impl BlockOptions {
 	/// Builds one text block and normalizes text to the supported uppercase glyph set
 	pub fn new(text: impl Into<String>) -> Self {
-		let mut text = text.into();
-		text.make_ascii_uppercase();
-
-		Self {
-			text,
-			..Default::default()
-		}
+		let mut block = Self::default();
+		block.set_text(text);
+		block
 	}
 
 	/// The normalized text of this block
 	#[must_use]
 	pub fn text(&self) -> &str {
 		&self.text
+	}
+
+	/// Replaces this block's text, normalizing to the supported uppercase glyph set
+	pub(crate) fn set_text(&mut self, text: impl Into<String>) {
+		let mut text = text.into();
+		text.make_ascii_uppercase();
+		self.text = text;
 	}
 }
 
