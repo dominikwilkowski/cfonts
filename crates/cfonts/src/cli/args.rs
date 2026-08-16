@@ -1,5 +1,5 @@
 use crate::{
-	Align, /*Background,*/ Color, ColorOption, Font, GradientPreset, Rgb, Valign,
+	Align, Color, /*Background,*/ ColorError, ColorOption, Font, GradientPreset, Valign,
 	cli::{
 		CliBlockOptions, GradientInput, ParseError, ParseState,
 		helper::{const_concat, const_join},
@@ -228,34 +228,7 @@ impl Args {
 			}
 			Self::Color => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let mut colors = Vec::new();
-				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
-					let color_str = color_str.trim();
-					let color = if color_str.starts_with('#') {
-						match Rgb::from_hex(color_str) {
-							Ok(color) => Color::Rgb(color),
-							Err(error) => {
-								return Err(ParseError::InvalidValue {
-									argument: self,
-									value: color_str,
-									source: Some(error),
-								});
-							}
-						}
-					} else {
-						match Color::from_name(color_str) {
-							Some(color) => color,
-							None => {
-								return Err(ParseError::InvalidValue {
-									argument: self,
-									value: color_str,
-									source: None,
-								});
-							}
-						}
-					};
-					colors.push(color);
-				}
+				let colors = self.parse_color_list(value)?;
 
 				if state.options.blocks.len() == 1 {
 					state.options.global_color = Some(ColorOption::Colors(colors));
@@ -298,36 +271,7 @@ impl Args {
 					return Ok(());
 				}
 
-				let mut colors = Vec::new();
-				for color_str in value.split(',').filter(|segment| !segment.is_empty()) {
-					let color_str = color_str.trim();
-					let color = if color_str.starts_with('#') {
-						match Rgb::from_hex(color_str) {
-							Ok(color) => GradientStop::Rgb(color),
-							Err(error) => {
-								return Err(ParseError::InvalidValue {
-									argument: self,
-									value: color_str,
-									source: Some(error),
-								});
-							}
-						}
-					} else {
-						match GradientStop::from_name(color_str) {
-							Some(color) => color,
-							None => {
-								return Err(ParseError::InvalidValue {
-									argument: self,
-									value: color_str,
-									source: None,
-								});
-							}
-						}
-					};
-					colors.push(color);
-				}
-
-				state.gradient = Some(GradientInput::Stops(colors));
+				state.gradient = Some(GradientInput::Stops(self.parse_color_list(value)?));
 			}
 
 			// Boolean flags
@@ -341,6 +285,26 @@ impl Args {
 		}
 
 		Ok(())
+	}
+
+	/// Parses one comma separated color list through the core name-or-hex parser,
+	/// so both color flags share one list rule
+	fn parse_color_list<'a, T: std::str::FromStr<Err = ColorError>>(
+		self,
+		value: &'a str,
+	) -> Result<Vec<T>, ParseError<'a>> {
+		value
+			.split(',')
+			.filter(|segment| !segment.is_empty())
+			.map(|segment| {
+				let segment = segment.trim();
+				segment.parse().map_err(|error| ParseError::InvalidValue {
+					argument: self,
+					value: segment,
+					source: Some(error),
+				})
+			})
+			.collect()
 	}
 
 	pub(crate) const fn infos(self) -> ArgInfo {
@@ -645,7 +609,7 @@ mod tests {
 				Err(ParseError::InvalidValue {
 					argument: Args::Gradient,
 					value: name,
-					source: None,
+					source: Some(ColorError::UnknownColor),
 				}),
 				"{name} must not be accepted as a gradient stop"
 			);

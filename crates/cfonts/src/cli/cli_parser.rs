@@ -791,6 +791,13 @@ mod argument_parsing {
 			parse_args(&list, tty()).unwrap().options.global_color,
 			Some(ColorOption::Colors(vec![Color::Blue, Color::Rgb(gray), Color::Gray]))
 		);
+
+		// hex values work without the # prefix, matching the other boundaries
+		let bare = args(&["my text", "--colors", "888888"]);
+		assert_eq!(
+			parse_args(&bare, tty()).unwrap().options.global_color,
+			Some(ColorOption::Colors(vec![Color::Rgb(gray)]))
+		);
 	}
 
 	#[test]

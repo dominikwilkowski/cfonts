@@ -19,6 +19,9 @@ pub enum ColorError {
 
 	/// A transition gradient holds at least two stops
 	TransitionStops(usize),
+
+	/// A color is either a color name or a hex value
+	UnknownColor,
 }
 
 impl std::fmt::Display for ColorError {
@@ -31,6 +34,7 @@ impl std::fmt::Display for ColorError {
 			Self::TransitionStops(count) => {
 				write!(f, "A transition gradient holds at least two stops, this one holds {count}")
 			}
+			Self::UnknownColor => write!(f, "A color is either a color name or a hex value like #ff8800"),
 		}
 	}
 }
@@ -313,6 +317,46 @@ impl Color {
 			Self::WhiteBright => Some("\x1b[97m"),
 			Self::Candy | Self::Rgb(_) => None,
 		}
+	}
+}
+
+/// The name-or-hex rule every color boundary parses with
+///
+/// Names win and are checked first; a `#` prefixed value that fails reports the
+/// precise hex problem, anything else that matches no name is one unknown color
+fn parse_name_or_hex<T>(
+	input: &str,
+	from_name: impl Fn(&str) -> Option<T>,
+	from_rgb: impl Fn(Rgb) -> T,
+) -> Result<T, ColorError> {
+	if let Some(value) = from_name(input) {
+		return Ok(value);
+	}
+
+	if input.starts_with('#') {
+		return Rgb::from_hex(input).map(from_rgb);
+	}
+
+	Rgb::from_hex(input).map(from_rgb).map_err(|_| ColorError::UnknownColor)
+}
+
+/// A color parses from its name or a hex value; the leading `#` is optional
+impl std::str::FromStr for Color {
+	type Err = ColorError;
+
+	fn from_str(input: &str) -> Result<Self, Self::Err> {
+		parse_name_or_hex(input, Self::from_name, Self::Rgb)
+	}
+}
+
+/// A gradient stop parses from its name or a hex value; the leading `#` is optional
+///
+/// Slot-only colors such as `system`, `candy` and the bright variants are not stops
+impl std::str::FromStr for GradientStop {
+	type Err = ColorError;
+
+	fn from_str(input: &str) -> Result<Self, Self::Err> {
+		parse_name_or_hex(input, Self::from_name, Self::Rgb)
 	}
 }
 
@@ -808,6 +852,38 @@ mod tests {
 		assert_eq!(Color::from_name(""), None);
 	}
 
+	// Color::from_str
+
+	#[test]
+	fn colors_parse_from_names_and_hex_values() {
+		assert_eq!("red".parse::<Color>(), Ok(Color::Red));
+		assert_eq!("REDBRIGHT".parse::<Color>(), Ok(Color::RedBright));
+		assert_eq!(
+			"#ff8800".parse::<Color>(),
+			Ok(Color::Rgb(Rgb {
+				red: 255,
+				green: 136,
+				blue: 0,
+			}))
+		);
+		assert_eq!(
+			"f80".parse::<Color>(),
+			Ok(Color::Rgb(Rgb {
+				red: 255,
+				green: 136,
+				blue: 0,
+			}))
+		);
+	}
+
+	#[test]
+	fn prefixed_hex_problems_stay_precise_and_the_rest_is_one_unknown() {
+		assert_eq!("#ff88".parse::<Color>(), Err(ColorError::HexLength(4)));
+		assert_eq!("#zzz".parse::<Color>(), Err(ColorError::HexCharacter));
+		assert_eq!("reed".parse::<Color>(), Err(ColorError::UnknownColor));
+		assert_eq!("fffffff".parse::<Color>(), Err(ColorError::UnknownColor));
+	}
+
 	// Color::to_rgb
 
 	#[test]
@@ -906,6 +982,28 @@ mod tests {
 		assert_eq!(GradientStop::from_name("candy"), None);
 		assert_eq!(GradientStop::from_name("redBright"), None);
 		assert_eq!(GradientStop::from_name("#ff0000"), None);
+	}
+
+	// GradientStop::from_str
+
+	#[test]
+	fn stops_parse_from_names_and_hex_values() {
+		assert_eq!("blue".parse::<GradientStop>(), Ok(GradientStop::Blue));
+		assert_eq!(
+			"f80".parse::<GradientStop>(),
+			Ok(GradientStop::Rgb(Rgb {
+				red: 255,
+				green: 136,
+				blue: 0,
+			}))
+		);
+	}
+
+	#[test]
+	fn slot_only_colors_do_not_parse_as_stops() {
+		for input in ["system", "candy", "redBright"] {
+			assert_eq!(input.parse::<GradientStop>(), Err(ColorError::UnknownColor), "{input}");
+		}
 	}
 
 	// GradientStop::to_rgb

@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::{
 	BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor, ColorError, ColorOption,
-	GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options, RenderContext, Rgb, TransitionStops,
+	GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options, RenderContext, TransitionStops,
 	options::BlockOptions,
 };
 
@@ -240,30 +240,21 @@ impl Cfonts {
 	}
 }
 
-/// Parses a boundary color: a color name or hex value
+/// Parses a boundary color through the core name-or-hex parser
 fn parse_color(input: &str) -> Result<CoreColor, JsError> {
-	if let Some(color) = CoreColor::from_name(input) {
-		return Ok(color);
-	}
-
-	Rgb::from_hex(input).map(CoreColor::Rgb).map_err(|error| color_error(input, error))
+	input.parse().map_err(|error| color_error(input, error))
 }
 
-/// Parses a boundary gradient stop: a stop name or hex value
+/// Parses a boundary gradient stop through the core name-or-hex parser
 fn parse_stop(input: &str) -> Result<GradientStop, JsError> {
-	if let Some(stop) = GradientStop::from_name(input) {
-		return Ok(stop);
-	}
-
-	Rgb::from_hex(input).map(GradientStop::Rgb).map_err(|error| color_error(input, error))
+	input.parse().map_err(|error| color_error(input, error))
 }
 
-/// Hex errors point at hex looking input, everything else gets the generic message
+/// The precise hex problems speak for themselves; an unknown color names the input
 fn color_error(input: &str, error: ColorError) -> JsError {
-	if input.starts_with('#') {
-		JsError::new(&error.to_string())
-	} else {
-		JsError::new(&format!("Unsupported color `{input}`, use a color name or hex value"))
+	match error {
+		ColorError::UnknownColor => JsError::new(&format!("Unsupported color `{input}`, use a color name or hex value")),
+		error => JsError::new(&error.to_string()),
 	}
 }
 
