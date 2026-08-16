@@ -446,7 +446,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 			}
 		// Text arguments for the first block
 		} else if state.options.blocks.len() == 1 {
-			if state.options.blocks[0].text.is_some() {
+			if state.options.blocks[0].text.is_some() || state.options.blocks[0].stdin {
 				return Err(ParseError::TextAlreadySupplied(arg_str));
 			} else {
 				state.options.blocks[0].text = Some(arg_str.to_string());
@@ -1246,6 +1246,13 @@ mod stdin_handling {
 		// the error fires before any read; the panicking tty provider proves it
 		let input = args(&["hello", "--stdin"]);
 		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("--stdin"));
+	}
+
+	#[test]
+	fn supplied_text_conflicts_with_an_earlier_stdin_flag() {
+		// the reverse order of the conflict above must reject identically
+		let input = args(&["--stdin", "hello"]);
+		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("hello"));
 	}
 
 	#[test]
