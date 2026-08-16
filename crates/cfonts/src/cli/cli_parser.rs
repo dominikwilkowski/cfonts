@@ -20,6 +20,7 @@ pub enum ParseError<'a> {
 	NoTextSupplied,
 	TextAlreadySupplied(&'a str),
 	UnknownFlag(&'a str),
+	UnknownShortFlag(char),
 	MissingValue(Args),
 	InvalidValue {
 		argument: Args,
@@ -42,6 +43,7 @@ impl ParseError<'_> {
 			Self::NoTextSupplied => ErrorType::Error,
 			Self::TextAlreadySupplied(_) => ErrorType::Error,
 			Self::UnknownFlag(_) => ErrorType::Warning,
+			Self::UnknownShortFlag(_) => ErrorType::Warning,
 			Self::MissingValue(_) => ErrorType::Error,
 			Self::InvalidValue { .. } => ErrorType::Error,
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
@@ -93,6 +95,9 @@ impl ParseError<'_> {
 			}
 			Self::UnknownFlag(unknown_flag) => {
 				write!(f, "{flag} An unknown flag \"{open}{unknown_flag}{close}\" was used and ignored")
+			}
+			Self::UnknownShortFlag(unknown_flag) => {
+				write!(f, "{flag} An unknown flag \"{open}-{unknown_flag}{close}\" was used and ignored")
 			}
 			Self::MissingValue(args) => {
 				write!(
@@ -453,7 +458,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 						};
 						arg.apply(value, &mut state)?;
 					} else {
-						warn(&mut warnings, ParseError::UnknownFlag(short_str));
+						warn(&mut warnings, ParseError::UnknownShortFlag(short));
 					}
 				}
 			}
@@ -921,11 +926,15 @@ mod argument_parsing {
 
 	#[test]
 	fn unknown_flags_warn_and_are_ignored() {
-		let input = args(&["my text", "-u", "--unknown"]);
+		let input = args(&["my text", "-u", "--unknown", "-wx"]);
 		let parsed = parse_args(&input, tty()).unwrap();
 
-		assert_eq!(parsed.warnings.len(), 2);
-		assert!(parsed.warnings.iter().all(|warning| matches!(warning, ParseError::UnknownFlag(_))));
+		// the cluster still applies its known flags around the unknown one
+		assert!(parsed.options.blocks[0].word_wrap);
+		assert_eq!(parsed.warnings.len(), 3);
+		assert_eq!(parsed.warnings[0], ParseError::UnknownShortFlag('u'));
+		assert_eq!(parsed.warnings[1], ParseError::UnknownFlag("--unknown"));
+		assert_eq!(parsed.warnings[2], ParseError::UnknownShortFlag('x'));
 		assert!(parsed.warnings.iter().all(|warning| warning.error_type() == ErrorType::Warning));
 	}
 
@@ -1391,6 +1400,7 @@ mod error_messages {
 			ParseError::NoTextSupplied,
 			ParseError::TextAlreadySupplied("world"),
 			ParseError::UnknownFlag("--unknown"),
+			ParseError::UnknownShortFlag('u'),
 			ParseError::MissingValue(Args::Font),
 			ParseError::InvalidValue {
 				argument: Args::Color,
@@ -1423,6 +1433,7 @@ mod error_messages {
 				ParseError::NoTextSupplied
 				| ParseError::TextAlreadySupplied(_)
 				| ParseError::UnknownFlag(_)
+				| ParseError::UnknownShortFlag(_)
 				| ParseError::MissingValue(_)
 				| ParseError::InvalidValue { .. }
 				| ParseError::MidClusterArgumentRequired(_)
