@@ -90,6 +90,10 @@ macro_rules! help_line {
 	}};
 }
 
+/// Every option of the cfonts command line
+///
+/// Public because [`ParseError`](crate::cli::ParseError) names the option a
+/// problem belongs to; everything the parser does with an option is internal
 #[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum Args {
 	// Global config

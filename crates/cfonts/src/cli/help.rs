@@ -1,5 +1,6 @@
 use crate::{CliEnv, Color, Font, GradientOption, GradientStop, Host, RustHost, Valign, cli::Args};
 
+/// The full help screen, colored when stdout supports it
 pub fn cli_help() -> String {
 	cli_help_with(RustHost::default().resolve_context().color_level().is_some())
 }

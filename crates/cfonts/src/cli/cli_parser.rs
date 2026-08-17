@@ -9,12 +9,22 @@ use crate::{
 	TransitionStops, Valign, cli::Args,
 };
 
+/// Whether a parse problem aborts the parse or only warns
+///
+/// Severity reaches consumers positionally: warnings ride [`ParsedArgs::warnings`]
+/// and errors return through [`parse_args`]'s `Err`, so the type is internal
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum ErrorType {
+pub(crate) enum ErrorType {
 	Warning,
 	Error,
 }
 
+/// Every way one command line can be wrong
+///
+/// Warnings surface through [`ParsedArgs::warnings`] and keep the parse alive;
+/// hard errors return through [`parse_args`]'s `Err` and abort it
+/// Messages render through [`Display`](std::fmt::Display), colored when the
+/// error stream supports it
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ParseError<'a> {
 	NoTextSupplied,
@@ -394,17 +404,31 @@ impl TryFrom<ParseState> for Options {
 	}
 }
 
+/// Everything one parsed command line asks of the binary
 #[derive(Debug, Default, PartialEq)]
 pub struct ParsedArgs<'a> {
+	/// The render options every parsed flag landed in
 	pub options: Options,
+
+	/// Problems that did not abort the parse, in the order they appeared
 	pub warnings: Vec<ParseError<'a>>,
+
+	/// Whether lines should end in `\r\n` for terminals in raw mode
 	pub raw_mode: bool,
+
+	/// Whether the help screen was requested instead of a render
 	pub show_help: bool,
+
+	/// Whether the version was requested instead of a render
 	pub show_version: bool,
 }
 
+/// How the parser reaches stdin, injected so hosts and tests own the pipe
 pub struct StdinProvider {
+	/// Whether stdin is a terminal rather than a pipe
 	pub interactive: bool,
+
+	/// Reads all of stdin; called at most once per parse
 	pub read: fn() -> String,
 }
 
@@ -414,6 +438,9 @@ fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
 	warnings.push(warning);
 }
 
+/// Parses one command line, reading stdin only when the flags or a pipe ask for it
+///
+/// The binary passes `std::env::args().skip(1)`; anything else may pass any list
 pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result<ParsedArgs<'a>, ParseError<'a>> {
 	let mut warnings: Vec<ParseError<'a>> = Vec::new();
 	let mut state = ParseState::default();
