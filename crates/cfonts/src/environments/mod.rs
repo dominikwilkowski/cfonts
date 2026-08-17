@@ -115,6 +115,9 @@ pub enum RowEvent<'a> {
 impl RowEvent<'_> {
 	/// Walks the layout rows in output order, calling `event` for every paintable event,
 	/// so the traversal logic exists exactly once
+	///
+	/// Text events always carry text: empty segments are filtered here, once,
+	/// so no consumer needs its own guard against them
 	pub fn each<'a>(rows: &'a [LayoutRow], mut event: impl FnMut(RowEvent<'a>)) {
 		for (row_index, row) in rows.iter().enumerate() {
 			if row_index > 0 {
@@ -134,12 +137,15 @@ impl RowEvent<'_> {
 						for segment in glyph_row.segments {
 							let (text, slot) = segment.parts();
 
-							event(RowEvent::Text {
-								text,
-								block_index: *block_index,
-								slot,
-								paintable: *paintable,
-							});
+							// empty segments emit nothing so no consumer wraps color codes around zero columns
+							if !text.is_empty() {
+								event(RowEvent::Text {
+									text,
+									block_index: *block_index,
+									slot,
+									paintable: *paintable,
+								});
+							}
 						}
 
 						event(RowEvent::EntryEnd {
@@ -262,25 +268,20 @@ pub trait Environment {
 				block_index,
 				slot,
 				paintable,
-			} => {
-				// Empty segments emit nothing so no stray color codes wrap zero columns
-				if !text.is_empty() {
-					match plan.domain(block_index) {
-						PaintDomain::Global => {
-							let consumed = self.gradient_paint(text, gradients.global_window(), context, &mut out);
-							gradients.advance_global(consumed);
-						}
-						PaintDomain::Block => {
-							let consumed = self.gradient_paint(text, gradients.block_window(block_index), context, &mut out);
-							gradients.advance_block(consumed);
-						}
-						PaintDomain::Slots => {
-							let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-							self.paint(text, tokens, will_style, context, &mut out);
-						}
-					}
+			} => match plan.domain(block_index) {
+				PaintDomain::Global => {
+					let consumed = self.gradient_paint(text, gradients.global_window(), context, &mut out);
+					gradients.advance_global(consumed);
 				}
-			}
+				PaintDomain::Block => {
+					let consumed = self.gradient_paint(text, gradients.block_window(block_index), context, &mut out);
+					gradients.advance_block(consumed);
+				}
+				PaintDomain::Slots => {
+					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
+					self.paint(text, tokens, will_style, context, &mut out);
+				}
+			},
 			RowEvent::Blank { width, block_index } => {
 				self.blank(width, &mut out);
 				gradients.skip_blank(width, block_index);
@@ -359,7 +360,8 @@ mod tests {
 				row_starts += 1;
 				assert!(row.width > 0);
 			}
-			RowEvent::Text { block_index, .. } => {
+			RowEvent::Text { text, block_index, .. } => {
+				assert!(!text.is_empty(), "Text events always carry text");
 				first_text_block.get_or_insert(block_index);
 			}
 			RowEvent::Blank { .. } => blanks += 1,
