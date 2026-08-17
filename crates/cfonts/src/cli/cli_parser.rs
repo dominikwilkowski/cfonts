@@ -251,12 +251,12 @@ pub(crate) enum GradientInput {
 
 #[derive(Debug, Default)]
 pub(crate) struct CliOptions {
-	pub align: Align,
-	pub valign: Valign,
-	pub spaceless: bool,
-	pub max_length: Option<NonZeroUsize>,
-	pub global_color: Option<ColorOption>,
-	pub blocks: Vec<CliBlockOptions>,
+	pub(crate) align: Align,
+	pub(crate) valign: Valign,
+	pub(crate) spaceless: bool,
+	pub(crate) max_length: Option<NonZeroUsize>,
+	pub(crate) global_color: Option<ColorOption>,
+	pub(crate) blocks: Vec<CliBlockOptions>,
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -882,7 +882,7 @@ mod argument_parsing {
 		let unknown = args(&["my text", "-c", "unknown"]);
 		assert!(parse_args(&unknown, tty()).is_err());
 
-		// v3 forgave malformed hex by padding; v4 rejects it loudly
+		// malformed hex rejects loudly; nothing pads or guesses the missing digits
 		for bad_hex in ["#88", "#fffffff", "#xxx"] {
 			let input = args(&["my text", "-c", bad_hex]);
 			assert!(
@@ -1042,7 +1042,7 @@ mod argument_parsing {
 			assert_eq!(block.font, Font::Simple3D);
 			assert_eq!(block.letter_spacing, 9);
 			assert_eq!(block.line_height, 2);
-			// -g beats -c on the global scope, matching v3 precedence; the gradient assert below covers it
+			// -g beats -c on the global scope; the gradient assert below covers it
 			assert_eq!(block.color, None);
 			assert_eq!(parsed.options.align, Align::Center);
 			assert_eq!(parsed.options.valign, Valign::Top);

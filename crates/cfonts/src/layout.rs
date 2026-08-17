@@ -1229,8 +1229,8 @@ mod tests {
 
 	#[test]
 	fn cli_style_zero_max_length_means_unlimited() {
-		// `--max-length 0` parses as NonZeroUsize::new(0) == None, matching v3 semantics;
-		// Some(0) itself is unrepresentable in the options type
+		// `--max-length 0` parses as NonZeroUsize::new(0) == None: zero means unlimited,
+		// and Some(0) itself is unrepresentable in the options type
 		let text = "A".repeat(40);
 		let lines = line_widths(&options(Valign::Top, Some(0), vec![block(&text, Font::Tiny, false)]));
 		assert_eq!(lines.len(), 1);
