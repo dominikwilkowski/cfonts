@@ -6,7 +6,11 @@ use std::{
 
 use crate::{
 	Align, BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, Options,
-	TransitionStops, Valign, cli::Args,
+	TransitionStops, Valign,
+	cli::{
+		Args,
+		helper::{PROMPT_COLORED, PROMPT_PLAIN},
+	},
 };
 
 /// Whether a parse problem aborts the parse or only warns
@@ -71,7 +75,7 @@ impl ParseError<'_> {
 			""
 		};
 		let close = if color_enabled { Color::ANSI_RESET } else { "" };
-		let prompt = if color_enabled { "  \x1B[1m$\x1B[0m" } else { "  $" };
+		let prompt = if color_enabled { PROMPT_COLORED } else { PROMPT_PLAIN };
 		let warning_open = if color_enabled { "\x1B[43m\x1B[30m" } else { "" };
 		let error_open = if color_enabled { "\x1B[41m\x1B[37m" } else { "" };
 		let reset = if color_enabled { "\x1B[0m" } else { "" };
@@ -284,6 +288,13 @@ pub(crate) struct ParseState {
 }
 
 impl ParseState {
+	/// The block the next block scoped option applies to
+	///
+	/// The state always holds at least one block; its Default creates the first
+	pub(crate) fn current_block_mut(&mut self) -> &mut CliBlockOptions {
+		self.options.blocks.last_mut().expect("the parse state must always hold at least one block")
+	}
+
 	/// The warnings for gradient flags that have no gradient to modify
 	fn gradient_flag_warnings(&self) -> Vec<ParseError<'static>> {
 		let mut warnings = Vec::new();
@@ -438,6 +449,21 @@ fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
 	warnings.push(warning);
 }
 
+/// Pulls the value one argument demands from the argument stream, then applies it
+fn apply_with_value<'a>(
+	arg: Args,
+	args_iter: &mut std::slice::Iter<'a, String>,
+	state: &mut ParseState,
+) -> Result<(), ParseError<'a>> {
+	let value = if arg.infos().arguments.is_some() {
+		args_iter.next().map(String::as_str)
+	} else {
+		None
+	};
+
+	arg.apply(value, state)
+}
+
 /// Parses one command line, reading stdin only when the flags or a pipe ask for it
 ///
 /// The binary passes `std::env::args().skip(1)`; anything else may pass any list
@@ -452,12 +478,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 			if name.is_empty() {
 				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
 			} else if let Some(arg) = Args::parse(name) {
-				let value = if arg.infos().arguments.is_some() {
-					args_iter.next().map(String::as_str)
-				} else {
-					None
-				};
-				arg.apply(value, &mut state)?;
+				apply_with_value(arg, &mut args_iter, &mut state)?;
 			} else {
 				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
 			}
@@ -472,18 +493,11 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 					let short_str = &cluster[index..index + length];
 
 					if let Some(arg) = Args::parse(short_str) {
-						let takes_value = arg.infos().arguments.is_some();
-
-						if takes_value && index + length < cluster.len() {
+						if arg.infos().arguments.is_some() && index + length < cluster.len() {
 							return Err(ParseError::MidClusterArgumentRequired(arg));
 						}
 
-						let value = if takes_value {
-							args_iter.next().map(String::as_str)
-						} else {
-							None
-						};
-						arg.apply(value, &mut state)?;
+						apply_with_value(arg, &mut args_iter, &mut state)?;
 					} else {
 						warn(&mut warnings, ParseError::UnknownShortFlag(short));
 					}
@@ -560,10 +574,19 @@ pub(crate) mod helpers {
 		list.iter().map(|item| String::from(*item)).collect()
 	}
 
-	pub(crate) fn run(args: &[&str]) -> ParsedArgs<'static> {
-		let args: Vec<String> = args.iter().map(|arg| String::from(*arg)).collect();
-		let args: &'static [String] = Box::leak(args.into_boxed_slice());
-		parse_args(args, tty()).unwrap()
+	/// Styled output with every style code of the help and error rendering removed
+	pub(crate) fn strip_styling(styled: &str) -> String {
+		[
+			"\x1B[0m", "\x1B[1m", "\x1B[3m", "\x1B[30m", "\x1B[32m", "\x1B[33m", "\x1B[37m", "\x1B[39m", "\x1B[41m",
+			"\x1B[43m",
+		]
+		.iter()
+		.fold(styled.to_string(), |text, code| text.replace(code, ""))
+	}
+
+	pub(crate) fn run(list: &[&str]) -> ParsedArgs<'static> {
+		let leaked: &'static [String] = Box::leak(args(list).into_boxed_slice());
+		parse_args(leaked, tty()).unwrap()
 	}
 }
 
@@ -1509,18 +1532,7 @@ mod error_messages {
 			error.write_message(&mut plain, false).unwrap();
 			error.write_message(&mut styled, true).unwrap();
 
-			let stripped = styled
-				.replace("\x1B[0m", "")
-				.replace("\x1B[1m", "")
-				.replace("\x1B[3m", "")
-				.replace("\x1B[30m", "")
-				.replace("\x1B[32m", "")
-				.replace("\x1B[33m", "")
-				.replace("\x1B[37m", "")
-				.replace("\x1B[39m", "")
-				.replace("\x1B[41m", "")
-				.replace("\x1B[43m", "");
-			assert_eq!(stripped, plain, "{error:?} variants differ beyond styling");
+			assert_eq!(helpers::strip_styling(&styled), plain, "{error:?} variants differ beyond styling");
 		}
 	}
 }

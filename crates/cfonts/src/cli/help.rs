@@ -1,8 +1,14 @@
-use crate::{CliEnv, Color, Font, GradientOption, GradientStop, Host, RustHost, Valign, cli::Args};
+use crate::{
+	CliEnv, Color, Font, GradientOption, GradientStop, RustHost, Valign,
+	cli::{
+		Args, VERSION,
+		helper::{PROMPT_COLORED, PROMPT_PLAIN},
+	},
+};
 
 /// The full help screen, colored when stdout supports it
 pub fn cli_help() -> String {
-	cli_help_with(RustHost::default().resolve_context().color_level().is_some())
+	cli_help_with(RustHost::stdout_color_level().is_some())
 }
 
 /// Assembles the help screen for one known color mode, deterministic for tests
@@ -15,14 +21,13 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 		RenderContext::from_validated_width(None)
 	};
 	let mut output = String::new();
-	let version = format!("v{}", env!("CARGO_PKG_VERSION"));
 	let banner = crate::Cfonts::text("cfonts")
 		.global_color(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Green,
 			independent_gradient: false,
 		})
-		.new_text(version)
+		.new_text(VERSION)
 		.font(Font::Console)
 		.valign(Valign::Bottom)
 		.color(vec![Color::System])
@@ -40,7 +45,7 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 		"\n",
 	);
 
-	let prompt = if color_enabled { "  \x1B[1m$\x1B[0m " } else { "  $ " };
+	let prompt = if color_enabled { PROMPT_COLORED } else { PROMPT_PLAIN };
 
 	output.push_str(&banner.text);
 	output.push_str(USAGE);
@@ -65,6 +70,7 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 		"cat notes.txt | cfonts -f tiny",
 	] {
 		output.push_str(prompt);
+		output.push(' ');
 		output.push_str(example);
 		output.push('\n');
 	}

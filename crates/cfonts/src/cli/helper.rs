@@ -1,5 +1,9 @@
 //! Compile time string tools for the cli help and error output
 
+/// The shell prompt every example line starts with, styled and plain
+pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
+pub(crate) const PROMPT_PLAIN: &str = "  $";
+
 /// The summed byte length of all parts, computed at compile time
 pub(crate) const fn total_len(parts: &[&str]) -> usize {
 	let mut length = 0;

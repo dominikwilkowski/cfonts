@@ -137,6 +137,17 @@ impl RustHost {
 		}
 	}
 
+	/// The color level for this host's standard output, resolved through the shared chain
+	///
+	/// The render fallback applies: an undetectable standard output still gets full color
+	pub(crate) fn stdout_color_level() -> Option<ColorLevel> {
+		let (forced, no_color) = Self::color_environment();
+
+		Self::resolve_color_level(forced.as_deref(), no_color, ColorOverride::Auto, || {
+			Self::detect_color_level(supports_color::Stream::Stdout)
+		})
+	}
+
 	/// The color variables the chain interprets, gathered once per resolution
 	///
 	/// var() would turn a present non-Unicode value into an absent one and let

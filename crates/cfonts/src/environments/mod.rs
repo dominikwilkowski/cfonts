@@ -173,7 +173,7 @@ pub trait Environment {
 		ColorTokens::default()
 	}
 
-	/// Paint one [Segment] of text, wrapped in the env-interpreted color tokens
+	/// Paint one [`Segment`](crate::fonts::Segment) of text, wrapped in the env-interpreted color tokens
 	///
 	/// `will_style` says whether this render emits any style at all,
 	/// for environments whose escaping depends on the whole artifact

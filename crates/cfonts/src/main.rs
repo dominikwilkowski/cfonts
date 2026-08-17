@@ -5,7 +5,7 @@ use std::{
 
 use cfonts::{
 	Host, RustHost,
-	cli::{ParsedArgs, StdinProvider, cli_help, parse_args},
+	cli::{ParsedArgs, StdinProvider, VERSION, cli_help, parse_args},
 };
 
 // terminology
@@ -60,7 +60,7 @@ fn main() -> std::io::Result<()> {
 	if show_help {
 		println!("{}", cli_help());
 	} else if show_version {
-		println!("v{}", env!("CARGO_PKG_VERSION"));
+		println!("{VERSION}");
 	} else {
 		RustHost::default().with_raw_mode(raw_mode).say(&options)?;
 	}

@@ -11,3 +11,6 @@ pub use cli_parser::{ParseError, ParsedArgs, StdinProvider, parse_args};
 mod help;
 pub use help::cli_help;
 pub(crate) mod helper;
+
+/// The version of this crate, spelled the way the binary prints it
+pub const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));

@@ -4,7 +4,7 @@ use crate::{
 	Align, Color, /*Background,*/ ColorError, ColorOption, Font, GradientPreset, Valign,
 	cli::{
 		CliBlockOptions, GradientInput, ParseError, ParseState,
-		helper::{const_concat, const_join},
+		helper::{PROMPT_COLORED, PROMPT_PLAIN, const_concat, const_join},
 	},
 	color::GradientStop,
 };
@@ -36,6 +36,7 @@ macro_rules! help_line {
 			}
 		};
 		const RESET: &str = if $colored { "\x1B[0m" } else { "" };
+		const PROMPT: &str = if $colored { PROMPT_COLORED } else { PROMPT_PLAIN };
 		const VALUE: &str = if $colored {
 			Color::Green.ansi16_sgr().unwrap()
 		} else {
@@ -77,10 +78,8 @@ macro_rules! help_line {
 			INFO.long,
 			SHORT_LEAD,
 			SHORT,
-			"\n  ",
-			BOLD,
-			"$",
-			RESET,
+			"\n",
+			PROMPT,
 			" ",
 			INFO.example,
 			OPTIONS_OPEN,
@@ -166,38 +165,16 @@ impl Args {
 			// Global config
 			Self::Align => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				if let Some(align) = Align::from_name(value) {
-					state.options.align = align;
-				} else {
-					return Err(ParseError::InvalidValue {
-						argument: self,
-						value,
-						source: None,
-					});
-				}
+				state.options.align = self.parse_name(value, Align::from_name)?;
 			}
 			Self::Valign => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				if let Some(valign) = Valign::from_name(value) {
-					state.options.valign = valign;
-				} else {
-					return Err(ParseError::InvalidValue {
-						argument: self,
-						value,
-						source: None,
-					});
-				}
+				state.options.valign = self.parse_name(value, Valign::from_name)?;
 			}
 			Self::MaxLength => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let max_length: usize = value.parse().map_err(|_| ParseError::InvalidValue {
-					argument: self,
-					value,
-					source: None,
-				})?;
-
 				// zero means unlimited
-				state.options.max_length = NonZeroUsize::new(max_length);
+				state.options.max_length = NonZeroUsize::new(self.parse_number(value)?);
 			}
 			Self::Stdin => {
 				// The options that are passed in keep the promise that there is always at least one block present
@@ -223,15 +200,7 @@ impl Args {
 			}
 			Self::Font => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				if let Some(font) = Font::from_name(value) {
-					state.options.blocks.last_mut().unwrap().block.font = font;
-				} else {
-					return Err(ParseError::InvalidValue {
-						argument: self,
-						value,
-						source: None,
-					});
-				}
+				state.current_block_mut().block.font = self.parse_name(value, Font::from_name)?;
 			}
 			Self::Color => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
@@ -240,7 +209,7 @@ impl Args {
 				if state.options.blocks.len() == 1 {
 					state.options.global_color = Some(ColorOption::Colors(colors));
 				} else {
-					state.options.blocks.last_mut().unwrap().block.color = Some(ColorOption::Colors(colors));
+					state.current_block_mut().block.color = Some(ColorOption::Colors(colors));
 				}
 			}
 			Self::Background => {
@@ -249,23 +218,11 @@ impl Args {
 			}
 			Self::LetterSpacing => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let letter_spacing = value.parse().map_err(|_| ParseError::InvalidValue {
-					argument: self,
-					value,
-					source: None,
-				})?;
-
-				state.options.blocks.last_mut().unwrap().block.letter_spacing = letter_spacing;
+				state.current_block_mut().block.letter_spacing = self.parse_number(value)?;
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let line_height = value.parse().map_err(|_| ParseError::InvalidValue {
-					argument: self,
-					value,
-					source: None,
-				})?;
-
-				state.options.blocks.last_mut().unwrap().block.line_height = line_height;
+				state.current_block_mut().block.line_height = self.parse_number(value)?;
 			}
 
 			// CLI specific config
@@ -284,7 +241,7 @@ impl Args {
 			// Boolean flags
 			Self::Spaceless => state.options.spaceless = true,
 			Self::RawMode => state.raw_mode = true,
-			Self::WordWrap => state.options.blocks.last_mut().unwrap().block.word_wrap = true,
+			Self::WordWrap => state.current_block_mut().block.word_wrap = true,
 			Self::IndependentGradient => state.independent = true,
 			Self::TransitionGradient => state.transition = true,
 			Self::Version => state.show_version = true,
@@ -292,6 +249,24 @@ impl Args {
 		}
 
 		Ok(())
+	}
+
+	/// Parses one value through a name lookup, or reports it against this argument
+	fn parse_name<'a, T>(self, value: &'a str, from_name: impl Fn(&str) -> Option<T>) -> Result<T, ParseError<'a>> {
+		from_name(value).ok_or(ParseError::InvalidValue {
+			argument: self,
+			value,
+			source: None,
+		})
+	}
+
+	/// Parses one numeric value, or reports it against this argument
+	fn parse_number<'a, T: std::str::FromStr>(self, value: &'a str) -> Result<T, ParseError<'a>> {
+		value.parse().map_err(|_| ParseError::InvalidValue {
+			argument: self,
+			value,
+			source: None,
+		})
 	}
 
 	/// Parses one comma separated color list through the core name-or-hex parser,
@@ -548,7 +523,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::ParseState;
+	use crate::cli::{ParseState, cli_parser::helpers::strip_styling};
 
 	#[test]
 	fn parse_test() {
@@ -584,16 +559,7 @@ mod tests {
 			let plain = argument.help_plain();
 
 			assert!(!plain.contains('\x1B'), "{argument:?} plain variant contains escape codes");
-			assert_eq!(
-				colored
-					.replace("\x1B[1m", "")
-					.replace("\x1B[0m", "")
-					.replace("\x1B[32m", "")
-					.replace("\x1B[39m", "")
-					.replace("\x1B[3m", ""),
-				plain,
-				"{argument:?} variants differ beyond styling"
-			);
+			assert_eq!(strip_styling(colored), plain, "{argument:?} variants differ beyond styling");
 		}
 	}
 
