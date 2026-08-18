@@ -155,18 +155,18 @@ fn radial(from: f64, to: f64, this_step: usize, steps: usize) -> f64 {
 ///
 /// Owning the buffer lets repeated fills reuse its capacity
 #[derive(Debug, Default)]
-pub struct GradientColors {
+pub(crate) struct GradientColors {
 	colors: Vec<Rgb>,
 }
 
 impl GradientColors {
 	/// An empty gradient buffer, filled per domain by [`fill`](Self::fill)
-	pub fn new() -> Self {
+	pub(crate) fn new() -> Self {
 		Self { colors: Vec::new() }
 	}
 
 	/// All colors, one per column
-	pub fn colors(&self) -> &[Rgb] {
+	pub(crate) fn colors(&self) -> &[Rgb] {
 		&self.colors
 	}
 
@@ -174,7 +174,7 @@ impl GradientColors {
 	///
 	/// Two stops with `transition: false` travel through hue space; transitions travel linearly
 	/// through RGB, distributing the steps over the gaps between the stops
-	pub fn fill(&mut self, stops: &[Rgb], transition: bool, steps: usize) {
+	pub(crate) fn fill(&mut self, stops: &[Rgb], transition: bool, steps: usize) {
 		self.colors.clear();
 
 		if stops.is_empty() || steps == 0 {

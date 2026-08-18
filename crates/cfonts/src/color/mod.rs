@@ -4,7 +4,8 @@
 //! This module only ever answers what a color is worth in another representation
 
 pub mod gradient;
-pub use gradient::{GradientColors, GradientPreset};
+pub(crate) use gradient::GradientColors;
+pub use gradient::GradientPreset;
 
 use cfonts_macros::All;
 

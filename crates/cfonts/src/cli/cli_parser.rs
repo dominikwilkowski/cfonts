@@ -372,22 +372,15 @@ impl TryFrom<ParseState> for Options {
 				converted.global_color = Some(ColorOption::Gradient(preset.to_gradient(independent)));
 			}
 			Some(GradientInput::Stops(stops)) if transition => {
+				// the two stop minimum has one home: the TransitionStops constructor
 				let count = stops.len();
-				let mut stops = stops.into_iter();
-
-				let (Some(first), Some(second)) = (stops.next(), stops.next()) else {
-					return Err(ParseError::BadGradientColors {
-						count,
-						transition: true,
-					});
-				};
+				let stops = TransitionStops::try_from(stops).map_err(|_| ParseError::BadGradientColors {
+					count,
+					transition: true,
+				})?;
 
 				converted.global_color = Some(ColorOption::Gradient(GradientOption::Transition {
-					stops: TransitionStops {
-						first,
-						second,
-						rest: stops.collect(),
-					},
+					stops,
 					independent_gradient: independent,
 				}));
 			}

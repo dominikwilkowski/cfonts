@@ -1,6 +1,6 @@
 use cfonts::{
 	Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientOption, GradientPreset,
-	GradientStop, Options, RenderContext, Rgb, Valign, color::GradientColors, render_with,
+	GradientStop, Options, RenderContext, Rgb, Valign, render_with,
 };
 
 /// The expected terminal bytes of one row painted column by column from a ramp
@@ -10,6 +10,11 @@ fn ramped_row(row_text: &str, ramp: &[Rgb]) -> String {
 		.zip(ramp)
 		.map(|(character, rgb)| format!("\u{1b}[38;2;{};{};{}m{character}\u{1b}[39m", rgb.red, rgb.green, rgb.blue))
 		.collect()
+}
+
+/// The documented ramp colors, decoded from their hex spelling
+fn ramp_from(ramp: &[&str]) -> Vec<Rgb> {
+	ramp.iter().map(|hex| Rgb::from_hex(hex).expect("test ramps are valid hex")).collect()
 }
 
 /// A one block Tiny composition with the given colors
@@ -234,11 +239,13 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 
 	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
-	// one ramp over the row width, every column painted with its own run, letter spaces included
-	let mut ramp = GradientColors::new();
-	ramp.fill(&[GradientStop::Red.to_rgb(), GradientStop::Blue.to_rgb()], false, 7);
+	// one ramp over the seven row columns, every column painted with its own run,
+	// letter spaces included; two stop ramps travel through hue space
+	let ramp = ramp_from(&[
+		"#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff",
+	]);
 
-	let expected: Vec<String> = plain.lines().map(|row| ramped_row(row, ramp.colors())).collect();
+	let expected: Vec<String> = plain.lines().map(|row| ramped_row(row, &ramp)).collect();
 	assert_eq!(rendered, expected.join("\n"));
 }
 
@@ -274,10 +281,10 @@ fn transition_presets_paint_their_stop_colors() {
 
 	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
-	let mut ramp = GradientColors::new();
-	ramp.fill(GradientPreset::Pride.stops(), true, 3);
+	// three columns compress the six stop preset to its first, middle and last stop
+	let ramp = ramp_from(&["#750787", "#ff8c00", "#e40303"]);
 
-	let expected: Vec<String> = plain.lines().map(|row| ramped_row(row, ramp.colors())).collect();
+	let expected: Vec<String> = plain.lines().map(|row| ramped_row(row, &ramp)).collect();
 	assert_eq!(rendered, expected.join("\n"));
 }
 
@@ -300,10 +307,9 @@ fn the_global_gradient_resumes_after_a_statically_painted_block() {
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// the first block paints its static red, the second continues the global
-	// ramp at its absolute column, not at the ramp's start
-	let mut ramp = GradientColors::new();
-	ramp.fill(&[GradientStop::Red.to_rgb(), GradientStop::Blue.to_rgb()], false, 6);
-	let resumed = ramp.colors()[3];
+	// ramp at its absolute column, not at the ramp's start:
+	// column three of the six column red to blue ramp
+	let resumed = Rgb::from_hex("#00ff65").expect("test ramps are valid hex");
 
 	let first_row = rendered.lines().next().expect("two rows");
 	assert!(first_row.starts_with("\u{1b}[31m"));
@@ -470,9 +476,9 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 
 	// the ramp anchors at the widest row, so the short right aligned row samples
 	// its absolute columns and converges on the end color at the shared right edge
-	let mut ramp = GradientColors::new();
-	ramp.fill(&[GradientStop::Red.to_rgb(), GradientStop::Blue.to_rgb()], false, 7);
-	let colors = ramp.colors();
+	let colors = ramp_from(&[
+		"#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff",
+	]);
 
 	let first_row = rendered.lines().next().expect("four rows");
 	assert!(first_row.starts_with("    "), "the indent stays bare: {first_row}");
@@ -505,14 +511,14 @@ fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
-	// the second block's ramp spans its own three columns, restarting on the stop color
-	let mut ramp = GradientColors::new();
-	ramp.fill(&[GradientStop::Red.to_rgb(), GradientStop::Blue.to_rgb()], false, 3);
+	// the second block's ramp spans its own three columns, restarting on the stop
+	// color and passing through the hue space middle
+	let ramp = ramp_from(&["#ff0000", "#00ff00", "#0000ff"]);
 
 	let first_row = rendered.lines().next().expect("two rows");
 	assert!(first_row.starts_with("\u{1b}[31m"), "the first block paints its static red");
 
-	for rgb in ramp.colors() {
+	for rgb in &ramp {
 		assert!(
 			first_row.contains(&format!("\u{1b}[38;2;{};{};{}m", rgb.red, rgb.green, rgb.blue)),
 			"every block ramp column paints: {rgb:?} in {first_row}"
@@ -610,10 +616,9 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 	let content_start = rendered.text.find('>').expect("wrapper div present") + 1;
 	let lines: Vec<&str> = rendered.text[content_start..].split("<br>").collect();
 
-	let widest = 11; // three tiny glyphs and their two letter spaces
-	let mut ramp = GradientColors::new();
-	ramp.fill(&[GradientStop::Red.to_rgb(), GradientStop::Blue.to_rgb()], false, widest);
-	let padded_start = ramp.colors()[(widest - 3) / 2];
+	// eleven columns: three tiny glyphs and their two letter spaces; the short
+	// line pads (11 - 3) / 2 = 4 columns, sampling column four of the ramp
+	let padded_start = Rgb::from_hex("#65ff00").expect("test ramps are valid hex");
 
 	assert!(lines[0].starts_with("    "), "the short centered line pads left: {}", lines[0]);
 	assert!(
