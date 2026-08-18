@@ -6,6 +6,7 @@ use cfonts::{
 	Align as CoreAlign, Color as CoreColor, ColorLevel as CoreColorLevel, Font as CoreFont,
 	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Rgb, Valign as CoreValign,
 };
+use cfonts_macros::All;
 
 macro_rules! bridge_enum {
 	// A one way bridge for core enums whose data carrying variants cannot cross the boundary
@@ -115,6 +116,18 @@ bridge_enum!(Font => CoreFont {
 	Slick,
 	Tiny,
 });
+
+/// The closed set of render environments the boundary can ask for
+///
+/// JavaScript cannot implement environments: formatting runs inside the wasm,
+/// and custom runtimes implement the open Host interface instead
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
+pub enum EnvironmentKind {
+	Cli,
+	Browser,
+	BrowserConsole,
+}
 
 /// The rendered output returned to JavaScript
 #[derive(Debug, Serialize, Tsify)]

@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 cfonts = { path = "../cfonts" }
+cfonts-macros = { path = "../macros", version = "=4.0.0" }
 serde = { version = "1", features = ["derive"] }
 tsify = { version = "0.5", features = ["js"] }
 wasm-bindgen = "0.2"

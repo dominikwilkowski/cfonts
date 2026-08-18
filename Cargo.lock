@@ -253,6 +253,7 @@ name = "cfonts-wasm"
 version = "4.0.0"
 dependencies = [
  "cfonts",
+ "cfonts-macros",
  "serde",
  "tsify",
  "wasm-bindgen",

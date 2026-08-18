@@ -255,6 +255,13 @@ test("renderWith rejects unsupported environments", () => {
 			message: "`renderWith()` expects a cfonts environment",
 		});
 	}
+
+	// even the private symbol with a forged kind stays outside the closed set
+	const forged = Object.freeze({ [Object.getOwnPropertySymbols(CliEnv)[0]]: 99 });
+	assert.throws(() => wrappingBanner().renderWith(forged), {
+		name: "TypeError",
+		message: "`renderWith()` expects a cfonts environment",
+	});
 });
 
 test("renderWith rejects invalid contexts", () => {

@@ -1,16 +1,8 @@
-import type { Rendered, Cfonts as WasmCfonts } from "../../pkg/cfonts_wasm.js";
+import { EnvironmentKind, type Rendered, type Cfonts as WasmCfonts } from "../../pkg/cfonts_wasm.js";
 
 import type { RenderContext } from "../render-context.js";
 
 const environmentKind = Symbol("cfonts.environment");
-
-const EnvironmentKind = {
-	Cli: 0,
-	Browser: 1,
-	BrowserConsole: 2,
-} as const;
-
-type EnvironmentKind = (typeof EnvironmentKind)[keyof typeof EnvironmentKind];
 
 /**
  * A built-in environment that converts a composition into one artifact format
@@ -42,17 +34,11 @@ export const BrowserEnv = defineEnvironment(EnvironmentKind.Browser);
 export const BrowserConsoleEnv = defineEnvironment(EnvironmentKind.BrowserConsole);
 
 export function renderEnvironment(builder: WasmCfonts, environment: Environment, context: RenderContext): Rendered {
-	switch (environment?.[environmentKind]) {
-		case EnvironmentKind.Cli:
-			return builder.renderCli(context.canvasWidth, context.colorLevel, context.seed);
+	const kind = environment?.[environmentKind];
 
-		case EnvironmentKind.Browser:
-			return builder.renderBrowser(context.canvasWidth, context.colorLevel, context.seed);
-
-		case EnvironmentKind.BrowserConsole:
-			return builder.renderBrowserConsole(context.canvasWidth, context.colorLevel, context.seed);
-
-		default:
-			throw new TypeError("`renderWith()` expects a cfonts environment");
+	if (typeof kind !== "number" || !Object.hasOwn(EnvironmentKind, kind)) {
+		throw new TypeError("`renderWith()` expects a cfonts environment");
 	}
+
+	return builder.render(kind, context.canvasWidth, context.colorLevel, context.seed);
 }

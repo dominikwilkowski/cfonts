@@ -8,7 +8,7 @@ use cfonts::{
 	options::BlockOptions,
 };
 
-use crate::{Align, ColorLevel, Font, GradientPreset, Rendered, Valign};
+use crate::{Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
@@ -196,40 +196,25 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Renders a terminal artifact through the core Rust library
+	/// Renders one artifact through the core Rust library
 	///
-	/// The JavaScript host passes the capabilities it has already resolved;
-	/// `None` and zero width mean unlimited, no color level paints nothing
-	#[wasm_bindgen(js_name = renderCli)]
-	pub fn render_cli(
+	/// The JavaScript host passes the environment it selected and the capabilities
+	/// it has already resolved; `None` and zero width mean unlimited, no color
+	/// level paints nothing
+	pub fn render(
 		&self,
+		environment: EnvironmentKind,
 		canvas_width: Option<usize>,
 		color_level: Option<ColorLevel>,
 		seed: Option<u32>,
 	) -> Rendered {
-		cfonts::render_with(&self.options, &CliEnv::default(), Self::context(canvas_width, color_level, seed)).into()
-	}
+		let context = Self::context(canvas_width, color_level, seed);
 
-	/// Renders an HTML fragment through the core Rust library
-	#[wasm_bindgen(js_name = renderBrowser)]
-	pub fn render_browser(
-		&self,
-		canvas_width: Option<usize>,
-		color_level: Option<ColorLevel>,
-		seed: Option<u32>,
-	) -> Rendered {
-		cfonts::render_with(&self.options, &BrowserEnv, Self::context(canvas_width, color_level, seed)).into()
-	}
-
-	/// Renders a browser-console artifact through the core Rust library
-	#[wasm_bindgen(js_name = renderBrowserConsole)]
-	pub fn render_browser_console(
-		&self,
-		canvas_width: Option<usize>,
-		color_level: Option<ColorLevel>,
-		seed: Option<u32>,
-	) -> Rendered {
-		cfonts::render_with(&self.options, &BrowserConsoleEnv, Self::context(canvas_width, color_level, seed)).into()
+		match environment {
+			EnvironmentKind::Cli => cfonts::render_with(&self.options, &CliEnv::default(), context).into(),
+			EnvironmentKind::Browser => cfonts::render_with(&self.options, &BrowserEnv, context).into(),
+			EnvironmentKind::BrowserConsole => cfonts::render_with(&self.options, &BrowserConsoleEnv, context).into(),
+		}
 	}
 
 	fn context(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: Option<u32>) -> RenderContext {
