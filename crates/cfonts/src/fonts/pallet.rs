@@ -452,17 +452,17 @@ pub static FONT_PALLET: FontFile<6> = FontFile {
 			r"<c2>──</c2>",
 		));
 		table[';' as usize] = Some(glyph!(
-			r"<c2>──</c2>",
-			r"<c2>──</c2>",
-			r"<c2>──</c2>",
+			r"<c1>╔╗</c1>",
+			r"<c1>║║</c1>",
+			r"<c1>╚╝</c1>",
 			r"<c1>╔╗</c1>",
 			r"<c1>╚╣</c1>",
 			r"<c2>─</c2><c1>╝</c1>",
 		));
 		table[',' as usize] = Some(glyph!(
-			r"<c1>╔╗</c1>",
-			r"<c1>║║</c1>",
-			r"<c1>╚╝</c1>",
+			r"<c2>──</c2>",
+			r"<c2>──</c2>",
+			r"<c2>──</c2>",
 			r"<c1>╔╗</c1>",
 			r"<c1>╚╣</c1>",
 			r"<c2>─</c2><c1>╝</c1>",
