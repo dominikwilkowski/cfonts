@@ -16,27 +16,41 @@ fn main() -> std::io::Result<()> {
 	println!("{}", rendered.text);
 
 	// colors paint through the host's resolved support level
-	Cfonts::text("colors").font(Font::Block).color(vec![Color::Red, Color::Blue]).say(&RustHost::default())?;
+	Cfonts::text("colors").font(Font::Block).colors(vec![Color::Red, Color::Blue]).say(&RustHost::default())?;
 
 	// candy sprinkles a fresh assortment pick per painted segment
-	Cfonts::text("candy").font(Font::Tiny).color(vec![Color::Candy]).say(&RustHost::default())?;
+	Cfonts::text("candy").font(Font::Tiny).colors(vec![Color::Candy]).say(&RustHost::default())?;
 
 	// gradients ramp one color per column, presets are transitions
-	Cfonts::text("pride").font(Font::Block).global_color(GradientPreset::Pride).say(&RustHost::default())?;
+	Cfonts::text("pride").font(Font::Block).colors(GradientPreset::Pride).say(&RustHost::default())?;
 
 	// a block's own gradient overrides the global one for its columns, the global ramp resumes after
 	Cfonts::text("say ")
 		.font(Font::Tiny)
-		.global_color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Green,
 			end: GradientStop::Magenta,
 			independent_gradient: false,
 		})
 		.new_text("fire")
 		.font(Font::Tiny)
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Yellow,
+			independent_gradient: false,
+		})
+		.say(&RustHost::default())?;
+
+	// set a global color anywhere
+	Cfonts::text("block 1 ")
+		.font(Font::Tiny)
+		.new_text("block 2 ")
+		.font(Font::Tiny)
+		.new_text("block 3")
+		.font(Font::Tiny)
+		.global_colors(GradientOption::TwoStop {
+			start: GradientStop::Green,
+			end: GradientStop::Magenta,
 			independent_gradient: false,
 		})
 		.say(&RustHost::default())?;
@@ -44,7 +58,7 @@ fn main() -> std::io::Result<()> {
 	// transitions travel through every stop; hex values pin exact colors
 	Cfonts::text("ocean")
 		.font(Font::Tiny)
-		.global_color(GradientOption::Transition {
+		.global_colors(GradientOption::Transition {
 			stops: TransitionStops::try_from(vec![
 				GradientStop::Blue,
 				GradientStop::Cyan,

@@ -149,25 +149,25 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	/// use cfonts::{Cfonts, Color, ColorOption, Options};
 	///
 	/// let options: Options = Cfonts::text("hello")
-	///     .color(vec![Color::Red, Color::System])
+	///     .colors(vec![Color::Red, Color::System])
 	///     .into();
 	///
-	/// assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
+	/// assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
 	/// ```
 	///
 	/// ```
 	/// use cfonts::{Cfonts, GradientOption, GradientPreset, GradientStop};
 	///
-	/// let _ramped = Cfonts::text("hello").color(GradientOption::TwoStop {
+	/// let _ramped = Cfonts::text("hello").colors(GradientOption::TwoStop {
 	///     start: GradientStop::Red,
 	///     end: GradientStop::Blue,
 	///     independent_gradient: false,
 	/// });
 	///
-	/// let _preset = Cfonts::text("hello").color(GradientPreset::Pride);
+	/// let _preset = Cfonts::text("hello").colors(GradientPreset::Pride);
 	/// ```
-	pub fn color(mut self, color: impl Into<ColorOption>) -> Self {
-		self.current_block_mut().color = Some(color.into());
+	pub fn colors(mut self, color: impl Into<ColorOption>) -> Self {
+		self.current_block_mut().colors = Some(color.into());
 		self
 	}
 
@@ -310,11 +310,11 @@ impl<AlignState, ValignState, SpacelessState, GlobalColorState> CanSetMaxLength
 {
 }
 
-// GLOBAL_COLOR
+// GLOBAL_COLORS
 
 #[doc(hidden)]
 #[diagnostic::on_unimplemented(
-	message = "`global_color()` has already been set",
+	message = "`global_colors()` has already been set",
 	label = "this global setting is already configured",
 	note = "Each global setting may be set once per render."
 )]
@@ -449,34 +449,34 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	}
 
 	/// Sets the colors or a gradient across the whole composition
-	/// Blocks with their own [`color`](Self::color) override it for their columns
+	/// Blocks with their own [`colors`](Self::colors) override it for their columns
 	/// *This is a global setting and may only be configured once*
 	///
 	/// ```
 	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset, GradientStop};
 	///
 	/// let _banner = Cfonts::text("hello")
-	///     .global_color(vec![Color::Red]);
+	///     .global_colors(vec![Color::Red]);
 	///
 	/// let _ramped = Cfonts::text("hello")
-	///     .global_color(GradientOption::TwoStop {
+	///     .global_colors(GradientOption::TwoStop {
 	///         start: GradientStop::Red,
 	///         end: GradientStop::Blue,
 	///         independent_gradient: false,
 	///     });
 	///
 	/// let _preset = Cfonts::text("hello")
-	///     .global_color(GradientPreset::Pride);
+	///     .global_colors(GradientPreset::Pride);
 	/// ```
 	///
 	/// ```compile_fail
 	/// use cfonts::{Cfonts, Color, GradientPreset};
 	///
 	/// let _banner = Cfonts::text("hello")
-	///     .global_color(vec![Color::Red])
-	///     .global_color(GradientPreset::Agender); // compiler error
+	///     .global_colors(vec![Color::Red])
+	///     .global_colors(GradientPreset::Agender); // compiler error
 	/// ```
-	pub fn global_color(
+	pub fn global_colors(
 		self,
 		color: impl Into<ColorOption>,
 	) -> Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Set>
@@ -484,7 +484,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 		Self: CanSetGlobalColor,
 	{
 		let mut options = self.options;
-		options.global_color = Some(color.into());
+		options.global_colors = Some(color.into());
 
 		Cfonts {
 			options,
@@ -539,31 +539,31 @@ mod tests {
 			.valign(Valign::Top)
 			.spaceless()
 			.max_length(20)
-			.global_color(GradientPreset::Pride)
+			.global_colors(GradientPreset::Pride)
 			.into();
 
 		assert_eq!(options.align, Align::Center);
 		assert_eq!(options.valign, Valign::Top);
 		assert!(options.spaceless);
 		assert_eq!(options.max_length, NonZeroUsize::new(20));
-		assert_eq!(options.global_color, Some(ColorOption::from(GradientPreset::Pride)));
+		assert_eq!(options.global_colors, Some(ColorOption::from(GradientPreset::Pride)));
 	}
 
 	#[test]
 	fn the_global_color_accepts_colors_gradients_and_presets() {
-		let options: Options = Cfonts::text("hello").global_color(vec![Color::Red, Color::System]).into();
-		assert_eq!(options.global_color, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
+		let options: Options = Cfonts::text("hello").global_colors(vec![Color::Red, Color::System]).into();
+		assert_eq!(options.global_colors, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
 
 		let two_stop = GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: true,
 		};
-		let options: Options = Cfonts::text("hello").global_color(two_stop.clone()).into();
-		assert_eq!(options.global_color, Some(ColorOption::Gradient(two_stop)));
+		let options: Options = Cfonts::text("hello").global_colors(two_stop.clone()).into();
+		assert_eq!(options.global_colors, Some(ColorOption::Gradient(two_stop)));
 
-		let options: Options = Cfonts::text("hello").global_color(GradientPreset::Pride).into();
-		assert_eq!(options.global_color, Some(ColorOption::from(GradientPreset::Pride)));
+		let options: Options = Cfonts::text("hello").global_colors(GradientPreset::Pride).into();
+		assert_eq!(options.global_colors, Some(ColorOption::from(GradientPreset::Pride)));
 	}
 
 	#[test]
@@ -604,24 +604,24 @@ mod tests {
 
 	#[test]
 	fn color_targets_the_current_block() {
-		let options: Options = Cfonts::text("one").color(vec![Color::Red]).new_text("two").into();
+		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).new_text("two").into();
 
-		assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![Color::Red])));
-		assert_eq!(options.blocks[1].color, None);
+		assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::Red])));
+		assert_eq!(options.blocks[1].colors, None);
 	}
 
 	#[test]
 	fn an_empty_color_list_is_still_a_configured_color() {
-		let options: Options = Cfonts::text("one").color(Vec::<Color>::new()).into();
+		let options: Options = Cfonts::text("one").colors(Vec::<Color>::new()).into();
 
-		assert_eq!(options.blocks[0].color, Some(ColorOption::Colors(vec![])));
+		assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![])));
 	}
 
 	#[test]
 	fn color_is_repeatable_and_takes_gradients() {
-		let options: Options = Cfonts::text("one").color(vec![Color::Red]).color(GradientPreset::Pride).into();
+		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).colors(GradientPreset::Pride).into();
 
-		assert_eq!(options.blocks[0].color, Some(ColorOption::Gradient(GradientPreset::Pride.to_gradient(false))));
+		assert_eq!(options.blocks[0].colors, Some(ColorOption::Gradient(GradientPreset::Pride.to_gradient(false))));
 	}
 
 	// test hosts

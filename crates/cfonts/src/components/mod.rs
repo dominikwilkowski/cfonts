@@ -71,7 +71,7 @@ mod dioxus_tests {
 	#[test]
 	fn the_adapter_paints_colors_by_default() {
 		let options: Options =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().color(vec![Color::Red]).into();
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(vec![Color::Red]).into();
 
 		let rendered = render_browser(&options, 0);
 

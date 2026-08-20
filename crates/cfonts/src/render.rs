@@ -285,7 +285,7 @@ impl<T> PaintPlan<T> {
 					return BlockPlan::bare(PaintDomain::Slots);
 				}
 
-				let Some(color) = block.color.as_ref().or(options.global_color.as_ref()) else {
+				let Some(color) = block.colors.as_ref().or(options.global_colors.as_ref()) else {
 					return BlockPlan::bare(PaintDomain::Slots);
 				};
 
@@ -314,7 +314,7 @@ impl<T> PaintPlan<T> {
 					}
 					ColorOption::Gradient(_) => {
 						// the block's own gradient wins, otherwise the global one covers it
-						BlockPlan::bare(if block.color.is_some() {
+						BlockPlan::bare(if block.colors.is_some() {
 							PaintDomain::Block
 						} else {
 							PaintDomain::Global
@@ -462,13 +462,13 @@ impl GradientPlans {
 		let mut blocks: Vec<Option<GradientState>> = options
 			.blocks
 			.iter()
-			.map(|block| match &block.color {
+			.map(|block| match &block.colors {
 				Some(ColorOption::Gradient(gradient)) => Some(GradientState::new(gradient)),
 				_ => None,
 			})
 			.collect();
 
-		let mut global = match &options.global_color {
+		let mut global = match &options.global_colors {
 			Some(ColorOption::Gradient(gradient)) => Some(GradientState::new(gradient)),
 			_ => None,
 		};
@@ -612,10 +612,10 @@ mod tests {
 	fn the_resolver_runs_once_per_block_and_slot() {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Block)
-			.color(vec![Color::Red, Color::Blue])
+			.colors(vec![Color::Red, Color::Blue])
 			.new_text("two")
 			.font(Font::Block)
-			.color(vec![Color::Green])
+			.colors(vec![Color::Green])
 			.into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
@@ -629,7 +629,7 @@ mod tests {
 
 	#[test]
 	fn no_color_level_builds_a_bare_plan() {
-		let options: Options = Cfonts::text("hello").color(vec![Color::Red]).into();
+		let options: Options = Cfonts::text("hello").colors(vec![Color::Red]).into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::unlimited());
 
@@ -641,7 +641,7 @@ mod tests {
 	#[test]
 	fn system_and_colors_beyond_the_fonts_slots_never_paint() {
 		// Tiny holds one color slot, so the second color can never apply and must not style the render
-		let options: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::System, Color::Red]).into();
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::System, Color::Red]).into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
 
@@ -653,8 +653,8 @@ mod tests {
 
 	#[test]
 	fn untagged_text_paints_only_in_single_color_fonts() {
-		let single: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Red]).into();
-		let multi: Options = Cfonts::text("hello").font(Font::Block).color(vec![Color::Red, Color::Blue]).into();
+		let single: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::Red]).into();
+		let multi: Options = Cfonts::text("hello").font(Font::Block).colors(vec![Color::Red, Color::Blue]).into();
 
 		let (mut plan, _) = plan_for(&single, &RenderContext::colored(ColorLevel::TrueColor));
 		assert_eq!(plan.paint_for(0, None, true), Some(&String::from("Red")));
@@ -665,13 +665,13 @@ mod tests {
 	}
 
 	#[test]
-	fn a_blocks_own_color_wins_over_the_global_color() {
+	fn a_blocks_own_color_wins_over_the_global_colors() {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Tiny)
-			.color(vec![Color::Red])
+			.colors(vec![Color::Red])
 			.new_text("two")
 			.font(Font::Tiny)
-			.global_color(vec![Color::Blue])
+			.global_colors(vec![Color::Blue])
 			.into();
 
 		let (mut plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
@@ -685,10 +685,10 @@ mod tests {
 		// two candy slots share the one resolved assortment
 		let options: Options = Cfonts::text("hello")
 			.font(Font::Tiny)
-			.color(vec![Color::Candy])
+			.colors(vec![Color::Candy])
 			.new_text("world")
 			.font(Font::Tiny)
-			.color(vec![Color::Candy])
+			.colors(vec![Color::Candy])
 			.into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
@@ -710,7 +710,7 @@ mod tests {
 
 	#[test]
 	fn candy_rolls_are_deterministic_for_a_seed() {
-		let options: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Candy]).into();
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::Candy]).into();
 		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
 
 		let (mut one, _) = plan_for(&options, &seeded);
@@ -728,7 +728,7 @@ mod tests {
 
 	#[test]
 	fn the_scan_does_not_consume_rolls() {
-		let options: Options = Cfonts::text("hello").font(Font::Tiny).color(vec![Color::Candy]).into();
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::Candy]).into();
 		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
 
 		let (mut scanned, _) = plan_for(&options, &seeded);
@@ -744,7 +744,7 @@ mod tests {
 
 	#[test]
 	fn gradient_domains_route_around_the_slots() {
-		let block: Options = Cfonts::text("hello").font(Font::Tiny).color(GradientPreset::Pride).into();
+		let block: Options = Cfonts::text("hello").font(Font::Tiny).colors(GradientPreset::Pride).into();
 
 		let (mut plan, calls) = plan_for(&block, &RenderContext::colored(ColorLevel::TrueColor));
 
@@ -754,7 +754,7 @@ mod tests {
 		assert!(plan.resolves(0, None, false)); // even buffer seams paint in a gradient domain
 		assert_eq!(plan.paint_for(0, Some(0), true), None); // the ramp paints, the slots stay empty
 
-		let unleveled: Options = Cfonts::text("hello").font(Font::Tiny).color(GradientPreset::Pride).into();
+		let unleveled: Options = Cfonts::text("hello").font(Font::Tiny).colors(GradientPreset::Pride).into();
 		let (plan, _) = plan_for(&unleveled, &RenderContext::unlimited());
 		assert_eq!(plan.domain(0), PaintDomain::Slots);
 		assert!(!plan.will_style);
@@ -764,10 +764,10 @@ mod tests {
 	fn a_blocks_own_color_suppresses_the_global_gradient_for_it() {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Tiny)
-			.color(vec![Color::Red])
+			.colors(vec![Color::Red])
 			.new_text("two")
 			.font(Font::Tiny)
-			.global_color(GradientPreset::Pride)
+			.global_colors(GradientPreset::Pride)
 			.into();
 
 		let (plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));

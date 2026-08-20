@@ -9,7 +9,7 @@ fn main() {
 #[component]
 fn App() -> Element {
 	let options: Options =
-		Cfonts::text("hello").global_color(GradientPreset::Pride).font(Font::Block).align(Align::Center).into();
+		Cfonts::text("hello").global_colors(GradientPreset::Pride).font(Font::Block).align(Align::Center).into();
 
 	rsx! {
 		main {

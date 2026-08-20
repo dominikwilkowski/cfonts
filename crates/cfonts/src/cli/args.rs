@@ -207,9 +207,9 @@ impl Args {
 				let colors = self.parse_color_list(value)?;
 
 				if state.options.blocks.len() == 1 {
-					state.options.global_color = Some(ColorOption::Colors(colors));
+					state.options.global_colors = Some(ColorOption::Colors(colors));
 				} else {
-					state.current_block_mut().block.color = Some(ColorOption::Colors(colors));
+					state.current_block_mut().block.colors = Some(ColorOption::Colors(colors));
 				}
 			}
 			Self::Background => {

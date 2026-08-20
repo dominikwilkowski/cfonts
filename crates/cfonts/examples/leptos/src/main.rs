@@ -5,12 +5,12 @@ use leptos::prelude::*;
 #[component]
 fn App() -> impl IntoView {
 	let options: Options =
-		Cfonts::text("hello").font(Font::Block).align(Align::Center).global_color(GradientPreset::Pride).into();
+		Cfonts::text("hello").font(Font::Block).align(Align::Center).global_colors(GradientPreset::Pride).into();
 
 	// the console artifact logs with its styles, straight from Rust
 	Cfonts::text("hello world")
 		.font(Font::Block)
-		.global_color(GradientPreset::Transgender)
+		.global_colors(GradientPreset::Transgender)
 		.say(&LeptosHost::default())
 		.expect("the page console cannot fail");
 

@@ -255,7 +255,7 @@ pub(crate) struct CliOptions {
 	pub(crate) valign: Valign,
 	pub(crate) spaceless: bool,
 	pub(crate) max_length: Option<NonZeroUsize>,
-	pub(crate) global_color: Option<ColorOption>,
+	pub(crate) global_colors: Option<ColorOption>,
 	pub(crate) blocks: Vec<CliBlockOptions>,
 }
 
@@ -363,13 +363,13 @@ impl TryFrom<ParseState> for Options {
 			valign: options.valign,
 			spaceless: options.spaceless,
 			max_length: options.max_length,
-			global_color: options.global_color,
+			global_colors: options.global_colors,
 			blocks,
 		};
 
 		match gradient {
 			Some(GradientInput::Preset(preset)) => {
-				converted.global_color = Some(ColorOption::Gradient(preset.to_gradient(independent)));
+				converted.global_colors = Some(ColorOption::Gradient(preset.to_gradient(independent)));
 			}
 			Some(GradientInput::Stops(stops)) if transition => {
 				// the two stop minimum has one home: the TransitionStops constructor
@@ -379,14 +379,14 @@ impl TryFrom<ParseState> for Options {
 					transition: true,
 				})?;
 
-				converted.global_color = Some(ColorOption::Gradient(GradientOption::Transition {
+				converted.global_colors = Some(ColorOption::Gradient(GradientOption::Transition {
 					stops,
 					independent_gradient: independent,
 				}));
 			}
 			Some(GradientInput::Stops(stops)) => match stops.as_slice() {
 				&[start, end] => {
-					converted.global_color = Some(ColorOption::Gradient(GradientOption::TwoStop {
+					converted.global_colors = Some(ColorOption::Gradient(GradientOption::TwoStop {
 						start,
 						end,
 						independent_gradient: independent,
@@ -597,7 +597,7 @@ mod gradient_resolution {
 	#[test]
 	fn a_state_without_gradient_passes_through() {
 		let options: Options = state().try_into().unwrap();
-		assert_eq!(options.global_color, None);
+		assert_eq!(options.global_colors, None);
 	}
 
 	#[test]
@@ -608,7 +608,7 @@ mod gradient_resolution {
 
 		let options: Options = with_gradient.try_into().unwrap();
 		assert_eq!(
-			options.global_color,
+			options.global_colors,
 			Some(ColorOption::Gradient(GradientOption::TwoStop {
 				start: GradientStop::Red,
 				end: GradientStop::Blue,
@@ -640,7 +640,7 @@ mod gradient_resolution {
 		with_gradient.transition = true;
 
 		let options: Options = with_gradient.try_into().unwrap();
-		match options.global_color {
+		match options.global_colors {
 			Some(ColorOption::Gradient(GradientOption::Transition {
 				stops,
 				independent_gradient: false,
@@ -671,7 +671,7 @@ mod gradient_resolution {
 		orphan.transition = true;
 
 		let options: Options = orphan.try_into().unwrap();
-		assert_eq!(options.global_color, None);
+		assert_eq!(options.global_colors, None);
 	}
 
 	#[test]
@@ -833,7 +833,7 @@ mod argument_parsing {
 			let expected = Color::from_name(name).unwrap();
 			let input = args(&["my text", "-c", name]);
 			assert_eq!(
-				parse_args(&input, tty()).unwrap().options.global_color,
+				parse_args(&input, tty()).unwrap().options.global_colors,
 				Some(ColorOption::Colors(vec![expected])),
 				"{name}"
 			);
@@ -847,7 +847,7 @@ mod argument_parsing {
 		for hex in ["#888", "#888888"] {
 			let input = args(&["my text", "-c", hex]);
 			assert_eq!(
-				parse_args(&input, tty()).unwrap().options.global_color,
+				parse_args(&input, tty()).unwrap().options.global_colors,
 				Some(ColorOption::Colors(vec![Color::Rgb(gray)])),
 				"{hex}"
 			);
@@ -855,14 +855,14 @@ mod argument_parsing {
 
 		let list = args(&["my text", "--colors", "bLuE,#888888,GREY"]);
 		assert_eq!(
-			parse_args(&list, tty()).unwrap().options.global_color,
+			parse_args(&list, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Colors(vec![Color::Blue, Color::Rgb(gray), Color::Gray]))
 		);
 
 		// hex values work without the # prefix, matching the other boundaries
 		let bare = args(&["my text", "--colors", "888888"]);
 		assert_eq!(
-			parse_args(&bare, tty()).unwrap().options.global_color,
+			parse_args(&bare, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Colors(vec![Color::Rgb(gray)]))
 		);
 	}
@@ -924,7 +924,7 @@ mod argument_parsing {
 	fn gradients_parse_stops_and_enforce_the_count_rules() {
 		let two = args(&["my text", "-g", "rEd,GREEN"]);
 		assert_eq!(
-			parse_args(&two, tty()).unwrap().options.global_color,
+			parse_args(&two, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Gradient(GradientOption::TwoStop {
 				start: GradientStop::Red,
 				end: GradientStop::Green,
@@ -934,7 +934,7 @@ mod argument_parsing {
 
 		let independent = args(&["my text", "-g", "red,green", "-i"]);
 		assert_eq!(
-			parse_args(&independent, tty()).unwrap().options.global_color,
+			parse_args(&independent, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Gradient(GradientOption::TwoStop {
 				start: GradientStop::Red,
 				end: GradientStop::Green,
@@ -961,7 +961,7 @@ mod argument_parsing {
 		);
 
 		let three_with_transition = args(&["my text", "-g", "red,green,blue", "-t"]);
-		match parse_args(&three_with_transition, tty()).unwrap().options.global_color {
+		match parse_args(&three_with_transition, tty()).unwrap().options.global_colors {
 			Some(ColorOption::Gradient(GradientOption::Transition { stops, .. })) => assert_eq!(stops.len(), 3),
 			other => panic!("expected a transition gradient, got {other:?}"),
 		}
@@ -1036,14 +1036,14 @@ mod argument_parsing {
 			assert_eq!(block.letter_spacing, 9);
 			assert_eq!(block.line_height, 2);
 			// -g beats -c on the global scope; the gradient assert below covers it
-			assert_eq!(block.color, None);
+			assert_eq!(block.colors, None);
 			assert_eq!(parsed.options.align, Align::Center);
 			assert_eq!(parsed.options.valign, Valign::Top);
 			assert!(parsed.options.spaceless);
 			assert!(parsed.raw_mode);
 			assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 
-			match &parsed.options.global_color {
+			match &parsed.options.global_colors {
 				Some(ColorOption::Gradient(GradientOption::Transition {
 					stops,
 					independent_gradient: true,
@@ -1068,7 +1068,7 @@ mod preset_tests {
 	use super::*;
 
 	fn preset_of(parsed: &ParsedArgs) -> GradientPreset {
-		match parsed.options.global_color {
+		match parsed.options.global_colors {
 			Some(ColorOption::Gradient(GradientOption::Preset { preset, .. })) => preset,
 			ref other => panic!("expected a preset gradient, got {other:?}"),
 		}
@@ -1111,7 +1111,7 @@ mod preset_tests {
 	fn presets_take_the_independent_flag_and_tolerate_the_transition_flag() {
 		let independent = args(&["my text", "-g", "pride", "-i"]);
 		assert_eq!(
-			parse_args(&independent, tty()).unwrap().options.global_color,
+			parse_args(&independent, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Gradient(GradientOption::Preset {
 				preset: GradientPreset::Pride,
 				independent_gradient: true,
@@ -1129,7 +1129,7 @@ mod preset_tests {
 	fn preset_names_do_not_shadow_stop_lists() {
 		let stops = args(&["my text", "-g", "red,blue"]);
 		assert!(matches!(
-			parse_args(&stops, tty()).unwrap().options.global_color,
+			parse_args(&stops, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Gradient(GradientOption::TwoStop { .. }))
 		));
 	}
@@ -1165,11 +1165,11 @@ mod block_composition {
 		assert_eq!(blocks.len(), 2);
 		assert_eq!(blocks[0].font, Font::Tiny);
 		// first block colors cascade to the global default
-		assert_eq!(blocks[0].color, None);
-		assert_eq!(parsed.options.global_color, Some(ColorOption::Colors(vec![Color::Red])));
+		assert_eq!(blocks[0].colors, None);
+		assert_eq!(parsed.options.global_colors, Some(ColorOption::Colors(vec![Color::Red])));
 		assert!(!blocks[0].word_wrap);
 		assert_eq!(blocks[1].font, Font::Block);
-		assert_eq!(blocks[1].color, None);
+		assert_eq!(blocks[1].colors, None);
 		assert!(blocks[1].word_wrap);
 	}
 

@@ -260,7 +260,7 @@ mod tests {
 	#[test]
 	fn widget_paints_named_colors_as_the_terminals_own() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Block, false)]);
-		options.blocks[0].color = Some(crate::ColorOption::Colors(vec![crate::Color::Red, crate::Color::Blue]));
+		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Red, crate::Color::Blue]));
 		let widget = CfontsWidget {
 			options: &options,
 			seed: 0,
@@ -285,7 +285,7 @@ mod tests {
 	#[test]
 	fn widget_ramps_gradients_per_cell() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.blocks[0].color = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
+		options.blocks[0].colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
 			start: crate::GradientStop::Red,
 			end: crate::GradientStop::Blue,
 			independent_gradient: false,
@@ -306,7 +306,7 @@ mod tests {
 	#[test]
 	fn widget_candy_is_deterministic_for_a_seed() {
 		let mut options = options(Valign::Top, None, vec![block("AB", Font::Tiny, false)]);
-		options.blocks[0].color = Some(crate::ColorOption::Colors(vec![crate::Color::Candy]));
+		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Candy]));
 
 		let draw = |seed: u64| {
 			let widget = CfontsWidget {

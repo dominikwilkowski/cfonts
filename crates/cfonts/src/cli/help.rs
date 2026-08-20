@@ -22,7 +22,7 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 	};
 	let mut output = String::new();
 	let banner = crate::Cfonts::text("cfonts")
-		.global_color(GradientOption::TwoStop {
+		.global_colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Green,
 			independent_gradient: false,
@@ -30,7 +30,7 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 		.new_text(VERSION)
 		.font(Font::Console)
 		.valign(Valign::Bottom)
-		.color(vec![Color::System])
+		.colors(vec![Color::System])
 		.render_with(&CliEnv::default(), context);
 
 	const USAGE: &str = concat!(

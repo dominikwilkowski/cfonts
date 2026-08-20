@@ -39,10 +39,10 @@ fn main() -> std::io::Result<()> {
 		.font(Font::Block)
 		.word_wrap()
 		.align(Align::Center)
-		.color(vec![Color::Yellow, Color::Blue])
+		.colors(vec![Color::Yellow, Color::Blue])
 		.new_text(" there")
 		.font(Font::Tiny)
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,

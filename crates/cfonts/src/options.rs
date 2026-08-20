@@ -90,7 +90,7 @@ pub struct BlockOptions {
 	///
 	/// Any configured value, including an empty color list, overrides the global color for this block
 	/// `None` leaves the block unpainted unless a global color covers it
-	pub color: Option<ColorOption>,
+	pub colors: Option<ColorOption>,
 
 	/// Number of font-defined letter-space glyphs inserted between glyphs
 	pub letter_spacing: usize,
@@ -107,7 +107,7 @@ impl Default for BlockOptions {
 		Self {
 			text: String::new(),
 			font: Font::Block,
-			color: None,
+			colors: None,
 			letter_spacing: 1,
 			line_height: 1,
 			word_wrap: false,
@@ -158,9 +158,9 @@ pub struct Options {
 
 	/// Colors or a gradient across the whole composition
 	///
-	/// Blocks with their own [`color`](BlockOptions::color) override it for their columns
+	/// Blocks with their own [`colors`](BlockOptions::colors) override it for their columns
 	/// and a global gradient's ramp resumes after them
-	pub global_color: Option<ColorOption>,
+	pub global_colors: Option<ColorOption>,
 
 	/// Text blocks rendered as one composition
 	pub blocks: Vec<BlockOptions>,
@@ -173,7 +173,7 @@ impl Default for Options {
 			valign: Valign::Middle,
 			spaceless: false,
 			max_length: None,
-			global_color: None,
+			global_colors: None,
 			blocks: Vec::new(),
 		}
 	}

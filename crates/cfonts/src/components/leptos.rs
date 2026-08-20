@@ -93,7 +93,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.color(vec![Color::Red])
+			.colors(vec![Color::Red])
 			.render(&LeptosHost::default());
 
 		assert!(rendered.text.contains(r##"<span style="color:#ea3223">"##));

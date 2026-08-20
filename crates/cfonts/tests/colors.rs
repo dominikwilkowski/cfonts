@@ -19,7 +19,7 @@ fn ramp_from(ramp: &[&str]) -> Vec<Rgb> {
 
 /// A one block Tiny composition with the given colors
 fn tiny(text: &str, colors: Vec<Color>) -> Options {
-	Cfonts::text(text).font(Font::Tiny).valign(Valign::Top).spaceless().color(colors).into()
+	Cfonts::text(text).font(Font::Tiny).valign(Valign::Top).spaceless().colors(colors).into()
 }
 
 // CliEnv painting
@@ -141,7 +141,7 @@ fn letter_spaces_paint_in_single_color_fonts() {
 #[test]
 fn multi_slot_fonts_paint_each_tagged_slot() {
 	let options: Options =
-		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().color(vec![Color::Red, Color::Blue]).into();
+		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::Red, Color::Blue]).into();
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
@@ -152,7 +152,7 @@ fn multi_slot_fonts_paint_each_tagged_slot() {
 #[test]
 fn missing_slots_stay_bare() {
 	let options: Options =
-		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().color(vec![Color::Red]).into();
+		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::Red]).into();
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
@@ -166,7 +166,7 @@ fn missing_slots_stay_bare() {
 #[test]
 fn letter_spaces_stay_bare_in_tagged_fonts() {
 	let options: Options =
-		Cfonts::text("AB").font(Font::Block).valign(Valign::Top).spaceless().color(vec![Color::Red, Color::Blue]).into();
+		Cfonts::text("AB").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::Red, Color::Blue]).into();
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
@@ -180,10 +180,10 @@ fn global_colors_cover_blocks_without_their_own() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.color(vec![Color::Red])
+		.colors(vec![Color::Red])
 		.new_text("B")
 		.font(Font::Tiny)
-		.global_color(vec![Color::Blue])
+		.global_colors(vec![Color::Blue])
 		.into();
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
@@ -193,14 +193,14 @@ fn global_colors_cover_blocks_without_their_own() {
 }
 
 #[test]
-fn an_empty_color_list_suppresses_the_global_color() {
+fn an_empty_color_list_suppresses_the_global_colors() {
 	let plain: Options = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().into();
 	let suppressed: Options = Cfonts::text("A")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.color(Vec::<Color>::new())
-		.global_color(vec![Color::Red])
+		.colors(Vec::<Color>::new())
+		.global_colors(vec![Color::Red])
 		.into();
 
 	let context = RenderContext::colored(ColorLevel::TrueColor);
@@ -215,7 +215,7 @@ fn an_empty_color_list_suppresses_the_global_color() {
 fn gradients_paint_nothing_without_a_color_level() {
 	let plain: Options = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().into();
 	let ramped: Options =
-		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().color(GradientPreset::Pride).into();
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(GradientPreset::Pride).into();
 
 	assert_eq!(
 		render_with(&ramped, &CliEnv::default(), RenderContext::unlimited()).text,
@@ -230,7 +230,7 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -256,7 +256,7 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: true,
@@ -277,7 +277,7 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 fn transition_presets_paint_their_stop_colors() {
 	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderContext::unlimited()).text;
 	let ramped: Options =
-		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().color(GradientPreset::Pride).into();
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(GradientPreset::Pride).into();
 
 	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
@@ -292,12 +292,12 @@ fn transition_presets_paint_their_stop_colors() {
 fn the_global_gradient_resumes_after_a_statically_painted_block() {
 	let options: Options = Cfonts::text("A")
 		.font(Font::Tiny)
-		.color(vec![Color::Red])
+		.colors(vec![Color::Red])
 		.new_text("B")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.global_color(GradientOption::TwoStop {
+		.global_colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -326,7 +326,7 @@ fn gradients_level_down_per_column() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -345,7 +345,7 @@ fn gradients_level_down_per_column() {
 #[test]
 fn the_browser_and_console_paint_gradients_per_column() {
 	let ramped: Options =
-		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().color(GradientPreset::Pride).into();
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(GradientPreset::Pride).into();
 
 	let browser = render_with(&ramped, &BrowserEnv, RenderContext::colored(ColorLevel::TrueColor)).text;
 	assert_eq!(browser.matches("<span style=\"color:#").count(), 6);
@@ -442,7 +442,7 @@ fn a_resolved_color_that_paints_no_segment_does_not_escape_percent() {
 	// but covers no segment; the percent in the console font's art must survive
 	let options: Options = Cfonts::text(" ")
 		.font(Font::Block)
-		.color(vec![Color::Red])
+		.colors(vec![Color::Red])
 		.new_text("%")
 		.font(Font::Console)
 		.valign(Valign::Top)
@@ -464,7 +464,7 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.global_color(GradientOption::TwoStop {
+		.global_colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -497,10 +497,10 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 	let options: Options = Cfonts::text("A")
 		.font(Font::Tiny)
-		.color(vec![Color::Red])
+		.colors(vec![Color::Red])
 		.new_text("B")
 		.font(Font::Tiny)
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -533,7 +533,7 @@ fn a_wrapped_block_gradient_fixes_its_ramp_over_the_widest_row() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -556,7 +556,7 @@ fn an_independent_global_gradient_ramps_each_line() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.global_color(GradientOption::TwoStop {
+		.global_colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: true,
@@ -580,7 +580,7 @@ fn leading_space_glyphs_consume_the_ramp() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.color(GradientOption::TwoStop {
+		.colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
@@ -605,7 +605,7 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.global_color(GradientOption::TwoStop {
+		.global_colors(GradientOption::TwoStop {
 			start: GradientStop::Red,
 			end: GradientStop::Blue,
 			independent_gradient: false,
