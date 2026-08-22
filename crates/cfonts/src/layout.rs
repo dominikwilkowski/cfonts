@@ -97,6 +97,14 @@ pub struct LayoutRow {
 	pub block_spans: Vec<BlockSpan>,
 }
 
+/// The line contribution a block stages at its open: committed by the block's
+/// first committing char (a glyph or NEW_LINE_CHAR), dropped if none appears
+struct StagedBlock {
+	buffer_start: LayoutGlyph,
+	font_rows: usize,
+	line_height: usize,
+}
+
 pub(crate) struct Layout<'a> {
 	/// The full output of all lines being built
 	pub(crate) output: Vec<LayoutRow>,
@@ -138,6 +146,10 @@ pub(crate) struct Layout<'a> {
 	/// Count of printable glyphs in `word` (excludes the interleaved letter spaces)
 	word_glyph_count: usize,
 
+	/// The block contribution staged at block open and committed by the block's
+	/// first committing char; a block whose text commits nothing contributes nothing
+	staged_block: Option<StagedBlock>,
+
 	/// The cfonts options including all font blocks
 	options: &'a Options,
 }
@@ -158,6 +170,7 @@ impl<'a> Layout<'a> {
 			word: Vec::new(),
 			word_width: 0,
 			word_glyph_count: 0,
+			staged_block: None,
 			options,
 		}
 	}
@@ -186,18 +199,22 @@ impl<'a> Layout<'a> {
 	/// the one traversal of this block's source text
 	fn layout_block(&mut self, block_index: usize, block: &BlockOptions, canvas_width: Option<usize>) {
 		let font = block.font.get_font();
-		self.current_font_rows = font.rows();
 		self.space_pending = false;
-		self.current_line_height = block.line_height;
-		self.line_max_rows = self.line_max_rows.max(font.rows());
 
-		// Push buffer as a glyph so flush_line handles it like any other
+		// The buffer is a glyph so flush_line handles it like any other
 		let buffer_start = LayoutGlyph {
 			glyph: font.buffer_start(),
 			block_index,
 			paintable: false,
 		};
-		self.push_glyph(buffer_start);
+
+		// The block's line contribution is only staged: its first committing char
+		// commits it, so a block whose text commits nothing adds no buffers and no height
+		self.staged_block = Some(StagedBlock {
+			buffer_start,
+			font_rows: font.rows(),
+			line_height: block.line_height,
+		});
 
 		// We make the letter space a glyph so flush_line handles it like any other
 		let letter_space_glyph = LayoutGlyph {
@@ -210,6 +227,7 @@ impl<'a> Layout<'a> {
 		for ch in block.text().chars() {
 			// `|` forces a logical line break, including empty lines
 			if ch == NEW_LINE_CHAR {
+				self.commit_block();
 				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 				self.flush_line(canvas_width);
 				self.push_glyph(buffer_start);
@@ -220,6 +238,7 @@ impl<'a> Layout<'a> {
 			let Some(glyph) = font.get_glyph(ch) else {
 				continue;
 			};
+			self.commit_block();
 
 			let break_class = Self::how_to_break_char(ch, block.word_wrap);
 			match break_class {
@@ -239,6 +258,12 @@ impl<'a> Layout<'a> {
 		// The end of a block always commits the pending word (words do not span blocks)
 		self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 
+		// A block whose text committed nothing contributes nothing: drop its staged
+		// entry instead of closing a buffer pair that never opened
+		if self.staged_block.take().is_some() {
+			return;
+		}
+
 		// Close the block with its buffer_end, mirroring the buffer_start that opened it, so lines ending in a slanted font keep uniform row widths
 		self.push_glyph(LayoutGlyph {
 			glyph: GlyphRef {
@@ -252,6 +277,17 @@ impl<'a> Layout<'a> {
 			paintable: false,
 		});
 		self.line_max_rows = self.line_max_rows.max(font.rows());
+	}
+
+	/// Applies the staged block contribution to the current line:
+	/// sets the block's font height and line-height and lands its buffer_start
+	fn commit_block(&mut self) {
+		if let Some(staged) = self.staged_block.take() {
+			self.current_font_rows = staged.font_rows;
+			self.current_line_height = staged.line_height;
+			self.line_max_rows = self.line_max_rows.max(staged.font_rows);
+			self.push_glyph(staged.buffer_start);
+		}
 	}
 
 	/// The single place that defines where words may soft-wrap
@@ -1207,25 +1243,32 @@ mod tests {
 	}
 
 	#[test]
-	fn blocks_with_only_skipped_chars_do_not_panic() {
-		// lowercase chars have no glyphs and are skipped; the block contributes only buffers
-		let lines =
-			line_widths(&options(Valign::Middle, None, vec![block("", Font::Block, false), block("B", Font::Tiny, false)]));
+	fn blocks_with_only_skipped_chars_contribute_nothing() {
+		// chars without glyphs are skipped in layout; the block never commits
+		let lines = line_widths(&options(
+			Valign::Middle,
+			None,
+			vec![block("€~*", Font::Block, false), block("B", Font::Tiny, false)],
+		));
 		assert_eq!(lines.len(), 1);
+		assert_eq!(lines[0].len(), 2); // the Block font's height does not inflate the Tiny line
 	}
 
 	#[test]
 	fn empty_blocks_are_invisible_between_others() {
-		let lines = line_widths(&options(
+		// the empty Font3D block commits nothing: neither its wide buffer nor its taller height leak in
+		let with_empty = line_widths(&options(
 			Valign::Middle,
 			None,
 			vec![
-				block("A", Font::Block, false),
-				block("", Font::Tiny, false),
-				block("B", Font::Font3D, false),
+				block("A", Font::Tiny, false),
+				block("", Font::Font3D, false),
+				block("B", Font::Tiny, false),
 			],
 		));
-		assert_eq!(lines.len(), 1);
+		let without =
+			line_widths(&options(Valign::Middle, None, vec![block("A", Font::Tiny, false), block("B", Font::Tiny, false)]));
+		assert_eq!(with_empty, without);
 	}
 
 	#[test]
@@ -1343,9 +1386,9 @@ mod tests {
 	}
 
 	#[test]
-	fn empty_text_produces_one_blank_line() {
+	fn empty_text_produces_no_output() {
 		let lines = line_widths(&options(Valign::Top, None, vec![block("", Font::Tiny, false)]));
-		assert_eq!(lines, vec![vec![0, 0]]);
+		assert!(lines.is_empty());
 	}
 
 	#[test]
