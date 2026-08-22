@@ -97,6 +97,20 @@ pub struct LayoutRow {
 	pub block_spans: Vec<BlockSpan>,
 }
 
+impl LayoutRow {
+	/// Whether this row occupies any columns
+	///
+	/// Width alone decides:
+	/// - empty `entries` guarantee zero width
+	/// - zero width guarantees a zero `align_offset`
+	///
+	/// so a row failing this test can neither paint nor anchor anything
+	#[must_use]
+	pub fn has_columns(&self) -> bool {
+		self.width > 0
+	}
+}
+
 /// The line contribution a block stages at its open: committed by the block's
 /// first committing char (a glyph or NEW_LINE_CHAR), dropped if none appears
 struct StagedBlock {

@@ -475,7 +475,7 @@ impl GradientPlans {
 
 		// Painted rows anchor the fixed global ramp: rows index it by their absolute
 		// column, so a more indented row samples deeper into the ramp
-		let painted = || rows.iter().filter(|row| !row.entries.is_empty());
+		let painted = || rows.iter().filter(|row| row.has_columns());
 		let indent_floor = painted().map(|row| row.align_offset).min().unwrap_or(0);
 
 		if let Some(global) = global.as_mut()
@@ -582,7 +582,7 @@ pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, 
 
 		// Zero-width rows have nothing to align, matching Layout::align_offset's canvas rule:
 		// empty `||` lines still carry their zero-width buffer entries, so width is the real test
-		for row in rows.iter_mut().filter(|row| row.width > 0) {
+		for row in rows.iter_mut().filter(|row| row.has_columns()) {
 			row.align_offset = options.align.offset(widest - row.width);
 		}
 	}

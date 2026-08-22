@@ -494,6 +494,36 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 }
 
 #[test]
+fn empty_lines_do_not_anchor_the_fixed_ramp() {
+	// a blank line has zero width: it must not drag the ramp origin to column
+	// zero nor stretch the ramp over the full canvas
+	let ramp = |text: String| -> Options {
+		Cfonts::text(text)
+			.font(Font::Tiny)
+			.align(Align::Right)
+			.valign(Valign::Top)
+			.spaceless()
+			.line_height(0)
+			.global_colors(GradientOption::TwoStop {
+				start: GradientStop::Red,
+				end: GradientStop::Blue,
+				independent_gradient: false,
+			})
+			.into()
+	};
+
+	let context = RenderContext::with_canvas_width(7).with_color_level(Some(ColorLevel::TrueColor));
+	let with_blank = render_with(&ramp(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B")), &CliEnv::default(), context).text;
+	let without_blank = render_with(&ramp(format!("A{NEW_LINE_CHAR}B")), &CliEnv::default(), context).text;
+
+	assert!(with_blank.contains("\u{1b}[38;2;255;0;0m"), "the glyph rows keep the ramp start: {with_blank:?}");
+
+	let painted: Vec<&str> = with_blank.lines().filter(|line| !line.is_empty()).collect();
+	let oracle: Vec<&str> = without_blank.lines().collect();
+	assert_eq!(painted, oracle, "the blank line changes nothing about how other rows paint");
+}
+
+#[test]
 fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 	let options: Options = Cfonts::text("A")
 		.font(Font::Tiny)
