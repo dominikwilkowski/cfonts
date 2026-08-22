@@ -3,6 +3,7 @@
 use std::num::NonZeroUsize;
 
 use crate::{
+	NEW_LINE_CHAR,
 	fonts::Font,
 	options::{BlockOptions, Options, Valign},
 };
@@ -33,4 +34,11 @@ pub(crate) fn spaced_block(text: &str, letter_spacing: usize, word_wrap: bool) -
 	block.letter_spacing = letter_spacing;
 	block.word_wrap = word_wrap;
 	block
+}
+
+// The new line character is public API: the CLI help examples and the `|` notation across the test
+// suites teach it as a literal, so a change here must update that prose too
+#[test]
+fn the_new_line_char_is_the_pipe() {
+	assert_eq!(NEW_LINE_CHAR, '|');
 }

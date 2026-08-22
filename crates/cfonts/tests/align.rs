@@ -7,7 +7,7 @@
 mod common;
 use common::{browser_content, with_force_size};
 
-use cfonts::{Align, BrowserEnv, Cfonts, Font, Options, RenderContext, Valign, hosts::RustHost};
+use cfonts::{Align, BrowserEnv, Cfonts, Font, NEW_LINE_CHAR, Options, RenderContext, Valign, hosts::RustHost};
 
 // painted output
 
@@ -131,7 +131,7 @@ fn single_line_rows_are_their_own_frame_and_need_no_padding() {
 #[test]
 fn browser_alignment_pads_rows_within_the_widest_line() {
 	// The composition itself is the canvas: shorter lines pad toward the widest
-	let rendered = Cfonts::text("HI|A")
+	let rendered = Cfonts::text(format!("HI{NEW_LINE_CHAR}A"))
 		.font(Font::Tiny)
 		.align(Align::Right)
 		.spaceless()
@@ -151,7 +151,7 @@ fn browser_alignment_leaves_zero_width_lines_unpadded() {
 	let expected = "▄▀█<br>█▀█<br><br><br>█▄▄<br>█▄█";
 
 	for align in [Align::Left, Align::Center, Align::Right] {
-		let unbounded = Cfonts::text("A||B")
+		let unbounded = Cfonts::text(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B"))
 			.font(Font::Tiny)
 			.line_height(0)
 			.spaceless()
@@ -159,7 +159,7 @@ fn browser_alignment_leaves_zero_width_lines_unpadded() {
 			.render_with(&BrowserEnv, RenderContext::unlimited());
 		assert_eq!(browser_content(&unbounded), expected, "{align:?} unbounded");
 
-		let canvased = Cfonts::text("A||B")
+		let canvased = Cfonts::text(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B"))
 			.font(Font::Tiny)
 			.line_height(0)
 			.spaceless()

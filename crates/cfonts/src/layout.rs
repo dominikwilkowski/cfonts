@@ -1,6 +1,7 @@
 //! Positioning: text and fonts become rows of glyph entries at a canvas width
 
 use crate::{
+	NEW_LINE_CHAR,
 	fonts::{GlyphRef, GlyphRow},
 	options::{BlockOptions, Options},
 };
@@ -68,8 +69,9 @@ enum Break {
 
 /// The columns one block occupies on one row
 ///
-/// Gradient ramps span these: a block ramp over its own block's columns,
-/// the global ramp over the whole row
+/// Gradient ramps span these:
+/// - a block ramp over its own block's columns
+/// - the global ramp over the whole row
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockSpan {
 	/// The block these columns belong to
@@ -177,7 +179,10 @@ impl<'a> Layout<'a> {
 		layout
 	}
 
-	/// Lays out one block: the seam to the previous block, then every glyph of its text;
+	/// Lays out one block:
+	/// - the seam to the previous block
+	/// - then every glyph of its text
+	///
 	/// the one traversal of this block's source text
 	fn layout_block(&mut self, block_index: usize, block: &BlockOptions, canvas_width: Option<usize>) {
 		let font = block.font.get_font();
@@ -204,7 +209,7 @@ impl<'a> Layout<'a> {
 		// Now we iterate each character in this block
 		for ch in block.text().chars() {
 			// `|` forces a logical line break, including empty lines
-			if ch == '|' {
+			if ch == NEW_LINE_CHAR {
 				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
 				self.flush_line(canvas_width);
 				self.push_glyph(buffer_start);
@@ -1063,7 +1068,7 @@ mod tests {
 	#[test]
 	fn rows_carry_their_lines_alignment_offsets() {
 		// each line aligns by its own width; the empty line-height rows between them stay at zero
-		let mut options = options(Valign::Top, None, vec![block("A|BB", Font::Tiny, false)]);
+		let mut options = options(Valign::Top, None, vec![block(&format!("A{NEW_LINE_CHAR}BB"), Font::Tiny, false)]);
 		options.align = Align::Center;
 		let rows = Layout::build(&options, Some(11)).into_rows();
 
@@ -1160,7 +1165,7 @@ mod tests {
 
 	#[test]
 	fn line_height_rows_separate_lines() {
-		let options = options(Valign::Top, None, vec![block("A|B", Font::Tiny, false)]);
+		let options = options(Valign::Top, None, vec![block(&format!("A{NEW_LINE_CHAR}B"), Font::Tiny, false)]);
 		let layout = Layout::build(&options, None);
 		let output = &layout.output;
 		assert_eq!(output.len(), 5); // 2 rows + 1 line-height row + 2 rows
@@ -1170,14 +1175,18 @@ mod tests {
 
 	#[test]
 	fn pipe_always_starts_a_new_line_even_when_empty() {
-		let lines = line_widths(&options(Valign::Top, None, vec![block("A||B", Font::Tiny, false)]));
+		let lines = line_widths(&options(
+			Valign::Top,
+			None,
+			vec![block(&format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B"), Font::Tiny, false)],
+		));
 		assert_eq!(lines.len(), 3);
 		assert_eq!(lines[1], vec![0, 0]); // the empty line is a full font-height blank
 	}
 
 	#[test]
 	fn trailing_pipe_emits_a_trailing_blank_line() {
-		let lines = line_widths(&options(Valign::Top, None, vec![block("X|", Font::Tiny, false)]));
+		let lines = line_widths(&options(Valign::Top, None, vec![block(&format!("X{NEW_LINE_CHAR}"), Font::Tiny, false)]));
 		assert_eq!(lines.len(), 2);
 		assert_eq!(lines[1], vec![0, 0]);
 	}
@@ -1185,8 +1194,14 @@ mod tests {
 	#[test]
 	fn taller_buffers_on_a_shorter_final_line_do_not_underflow() {
 		// regression: Block's 6-row buffers used to panic on a line whose printables are all Tiny
-		let lines =
-			line_widths(&options(Valign::Middle, None, vec![block("X|", Font::Block, false), block("B", Font::Tiny, false)]));
+		let lines = line_widths(&options(
+			Valign::Middle,
+			None,
+			vec![
+				block(&format!("X{NEW_LINE_CHAR}"), Font::Block, false),
+				block("B", Font::Tiny, false),
+			],
+		));
 		assert_eq!(lines.len(), 2);
 		assert_eq!(lines[1].len(), 6); // the Block buffers dictate the height of the last line
 	}
@@ -1253,18 +1268,21 @@ mod tests {
 
 	#[test]
 	fn word_wrap_changes_nothing_when_nothing_overflows() {
-		for text in ["HELLO WORLD", "A  B", "X | Y", "DON'T (X-RAY)"] {
+		for text in ["HELLO WORLD", "A  B", &format!("X {NEW_LINE_CHAR} Y"), "DON'T (X-RAY)"] {
 			let off = options(Valign::Top, None, vec![block(text, Font::Tiny, false)]);
 			let on = options(Valign::Top, None, vec![block(text, Font::Tiny, true)]);
 			assert_eq!(output_rows(&off), output_rows(&on), "word_wrap changed the output of {text:?}");
 		}
 	}
 
-	// Word wrap must place the same glyphs as the identical text with explicit pipes:
-	// the pipe-free input on the left wraps into exactly the lines spelled out on the right
+	// Word wrap must place the same glyphs as the identical text with explicit line breaks:
+	// `|` is notation for NEW_LINE_CHAR in both arguments, and the break-free input on the
+	// left wraps into exactly the lines spelled out on the right
 	fn assert_wraps_like(text: &str, max_length: usize, piped: &str) {
-		let wrapped = options(Valign::Top, Some(max_length), vec![block(text, Font::Tiny, true)]);
-		let oracle = options(Valign::Top, Some(max_length), vec![block(piped, Font::Tiny, false)]);
+		let text = text.replace('|', &NEW_LINE_CHAR.to_string());
+		let piped = piped.replace('|', &NEW_LINE_CHAR.to_string());
+		let wrapped = options(Valign::Top, Some(max_length), vec![block(&text, Font::Tiny, true)]);
+		let oracle = options(Valign::Top, Some(max_length), vec![block(&piped, Font::Tiny, false)]);
 		assert_eq!(
 			output_rows(&wrapped),
 			output_rows(&oracle),
@@ -1332,7 +1350,7 @@ mod tests {
 
 	#[test]
 	fn leading_pipe_starts_with_a_blank_line() {
-		let lines = line_widths(&options(Valign::Top, None, vec![block("|A", Font::Tiny, false)]));
+		let lines = line_widths(&options(Valign::Top, None, vec![block(&format!("{NEW_LINE_CHAR}A"), Font::Tiny, false)]));
 		assert_eq!(lines.len(), 2);
 		assert_eq!(lines[0], vec![0, 0]);
 	}
@@ -1411,7 +1429,7 @@ mod tests {
 			Valign::Top,
 			None,
 			vec![{
-				let mut block = BlockOptions::new("A|B");
+				let mut block = BlockOptions::new(format!("A{NEW_LINE_CHAR}B"));
 				block.font = Font::Tiny;
 				block.line_height = 2;
 				block
@@ -1432,7 +1450,7 @@ mod tests {
 			Valign::Top,
 			None,
 			vec![{
-				let mut block = BlockOptions::new("A|B");
+				let mut block = BlockOptions::new(format!("A{NEW_LINE_CHAR}B"));
 				block.font = Font::Tiny;
 				block.line_height = 0;
 				block
@@ -1460,7 +1478,8 @@ mod tests {
 		// exercises the split path stride: printables sit at every letter_spacing + 1th entry
 		for letter_spacing in [0, 2] {
 			let wrapped = options(Valign::Top, Some(2), vec![spaced_block("AAAA", letter_spacing, true)]);
-			let oracle = options(Valign::Top, Some(2), vec![spaced_block("AA|AA", letter_spacing, false)]);
+			let oracle =
+				options(Valign::Top, Some(2), vec![spaced_block(&format!("AA{NEW_LINE_CHAR}AA"), letter_spacing, false)]);
 			assert_eq!(
 				output_rows(&wrapped),
 				output_rows(&oracle),

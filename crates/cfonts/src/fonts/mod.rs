@@ -221,16 +221,12 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::SUPPORTED_CHARS;
 	use cfonts_macros::glyph;
 
-	pub const SUPPORTED: &[char] = &[
-		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-		'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '?', '.', '+', '-', '_', '=', '@', '#', '$',
-		'%', '&', '(', ')', '/', ':', ';', ',', '\'', '"', ' ',
-	];
-
 	pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
-		let missing = SUPPORTED.iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
+		let missing =
+			SUPPORTED_CHARS.iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
 		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name);
 		assert!(font.get_glyph('ü').is_none());
 	}

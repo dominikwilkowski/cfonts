@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{
-	Align, BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, Options,
-	TransitionStops, Valign,
+	Align, BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, NEW_LINE_CHAR,
+	Options, TransitionStops, Valign,
 	cli::{
 		Args,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -515,7 +515,8 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 		let buffer = (std_provider.read)();
 		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
 		let buffer = buffer.strip_suffix('\r').unwrap_or(buffer);
-		let buffer = buffer.replace("\r\n", "|").replace('\n', "|").to_string();
+		let buffer =
+			buffer.replace("\r\n", &NEW_LINE_CHAR.to_string()).replace('\n', &NEW_LINE_CHAR.to_string()).to_string();
 
 		// an empty buffer fills nothing, try_from reads the leftover markers to name the cause
 		if !buffer.is_empty() {
@@ -1390,10 +1391,10 @@ mod stdin_handling {
 	#[test]
 	fn newlines_become_pipes_and_one_trailing_newline_drops() {
 		let unix = parse_args(&[], piped(|| String::from("a\nb\n"))).unwrap();
-		assert_eq!(unix.options.blocks[0].text(), "A|B");
+		assert_eq!(unix.options.blocks[0].text(), format!("A{NEW_LINE_CHAR}B"));
 
 		let windows = parse_args(&[], piped(|| String::from("a\r\nb\r\n"))).unwrap();
-		assert_eq!(windows.options.blocks[0].text(), "A|B");
+		assert_eq!(windows.options.blocks[0].text(), format!("A{NEW_LINE_CHAR}B"));
 	}
 
 	#[test]

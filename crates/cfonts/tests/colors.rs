@@ -1,6 +1,6 @@
 use cfonts::{
 	Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientOption, GradientPreset,
-	GradientStop, Options, RenderContext, Rgb, Valign, render_with,
+	GradientStop, NEW_LINE_CHAR, Options, RenderContext, Rgb, Valign, render_with,
 };
 
 /// The expected terminal bytes of one row painted column by column from a ramp
@@ -251,7 +251,7 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 
 #[test]
 fn independent_gradients_ramp_each_line_over_its_own_width() {
-	let ramped: Options = Cfonts::text("A|AB")
+	let ramped: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}AB"))
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
@@ -458,7 +458,7 @@ fn a_resolved_color_that_paints_no_segment_does_not_escape_percent() {
 
 #[test]
 fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
-	let options: Options = Cfonts::text("A|AB")
+	let options: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}AB"))
 		.font(Font::Tiny)
 		.align(Align::Right)
 		.valign(Valign::Top)
@@ -528,7 +528,7 @@ fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 
 #[test]
 fn a_wrapped_block_gradient_fixes_its_ramp_over_the_widest_row() {
-	let options: Options = Cfonts::text("A|AB")
+	let options: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}AB"))
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
@@ -551,7 +551,7 @@ fn a_wrapped_block_gradient_fixes_its_ramp_over_the_widest_row() {
 
 #[test]
 fn an_independent_global_gradient_ramps_each_line() {
-	let options: Options = Cfonts::text("A|AB")
+	let options: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}AB"))
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
@@ -599,7 +599,7 @@ fn leading_space_glyphs_consume_the_ramp() {
 fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 	// aligned rows pad physically inside the widest-line frame, so the same
 	// visual column paints the same ramp color on every line
-	let options: Options = Cfonts::text("A|ABC")
+	let options: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}ABC"))
 		.font(Font::Tiny)
 		.align(Align::Center)
 		.valign(Valign::Top)
