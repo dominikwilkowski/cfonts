@@ -26,7 +26,9 @@ pub(crate) enum ErrorType {
 /// Every way one command line can be wrong
 ///
 /// Warnings surface through [`ParsedArgs::warnings`] and keep the parse alive;
-/// hard errors return through [`parse_args`]'s `Err` and abort it
+/// hard errors abort it and return through [`ParseFailure::error`]
+/// joined by the warnings gathered before the abort
+///
 /// Messages render through [`Display`](std::fmt::Display), colored when the
 /// error stream supports it
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -35,6 +37,7 @@ pub enum ParseError<'a> {
 	TextAlreadySupplied(&'a str),
 	UnknownFlag(&'a str),
 	UnknownShortFlag(char),
+	DelimiterIgnored,
 	MissingValue(Args),
 	InvalidValue {
 		argument: Args,
@@ -58,6 +61,7 @@ impl ParseError<'_> {
 			Self::TextAlreadySupplied(_) => ErrorType::Error,
 			Self::UnknownFlag(_) => ErrorType::Warning,
 			Self::UnknownShortFlag(_) => ErrorType::Warning,
+			Self::DelimiterIgnored => ErrorType::Warning,
 			Self::MissingValue(_) => ErrorType::Error,
 			Self::InvalidValue { .. } => ErrorType::Error,
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
@@ -112,6 +116,12 @@ impl ParseError<'_> {
 			}
 			Self::UnknownShortFlag(unknown_flag) => {
 				write!(f, "{flag} An unknown flag \"{open}-{unknown_flag}{close}\" was used and ignored")
+			}
+			Self::DelimiterIgnored => {
+				write!(
+					f,
+					"{flag} The end-of-options marker \"{open}--{close}\" does nothing here and was ignored\ncfonts reads text by position, so dashed text needs no delimiter\n{prompt} cfonts \"\" --next \"-v\""
+				)
 			}
 			Self::MissingValue(args) => {
 				write!(
@@ -427,6 +437,28 @@ pub struct ParsedArgs<'a> {
 	pub show_version: bool,
 }
 
+/// A parse that aborted: the error that stopped it plus every warning collected before it
+#[derive(Debug, PartialEq)]
+pub struct ParseFailure<'a> {
+	/// Problems that did not abort the parse, in the order they appeared
+	pub warnings: Vec<ParseError<'a>>,
+
+	/// The problem that aborted the parse
+	pub error: ParseError<'a>,
+}
+
+impl Display for ParseFailure<'_> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		for warning in &self.warnings {
+			writeln!(f, "{warning}")?;
+		}
+
+		self.error.fmt(f)
+	}
+}
+
+impl Error for ParseFailure<'_> {}
+
 /// How the parser reaches stdin, injected so hosts and tests own the pipe
 pub struct StdinProvider {
 	/// Whether stdin is a terminal rather than a pipe
@@ -460,8 +492,21 @@ fn apply_with_value<'a>(
 /// Parses one command line, reading stdin only when the flags or a pipe ask for it
 ///
 /// The binary passes `std::env::args().skip(1)`; anything else may pass any list
-pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result<ParsedArgs<'a>, ParseError<'a>> {
+pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result<ParsedArgs<'a>, ParseFailure<'a>> {
 	let mut warnings: Vec<ParseError<'a>> = Vec::new();
+
+	match parse_args_with(args, std_provider, &mut warnings) {
+		Ok(parsed) => Ok(parsed),
+		Err(error) => Err(ParseFailure { warnings, error }),
+	}
+}
+
+/// The parse itself, pushing warnings into the channel both outcomes carry
+fn parse_args_with<'a>(
+	args: &'a [String],
+	std_provider: StdinProvider,
+	warnings: &mut Vec<ParseError<'a>>,
+) -> Result<ParsedArgs<'a>, ParseError<'a>> {
 	let mut state = ParseState::default();
 
 	let mut args_iter = args.iter();
@@ -469,17 +514,17 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 		// Long flags
 		if let Some(name) = arg_str.strip_prefix("--") {
 			if name.is_empty() {
-				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
+				warn(warnings, ParseError::DelimiterIgnored);
 			} else if let Some(arg) = Args::parse(name) {
 				apply_with_value(arg, &mut args_iter, &mut state)?;
 			} else {
-				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
+				warn(warnings, ParseError::UnknownFlag(arg_str));
 			}
 		// Short flags
 		} else if let Some(cluster) = arg_str.strip_prefix('-') {
 			if cluster.is_empty() {
 				// Conventionally this is a stdin placeholder for paths but since `-` can be styled we can't use it in cfonts
-				warn(&mut warnings, ParseError::UnknownFlag(arg_str));
+				warn(warnings, ParseError::UnknownFlag(arg_str));
 			} else {
 				for (index, short) in cluster.char_indices() {
 					let length = short.len_utf8();
@@ -492,7 +537,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 
 						apply_with_value(arg, &mut args_iter, &mut state)?;
 					} else {
-						warn(&mut warnings, ParseError::UnknownShortFlag(short));
+						warn(warnings, ParseError::UnknownShortFlag(short));
 					}
 				}
 			}
@@ -545,7 +590,7 @@ pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result
 	};
 
 	Ok(ParsedArgs {
-		warnings,
+		warnings: std::mem::take(warnings),
 		options,
 		raw_mode,
 		show_help,
@@ -728,7 +773,7 @@ mod argument_parsing {
 
 	#[test]
 	fn no_arguments_error() {
-		assert_eq!(parse_args(&[], tty()).unwrap_err(), ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], tty()).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
@@ -747,11 +792,11 @@ mod argument_parsing {
 	#[test]
 	fn number_flags_error_without_or_with_bad_values() {
 		let missing = args(&["my text", "-l"]);
-		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::LetterSpacing));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err().error, ParseError::MissingValue(Args::LetterSpacing));
 
 		let negative = args(&["my text", "-l", "-1"]);
 		assert!(matches!(
-			parse_args(&negative, tty()).unwrap_err(),
+			parse_args(&negative, tty()).unwrap_err().error,
 			ParseError::InvalidValue {
 				argument: Args::LetterSpacing,
 				..
@@ -792,11 +837,11 @@ mod argument_parsing {
 	#[test]
 	fn fonts_error_on_missing_or_unknown_values() {
 		let missing = args(&["my text", "-f"]);
-		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::Font));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err().error, ParseError::MissingValue(Args::Font));
 
 		let unknown = args(&["my text", "-f", "unknown"]);
 		assert!(matches!(
-			parse_args(&unknown, tty()).unwrap_err(),
+			parse_args(&unknown, tty()).unwrap_err().error,
 			ParseError::InvalidValue {
 				argument: Args::Font,
 				..
@@ -871,7 +916,7 @@ mod argument_parsing {
 	#[test]
 	fn colors_error_on_missing_unknown_and_malformed_hex_values() {
 		let missing = args(&["my text", "-c"]);
-		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::Color));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err().error, ParseError::MissingValue(Args::Color));
 
 		let unknown = args(&["my text", "-c", "unknown"]);
 		assert!(parse_args(&unknown, tty()).is_err());
@@ -881,7 +926,7 @@ mod argument_parsing {
 			let input = args(&["my text", "-c", bad_hex]);
 			assert!(
 				matches!(
-					parse_args(&input, tty()).unwrap_err(),
+					parse_args(&input, tty()).unwrap_err().error,
 					ParseError::InvalidValue {
 						argument: Args::Color,
 						source: Some(_),
@@ -901,7 +946,7 @@ mod argument_parsing {
 			let input = args(&["my text", "-c", bad]);
 			assert!(
 				matches!(
-					parse_args(&input, tty()).unwrap_err(),
+					parse_args(&input, tty()).unwrap_err().error,
 					ParseError::InvalidValue {
 						argument: Args::Color,
 						..
@@ -913,7 +958,7 @@ mod argument_parsing {
 
 		let gradient = args(&["my text", "-g", "red,"]);
 		assert!(matches!(
-			parse_args(&gradient, tty()).unwrap_err(),
+			parse_args(&gradient, tty()).unwrap_err().error,
 			ParseError::InvalidValue {
 				argument: Args::Gradient,
 				..
@@ -945,7 +990,7 @@ mod argument_parsing {
 
 		let one_stop_transition = args(&["my text", "-g", "red", "-t"]);
 		assert_eq!(
-			parse_args(&one_stop_transition, tty()).unwrap_err(),
+			parse_args(&one_stop_transition, tty()).unwrap_err().error,
 			ParseError::BadGradientColors {
 				count: 1,
 				transition: true,
@@ -954,7 +999,7 @@ mod argument_parsing {
 
 		let three_without_transition = args(&["my text", "-g", "red,green,blue"]);
 		assert_eq!(
-			parse_args(&three_without_transition, tty()).unwrap_err(),
+			parse_args(&three_without_transition, tty()).unwrap_err().error,
 			ParseError::BadGradientColors {
 				count: 3,
 				transition: false,
@@ -980,6 +1025,26 @@ mod argument_parsing {
 		assert_eq!(parsed.warnings[1], ParseError::UnknownFlag("--unknown"));
 		assert_eq!(parsed.warnings[2], ParseError::UnknownShortFlag('x'));
 		assert!(parsed.warnings.iter().all(|warning| warning.error_type() == ErrorType::Warning));
+	}
+
+	#[test]
+	fn lone_dashes_are_ignored_with_a_warning() {
+		// no end-of-options and no stdin placeholder: `-` and `--` can be styled
+		let input = args(&["hello", "--", "-"]);
+		let parsed = parse_args(&input, tty()).unwrap();
+
+		assert_eq!(parsed.warnings, vec![ParseError::DelimiterIgnored, ParseError::UnknownFlag("-")]);
+		assert_eq!(parsed.options.blocks[0].text(), "HELLO");
+	}
+
+	#[test]
+	fn warnings_survive_a_failed_parse() {
+		// the ignored delimiter must reach the failure so the abort can explain itself
+		let input = args(&["hello", "--", "world"]);
+		let failure = parse_args(&input, tty()).unwrap_err();
+
+		assert_eq!(failure.warnings, vec![ParseError::DelimiterIgnored]);
+		assert_eq!(failure.error, ParseError::TextAlreadySupplied("world"));
 	}
 
 	#[test]
@@ -1154,7 +1219,7 @@ mod block_composition {
 	#[test]
 	fn next_errors_without_a_value() {
 		let input = args(&["first", "--next"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::MissingValue(Args::Next));
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::MissingValue(Args::Next));
 	}
 
 	#[test]
@@ -1195,11 +1260,11 @@ mod block_composition {
 	#[test]
 	fn valign_errors_on_missing_and_unknown_values() {
 		let missing = args(&["my text", "-y"]);
-		assert_eq!(parse_args(&missing, tty()).unwrap_err(), ParseError::MissingValue(Args::Valign));
+		assert_eq!(parse_args(&missing, tty()).unwrap_err().error, ParseError::MissingValue(Args::Valign));
 
 		let unknown = args(&["my text", "-y", "diagonal"]);
 		assert!(matches!(
-			parse_args(&unknown, tty()).unwrap_err(),
+			parse_args(&unknown, tty()).unwrap_err().error,
 			ParseError::InvalidValue {
 				argument: Args::Valign,
 				..
@@ -1211,7 +1276,7 @@ mod block_composition {
 	fn next_with_dashed_text_and_no_pipe_errors() {
 		// cfonts --next -v  → no version output, no styled dash-v, a teaching error
 		let input = args(&["--next", "-v"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
@@ -1260,20 +1325,20 @@ mod text_supply_rules {
 	#[test]
 	fn a_second_global_text_is_a_hard_error() {
 		let input = args(&["hello", "world"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::TextAlreadySupplied("world"));
 	}
 
 	#[test]
 	fn bare_text_after_next_is_a_hard_error() {
 		let input = args(&["hello", "--next", "hi", "world"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::TextAlreadySupplied("world"));
 	}
 
 	#[test]
 	fn the_stdin_flag_after_next_is_a_hard_error() {
 		// --stdin supplies the global text; past the first --next only --next-stdin can claim the buffer
 		for input in [args(&["--next", "hi", "--stdin"]), args(&["--next-stdin", "--stdin"])] {
-			assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::StdinInsideBlock);
+			assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::StdinInsideBlock);
 		}
 	}
 
@@ -1286,7 +1351,7 @@ mod text_supply_rules {
 	fn flags_between_texts_do_not_confuse_the_rule() {
 		// the flag and its value are consumed as a unit; only the bare token trips the rule
 		let input = args(&["hello", "-f", "tiny", "world"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("world"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::TextAlreadySupplied("world"));
 	}
 }
 
@@ -1324,7 +1389,7 @@ mod stdin_handling {
 	#[test]
 	fn a_terminal_is_never_read_implicitly() {
 		// cfonts (bare, in a terminal)
-		assert_eq!(parse_args(&[], tty()).unwrap_err(), ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], tty()).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
@@ -1339,14 +1404,14 @@ mod stdin_handling {
 	fn the_stdin_flag_conflicts_with_supplied_text() {
 		// the error fires before any read; the panicking tty provider proves it
 		let input = args(&["hello", "--stdin"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("--stdin"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::TextAlreadySupplied("--stdin"));
 	}
 
 	#[test]
 	fn supplied_text_conflicts_with_an_earlier_stdin_flag() {
 		// the reverse order of the conflict above must reject identically
 		let input = args(&["--stdin", "hello"]);
-		assert_eq!(parse_args(&input, tty()).unwrap_err(), ParseError::TextAlreadySupplied("hello"));
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::TextAlreadySupplied("hello"));
 	}
 
 	#[test]
@@ -1369,23 +1434,23 @@ mod stdin_handling {
 	#[test]
 	fn an_empty_implicit_read_still_teaches() {
 		// cfonts < /dev/null
-		assert_eq!(parse_args(&[], piped(String::new)).unwrap_err(), ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], piped(String::new)).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
 	fn a_newline_only_pipe_counts_as_empty() {
-		assert_eq!(parse_args(&[], piped(|| String::from("\n"))).unwrap_err(), ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], piped(|| String::from("\n"))).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
 	fn an_empty_read_for_an_explicit_flag_is_an_error() {
 		// echo | cfonts test --next-stdin
 		let next_stdin = args(&["test", "--next-stdin"]);
-		assert_eq!(parse_args(&next_stdin, piped(String::new)).unwrap_err(), ParseError::EmptyStdin);
+		assert_eq!(parse_args(&next_stdin, piped(String::new)).unwrap_err().error, ParseError::EmptyStdin);
 
 		// echo | cfonts --stdin
 		let stdin_flag = args(&["--stdin"]);
-		assert_eq!(parse_args(&stdin_flag, piped(String::new)).unwrap_err(), ParseError::EmptyStdin);
+		assert_eq!(parse_args(&stdin_flag, piped(String::new)).unwrap_err().error, ParseError::EmptyStdin);
 	}
 
 	#[test]
@@ -1445,6 +1510,7 @@ mod error_messages {
 			ParseError::TextAlreadySupplied("world"),
 			ParseError::UnknownFlag("--unknown"),
 			ParseError::UnknownShortFlag('u'),
+			ParseError::DelimiterIgnored,
 			ParseError::MissingValue(Args::Font),
 			ParseError::InvalidValue {
 				argument: Args::Color,
@@ -1478,6 +1544,7 @@ mod error_messages {
 				| ParseError::TextAlreadySupplied(_)
 				| ParseError::UnknownFlag(_)
 				| ParseError::UnknownShortFlag(_)
+				| ParseError::DelimiterIgnored
 				| ParseError::MissingValue(_)
 				| ParseError::InvalidValue { .. }
 				| ParseError::MidClusterArgumentRequired(_)

@@ -47,8 +47,8 @@ fn main() -> std::io::Result<()> {
 		show_version,
 	} = match parse_args(&args, std_provider) {
 		Ok(parsed) => parsed,
-		Err(error) => {
-			eprintln!("{error}");
+		Err(failure) => {
+			eprintln!("{failure}");
 			std::process::exit(64);
 		}
 	};
