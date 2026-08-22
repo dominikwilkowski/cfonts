@@ -1,6 +1,7 @@
 use std::{
 	error::Error,
 	fmt::{Display, Formatter},
+	io,
 	num::NonZeroUsize,
 };
 
@@ -23,6 +24,18 @@ pub(crate) enum ErrorType {
 	Error,
 }
 
+/// An I/O failure carried as a parse problem
+///
+/// Equality compares the kind; the OS detail is display-only
+#[derive(Debug)]
+pub struct StdinError(pub io::Error);
+
+impl PartialEq for StdinError {
+	fn eq(&self, other: &Self) -> bool {
+		self.0.kind() == other.0.kind()
+	}
+}
+
 /// Every way one command line can be wrong
 ///
 /// Warnings surface through [`ParsedArgs::warnings`] and keep the parse alive;
@@ -31,27 +44,166 @@ pub(crate) enum ErrorType {
 ///
 /// Messages render through [`Display`](std::fmt::Display), colored when the
 /// error stream supports it
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ParseError<'a> {
+	/// No text arrived by argument or pipe, so there is nothing to style
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let failure = parse_args(&[], terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::NoTextSupplied);
+	/// ```
 	NoTextSupplied,
+
+	/// A second text source appeared after one was already set; carries the rejected token
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "world"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::TextAlreadySupplied("world"));
+	/// ```
 	TextAlreadySupplied(&'a str),
+
+	/// A flag token no argument matches, ignored with a warning; carries the token as typed
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--unknown"].map(String::from);
+	/// let parsed = parse_args(&args, terminal).unwrap();
+	/// assert_eq!(parsed.warnings, vec![ParseError::UnknownFlag("--unknown")]);
+	/// ```
 	UnknownFlag(&'a str),
+
+	/// A letter in a short flag cluster no argument matches, ignored with a warning
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "-x"].map(String::from);
+	/// let parsed = parse_args(&args, terminal).unwrap();
+	/// assert_eq!(parsed.warnings, vec![ParseError::UnknownShortFlag('x')]);
+	/// ```
 	UnknownShortFlag(char),
+
+	/// A bare `--`, ignored with a warning: text is positional, so no end-of-options delimiter exists
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--"].map(String::from);
+	/// let parsed = parse_args(&args, terminal).unwrap();
+	/// assert_eq!(parsed.warnings, vec![ParseError::DelimiterIgnored]);
+	/// ```
 	DelimiterIgnored,
+
+	/// A flag that takes a value sat at the end of the command line with none to take
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--font"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::MissingValue(Args::Font));
+	/// ```
 	MissingValue(Args),
+
+	/// A flag's value failed to parse; `source` names the color cause when there is one
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--font", "nope"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::InvalidValue {
+	///         argument: Args::Font,
+	///         value: "nope",
+	///         source: None,
+	///     }
+	/// );
+	/// ```
 	InvalidValue {
 		argument: Args,
 		value: &'a str,
 		source: Option<ColorError>,
 	},
+
+	/// A flag that takes a value sat inside a short flag cluster instead of at its end
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "-fs"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::MidClusterArgumentRequired(Args::Font));
+	/// ```
 	MidClusterArgumentRequired(Args),
-	BadGradientColors {
-		count: usize,
-		transition: bool,
-	},
+
+	/// A gradient with the wrong number of stops: plain gradients take exactly two,
+	/// transition gradients at least two
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--gradient", "red,blue,green"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::BadGradientColors {
+	///         count: 3,
+	///         transition: false,
+	///     }
+	/// );
+	/// ```
+	BadGradientColors { count: usize, transition: bool },
+
+	/// A gradient modifier without a gradient to modify, ignored with a warning
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--independent-gradient"].map(String::from);
+	/// let parsed = parse_args(&args, terminal).unwrap();
+	/// assert_eq!(parsed.warnings, vec![ParseError::GradientFlagIgnored(Args::IndependentGradient)]);
+	/// ```
 	GradientFlagIgnored(Args),
+
+	/// A stdin flag asked for piped text but the pipe was empty
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// let pipe = StdinProvider { interactive: false, read: || Ok(String::new()) };
+	/// let args = ["--stdin"].map(String::from);
+	/// let failure = parse_args(&args, pipe).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::EmptyStdin);
+	/// ```
 	EmptyStdin,
+
+	/// The stdin flag appeared in block position, where only `--next-stdin` may fill from the pipe
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--next", "world", "--stdin"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::StdinInsideBlock);
+	/// ```
 	StdinInsideBlock,
+
+	/// Reading the piped text failed; carries the I/O error that stopped it
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinError, StdinProvider, parse_args};
+	/// let broken = StdinProvider { interactive: false, read: || Err(std::io::ErrorKind::BrokenPipe.into()) };
+	/// let failure = parse_args(&[], broken).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::StdinUnreadable(StdinError(std::io::ErrorKind::BrokenPipe.into())));
+	/// ```
+	StdinUnreadable(StdinError),
 }
 
 impl ParseError<'_> {
@@ -69,6 +221,7 @@ impl ParseError<'_> {
 			Self::GradientFlagIgnored(_) => ErrorType::Warning,
 			Self::EmptyStdin => ErrorType::Error,
 			Self::StdinInsideBlock => ErrorType::Error,
+			Self::StdinUnreadable(_) => ErrorType::Error,
 		}
 	}
 
@@ -231,6 +384,17 @@ impl ParseError<'_> {
 					}
 				)
 			}
+			Self::StdinUnreadable(stdin_error) => {
+				if stdin_error.0.kind() == io::ErrorKind::InvalidData {
+					write!(f, "{flag} The text piped to cfonts is not valid UTF-8,\ncfonts can only style unicode text")
+				} else {
+					write!(
+						f,
+						"{flag} Reading the text piped to cfonts failed ({open}{}{close}),\ncheck the command you are piping from",
+						stdin_error.0
+					)
+				}
+			}
 		}
 	}
 }
@@ -247,6 +411,7 @@ impl Error for ParseError<'_> {
 			Self::InvalidValue {
 				source: Some(source), ..
 			} => Some(source),
+			Self::StdinUnreadable(stdin_error) => Some(&stdin_error.0),
 			_ => None,
 		}
 	}
@@ -465,7 +630,7 @@ pub struct StdinProvider {
 	pub interactive: bool,
 
 	/// Reads all of stdin; called at most once per parse
-	pub read: fn() -> String,
+	pub read: fn() -> io::Result<String>,
 }
 
 /// The one door into the warnings channel; only warning-typed problems may pass
@@ -557,7 +722,7 @@ fn parse_args_with<'a>(
 	let implicit = state.options.blocks[0].text.is_none() && !std_provider.interactive;
 	if !state.show_help && !state.show_version && (implicit || state.options.blocks.iter().any(|block| block.stdin)) {
 		// some shadowing fun and I won't apologize for it either!
-		let buffer = (std_provider.read)();
+		let buffer = (std_provider.read)().map_err(|error| ParseError::StdinUnreadable(StdinError(error)))?;
 		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
 		let buffer = buffer.strip_suffix('\r').unwrap_or(buffer);
 		let buffer =
@@ -1362,7 +1527,7 @@ mod stdin_handling {
 
 	use std::sync::atomic::{AtomicUsize, Ordering};
 
-	fn piped(read: fn() -> String) -> StdinProvider {
+	fn piped(read: fn() -> io::Result<String>) -> StdinProvider {
 		StdinProvider {
 			interactive: false,
 			read,
@@ -1372,7 +1537,7 @@ mod stdin_handling {
 	#[test]
 	fn a_pipe_fills_the_empty_global_text() {
 		// echo test | cfonts
-		let parsed = parse_args(&[], piped(|| String::from("test\n"))).unwrap();
+		let parsed = parse_args(&[], piped(|| Ok(String::from("test\n")))).unwrap();
 		assert_eq!(parsed.options.blocks[0].text(), "TEST");
 	}
 
@@ -1396,7 +1561,7 @@ mod stdin_handling {
 	fn the_stdin_flag_fills_the_global_block() {
 		// echo hi | cfonts --stdin
 		let input = args(&["--stdin"]);
-		let parsed = parse_args(&input, piped(|| String::from("hi"))).unwrap();
+		let parsed = parse_args(&input, piped(|| Ok(String::from("hi")))).unwrap();
 		assert_eq!(parsed.options.blocks[0].text(), "HI");
 	}
 
@@ -1418,9 +1583,9 @@ mod stdin_handling {
 	fn one_read_feeds_every_consumer() {
 		// echo hi | cfonts --next world --next-stdin
 		static READS: AtomicUsize = AtomicUsize::new(0);
-		fn counted_read() -> String {
+		fn counted_read() -> io::Result<String> {
 			READS.fetch_add(1, Ordering::SeqCst);
-			String::from("hi")
+			Ok(String::from("hi"))
 		}
 
 		let input = args(&["--next", "world", "--next-stdin"]);
@@ -1434,31 +1599,62 @@ mod stdin_handling {
 	#[test]
 	fn an_empty_implicit_read_still_teaches() {
 		// cfonts < /dev/null
-		assert_eq!(parse_args(&[], piped(String::new)).unwrap_err().error, ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], piped(|| Ok(String::new()))).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
 	fn a_newline_only_pipe_counts_as_empty() {
-		assert_eq!(parse_args(&[], piped(|| String::from("\n"))).unwrap_err().error, ParseError::NoTextSupplied);
+		assert_eq!(parse_args(&[], piped(|| Ok(String::from("\n")))).unwrap_err().error, ParseError::NoTextSupplied);
 	}
 
 	#[test]
 	fn an_empty_read_for_an_explicit_flag_is_an_error() {
 		// echo | cfonts test --next-stdin
 		let next_stdin = args(&["test", "--next-stdin"]);
-		assert_eq!(parse_args(&next_stdin, piped(String::new)).unwrap_err().error, ParseError::EmptyStdin);
+		assert_eq!(parse_args(&next_stdin, piped(|| Ok(String::new()))).unwrap_err().error, ParseError::EmptyStdin);
 
 		// echo | cfonts --stdin
 		let stdin_flag = args(&["--stdin"]);
-		assert_eq!(parse_args(&stdin_flag, piped(String::new)).unwrap_err().error, ParseError::EmptyStdin);
+		assert_eq!(parse_args(&stdin_flag, piped(|| Ok(String::new()))).unwrap_err().error, ParseError::EmptyStdin);
+	}
+
+	#[test]
+	fn a_failing_read_is_its_own_error() {
+		// an errored read is not an empty read: the io failure surfaces itself
+		let implicit = parse_args(&[], piped(|| Err(io::ErrorKind::BrokenPipe.into()))).unwrap_err();
+		assert_eq!(implicit.error, ParseError::StdinUnreadable(StdinError(io::ErrorKind::BrokenPipe.into())));
+
+		let input = args(&["--stdin"]);
+		let explicit = parse_args(&input, piped(|| Err(io::ErrorKind::InvalidData.into()))).unwrap_err();
+		assert_eq!(explicit.error, ParseError::StdinUnreadable(StdinError(io::ErrorKind::InvalidData.into())));
+	}
+
+	#[test]
+	fn warnings_survive_a_failing_read() {
+		// warnings gathered before the read still reach the failure
+		let input = args(&["--unknown", "--stdin"]);
+		let failure = parse_args(&input, piped(|| Err(io::ErrorKind::BrokenPipe.into()))).unwrap_err();
+
+		assert_eq!(failure.warnings, vec![ParseError::UnknownFlag("--unknown")]);
+		assert!(matches!(failure.error, ParseError::StdinUnreadable(_)));
+	}
+
+	#[test]
+	fn stdin_errors_compare_by_kind() {
+		// the OS detail is display-only; tests and consumers match on the kind
+		let os_flavored = StdinError(io::Error::new(io::ErrorKind::BrokenPipe, "custom detail"));
+		let bare = StdinError(io::ErrorKind::BrokenPipe.into());
+
+		assert_eq!(os_flavored, bare);
+		assert_ne!(bare, StdinError(io::ErrorKind::InvalidData.into()));
 	}
 
 	#[test]
 	fn newlines_become_pipes_and_one_trailing_newline_drops() {
-		let unix = parse_args(&[], piped(|| String::from("a\nb\n"))).unwrap();
+		let unix = parse_args(&[], piped(|| Ok(String::from("a\nb\n")))).unwrap();
 		assert_eq!(unix.options.blocks[0].text(), format!("A{NEW_LINE_CHAR}B"));
 
-		let windows = parse_args(&[], piped(|| String::from("a\r\nb\r\n"))).unwrap();
+		let windows = parse_args(&[], piped(|| Ok(String::from("a\r\nb\r\n")))).unwrap();
 		assert_eq!(windows.options.blocks[0].text(), format!("A{NEW_LINE_CHAR}B"));
 	}
 
@@ -1466,7 +1662,7 @@ mod stdin_handling {
 	fn explicit_stdin_flags_share_the_buffer() {
 		// echo hello | cfonts --stdin --next-stdin  → same text styled in two blocks
 		let input = args(&["--stdin", "--next-stdin"]);
-		let parsed = parse_args(&input, piped(|| String::from("hello"))).unwrap();
+		let parsed = parse_args(&input, piped(|| Ok(String::from("hello")))).unwrap();
 
 		let texts: Vec<&str> = parsed.options.blocks.iter().map(|block| block.text()).collect();
 		assert_eq!(texts, ["HELLO", "HELLO"]);
@@ -1475,7 +1671,7 @@ mod stdin_handling {
 	#[test]
 	fn piped_dashed_text_is_text_not_flags() {
 		// echo "-v" | cfonts  → styles a literal -v
-		let parsed = parse_args(&[], piped(|| String::from("-v\n"))).unwrap();
+		let parsed = parse_args(&[], piped(|| Ok(String::from("-v\n")))).unwrap();
 
 		assert_eq!(parsed.options.blocks[0].text(), "-V");
 		assert!(!parsed.show_version);
@@ -1534,6 +1730,8 @@ mod error_messages {
 			ParseError::GradientFlagIgnored(Args::IndependentGradient),
 			ParseError::EmptyStdin,
 			ParseError::StdinInsideBlock,
+			ParseError::StdinUnreadable(StdinError(io::ErrorKind::BrokenPipe.into())),
+			ParseError::StdinUnreadable(StdinError(io::ErrorKind::InvalidData.into())),
 		];
 
 		// adding a ParseError variant makes this match non-exhaustive,
@@ -1551,7 +1749,8 @@ mod error_messages {
 				| ParseError::BadGradientColors { .. }
 				| ParseError::GradientFlagIgnored(_)
 				| ParseError::EmptyStdin
-				| ParseError::StdinInsideBlock => {}
+				| ParseError::StdinInsideBlock
+				| ParseError::StdinUnreadable(_) => {}
 			}
 		}
 

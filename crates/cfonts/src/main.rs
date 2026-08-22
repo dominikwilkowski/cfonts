@@ -5,7 +5,7 @@ use std::{
 
 use cfonts::{
 	Host, RustHost,
-	cli::{ParsedArgs, StdinProvider, VERSION, cli_help, parse_args},
+	cli::{ParseError, ParsedArgs, StdinProvider, VERSION, cli_help, parse_args},
 };
 
 // terminology
@@ -33,8 +33,8 @@ fn main() -> std::io::Result<()> {
 				eprintln!("Start typing, end with {eof_key} on an empty line…");
 			}
 			let mut buffer = String::new();
-			stdin().read_to_string(&mut buffer).unwrap_or_default();
-			buffer
+			stdin().read_to_string(&mut buffer)?;
+			Ok(buffer)
 		},
 	};
 
@@ -49,7 +49,12 @@ fn main() -> std::io::Result<()> {
 		Ok(parsed) => parsed,
 		Err(failure) => {
 			eprintln!("{failure}");
-			std::process::exit(64);
+			let code = if matches!(failure.error, ParseError::StdinUnreadable(_)) {
+				74 // EX_IOERR for a failed stdin read
+			} else {
+				64 // EX_USAGE for everything else
+			};
+			std::process::exit(code);
 		}
 	};
 
