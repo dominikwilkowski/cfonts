@@ -4,7 +4,7 @@ import { release } from "node:os";
 // its get() in utils always detects fresh, per render
 import windowSize from "window-size/utils.js";
 
-import { type ColorLevel, classifyTerminal, decideColor, decideDetected } from "../../pkg/cfonts_wasm.js";
+import { type ColorLevel, detectColorSupport } from "../../pkg/cfonts_wasm.js";
 import { CliEnv } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
@@ -84,24 +84,8 @@ export class NodeHost implements Host {
 	}
 
 	#resolveColorLevel(): ColorLevel | undefined {
-		const decision = decideColor(
-			process.env.FORCE_COLOR,
-			// NO_COLOR counts only when present and non-empty, as its spec asks https://no-color.org
-			(process.env.NO_COLOR ?? "") !== "",
-			this.#overrides.color === false,
-			this.#overrides.color === false ? undefined : this.#overrides.color,
-		);
-
-		if (!decision.detect) {
-			return decision.level;
-		}
-
-		return decideDetected(this.#detectColorLevel());
-	}
-
-	#detectColorLevel(): ColorLevel | undefined {
-		// the classifier is the shared Rust cascade: it has no FORCE_COLOR or
-		// NO_COLOR reading, so the environment crosses whole
+		// the chain and the cascade both live behind the boundary: the
+		// environment crosses whole, FORCE_COLOR and NO_COLOR included
 		const names: string[] = [];
 		const values: string[] = [];
 		for (const [name, value] of Object.entries(process.env)) {
@@ -111,6 +95,13 @@ export class NodeHost implements Host {
 			}
 		}
 
-		return classifyTerminal(process.stdout.isTTY === true, names, values, windowsBuild());
+		return detectColorSupport(
+			process.stdout.isTTY === true,
+			names,
+			values,
+			windowsBuild(),
+			this.#overrides.color === false,
+			this.#overrides.color === false ? undefined : this.#overrides.color,
+		);
 	}
 }

@@ -1,12 +1,12 @@
-//! Terminal color capability detection
+//! Terminal color support: one home for the whole decision
 //!
-//! A port of the classifier behind Node's `getColorDepth` (lib/internal/tty.js),
-//! shared by every host: the native host binds it to real streams and the npm
-//! host ships its facts across the wasm boundary
-//! FORCE_COLOR and NO_COLOR never appear here: the host chain resolves them
-//! before detection runs, so detection stays pure capability
+//! FORCE_COLOR, then NO_COLOR, then the API override, then the capability
+//! cascade of an attached terminal — the cascade is a port of the classifier
+//! behind Node's `getColorDepth` (lib/internal/tty.js), shared by every host:
+//! the native host binds real streams, the npm host ships its facts across
+//! the wasm boundary
 
-use crate::ColorLevel;
+use crate::{ColorLevel, ColorOverride};
 
 /// What the Windows console reports, resolved before classifying
 ///
@@ -61,44 +61,103 @@ const TERM_LEVELS: &[(&str, ColorLevel)] = &[
 	("xterm-kitty", ColorLevel::TrueColor),
 ];
 
-/// The gathered facts of one output stream, ready to classify
+/// Everything one color resolution reads, gathered before any decision
 ///
-/// [`from_stream`](Self::from_stream) fills it with the real bindings, tests and boundary hosts fill it literally
-pub struct Terminal<'a> {
+/// [`detect`](Self::detect) gathers the real facts of a stream in one shot;
+/// tests and boundary hosts fill the struct literally and call
+/// [`resolve`](Self::resolve)
+pub struct TerminalColorSupport<'a> {
 	/// Whether the stream is attached to a terminal
 	pub attached: bool,
 
-	/// The environment the cascade reads
+	/// The environment both the chain and the cascade read
 	pub environment: &'a dyn Fn(&str) -> Option<String>,
 
 	/// What the Windows console reports, `None` off Windows
 	pub windows_console: Option<WindowsConsole>,
+
+	/// The API override, applied after FORCE_COLOR and NO_COLOR
+	pub override_color: ColorOverride,
+
+	/// The level an undetectable terminal still paints; the error stream
+	/// carries `None` so piped stderr stays plain
+	pub fallback: Option<ColorLevel>,
 }
 
-impl Terminal<'_> {
-	/// Gathers the real facts of one output stream
+impl TerminalColorSupport<'_> {
+	/// Detects the color support of one real output stream in one shot
+	///
+	/// `override_color` applies after FORCE_COLOR and NO_COLOR; `fallback` is
+	/// the level an undetectable terminal still paints
 	#[must_use]
-	pub fn from_stream(stream: Stream) -> Terminal<'static> {
+	pub fn detect(stream: Stream, override_color: ColorOverride, fallback: Option<ColorLevel>) -> Option<ColorLevel> {
 		use std::io::IsTerminal;
 
-		Terminal {
+		TerminalColorSupport {
 			attached: match stream {
 				Stream::Stdout => std::io::stdout().is_terminal(),
 				Stream::Stderr => std::io::stderr().is_terminal(),
 			},
 			environment: &Self::process_environment,
 			windows_console: Self::windows_console(stream),
+			override_color,
+			fallback,
 		}
+		.resolve()
 	}
 
-	/// The color level this terminal can display, a detached stream has none
+	/// Resolves the gathered facts: FORCE_COLOR, then NO_COLOR, then the API
+	/// override, then the capability cascade of an attached terminal
 	#[must_use]
-	pub fn color_level(&self) -> Option<ColorLevel> {
-		if !self.attached {
+	pub fn resolve(&self) -> Option<ColorLevel> {
+		let environment = self.environment;
+
+		// every present FORCE_COLOR value resolves, however it is spelled,
+		// so a set variable never falls through to detection
+		if let Some(forced) = environment("FORCE_COLOR") {
+			return Self::forced_color_level(&forced);
+		}
+
+		// NO_COLOR counts only when present and non-empty, as its spec asks
+		if environment("NO_COLOR").is_some_and(|value| !value.is_empty()) {
 			return None;
 		}
 
-		self.classify()
+		match self.override_color {
+			ColorOverride::Disabled => None,
+			ColorOverride::Level(level) => Some(level),
+			ColorOverride::Auto => {
+				let detected = if self.attached { self.classify() } else { None };
+
+				detected.or(self.fallback)
+			}
+		}
+	}
+
+	/// The level a present FORCE_COLOR value forces, total over every possible value
+	///
+	/// `true`, the empty string and `1` force basic; `false` and `0` force no color;
+	/// `2` and `3` force their levels; every number above three clamps to full color;
+	/// anything else forces basic
+	fn forced_color_level(forced: &str) -> Option<ColorLevel> {
+		match forced {
+			"false" => None,
+			"true" | "" => Some(ColorLevel::Basic),
+			value => {
+				let digits = value.strip_prefix('+').unwrap_or(value);
+				let numeric = !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit());
+
+				match value.parse::<u64>() {
+					Ok(0) => None,
+					Ok(1) => Some(ColorLevel::Basic),
+					Ok(2) => Some(ColorLevel::Ansi256),
+					Ok(_) => Some(ColorLevel::TrueColor),
+					// an all-digit parse failure is an overflow, which necessarily exceeds three
+					Err(_) if numeric => Some(ColorLevel::TrueColor),
+					Err(_) => Some(ColorLevel::Basic),
+				}
+			}
+		}
 	}
 
 	/// The capability cascade over the gathered facts
@@ -203,7 +262,7 @@ impl Terminal<'_> {
 		None
 	}
 
-	/// The process environment as the classifier reads it: presence survives
+	/// The process environment as the resolution reads it: presence survives
 	/// values that are not valid UTF-8
 	fn process_environment(name: &str) -> Option<String> {
 		std::env::var_os(name).map(|value| value.to_string_lossy().into_owned())
@@ -285,34 +344,131 @@ mod tests {
 	/// One matrix row: the environment and the level it must classify to
 	type Row = (&'static [(&'static str, &'static str)], Option<ColorLevel>);
 
-	/// A terminal attached to the given variables, classified
+	/// An attached terminal over fixed variables, resolved without a fallback
 	fn classify_vars(vars: &[(&str, &str)]) -> Option<ColorLevel> {
 		let environment = |name: &str| vars.iter().find(|(key, _)| *key == name).map(|(_, value)| String::from(*value));
 
-		Terminal {
+		TerminalColorSupport {
 			attached: true,
 			environment: &environment,
 			windows_console: None,
+			override_color: ColorOverride::Auto,
+			fallback: None,
 		}
-		.color_level()
+		.resolve()
 	}
 
-	/// A terminal attached to the given variables and console facts, classified
+	/// An attached terminal over fixed variables and console facts, resolved without a fallback
 	fn classify_windows(vars: &[(&str, &str)], console: WindowsConsole) -> Option<ColorLevel> {
 		let environment = |name: &str| vars.iter().find(|(key, _)| *key == name).map(|(_, value)| String::from(*value));
 
-		Terminal {
+		TerminalColorSupport {
 			attached: true,
 			environment: &environment,
 			windows_console: Some(console),
+			override_color: ColorOverride::Auto,
+			fallback: None,
 		}
-		.color_level()
+		.resolve()
+	}
+
+	/// A chain-only resolution: reading any cascade variable is a test failure
+	fn resolve_chain(forced: Option<&'static str>, no_color: bool, override_color: ColorOverride) -> Option<ColorLevel> {
+		let environment = move |name: &str| match name {
+			"FORCE_COLOR" => forced.map(String::from),
+			"NO_COLOR" => no_color.then(|| String::from("1")),
+			_ => panic!("this input must resolve without detection, but {name} was read"),
+		};
+
+		TerminalColorSupport {
+			attached: true,
+			environment: &environment,
+			windows_console: None,
+			override_color,
+			fallback: Some(ColorLevel::TrueColor),
+		}
+		.resolve()
+	}
+
+	#[test]
+	fn every_present_force_color_value_resolves_without_detection() {
+		for (value, resolved) in [
+			("0", None),
+			("false", None),
+			("1", Some(ColorLevel::Basic)),
+			("true", Some(ColorLevel::Basic)),
+			("", Some(ColorLevel::Basic)),
+			("2", Some(ColorLevel::Ansi256)),
+			("3", Some(ColorLevel::TrueColor)),
+			("4", Some(ColorLevel::TrueColor)),
+			("04", Some(ColorLevel::TrueColor)),
+			("+5", Some(ColorLevel::TrueColor)),
+			("18446744073709551616", Some(ColorLevel::TrueColor)),
+			("+18446744073709551616", Some(ColorLevel::TrueColor)),
+			("junk", Some(ColorLevel::Basic)),
+			("+", Some(ColorLevel::Basic)),
+			("-1", Some(ColorLevel::Basic)),
+			("TRUE", Some(ColorLevel::Basic)),
+		] {
+			assert_eq!(resolve_chain(Some(value), false, ColorOverride::Auto), resolved, "{value:?}");
+			// a present FORCE_COLOR also beats NO_COLOR and any override
+			assert_eq!(
+				resolve_chain(Some(value), true, ColorOverride::Disabled),
+				resolved,
+				"{value:?} with NO_COLOR and a disabled override"
+			);
+		}
+	}
+
+	#[test]
+	fn no_color_and_the_overrides_resolve_without_detection() {
+		assert_eq!(resolve_chain(None, true, ColorOverride::Level(ColorLevel::TrueColor)), None);
+		assert_eq!(resolve_chain(None, false, ColorOverride::Disabled), None);
+		assert_eq!(resolve_chain(None, false, ColorOverride::Level(ColorLevel::Ansi256)), Some(ColorLevel::Ansi256));
+	}
+
+	#[test]
+	fn auto_uses_the_detected_level() {
+		let environment = |name: &str| (name == "TERM").then(|| String::from("xterm-256color"));
+
+		let support = TerminalColorSupport {
+			attached: true,
+			environment: &environment,
+			windows_console: None,
+			override_color: ColorOverride::Auto,
+			fallback: Some(ColorLevel::TrueColor),
+		};
+
+		assert_eq!(support.resolve(), Some(ColorLevel::Ansi256));
+	}
+
+	#[test]
+	fn undetectable_terminals_get_the_fallback() {
+		let environment = |_: &str| None::<String>;
+
+		let mut support = TerminalColorSupport {
+			attached: true,
+			environment: &environment,
+			windows_console: None,
+			override_color: ColorOverride::Auto,
+			fallback: Some(ColorLevel::TrueColor),
+		};
+		assert_eq!(support.resolve(), Some(ColorLevel::TrueColor));
+
+		// the error stream declares no fallback and stays plain
+		support.fallback = None;
+		assert_eq!(support.resolve(), None);
+
+		// a detached stream takes the same fallback road
+		support.attached = false;
+		support.fallback = Some(ColorLevel::TrueColor);
+		assert_eq!(support.resolve(), Some(ColorLevel::TrueColor));
 	}
 
 	#[test]
 	fn the_environment_matrix_matches_the_node_classifier() {
 		// the rows mirror Node's test-tty-color-support.js, minus the
-		// FORCE_COLOR/NO_COLOR rows the host chain resolves before detection
+		// FORCE_COLOR/NO_COLOR rows he chain resolves before the cascade
 		let rows: &[Row] = &[
 			(&[("COLORTERM", "1")], Some(ColorLevel::Basic)),
 			(&[("COLORTERM", "truecolor")], Some(ColorLevel::TrueColor)),
@@ -448,17 +604,17 @@ mod tests {
 	fn the_real_bindings_run_on_both_streams() {
 		// what the facts hold depends on the real terminal; the pure layers pin
 		// the semantics, this pins that the bindings execute
-		let _ = Terminal::from_stream(Stream::Stdout).color_level();
-		let _ = Terminal::from_stream(Stream::Stderr).color_level();
+		let _ = TerminalColorSupport::detect(Stream::Stdout, ColorOverride::Auto, None);
+		let _ = TerminalColorSupport::detect(Stream::Stderr, ColorOverride::Auto, None);
 	}
 
 	#[test]
 	fn the_process_environment_reads_presence_and_value() {
 		temp_env::with_var("CFONTS_DETECT_PROBE", Some("value"), || {
-			assert_eq!(Terminal::process_environment("CFONTS_DETECT_PROBE"), Some(String::from("value")));
+			assert_eq!(TerminalColorSupport::process_environment("CFONTS_DETECT_PROBE"), Some(String::from("value")));
 		});
 		temp_env::with_var("CFONTS_DETECT_PROBE", None::<&str>, || {
-			assert_eq!(Terminal::process_environment("CFONTS_DETECT_PROBE"), None);
+			assert_eq!(TerminalColorSupport::process_environment("CFONTS_DETECT_PROBE"), None);
 		});
 	}
 
@@ -466,31 +622,33 @@ mod tests {
 	fn detached_streams_have_no_terminal_to_ask() {
 		let colorful = |name: &str| (name == "COLORTERM").then(|| String::from("truecolor"));
 
-		let mut terminal = Terminal {
+		let mut support = TerminalColorSupport {
 			attached: false,
 			environment: &colorful,
 			windows_console: None,
+			override_color: ColorOverride::Auto,
+			fallback: None,
 		};
-		assert_eq!(terminal.color_level(), None);
+		assert_eq!(support.resolve(), None);
 
-		terminal.attached = true;
-		assert_eq!(terminal.color_level(), Some(ColorLevel::TrueColor));
+		support.attached = true;
+		assert_eq!(support.resolve(), Some(ColorLevel::TrueColor));
 	}
 
 	#[test]
 	fn teamcity_versions_gate_on_nine_one() {
-		assert!(Terminal::teamcity_paints("9.1.0"));
-		assert!(Terminal::teamcity_paints("10.0"));
-		assert!(!Terminal::teamcity_paints("9.0.5"));
-		assert!(!Terminal::teamcity_paints("8.1.0"));
-		assert!(!Terminal::teamcity_paints("9"));
+		assert!(TerminalColorSupport::teamcity_paints("9.1.0"));
+		assert!(TerminalColorSupport::teamcity_paints("10.0"));
+		assert!(!TerminalColorSupport::teamcity_paints("9.0.5"));
+		assert!(!TerminalColorSupport::teamcity_paints("8.1.0"));
+		assert!(!TerminalColorSupport::teamcity_paints("9"));
 	}
 
 	#[test]
 	fn numbered_consoles_are_recognized() {
-		assert!(Terminal::is_numbered_console("con80x25"));
-		assert!(Terminal::is_numbered_console("conx5"));
-		assert!(!Terminal::is_numbered_console("console"));
-		assert!(!Terminal::is_numbered_console("con80"));
+		assert!(TerminalColorSupport::is_numbered_console("con80x25"));
+		assert!(TerminalColorSupport::is_numbered_console("conx5"));
+		assert!(!TerminalColorSupport::is_numbered_console("console"));
+		assert!(!TerminalColorSupport::is_numbered_console("con80"));
 	}
 }

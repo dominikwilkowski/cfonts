@@ -7,10 +7,7 @@ use terminal_size::{Width, terminal_size};
 
 use crate::{
 	CanvasWidth, CliEnv, ColorLevel, ColorOverride, Environment, Host, RenderContext, RenderOverrides, Rendered,
-	hosts::{
-		ColorDecision, decide_color, decide_detected,
-		detect::{Stream, Terminal},
-	},
+	hosts::terminal_color_support::{Stream, TerminalColorSupport},
 };
 
 const FALLBACK_WIDTH: usize = 80;
@@ -66,10 +63,7 @@ impl Host for RustHost {
 		let width =
 			Self::resolve_canvas_width(forced_width.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
 
-		let (forced_color, no_color) = Self::color_environment();
-		let color_level = Self::resolve_color_level(forced_color.as_deref(), no_color, self.overrides.color(), || {
-			Terminal::from_stream(Stream::Stdout).color_level()
-		});
+		let color_level = TerminalColorSupport::detect(Stream::Stdout, self.overrides.color(), Some(ColorLevel::TrueColor));
 
 		RenderContext::from_validated_width(width)
 			.with_color_level(color_level)
@@ -108,60 +102,21 @@ impl RustHost {
 		terminal_size().and_then(|(Width(width), _)| NonZeroUsize::new(width as usize))
 	}
 
-	/// Composes the shared chain with this host's detection: FORCE_COLOR wins over
-	/// NO_COLOR, which wins over the API override, which skips detection
-	///
-	/// Detection only runs when nothing else resolves the level, and the classifier
-	/// has no FORCE_COLOR or NO_COLOR reading of its own to reinterpret them
-	fn resolve_color_level(
-		forced: Option<&str>,
-		no_color: bool,
-		override_color: ColorOverride,
-		detect: impl FnOnce() -> Option<ColorLevel>,
-	) -> Option<ColorLevel> {
-		match decide_color(forced, no_color, override_color) {
-			ColorDecision::Resolved(level) => level,
-			ColorDecision::Detect => decide_detected(detect()),
-		}
-	}
-
 	/// The color level for this host's error stream
 	///
 	/// FORCE_COLOR and NO_COLOR keep their precedence, but detection asks stderr:
 	/// decoration follows the stream it is written to
-	/// An undetectable error stream stays plain instead of taking the render
-	/// output's full color fallback, so piped stderr never receives color codes
+	/// An undetectable error stream declares no fallback, so piped stderr never
+	/// receives color codes
 	pub(crate) fn stderr_color_level() -> Option<ColorLevel> {
-		let (forced, no_color) = Self::color_environment();
-
-		match decide_color(forced.as_deref(), no_color, ColorOverride::Auto) {
-			ColorDecision::Resolved(level) => level,
-			ColorDecision::Detect => Terminal::from_stream(Stream::Stderr).color_level(),
-		}
+		TerminalColorSupport::detect(Stream::Stderr, ColorOverride::Auto, None)
 	}
 
-	/// The color level for this host's standard output, resolved through the shared chain
+	/// The color level for this host's standard output
 	///
 	/// The render fallback applies: an undetectable standard output still gets full color
 	pub(crate) fn stdout_color_level() -> Option<ColorLevel> {
-		let (forced, no_color) = Self::color_environment();
-
-		Self::resolve_color_level(forced.as_deref(), no_color, ColorOverride::Auto, || {
-			Terminal::from_stream(Stream::Stdout).color_level()
-		})
-	}
-
-	/// The color variables the chain interprets, gathered once per resolution
-	///
-	/// var() would turn a present non-Unicode value into an absent one and let
-	/// detection run against the guard; lossy conversion keeps the presence and
-	/// classifies the value like any other unrecognized one
-	/// NO_COLOR counts only when present and non-empty, as its spec asks
-	fn color_environment() -> (Option<String>, bool) {
-		let forced = std::env::var_os("FORCE_COLOR").map(|value| value.to_string_lossy().into_owned());
-		let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
-
-		(forced, no_color)
+		TerminalColorSupport::detect(Stream::Stdout, ColorOverride::Auto, Some(ColorLevel::TrueColor))
 	}
 
 	/// Fresh per-process entropy for candy colors, without a dependency
@@ -272,48 +227,6 @@ mod tests {
 		assert_eq!(detection_calls.get(), 1);
 	}
 
-	// resolve_color_level
-
-	#[test]
-	fn resolved_decisions_never_consult_detection() {
-		let never = || panic!("this input must not consult detection");
-
-		// a present FORCE_COLOR beats NO_COLOR and the override alike
-		assert_eq!(
-			RustHost::resolve_color_level(Some("3"), true, ColorOverride::Disabled, never),
-			Some(ColorLevel::TrueColor)
-		);
-		assert_eq!(RustHost::resolve_color_level(Some("junk"), false, ColorOverride::Auto, never), Some(ColorLevel::Basic));
-		assert_eq!(RustHost::resolve_color_level(Some("false"), false, ColorOverride::Auto, never), None);
-
-		// NO_COLOR and explicit overrides resolve before detection too
-		assert_eq!(RustHost::resolve_color_level(None, true, ColorOverride::Auto, never), None);
-		assert_eq!(RustHost::resolve_color_level(None, false, ColorOverride::Disabled, never), None);
-		assert_eq!(
-			RustHost::resolve_color_level(None, false, ColorOverride::Level(ColorLevel::Ansi256), never),
-			Some(ColorLevel::Ansi256)
-		);
-	}
-
-	#[test]
-	fn auto_falls_back_to_full_color_when_detection_fails() {
-		// terminals that cannot be detected still get full color
-		assert_eq!(RustHost::resolve_color_level(None, false, ColorOverride::Auto, || None), Some(ColorLevel::TrueColor));
-	}
-
-	#[test]
-	fn auto_uses_the_detected_level() {
-		let detection_calls = Cell::new(0);
-
-		let resolved = RustHost::resolve_color_level(None, false, ColorOverride::Auto, || {
-			detection_calls.set(detection_calls.get() + 1);
-			Some(ColorLevel::Ansi256)
-		});
-
-		assert_eq!(resolved, Some(ColorLevel::Ansi256));
-		assert_eq!(detection_calls.get(), 1);
-	}
-
 	#[test]
 	fn forced_junk_resolves_through_the_real_environment_without_detection() {
 		// junk forces basic and beats NO_COLOR; the detection library never runs,
@@ -341,47 +254,6 @@ mod tests {
 		temp_env::with_vars([("FORCE_COLOR", None::<&str>), ("NO_COLOR", Some("1"))], || {
 			assert_eq!(RustHost::stderr_color_level(), None);
 		});
-	}
-
-	#[test]
-	fn an_empty_no_color_never_reaches_detection() {
-		// the classifier has no NO_COLOR concept, so a present-but-empty variable
-		// cannot flip a detected level; the chain answers as if it were absent
-		temp_env::with_vars(
-			[
-				("FORCE_COLOR", None::<&str>),
-				("NO_COLOR", Some("")),
-				("TERM", Some("xterm-256color")),
-				("COLORTERM", None),
-				("TMUX", None),
-				("CI", None),
-				("TF_BUILD", None),
-				("TEAMCITY_VERSION", None),
-				("TERM_PROGRAM", None),
-			],
-			|| {
-				let (forced, no_color) = RustHost::color_environment();
-				assert_eq!(forced, None);
-				assert!(!no_color, "empty NO_COLOR reads as unset");
-
-				let environment = |name: &str| std::env::var_os(name).map(|value| value.to_string_lossy().into_owned());
-				let detected = || {
-					Terminal {
-						attached: true,
-						environment: &environment,
-						windows_console: None,
-					}
-					.color_level()
-				};
-
-				assert_eq!(detected(), Some(ColorLevel::Ansi256), "the classifier answers the terminal, not NO_COLOR");
-				assert_eq!(
-					RustHost::resolve_color_level(forced.as_deref(), no_color, ColorOverride::Auto, detected),
-					Some(ColorLevel::Ansi256),
-					"the chain hands the level through unchanged"
-				);
-			},
-		);
 	}
 
 	#[cfg(unix)]

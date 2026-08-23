@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as packageExports from "cfonts";
-import { classifyTerminal } from "../../pkg/cfonts_wasm.js";
+import { detectColorSupport } from "../../pkg/cfonts_wasm.js";
 
 const {
 	Align,
@@ -788,19 +788,34 @@ test("detection runs the shared cascade", { skip: process.platform === "win32" }
 	}
 });
 
-test("the shared classifier is blind to the chain's variables", () => {
-	// structural insurance: FORCE_COLOR and NO_COLOR cross the boundary and change nothing
+test("the chain crosses the boundary with the environment", () => {
+	// FORCE_COLOR wins over everything the cascade would say
 	assert.equal(
-		classifyTerminal(true, ["TERM", "FORCE_COLOR", "NO_COLOR"], ["xterm-256color", "0", "1"], undefined),
+		detectColorSupport(true, ["TERM", "FORCE_COLOR"], ["xterm-256color", "3"], undefined, false, undefined),
+		ColorLevel.TrueColor,
+	);
+
+	// NO_COLOR silences an otherwise colorful terminal
+	assert.equal(
+		detectColorSupport(true, ["TERM", "NO_COLOR"], ["xterm-256color", "1"], undefined, false, undefined),
+		undefined,
+	);
+
+	// an empty NO_COLOR is not set: the cascade answers
+	assert.equal(
+		detectColorSupport(true, ["TERM", "NO_COLOR"], ["xterm-256color", ""], undefined, false, undefined),
 		ColorLevel.Ansi256,
 	);
 });
 
-test("the classifier answers the windows console by build", () => {
-	assert.equal(classifyTerminal(true, [], [], 22631), ColorLevel.TrueColor);
-	assert.equal(classifyTerminal(true, [], [], 10586), ColorLevel.Ansi256);
-	assert.equal(classifyTerminal(true, [], [], 9600), ColorLevel.Basic);
-	assert.equal(classifyTerminal(false, [], [], 22631), undefined);
+test("the boundary answers the windows console by build", () => {
+	assert.equal(detectColorSupport(true, [], [], 22631, false, undefined), ColorLevel.TrueColor);
+	assert.equal(detectColorSupport(true, [], [], 10586, false, undefined), ColorLevel.Ansi256);
+	assert.equal(detectColorSupport(true, [], [], 9600, false, undefined), ColorLevel.Basic);
+
+	// a detached stream still paints the render fallback, a disabled override never paints
+	assert.equal(detectColorSupport(false, [], [], 22631, false, undefined), ColorLevel.TrueColor);
+	assert.equal(detectColorSupport(true, [], [], 22631, true, undefined), undefined);
 });
 
 test("piped output has no terminal to ask and falls back to full color", () => {

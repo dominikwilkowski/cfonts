@@ -1,7 +1,7 @@
 mod builder;
-mod color_support;
+mod terminal_color_support;
 mod types;
 
 pub use builder::Cfonts;
-pub use color_support::{ColorDecision, decide_color, decide_detected};
+pub use terminal_color_support::detect_color_support;
 pub use types::{Align, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb};

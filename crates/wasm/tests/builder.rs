@@ -353,27 +353,46 @@ fn the_font_bridge_covers_every_core_font() {
 }
 
 #[wasm_bindgen_test]
-fn the_color_decision_crosses_the_boundary() {
-	use cfonts_wasm::{decide_color, decide_detected};
+fn the_color_support_crosses_the_boundary() {
+	use cfonts_wasm::detect_color_support;
 
-	// a forced value resolves without detection
-	let forced = decide_color(Some(String::from("2")), false, false, None);
-	assert!(!forced.detect());
-	assert_eq!(forced.level(), Some(ColorLevel::Ansi256));
+	// FORCE_COLOR crosses inside the environment and wins over the cascade
+	assert_eq!(
+		detect_color_support(
+			true,
+			vec![String::from("TERM"), String::from("FORCE_COLOR")],
+			vec![String::from("xterm-256color"), String::from("2")],
+			None,
+			false,
+			None
+		),
+		Some(ColorLevel::Ansi256)
+	);
 
-	// a disabled override resolves to no color
-	let disabled = decide_color(None, false, true, None);
-	assert!(!disabled.detect());
-	assert_eq!(disabled.level(), None);
+	// NO_COLOR silences an otherwise colorful terminal
+	assert_eq!(
+		detect_color_support(
+			true,
+			vec![String::from("TERM"), String::from("NO_COLOR")],
+			vec![String::from("xterm-256color"), String::from("1")],
+			None,
+			false,
+			None
+		),
+		None
+	);
 
-	// a level override passes through
-	let leveled = decide_color(None, false, false, Some(ColorLevel::Basic));
-	assert!(!leveled.detect());
-	assert_eq!(leveled.level(), Some(ColorLevel::Basic));
+	// a disabled override resolves to no color, a level override passes through
+	assert_eq!(detect_color_support(true, vec![], vec![], None, true, None), None);
+	assert_eq!(detect_color_support(true, vec![], vec![], None, false, Some(ColorLevel::Basic)), Some(ColorLevel::Basic));
 
-	// nothing set: the host must detect, and the fallback paints full color
-	let auto = decide_color(None, false, false, None);
-	assert!(auto.detect());
-	assert_eq!(decide_detected(None), ColorLevel::TrueColor);
-	assert_eq!(decide_detected(Some(ColorLevel::Basic)), ColorLevel::Basic);
+	// the cascade answers an attached terminal, the fallback covers the rest
+	assert_eq!(
+		detect_color_support(true, vec![String::from("TERM")], vec![String::from("ansi")], None, false, None),
+		Some(ColorLevel::Basic)
+	);
+	assert_eq!(detect_color_support(true, vec![], vec![], None, false, None), Some(ColorLevel::TrueColor));
+
+	// a windows console answers by build
+	assert_eq!(detect_color_support(true, vec![], vec![], Some(10586), false, None), Some(ColorLevel::Ansi256));
 }
