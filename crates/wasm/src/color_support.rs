@@ -59,6 +59,34 @@ pub fn decide_color(
 	}
 }
 
+/// Classifies terminal capability from the facts a JavaScript host gathered
+///
+/// The environment crosses as parallel name/value arrays and may include
+/// FORCE_COLOR and NO_COLOR: the classifier has no reading of either
+/// A present `windows_build` marks a console whose runtime already switched
+/// escape processing on, the way Node does at startup
+#[wasm_bindgen(js_name = classifyTerminal)]
+pub fn classify_terminal(
+	attached: bool,
+	names: Vec<String>,
+	values: Vec<String>,
+	windows_build: Option<u32>,
+) -> Option<ColorLevel> {
+	let environment =
+		|name: &str| names.iter().position(|candidate| candidate == name).and_then(|index| values.get(index).cloned());
+
+	hosts::detect::Terminal {
+		attached,
+		environment: &environment,
+		windows_console: windows_build.map(|build| hosts::detect::WindowsConsole {
+			ansi_enabled: true,
+			build,
+		}),
+	}
+	.color_level()
+	.map(Into::into)
+}
+
 /// Finishes a detecting decision: terminals that cannot be detected still get full color
 #[wasm_bindgen(js_name = decideDetected)]
 pub fn decide_detected(detected: Option<ColorLevel>) -> ColorLevel {

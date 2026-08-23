@@ -6,6 +6,7 @@ use crate::{
 	render::{ColorLevel, ColorOverride, RenderContext, render_with},
 };
 
+pub mod detect;
 #[cfg(not(target_arch = "wasm32"))]
 mod rust;
 #[cfg(not(target_arch = "wasm32"))]

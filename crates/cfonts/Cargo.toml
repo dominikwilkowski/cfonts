@@ -30,8 +30,11 @@ leptos = { version = "0.8", optional = true, default-features = false }
 ratatui = { version = "0.30", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-supports-color = "3"
 terminal_size = "0.4"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console"] }
+windows-version = "0.1"
 
 [dev-dependencies]
 temp-env = "0.3"

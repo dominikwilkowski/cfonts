@@ -1,8 +1,10 @@
+import { release } from "node:os";
+
 // window-size's main export is a load-time snapshot that is undefined in pipes;
 // its get() in utils always detects fresh, per render
 import windowSize from "window-size/utils.js";
 
-import { ColorLevel, decideColor, decideDetected } from "../../pkg/cfonts_wasm.js";
+import { type ColorLevel, classifyTerminal, decideColor, decideDetected } from "../../pkg/cfonts_wasm.js";
 import { CliEnv } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
@@ -10,6 +12,21 @@ import { parseU32 } from "../validation.js";
 import type { Host } from "./types.js";
 
 const FALLBACK_WIDTH = 80;
+
+/**
+ * The Windows build number, which dates the console's palette
+ *
+ * Node's runtime switches escape processing on at startup, so the build is the
+ * only console fact the classifier needs
+ */
+function windowsBuild(): number | undefined {
+	if (process.platform !== "win32") {
+		return undefined;
+	}
+
+	const build = Number(release().split(".")[2]);
+	return Number.isInteger(build) && build >= 0 ? build : 0;
+}
 
 /**
  * Resolves Node terminal capabilities and writes CLI artifacts to stdout
@@ -83,26 +100,17 @@ export class NodeHost implements Host {
 	}
 
 	#detectColorLevel(): ColorLevel | undefined {
-		// piped output has no terminal to ask: only tty streams carry the classifier
-		if (typeof process.stdout.getColorDepth !== "function") {
-			return undefined;
+		// the classifier is the shared Rust cascade: it has no FORCE_COLOR or
+		// NO_COLOR reading, so the environment crosses whole
+		const names: string[] = [];
+		const values: string[] = [];
+		for (const [name, value] of Object.entries(process.env)) {
+			if (value !== undefined) {
+				names.push(name);
+				values.push(value);
+			}
 		}
 
-		// Node's classifier reads FORCE_COLOR and NO_COLOR from the environment it
-		// is given, so the variables this host interprets are removed from the copy:
-		// detection stays pure capability, whatever context it runs in
-		const { FORCE_COLOR: _force, NO_COLOR: _no, ...environment } = process.env;
-
-		switch (process.stdout.getColorDepth(environment)) {
-			case 4:
-				return ColorLevel.Basic;
-			case 8:
-				return ColorLevel.Ansi256;
-			case 24:
-				return ColorLevel.TrueColor;
-			default:
-				// depth 1: the terminal reports no color support
-				return undefined;
-		}
+		return classifyTerminal(process.stdout.isTTY === true, names, values, windowsBuild());
 	}
 }

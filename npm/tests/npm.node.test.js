@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import * as packageExports from "cfonts";
+import { classifyTerminal } from "../../pkg/cfonts_wasm.js";
 
 const {
 	Align,
@@ -60,6 +60,20 @@ function withEnv(name, value, operation) {
 
 function withColorEnv(forceColor, noColor, operation) {
 	return withEnv("FORCE_COLOR", forceColor, () => withEnv("NO_COLOR", noColor, operation));
+}
+
+// every variable the detection cascade reads, cleared so rows are
+// deterministic in any shell or CI runner
+const DETECTION_VARS = ["TERM", "COLORTERM", "TMUX", "CI", "TF_BUILD", "TEAMCITY_VERSION", "TERM_PROGRAM"];
+
+function withDetectionEnv(vars, operation) {
+	const apply = (index) => {
+		if (index >= DETECTION_VARS.length) {
+			return operation();
+		}
+		return withEnv(DETECTION_VARS[index], vars[DETECTION_VARS[index]], () => apply(index + 1));
+	};
+	return apply(0);
 }
 
 function withTerminal(columns, forceSize, operation) {
@@ -689,96 +703,109 @@ test("the host delegates color precedence to the shared chain", () => {
 	const reference = (colorLevel) =>
 		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
 
-	let detections = 0;
-	const restoreDepth = overrideProperty(process.stdout, "getColorDepth", () => {
-		detections += 1;
-		return 24;
-	});
+	// a tty whose cascade would answer Ansi256: any resolved row that renders
+	// something else proves detection never ran
+	const restoreTty = overrideProperty(process.stdout, "isTTY", true);
 
 	try {
-		// the raw value crosses the boundary untouched: the shared chain reads it, not this host,
-		// and it beats both NO_COLOR and a disabled override
-		for (const [forced, expected] of [
-			["3", ColorLevel.TrueColor],
-			["2", ColorLevel.Ansi256],
-			["junk", ColorLevel.Basic],
-			["", ColorLevel.Basic],
-			["false", undefined],
-		]) {
-			const rendered = withColorEnv(forced, "1", () =>
-				NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(banner()),
+		withDetectionEnv({ TERM: "xterm-256color" }, () => {
+			// the raw value crosses the boundary untouched: the shared chain reads it, not this host,
+			// and it beats both NO_COLOR and a disabled override
+			for (const [forced, expected] of [
+				["3", ColorLevel.TrueColor],
+				["2", ColorLevel.Ansi256],
+				["junk", ColorLevel.Basic],
+				["", ColorLevel.Basic],
+				["false", undefined],
+			]) {
+				const rendered = withColorEnv(forced, "1", () =>
+					NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(banner()),
+				);
+				assert.equal(rendered.text, reference(expected), `FORCE_COLOR=${JSON.stringify(forced)}`);
+			}
+
+			// NO_COLOR and the API override resolve without detection
+			const noColor = withColorEnv(undefined, "1", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+			assert.equal(noColor.text, reference(undefined));
+
+			const overridden = withColorEnv(undefined, undefined, () =>
+				NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic }).render(banner()),
 			);
-			assert.equal(rendered.text, reference(expected), `FORCE_COLOR=${JSON.stringify(forced)}`);
-		}
-
-		// NO_COLOR and the API override resolve without detection
-		const noColor = withColorEnv(undefined, "1", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
-		assert.equal(noColor.text, reference(undefined));
-
-		const overridden = withColorEnv(undefined, undefined, () =>
-			NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic }).render(banner()),
-		);
-		assert.equal(overridden.text, reference(ColorLevel.Basic));
-
-		assert.equal(detections, 0, "forced values, NO_COLOR and overrides never detect");
+			assert.equal(overridden.text, reference(ColorLevel.Basic));
+		});
 	} finally {
-		restoreDepth();
+		restoreTty();
 	}
 });
 
-test("NO_COLOR counts only when present and non-empty", () => {
+test("NO_COLOR counts only when present and non-empty", { skip: process.platform === "win32" }, () => {
 	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
 	const reference = (colorLevel) =>
 		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
 
-	const restoreDepth = overrideProperty(process.stdout, "getColorDepth", () => 24);
+	const restoreTty = overrideProperty(process.stdout, "isTTY", true);
 
 	try {
-		// an empty value is not set: the chain falls through to detection
-		const empty = withColorEnv(undefined, "", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
-		assert.equal(empty.text, reference(ColorLevel.TrueColor));
+		withDetectionEnv({ TERM: "xterm-256color" }, () => {
+			// an empty value is not set: the chain falls through to detection,
+			// which answers the terminal and never the leftover variable
+			const empty = withColorEnv(undefined, "", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+			assert.equal(empty.text, reference(ColorLevel.Ansi256));
 
-		// any non-empty value counts, zero included
-		const zero = withColorEnv(undefined, "0", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
-		assert.equal(zero.text, reference(undefined));
+			// any non-empty value counts, zero included
+			const zero = withColorEnv(undefined, "0", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+			assert.equal(zero.text, reference(undefined));
+		});
 	} finally {
-		restoreDepth();
+		restoreTty();
 	}
 });
 
-test("detection maps the terminal depths and stays pure capability", () => {
+test("detection runs the shared cascade", { skip: process.platform === "win32" }, () => {
 	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
 	const reference = (colorLevel) =>
 		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
 
-	for (const [depth, expected] of [
-		[4, ColorLevel.Basic],
-		[8, ColorLevel.Ansi256],
-		[24, ColorLevel.TrueColor],
-		// depth 1 means no color support: undetectable terminals get full color
-		[1, ColorLevel.TrueColor],
+	for (const [vars, expected] of [
+		[{ TERM: "ansi" }, ColorLevel.Basic],
+		[{ TERM: "xterm-256color" }, ColorLevel.Ansi256],
+		[{ COLORTERM: "truecolor" }, ColorLevel.TrueColor],
+		// an undetectable terminal still gets full color
+		[{ TERM: "fail" }, ColorLevel.TrueColor],
 	]) {
-		const restoreDepth = overrideProperty(process.stdout, "getColorDepth", (environment) => {
-			// structural insurance: the variables this host interprets never reach detection
-			assert.equal(environment.FORCE_COLOR, undefined, "detection must not see FORCE_COLOR");
-			assert.equal(environment.NO_COLOR, undefined, "detection must not see NO_COLOR");
-			return depth;
-		});
+		const restoreTty = overrideProperty(process.stdout, "isTTY", true);
 
 		try {
-			const rendered = withColorEnv(undefined, undefined, () =>
-				NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()),
-			);
-			assert.equal(rendered.text, reference(expected), `depth ${depth}`);
+			withDetectionEnv(vars, () => {
+				const rendered = withColorEnv(undefined, undefined, () =>
+					NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()),
+				);
+				assert.equal(rendered.text, reference(expected), JSON.stringify(vars));
+			});
 		} finally {
-			restoreDepth();
+			restoreTty();
 		}
 	}
 });
 
-test("piped output without a terminal classifier falls back to full color", () => {
+test("the shared classifier is blind to the chain's variables", () => {
+	// structural insurance: FORCE_COLOR and NO_COLOR cross the boundary and change nothing
+	assert.equal(
+		classifyTerminal(true, ["TERM", "FORCE_COLOR", "NO_COLOR"], ["xterm-256color", "0", "1"], undefined),
+		ColorLevel.Ansi256,
+	);
+});
+
+test("the classifier answers the windows console by build", () => {
+	assert.equal(classifyTerminal(true, [], [], 22631), ColorLevel.TrueColor);
+	assert.equal(classifyTerminal(true, [], [], 10586), ColorLevel.Ansi256);
+	assert.equal(classifyTerminal(true, [], [], 9600), ColorLevel.Basic);
+	assert.equal(classifyTerminal(false, [], [], 22631), undefined);
+});
+
+test("piped output has no terminal to ask and falls back to full color", () => {
 	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
-	const restoreDepth = overrideProperty(process.stdout, "getColorDepth", undefined);
+	const restoreTty = overrideProperty(process.stdout, "isTTY", false);
 
 	try {
 		const rendered = withColorEnv(undefined, undefined, () =>
@@ -786,7 +813,7 @@ test("piped output without a terminal classifier falls back to full color", () =
 		);
 		assert.equal(rendered.text, banner().renderWith(CliEnv, { colorLevel: ColorLevel.TrueColor }).text);
 	} finally {
-		restoreDepth();
+		restoreTty();
 	}
 });
 
