@@ -109,18 +109,18 @@ pub enum Font {
 	#[default]
 	Block,
 	Chrome,
-	Console,
+	Grid,
+	Pallet,
+	Slick,
+	Shade,
 	#[all(rename = "3d")]
 	Font3D,
-	Grid,
-	Huge,
-	Pallet,
-	Shade,
 	Simple,
 	Simple3D,
 	SimpleBlock,
-	Slick,
 	Tiny,
+	Huge,
+	Console,
 }
 
 impl Font {
