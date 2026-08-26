@@ -1,25 +1,19 @@
 use crate::{
-	CliEnv, Color, Font, GradientOption, GradientStop, RustHost, Valign,
+	CliEnv, Color, Font, GradientOption, GradientStop, Host, RenderContext, RustHost, Valign,
 	cli::{
 		Args, VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
 	},
 };
 
-/// The full help screen, colored when stdout supports it
+/// The full help screen, resolved like any render: real width, real color level
 pub fn cli_help() -> String {
-	cli_help_with(RustHost::stdout_color_level().is_some())
+	cli_help_with(RustHost::default().resolve_context())
 }
 
-/// Assembles the help screen for one known color mode, deterministic for tests
-pub(crate) fn cli_help_with(color_enabled: bool) -> String {
-	use crate::render::{ColorLevel, RenderContext};
-
-	let context = if color_enabled {
-		RenderContext::colored(ColorLevel::TrueColor)
-	} else {
-		RenderContext::from_validated_width(None)
-	};
+/// Assembles the help screen for one known context
+pub(crate) fn cli_help_with(context: RenderContext) -> String {
+	let styled = context.color_level().is_some();
 	let mut output = String::new();
 	let banner = crate::Cfonts::text("cfonts")
 		.global_colors(GradientOption::TwoStop {
@@ -45,16 +39,12 @@ pub(crate) fn cli_help_with(color_enabled: bool) -> String {
 		"\n",
 	);
 
-	let prompt = if color_enabled { PROMPT_COLORED } else { PROMPT_PLAIN };
+	let prompt = if styled { PROMPT_COLORED } else { PROMPT_PLAIN };
 
 	output.push_str(&banner.text);
 	output.push_str(USAGE);
 	for arg in Args::ALL {
-		let line = if color_enabled {
-			arg.help_colored()
-		} else {
-			arg.help_plain()
-		};
+		let line = if styled { arg.help_colored() } else { arg.help_plain() };
 		output.push_str(line);
 		output.push_str("\n\n");
 	}
@@ -84,7 +74,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn the_help_screen_documents_every_argument() {
-		let screen = cli_help_with(false);
+		let screen = cli_help_with(RenderContext::unlimited());
 
 		assert!(screen.contains("Usage: cfonts <text> [options]"));
 		assert!(screen.contains("Options:"));
@@ -96,8 +86,52 @@ pub(crate) mod tests {
 	}
 
 	#[test]
+	fn the_banner_paints_at_the_given_level() {
+		use crate::ColorLevel;
+
+		let basic = cli_help_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)));
+		assert!(!basic.contains("\u{1b}[38;"), "basic quantizes to palette codes");
+		assert!(basic.contains("\u{1b}[9") || basic.contains("\u{1b}[3"));
+
+		let ansi256 = cli_help_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Ansi256)));
+		assert!(ansi256.contains("\u{1b}[38;5;"));
+		assert!(!ansi256.contains("\u{1b}[38;2;"));
+
+		let truecolor = cli_help_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor)));
+		assert!(truecolor.contains("\u{1b}[38;2;"));
+	}
+
+	#[test]
+	fn the_real_help_honors_the_forced_level() {
+		// FORCE_COLOR makes the real path deterministic, which is what it is for
+		temp_env::with_vars(
+			[
+				("FORCE_COLOR", Some("1")),
+				("NO_COLOR", None::<&str>),
+				("FORCE_SIZE", None),
+			],
+			|| {
+				let help = cli_help();
+				assert!(!help.contains("\u{1b}[38;"), "a forced basic level reaches the banner");
+				assert!(help.contains("\u{1b}[3"));
+			},
+		);
+
+		temp_env::with_vars(
+			[
+				("FORCE_COLOR", Some("0")),
+				("NO_COLOR", None::<&str>),
+				("FORCE_SIZE", None),
+			],
+			|| {
+				assert!(!cli_help().contains('\u{1b}'), "no color means a plain screen");
+			},
+		);
+	}
+
+	#[test]
 	fn no_help_line_exceeds_eighty_columns() {
-		let screen = cli_help_with(false);
+		let screen = cli_help_with(RenderContext::unlimited());
 
 		for line in screen.lines() {
 			assert!(line.chars().count() <= 80, "line is {} columns: {line:?}", line.chars().count());

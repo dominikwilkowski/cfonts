@@ -112,13 +112,6 @@ impl RustHost {
 		TerminalColorSupport::detect(Stream::Stderr, ColorOverride::Auto, None)
 	}
 
-	/// The color level for this host's standard output
-	///
-	/// The render fallback applies: an undetectable standard output still gets full color
-	pub(crate) fn stdout_color_level() -> Option<ColorLevel> {
-		TerminalColorSupport::detect(Stream::Stdout, ColorOverride::Auto, Some(ColorLevel::TrueColor))
-	}
-
 	/// Fresh per-process entropy for candy colors, without a dependency
 	fn entropy() -> u64 {
 		use std::hash::{BuildHasher, Hasher};
