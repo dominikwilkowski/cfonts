@@ -78,24 +78,57 @@ impl Rgb {
 	}
 
 	/// The nearest ANSI 256 palette index: the 6×6×6 cube with a grayscale ramp
+	///
+	/// The cube and the nearest gray entry compete by squared distance
+	/// ties go to the lower cube level, the lower gray entry, and the cube over the ramp
 	pub fn ansi256_index(self) -> u8 {
-		let red = self.red as f64;
-		let green = self.green as f64;
-		let blue = self.blue as f64;
+		let (red_level, green_level, blue_level) =
+			(Self::cube_level(self.red), Self::cube_level(self.green), Self::cube_level(self.blue));
+		let cube_distance = Self::channel_distance(self.red, Self::CUBE_LEVELS[red_level])
+			+ Self::channel_distance(self.green, Self::CUBE_LEVELS[green_level])
+			+ Self::channel_distance(self.blue, Self::CUBE_LEVELS[blue_level]);
 
-		if self.red == self.green && self.green == self.blue {
-			if red < 8.0 {
-				return 16;
-			}
-			if red > 248.0 {
-				return 231;
-			}
+		// the ramp holds 24 grays at 8 + 10n; keeping the first best gives ties to the lower entry
+		let mut gray_index: u8 = 0;
+		let mut gray_distance = u32::MAX;
+		for entry in 0..24u8 {
+			let value = 8 + 10 * entry;
+			let distance = Self::channel_distance(self.red, value)
+				+ Self::channel_distance(self.green, value)
+				+ Self::channel_distance(self.blue, value);
 
-			return ((((red - 8.0) / 247.0) * 24.0).round() + 232.0) as u8;
+			if distance < gray_distance {
+				gray_distance = distance;
+				gray_index = entry;
+			}
 		}
 
-		(16.0 + (36.0 * (red / 255.0 * 5.0).round()) + (6.0 * (green / 255.0 * 5.0).round()) + (blue / 255.0 * 5.0).round())
-			as u8
+		if gray_distance < cube_distance {
+			232 + gray_index
+		} else {
+			(16 + 36 * red_level + 6 * green_level + blue_level) as u8
+		}
+	}
+
+	/// The six values one cube channel can take
+	const CUBE_LEVELS: [u8; 6] = [0, 95, 135, 175, 215, 255];
+
+	/// The nearest cube level; the range edges sit at the midpoints and give ties to the lower level
+	fn cube_level(channel: u8) -> usize {
+		match channel {
+			0..=47 => 0,
+			48..=115 => 1,
+			116..=155 => 2,
+			156..=195 => 3,
+			196..=235 => 4,
+			_ => 5,
+		}
+	}
+
+	/// The squared distance between one channel and one palette value
+	fn channel_distance(channel: u8, value: u8) -> u32 {
+		let difference = u32::from(channel.abs_diff(value));
+		difference * difference
 	}
 
 	/// The closest ANSI 16 foreground sequence, hand curated
@@ -727,7 +760,7 @@ mod tests {
 				blue: 100
 			}
 			.ansi256_index(),
-			114
+			77
 		);
 		assert_eq!(
 			Rgb {
@@ -754,8 +787,83 @@ mod tests {
 				blue: 98
 			}
 			.ansi256_index(),
-			126
+			125
 		);
+	}
+
+	#[test]
+	fn cube_levels_split_at_the_midpoints() {
+		for (channel, level) in [
+			(0, 0),
+			(47, 0),
+			(48, 1),
+			(95, 1),
+			(115, 1),
+			(116, 2),
+			(155, 2),
+			(156, 3),
+			(195, 3),
+			(196, 4),
+			(235, 4),
+			(236, 5),
+			(255, 5),
+		] {
+			assert_eq!(Rgb::cube_level(channel), level, "{channel}");
+		}
+	}
+
+	#[test]
+	fn channel_distances_are_squared_and_symmetric() {
+		assert_eq!(Rgb::channel_distance(0, 10), 100);
+		assert_eq!(Rgb::channel_distance(10, 0), 100);
+		assert_eq!(Rgb::channel_distance(255, 255), 0);
+		assert_eq!(Rgb::channel_distance(255, 0), 65025);
+	}
+
+	/// The palette rgb behind one reachable ANSI 256 index
+	fn palette_entry(index: u8) -> (i32, i32, i32) {
+		if index >= 232 {
+			let value = 8 + 10 * i32::from(index - 232);
+			return (value, value, value);
+		}
+
+		let cube = i32::from(index - 16);
+		(
+			i32::from(Rgb::CUBE_LEVELS[(cube / 36) as usize]),
+			i32::from(Rgb::CUBE_LEVELS[(cube / 6 % 6) as usize]),
+			i32::from(Rgb::CUBE_LEVELS[(cube % 6) as usize]),
+		)
+	}
+
+	/// The squared rgb distance to one palette entry
+	fn palette_distance(rgb: Rgb, entry: (i32, i32, i32)) -> i32 {
+		let red = i32::from(rgb.red) - entry.0;
+		let green = i32::from(rgb.green) - entry.1;
+		let blue = i32::from(rgb.blue) - entry.2;
+
+		red * red + green * green + blue * blue
+	}
+
+	#[test]
+	fn ansi256_is_the_nearest_palette_entry() {
+		// brute force over every reachable palette entry proves the fast path
+		// nearest for a full lattice, tie-breaks included
+		for red in (0u8..=255).step_by(15) {
+			for green in (0u8..=255).step_by(15) {
+				for blue in (0u8..=255).step_by(15) {
+					let rgb = Rgb { red, green, blue };
+					let chosen = palette_distance(rgb, palette_entry(rgb.ansi256_index()));
+
+					for candidate in 16..=255u8 {
+						assert!(
+							chosen <= palette_distance(rgb, palette_entry(candidate)),
+							"{rgb:?} chose {} but {candidate} is closer",
+							rgb.ansi256_index()
+						);
+					}
+				}
+			}
+		}
 	}
 
 	// Rgb::ansi16_sgr

@@ -123,9 +123,9 @@ mod tests {
 		);
 		assert_eq!(
 			CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start,
-			"\u{1b}[38;5;214m"
+			"\u{1b}[38;5;208m"
 		);
-		assert_eq!(CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[93m");
+		assert_eq!(CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[91m");
 	}
 
 	#[test]

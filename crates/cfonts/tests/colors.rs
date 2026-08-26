@@ -50,8 +50,8 @@ fn rgb_colors_level_down_the_chain() {
 	let basic = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
 
 	assert_eq!(true_color, "\u{1b}[38;2;255;136;0m▄▀█\u{1b}[39m\n\u{1b}[38;2;255;136;0m█▀█\u{1b}[39m");
-	assert_eq!(ansi256, "\u{1b}[38;5;214m▄▀█\u{1b}[39m\n\u{1b}[38;5;214m█▀█\u{1b}[39m");
-	assert_eq!(basic, "\u{1b}[93m▄▀█\u{1b}[39m\n\u{1b}[93m█▀█\u{1b}[39m");
+	assert_eq!(ansi256, "\u{1b}[38;5;208m▄▀█\u{1b}[39m\n\u{1b}[38;5;208m█▀█\u{1b}[39m");
+	assert_eq!(basic, "\u{1b}[91m▄▀█\u{1b}[39m\n\u{1b}[91m█▀█\u{1b}[39m");
 }
 
 #[test]
