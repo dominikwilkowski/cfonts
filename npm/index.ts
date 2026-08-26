@@ -122,7 +122,7 @@ export class Cfonts {
 	 * @example
 	 * Cfonts.text("party").colors([Color.Candy]); // a fresh pick per painted segment
 	 */
-	colors(colors: ColorInput[]): this {
+	colors(colors: readonly ColorInput[]): this {
 		this.#inner.colors(normalizeColorList(colors, "colors"));
 		return this;
 	}
@@ -206,7 +206,7 @@ export class Cfonts {
 	 * @example
 	 * Cfonts.text("hello ").newText("world").globalColors([Color.Red, "#8899dd"]);
 	 */
-	globalColors(colors: ColorInput[]): this {
+	globalColors(colors: readonly ColorInput[]): this {
 		this.#inner.globalColors(normalizeColorList(colors, "globalColors"));
 		return this;
 	}

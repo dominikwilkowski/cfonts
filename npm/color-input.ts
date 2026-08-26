@@ -114,7 +114,7 @@ export function normalizeColor(input: ColorInput, method: string): string {
 /**
  * Validates a color list's shape and encodes each entry for the boundary
  */
-export function normalizeColorList(colors: ColorInput[], method: string): string[] {
+export function normalizeColorList(colors: readonly ColorInput[], method: string): string[] {
 	if (!Array.isArray(colors)) {
 		throw new TypeError(`\`${method}()\` expects an array of colors`);
 	}

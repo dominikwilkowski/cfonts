@@ -50,3 +50,10 @@ colorful.gradient({ transition: [Color.Red] });
 
 // @ts-expect-error a gradient takes exactly one shape
 colorful.gradient({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
+
+// readonly color lists are accepted: the methods only read them
+const readonlyColors = [Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }] as const;
+Cfonts.text("frozen").colors(readonlyColors).globalColors(readonlyColors);
+
+const readonlyTyped: readonly (Color | string)[] = [Color.Red, "#8899dd"];
+Cfonts.text("frozen").colors(readonlyTyped);
