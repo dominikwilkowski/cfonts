@@ -62,37 +62,13 @@ impl Hsv {
 		val *= 255.0;
 
 		match (hue.floor() % 6.0) as u8 {
-			0 => Rgb {
-				red: val as u8,
-				green: t as u8,
-				blue: p as u8,
-			},
-			1 => Rgb {
-				red: q as u8,
-				green: val as u8,
-				blue: p as u8,
-			},
-			2 => Rgb {
-				red: p as u8,
-				green: val as u8,
-				blue: t as u8,
-			},
-			3 => Rgb {
-				red: p as u8,
-				green: q as u8,
-				blue: val as u8,
-			},
-			4 => Rgb {
-				red: t as u8,
-				green: p as u8,
-				blue: val as u8,
-			},
+			0 => Rgb { red: val as u8, green: t as u8, blue: p as u8 },
+			1 => Rgb { red: q as u8, green: val as u8, blue: p as u8 },
+			2 => Rgb { red: p as u8, green: val as u8, blue: t as u8 },
+			3 => Rgb { red: p as u8, green: q as u8, blue: val as u8 },
+			4 => Rgb { red: t as u8, green: p as u8, blue: val as u8 },
 			// due to the modulo operation we can never get anything above 5
-			_ => Rgb {
-				red: val as u8,
-				green: p as u8,
-				blue: q as u8,
-			},
+			_ => Rgb { red: val as u8, green: p as u8, blue: q as u8 },
 		}
 	}
 
@@ -231,11 +207,7 @@ impl GradientColors {
 			let g = linear(from.green.into(), to.green.into(), n as usize, (steps + 1) as usize);
 			let b = linear(from.blue.into(), to.blue.into(), n as usize, (steps + 1) as usize);
 
-			self.colors.push(Rgb {
-				red: r as u8,
-				green: g as u8,
-				blue: b as u8,
-			});
+			self.colors.push(Rgb { red: r as u8, green: g as u8, blue: b as u8 });
 		}
 	}
 
@@ -300,340 +272,97 @@ impl GradientPreset {
 	pub const fn stops(self) -> &'static [Rgb] {
 		match self {
 			Self::Pride => &[
-				Rgb {
-					red: 117,
-					green: 7,
-					blue: 135,
-				},
-				Rgb {
-					red: 0,
-					green: 77,
-					blue: 255,
-				},
-				Rgb {
-					red: 0,
-					green: 128,
-					blue: 38,
-				},
-				Rgb {
-					red: 255,
-					green: 237,
-					blue: 0,
-				},
-				Rgb {
-					red: 255,
-					green: 140,
-					blue: 0,
-				},
-				Rgb {
-					red: 228,
-					green: 3,
-					blue: 3,
-				},
+				Rgb { red: 117, green: 7, blue: 135 },
+				Rgb { red: 0, green: 77, blue: 255 },
+				Rgb { red: 0, green: 128, blue: 38 },
+				Rgb { red: 255, green: 237, blue: 0 },
+				Rgb { red: 255, green: 140, blue: 0 },
+				Rgb { red: 228, green: 3, blue: 3 },
 			],
 			Self::Agender => &[
-				Rgb {
-					red: 0,
-					green: 0,
-					blue: 0,
-				},
-				Rgb {
-					red: 185,
-					green: 185,
-					blue: 185,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 184,
-					green: 244,
-					blue: 131,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 185,
-					green: 185,
-					blue: 185,
-				},
-				Rgb {
-					red: 0,
-					green: 0,
-					blue: 0,
-				},
+				Rgb { red: 0, green: 0, blue: 0 },
+				Rgb { red: 185, green: 185, blue: 185 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 184, green: 244, blue: 131 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 185, green: 185, blue: 185 },
+				Rgb { red: 0, green: 0, blue: 0 },
 			],
 			Self::Aromantic => &[
-				Rgb {
-					red: 61,
-					green: 165,
-					blue: 66,
-				},
-				Rgb {
-					red: 167,
-					green: 211,
-					blue: 121,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 169,
-					green: 169,
-					blue: 169,
-				},
-				Rgb {
-					red: 0,
-					green: 0,
-					blue: 0,
-				},
+				Rgb { red: 61, green: 165, blue: 66 },
+				Rgb { red: 167, green: 211, blue: 121 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 169, green: 169, blue: 169 },
+				Rgb { red: 0, green: 0, blue: 0 },
 			],
 			Self::Asexual => &[
-				Rgb {
-					red: 0,
-					green: 0,
-					blue: 0,
-				},
-				Rgb {
-					red: 163,
-					green: 163,
-					blue: 163,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 128,
-					green: 0,
-					blue: 128,
-				},
+				Rgb { red: 0, green: 0, blue: 0 },
+				Rgb { red: 163, green: 163, blue: 163 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 128, green: 0, blue: 128 },
 			],
 			Self::Bisexual => &[
-				Rgb {
-					red: 214,
-					green: 2,
-					blue: 112,
-				},
-				Rgb {
-					red: 214,
-					green: 2,
-					blue: 112,
-				},
-				Rgb {
-					red: 155,
-					green: 79,
-					blue: 150,
-				},
-				Rgb {
-					red: 0,
-					green: 56,
-					blue: 168,
-				},
-				Rgb {
-					red: 0,
-					green: 56,
-					blue: 168,
-				},
+				Rgb { red: 214, green: 2, blue: 112 },
+				Rgb { red: 214, green: 2, blue: 112 },
+				Rgb { red: 155, green: 79, blue: 150 },
+				Rgb { red: 0, green: 56, blue: 168 },
+				Rgb { red: 0, green: 56, blue: 168 },
 			],
 			Self::Genderfluid => &[
-				Rgb {
-					red: 255,
-					green: 117,
-					blue: 162,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 190,
-					green: 24,
-					blue: 214,
-				},
-				Rgb {
-					red: 0,
-					green: 0,
-					blue: 0,
-				},
-				Rgb {
-					red: 51,
-					green: 62,
-					blue: 189,
-				},
+				Rgb { red: 255, green: 117, blue: 162 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 190, green: 24, blue: 214 },
+				Rgb { red: 0, green: 0, blue: 0 },
+				Rgb { red: 51, green: 62, blue: 189 },
 			],
 			Self::Genderqueer => &[
-				Rgb {
-					red: 181,
-					green: 126,
-					blue: 220,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 74,
-					green: 129,
-					blue: 35,
-				},
+				Rgb { red: 181, green: 126, blue: 220 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 74, green: 129, blue: 35 },
 			],
 			Self::Intersex => &[
-				Rgb {
-					red: 255,
-					green: 216,
-					blue: 0,
-				},
-				Rgb {
-					red: 255,
-					green: 216,
-					blue: 0,
-				},
-				Rgb {
-					red: 121,
-					green: 2,
-					blue: 170,
-				},
-				Rgb {
-					red: 255,
-					green: 216,
-					blue: 0,
-				},
-				Rgb {
-					red: 255,
-					green: 216,
-					blue: 0,
-				},
+				Rgb { red: 255, green: 216, blue: 0 },
+				Rgb { red: 255, green: 216, blue: 0 },
+				Rgb { red: 121, green: 2, blue: 170 },
+				Rgb { red: 255, green: 216, blue: 0 },
+				Rgb { red: 255, green: 216, blue: 0 },
 			],
 			Self::Lesbian => &[
-				Rgb {
-					red: 213,
-					green: 45,
-					blue: 0,
-				},
-				Rgb {
-					red: 255,
-					green: 154,
-					blue: 86,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 211,
-					green: 98,
-					blue: 164,
-				},
-				Rgb {
-					red: 163,
-					green: 2,
-					blue: 98,
-				},
+				Rgb { red: 213, green: 45, blue: 0 },
+				Rgb { red: 255, green: 154, blue: 86 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 211, green: 98, blue: 164 },
+				Rgb { red: 163, green: 2, blue: 98 },
 			],
 			Self::Nonbinary => &[
-				Rgb {
-					red: 252,
-					green: 244,
-					blue: 52,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 156,
-					green: 92,
-					blue: 212,
-				},
-				Rgb {
-					red: 44,
-					green: 44,
-					blue: 44,
-				},
+				Rgb { red: 252, green: 244, blue: 52 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 156, green: 92, blue: 212 },
+				Rgb { red: 44, green: 44, blue: 44 },
 			],
 			Self::Pansexual => &[
-				Rgb {
-					red: 255,
-					green: 33,
-					blue: 140,
-				},
-				Rgb {
-					red: 255,
-					green: 216,
-					blue: 0,
-				},
-				Rgb {
-					red: 33,
-					green: 177,
-					blue: 255,
-				},
+				Rgb { red: 255, green: 33, blue: 140 },
+				Rgb { red: 255, green: 216, blue: 0 },
+				Rgb { red: 33, green: 177, blue: 255 },
 			],
 			Self::Polysexual => &[
-				Rgb {
-					red: 246,
-					green: 28,
-					blue: 185,
-				},
-				Rgb {
-					red: 7,
-					green: 213,
-					blue: 105,
-				},
-				Rgb {
-					red: 28,
-					green: 146,
-					blue: 246,
-				},
+				Rgb { red: 246, green: 28, blue: 185 },
+				Rgb { red: 7, green: 213, blue: 105 },
+				Rgb { red: 28, green: 146, blue: 246 },
 			],
 			Self::Transgender => &[
-				Rgb {
-					red: 91,
-					green: 206,
-					blue: 250,
-				},
-				Rgb {
-					red: 245,
-					green: 169,
-					blue: 184,
-				},
-				Rgb {
-					red: 255,
-					green: 255,
-					blue: 255,
-				},
-				Rgb {
-					red: 245,
-					green: 169,
-					blue: 184,
-				},
-				Rgb {
-					red: 91,
-					green: 206,
-					blue: 250,
-				},
+				Rgb { red: 91, green: 206, blue: 250 },
+				Rgb { red: 245, green: 169, blue: 184 },
+				Rgb { red: 255, green: 255, blue: 255 },
+				Rgb { red: 245, green: 169, blue: 184 },
+				Rgb { red: 91, green: 206, blue: 250 },
 			],
 		}
 	}
 
 	/// This preset as a gradient
 	pub fn to_gradient(self, independent_gradient: bool) -> GradientOption {
-		GradientOption::Preset {
-			preset: self,
-			independent_gradient,
-		}
+		GradientOption::Preset { preset: self, independent_gradient }
 	}
 }
 
@@ -663,22 +392,9 @@ mod tests {
 
 	#[test]
 	fn to_hsv_converts_correctly() {
+		assert_eq!(Rgb { red: 0, green: 0, blue: 0 }.to_hsv(), Hsv(0.0, 0.0, 0.0));
 		assert_eq!(
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			}
-			.to_hsv(),
-			Hsv(0.0, 0.0, 0.0)
-		);
-		assert_eq!(
-			Rgb {
-				red: 166,
-				green: 20,
-				blue: 100
-			}
-			.to_hsv(),
+			Rgb { red: 166, green: 20, blue: 100 }.to_hsv(),
 			Hsv(327.1232876712329, 87.95180722891565, 65.09803921568627)
 		);
 	}
@@ -687,38 +403,10 @@ mod tests {
 
 	#[test]
 	fn to_rgb_converts_correctly() {
-		assert_eq!(
-			Hsv(0.0, 0.0, 0.0).to_rgb(),
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			}
-		);
-		assert_eq!(
-			Hsv(30.0, 20.0, 20.0).to_rgb(),
-			Rgb {
-				red: 51,
-				green: 45,
-				blue: 40
-			}
-		);
-		assert_eq!(
-			Hsv(80.0, 20.0, 20.0).to_rgb(),
-			Rgb {
-				red: 47,
-				green: 51,
-				blue: 40
-			}
-		);
-		assert_eq!(
-			Hsv(120.0, 20.0, 20.0).to_rgb(),
-			Rgb {
-				red: 40,
-				green: 51,
-				blue: 40
-			}
-		);
+		assert_eq!(Hsv(0.0, 0.0, 0.0).to_rgb(), Rgb { red: 0, green: 0, blue: 0 });
+		assert_eq!(Hsv(30.0, 20.0, 20.0).to_rgb(), Rgb { red: 51, green: 45, blue: 40 });
+		assert_eq!(Hsv(80.0, 20.0, 20.0).to_rgb(), Rgb { red: 47, green: 51, blue: 40 });
+		assert_eq!(Hsv(120.0, 20.0, 20.0).to_rgb(), Rgb { red: 40, green: 51, blue: 40 });
 	}
 
 	// Hsv::to_rsv / Rsv::to_hsv
@@ -781,9 +469,7 @@ mod tests {
 		assert_eq!(fill_as_hex(&["#ff0000", "#0000ff"], true, 4), vec!["#ff0000", "#aa0055", "#5500aa", "#0000ff"]);
 		assert_eq!(
 			fill_as_hex(&["#ff0000", "#0000ff"], true, 7),
-			vec![
-				"#ff0000", "#d4002a", "#aa0055", "#7f007f", "#5500aa", "#2a00d4", "#0000ff"
-			]
+			vec!["#ff0000", "#d4002a", "#aa0055", "#7f007f", "#5500aa", "#2a00d4", "#0000ff"]
 		);
 	}
 
@@ -814,18 +500,7 @@ mod tests {
 
 	#[test]
 	fn fill_clears_the_buffer_and_hits_the_step_count() {
-		let stops = [
-			Rgb {
-				red: 255,
-				green: 0,
-				blue: 0,
-			},
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 255,
-			},
-		];
+		let stops = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
 		let mut gradient = GradientColors::new();
 
 		for steps in [1_usize, 2, 5, 40] {
@@ -841,50 +516,21 @@ mod tests {
 
 	#[test]
 	fn a_single_column_gets_the_end_color_in_both_modes() {
-		let stops = [
-			Rgb {
-				red: 255,
-				green: 0,
-				blue: 0,
-			},
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 255,
-			},
-		];
+		let stops = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
 		let mut gradient = GradientColors::new();
 
 		gradient.fill(&stops, false, 1);
-		assert_eq!(
-			gradient.colors(),
-			&[Rgb {
-				red: 0,
-				green: 0,
-				blue: 255
-			}]
-		);
+		assert_eq!(gradient.colors(), &[Rgb { red: 0, green: 0, blue: 255 }]);
 
 		gradient.fill(&stops, true, 1);
-		assert_eq!(
-			gradient.colors(),
-			&[Rgb {
-				red: 0,
-				green: 0,
-				blue: 255
-			}]
-		);
+		assert_eq!(gradient.colors(), &[Rgb { red: 0, green: 0, blue: 255 }]);
 	}
 
 	#[test]
 	fn equal_two_stop_endpoints_walk_the_full_hue_circle() {
 		// the radial interpolation always takes the long way, so the same color
 		// twice sweeps every hue and returns: red at both ends, cyan in the middle
-		let red = Rgb {
-			red: 255,
-			green: 0,
-			blue: 0,
-		};
+		let red = Rgb { red: 255, green: 0, blue: 0 };
 		let mut gradient = GradientColors::new();
 		gradient.fill(&[red, red], false, 5);
 
@@ -922,17 +568,11 @@ mod tests {
 	fn presets_convert_into_preset_gradients() {
 		assert_eq!(
 			GradientPreset::Transgender.to_gradient(true),
-			GradientOption::Preset {
-				preset: GradientPreset::Transgender,
-				independent_gradient: true,
-			}
+			GradientOption::Preset { preset: GradientPreset::Transgender, independent_gradient: true }
 		);
 		assert_eq!(
 			GradientOption::from(GradientPreset::Pride),
-			GradientOption::Preset {
-				preset: GradientPreset::Pride,
-				independent_gradient: false,
-			}
+			GradientOption::Preset { preset: GradientPreset::Pride, independent_gradient: false }
 		);
 	}
 

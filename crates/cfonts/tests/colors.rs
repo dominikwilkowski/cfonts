@@ -36,14 +36,7 @@ fn named_colors_paint_their_fixed_codes_at_every_level() {
 
 #[test]
 fn rgb_colors_level_down_the_chain() {
-	let options = tiny(
-		"A",
-		vec![Color::Rgb(Rgb {
-			red: 255,
-			green: 136,
-			blue: 0,
-		})],
-	);
+	let options = tiny("A", vec![Color::Rgb(Rgb { red: 255, green: 136, blue: 0 })]);
 
 	let true_color = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 	let ansi256 = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Ansi256)).text;
@@ -230,20 +223,14 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false })
 		.into();
 
 	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
 
 	// one ramp over the seven row columns, every column painted with its own run,
 	// letter spaces included; two stop ramps travel through hue space
-	let ramp = ramp_from(&[
-		"#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff",
-	]);
+	let ramp = ramp_from(&["#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff"]);
 
 	let expected: Vec<String> = plain.lines().map(|row| ramped_row(row, &ramp)).collect();
 	assert_eq!(rendered, expected.join("\n"));
@@ -256,11 +243,7 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: true,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: true })
 		.into();
 
 	let rendered = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
@@ -326,11 +309,7 @@ fn gradients_level_down_per_column() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false })
 		.into();
 
 	let basic = render_with(&ramped, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
@@ -406,12 +385,7 @@ fn the_console_pairs_markers_with_styles_in_order() {
 	assert_eq!(rendered.text, "%c▄▀█%c\n%c█▀█%c");
 	assert_eq!(
 		rendered.styles,
-		vec![
-			String::from("color:#ea3223"),
-			String::new(),
-			String::from("color:#ea3223"),
-			String::new(),
-		]
+		vec![String::from("color:#ea3223"), String::new(), String::from("color:#ea3223"), String::new(),]
 	);
 }
 
@@ -476,9 +450,7 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 
 	// the ramp anchors at the widest row, so the short right aligned row samples
 	// its absolute columns and converges on the end color at the shared right edge
-	let colors = ramp_from(&[
-		"#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff",
-	]);
+	let colors = ramp_from(&["#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff"]);
 
 	let first_row = rendered.lines().next().expect("four rows");
 	assert!(first_row.starts_with("    "), "the indent stays bare: {first_row}");
@@ -530,11 +502,7 @@ fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 		.colors(vec![Color::Red])
 		.new_text("B")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false })
 		.valign(Valign::Top)
 		.spaceless()
 		.into();
@@ -563,11 +531,7 @@ fn a_wrapped_block_gradient_fixes_its_ramp_over_the_widest_row() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false })
 		.into();
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
@@ -610,11 +574,7 @@ fn leading_space_glyphs_consume_the_ramp() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false })
 		.into();
 
 	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;

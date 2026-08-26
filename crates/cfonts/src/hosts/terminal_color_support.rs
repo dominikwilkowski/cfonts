@@ -220,11 +220,7 @@ impl TerminalColorSupport<'_> {
 						|| (matches!(version.as_bytes().first(), Some(b'0'..=b'2')) && version.as_bytes().get(1) == Some(&b'.'))
 				});
 
-				return Some(if old {
-					ColorLevel::Ansi256
-				} else {
-					ColorLevel::TrueColor
-				});
+				return Some(if old { ColorLevel::Ansi256 } else { ColorLevel::TrueColor });
 			}
 			Some("HyperTerm" | "MacTerm") => return Some(ColorLevel::TrueColor),
 			Some("Apple_Terminal") => return Some(ColorLevel::Ansi256),
@@ -323,10 +319,7 @@ impl TerminalColorSupport<'_> {
 					|| SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0)
 		};
 
-		Some(WindowsConsole {
-			ansi_enabled,
-			build: windows_version::OsVersion::current().build,
-		})
+		Some(WindowsConsole { ansi_enabled, build: windows_version::OsVersion::current().build })
 	}
 
 	#[cfg(not(windows))]
@@ -524,80 +517,23 @@ mod tests {
 	#[test]
 	fn the_windows_console_answers_for_itself() {
 		// no escape processing means no color, whatever the environment says
+		assert_eq!(classify_windows(&[], WindowsConsole { ansi_enabled: false, build: 22631 }), None);
 		assert_eq!(
-			classify_windows(
-				&[],
-				WindowsConsole {
-					ansi_enabled: false,
-					build: 22631
-				}
-			),
-			None
-		);
-		assert_eq!(
-			classify_windows(
-				&[("COLORTERM", "truecolor")],
-				WindowsConsole {
-					ansi_enabled: false,
-					build: 22631
-				}
-			),
+			classify_windows(&[("COLORTERM", "truecolor")], WindowsConsole { ansi_enabled: false, build: 22631 }),
 			None
 		);
 
 		// the build dates the palette
-		assert_eq!(
-			classify_windows(
-				&[],
-				WindowsConsole {
-					ansi_enabled: true,
-					build: 10585
-				}
-			),
-			Some(ColorLevel::Basic)
-		);
-		assert_eq!(
-			classify_windows(
-				&[],
-				WindowsConsole {
-					ansi_enabled: true,
-					build: 10586
-				}
-			),
-			Some(ColorLevel::Ansi256)
-		);
-		assert_eq!(
-			classify_windows(
-				&[],
-				WindowsConsole {
-					ansi_enabled: true,
-					build: 14931
-				}
-			),
-			Some(ColorLevel::TrueColor)
-		);
+		assert_eq!(classify_windows(&[], WindowsConsole { ansi_enabled: true, build: 10585 }), Some(ColorLevel::Basic));
+		assert_eq!(classify_windows(&[], WindowsConsole { ansi_enabled: true, build: 10586 }), Some(ColorLevel::Ansi256));
+		assert_eq!(classify_windows(&[], WindowsConsole { ansi_enabled: true, build: 14931 }), Some(ColorLevel::TrueColor));
 
 		// the console beats the unix environment story, and dumb beats the console
 		assert_eq!(
-			classify_windows(
-				&[("TMUX", "1")],
-				WindowsConsole {
-					ansi_enabled: true,
-					build: 10586
-				}
-			),
+			classify_windows(&[("TMUX", "1")], WindowsConsole { ansi_enabled: true, build: 10586 }),
 			Some(ColorLevel::Ansi256)
 		);
-		assert_eq!(
-			classify_windows(
-				&[("TERM", "dumb")],
-				WindowsConsole {
-					ansi_enabled: true,
-					build: 22631
-				}
-			),
-			None
-		);
+		assert_eq!(classify_windows(&[("TERM", "dumb")], WindowsConsole { ansi_enabled: true, build: 22631 }), None);
 	}
 
 	#[test]

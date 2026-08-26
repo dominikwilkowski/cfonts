@@ -73,10 +73,7 @@ mod tests {
 
 	impl SpyEnvironment {
 		fn new(marker: &'static str) -> Self {
-			Self {
-				marker,
-				render_calls: Cell::new(0),
-			}
+			Self { marker, render_calls: Cell::new(0) }
 		}
 	}
 

@@ -104,29 +104,15 @@ pub(crate) mod tests {
 	#[test]
 	fn the_real_help_honors_the_forced_level() {
 		// FORCE_COLOR makes the real path deterministic, which is what it is for
-		temp_env::with_vars(
-			[
-				("FORCE_COLOR", Some("1")),
-				("NO_COLOR", None::<&str>),
-				("FORCE_SIZE", None),
-			],
-			|| {
-				let help = cli_help();
-				assert!(!help.contains("\u{1b}[38;"), "a forced basic level reaches the banner");
-				assert!(help.contains("\u{1b}[3"));
-			},
-		);
+		temp_env::with_vars([("FORCE_COLOR", Some("1")), ("NO_COLOR", None::<&str>), ("FORCE_SIZE", None)], || {
+			let help = cli_help();
+			assert!(!help.contains("\u{1b}[38;"), "a forced basic level reaches the banner");
+			assert!(help.contains("\u{1b}[3"));
+		});
 
-		temp_env::with_vars(
-			[
-				("FORCE_COLOR", Some("0")),
-				("NO_COLOR", None::<&str>),
-				("FORCE_SIZE", None),
-			],
-			|| {
-				assert!(!cli_help().contains('\u{1b}'), "no color means a plain screen");
-			},
-		);
+		temp_env::with_vars([("FORCE_COLOR", Some("0")), ("NO_COLOR", None::<&str>), ("FORCE_SIZE", None)], || {
+			assert!(!cli_help().contains('\u{1b}'), "no color means a plain screen");
+		});
 	}
 
 	#[test]

@@ -53,10 +53,7 @@ impl ColorTokens {
 impl Default for ColorTokens {
 	/// The empty pair: paints nothing
 	fn default() -> Self {
-		Self {
-			start: Cow::Borrowed(""),
-			end: Cow::Borrowed(""),
-		}
+		Self { start: Cow::Borrowed(""), end: Cow::Borrowed("") }
 	}
 }
 
@@ -128,36 +125,20 @@ impl RowEvent<'_> {
 
 			for entry in &row.entries {
 				match entry {
-					RowEntry::Data {
-						glyph_row,
-						block_index,
-						width,
-						paintable,
-					} => {
+					RowEntry::Data { glyph_row, block_index, width, paintable } => {
 						for segment in glyph_row.segments {
 							let (text, slot) = segment.parts();
 
 							// empty segments emit nothing so no consumer wraps color codes around zero columns
 							if !text.is_empty() {
-								event(RowEvent::Text {
-									text,
-									block_index: *block_index,
-									slot,
-									paintable: *paintable,
-								});
+								event(RowEvent::Text { text, block_index: *block_index, slot, paintable: *paintable });
 							}
 						}
 
-						event(RowEvent::EntryEnd {
-							width: *width,
-							block_index: *block_index,
-						});
+						event(RowEvent::EntryEnd { width: *width, block_index: *block_index });
 					}
 					RowEntry::Blank { width, block_index } => {
-						event(RowEvent::Blank {
-							width: *width,
-							block_index: *block_index,
-						});
+						event(RowEvent::Blank { width: *width, block_index: *block_index });
 					}
 				}
 			}
@@ -263,12 +244,7 @@ pub trait Environment {
 				gradients.start_row(row);
 				self.row_start(row, options, &mut out);
 			}
-			RowEvent::Text {
-				text,
-				block_index,
-				slot,
-				paintable,
-			} => match plan.domain(block_index) {
+			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Global => {
 					let consumed = self.gradient_paint(text, gradients.global_window(), context, &mut out);
 					gradients.advance_global(consumed);
@@ -315,12 +291,7 @@ pub trait Environment {
 fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 	rows.iter().any(|row| {
 		row.entries.iter().any(|entry| match entry {
-			RowEntry::Data {
-				glyph_row,
-				block_index,
-				paintable,
-				..
-			} => glyph_row.segments.iter().any(|segment| {
+			RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row.segments.iter().any(|segment| {
 				let (text, slot) = segment.parts();
 
 				!text.is_empty() && plan.resolves(*block_index, slot, *paintable)
@@ -406,20 +377,8 @@ mod tests {
 		let tokens = ColorTokens::default();
 
 		assert!(!tokens.paints());
-		assert!(
-			ColorTokens {
-				start: Cow::Borrowed("x"),
-				end: Cow::Borrowed(""),
-			}
-			.paints()
-		);
-		assert!(
-			ColorTokens {
-				start: Cow::Borrowed(""),
-				end: Cow::Borrowed("x"),
-			}
-			.paints()
-		);
+		assert!(ColorTokens { start: Cow::Borrowed("x"), end: Cow::Borrowed("") }.paints());
+		assert!(ColorTokens { start: Cow::Borrowed(""), end: Cow::Borrowed("x") }.paints());
 	}
 
 	// paint
@@ -427,10 +386,7 @@ mod tests {
 	#[test]
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
-		let tokens = ColorTokens {
-			start: Cow::Borrowed("<start>"),
-			end: Cow::Borrowed("<end>"),
-		};
+		let tokens = ColorTokens { start: Cow::Borrowed("<start>"), end: Cow::Borrowed("<end>") };
 		CliEnv::default().paint("TEXT", &tokens, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
@@ -439,12 +395,7 @@ mod tests {
 
 	#[test]
 	fn the_default_row_start_paints_the_alignment_offset() {
-		let row = LayoutRow {
-			entries: Vec::new(),
-			width: 3,
-			align_offset: 4,
-			block_spans: Vec::new(),
-		};
+		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 4, block_spans: Vec::new() };
 		let mut out = Rendered::default();
 		CliEnv::default().row_start(&row, &Options::default(), &mut out);
 

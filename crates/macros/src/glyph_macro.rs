@@ -178,10 +178,7 @@ fn push_segment(segments: &mut Vec<GlyphSegment>, text: &mut String, slot: Optio
 	}
 
 	let segment: GlyphSegment = match slot {
-		Some(slot) => GlyphSegment::Colored {
-			slot,
-			text: std::mem::take(text),
-		},
+		Some(slot) => GlyphSegment::Colored { slot, text: std::mem::take(text) },
 		None => GlyphSegment::Plain(std::mem::take(text)),
 	};
 

@@ -104,14 +104,7 @@ pub struct BlockOptions {
 
 impl Default for BlockOptions {
 	fn default() -> Self {
-		Self {
-			text: String::new(),
-			font: Font::Block,
-			colors: None,
-			letter_spacing: 1,
-			line_height: 1,
-			word_wrap: false,
-		}
+		Self { text: String::new(), font: Font::Block, colors: None, letter_spacing: 1, line_height: 1, word_wrap: false }
 	}
 }
 

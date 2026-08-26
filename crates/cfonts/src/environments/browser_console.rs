@@ -46,10 +46,7 @@ impl Environment for BrowserConsoleEnv {
 		}
 
 		match color.to_rgb() {
-			Some(rgb) => ColorTokens {
-				start: Cow::Owned(format!("color:{}", rgb.to_hex())),
-				end: Cow::Borrowed(""),
-			},
+			Some(rgb) => ColorTokens { start: Cow::Owned(format!("color:{}", rgb.to_hex())), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
 	}

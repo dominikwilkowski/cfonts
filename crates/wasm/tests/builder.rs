@@ -200,14 +200,7 @@ fn color_values_are_validated_at_the_boundary() {
 	let mut banner = Cfonts::text("A".to_owned());
 
 	assert!(
-		banner
-			.colors(vec![
-				"red".to_owned(),
-				"REDBRIGHT".to_owned(),
-				"#ff8800".to_owned(),
-				"f80".to_owned()
-			])
-			.is_ok()
+		banner.colors(vec!["red".to_owned(), "REDBRIGHT".to_owned(), "#ff8800".to_owned(), "f80".to_owned()]).is_ok()
 	);
 	assert!(banner.colors(vec!["grey".to_owned()]).is_ok()); // the alternate gray spelling
 	assert!(banner.colors(vec![]).is_ok()); // an empty list is still a configured color

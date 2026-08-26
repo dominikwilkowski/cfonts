@@ -111,11 +111,7 @@ impl RenderContext {
 	/// Creates a context without a canvas-width limit
 	#[must_use]
 	pub const fn unlimited() -> Self {
-		Self {
-			canvas_width: None,
-			color_level: None,
-			seed: 0,
-		}
+		Self { canvas_width: None, color_level: None, seed: 0 }
 	}
 
 	/// Creates a context with a fixed canvas width
@@ -123,10 +119,7 @@ impl RenderContext {
 	/// Zero means unlimited
 	#[must_use]
 	pub fn with_canvas_width(canvas_width: usize) -> Self {
-		Self {
-			canvas_width: NonZeroUsize::new(canvas_width),
-			..Self::unlimited()
-		}
+		Self { canvas_width: NonZeroUsize::new(canvas_width), ..Self::unlimited() }
 	}
 
 	/// Creates a context from an already validated width but expects NonZeroUsize instead of usize
@@ -134,19 +127,13 @@ impl RenderContext {
 	/// Only the native host resolves to `NonZeroUsize` directly; the wasm boundary passes `Option<usize>`
 	#[cfg(not(target_arch = "wasm32"))]
 	pub(crate) fn from_validated_width(canvas_width: Option<NonZeroUsize>) -> Self {
-		Self {
-			canvas_width,
-			..Self::unlimited()
-		}
+		Self { canvas_width, ..Self::unlimited() }
 	}
 
 	/// Creates a context with the given color support and no canvas-width limit
 	#[must_use]
 	pub fn colored(color_level: ColorLevel) -> Self {
-		Self {
-			color_level: Some(color_level),
-			..Self::unlimited()
-		}
+		Self { color_level: Some(color_level), ..Self::unlimited() }
 	}
 
 	/// Returns the resolved width in columns
@@ -231,11 +218,7 @@ pub(crate) struct BlockPlan<T> {
 impl<T> BlockPlan<T> {
 	/// The plan of a block without slot paints
 	fn bare(domain: PaintDomain) -> Self {
-		Self {
-			slots: Vec::new(),
-			domain,
-			paint_plain: false,
-		}
+		Self { slots: Vec::new(), domain, paint_plain: false }
 	}
 
 	/// The slot one text segment selects, holding the single copy of the routing rule
@@ -306,19 +289,11 @@ impl<T> PaintPlan<T> {
 
 						let paint_plain = font_colors == 1 && slots.first().is_some_and(SlotPaint::paints);
 
-						BlockPlan {
-							slots,
-							domain: PaintDomain::Slots,
-							paint_plain,
-						}
+						BlockPlan { slots, domain: PaintDomain::Slots, paint_plain }
 					}
 					ColorOption::Gradient(_) => {
 						// the block's own gradient wins, otherwise the global one covers it
-						BlockPlan::bare(if block.colors.is_some() {
-							PaintDomain::Block
-						} else {
-							PaintDomain::Global
-						})
+						BlockPlan::bare(if block.colors.is_some() { PaintDomain::Block } else { PaintDomain::Global })
 					}
 				}
 			})
@@ -330,12 +305,7 @@ impl<T> PaintPlan<T> {
 		let rolls = blocks.iter().any(|block| block.slots.iter().any(|slot| matches!(slot, SlotPaint::Candy)));
 		let candy = rolls.then(|| Box::new(CANDY.map(&mut resolve)));
 
-		Self {
-			blocks,
-			candy,
-			rng: CandyRng::new(context.seed()),
-			will_style,
-		}
+		Self { blocks, candy, rng: CandyRng::new(context.seed()), will_style }
 	}
 
 	/// The paint path of one block
@@ -388,27 +358,16 @@ pub(crate) struct GradientState {
 impl GradientState {
 	fn new(gradient: &GradientOption) -> Self {
 		let (stops, transition, independent) = match gradient {
-			GradientOption::TwoStop {
-				start,
-				end,
-				independent_gradient,
-			} => (vec![start.to_rgb(), end.to_rgb()], false, *independent_gradient),
-			GradientOption::Transition {
-				stops,
-				independent_gradient,
-			} => (stops.iter().map(GradientStop::to_rgb).collect(), true, *independent_gradient),
-			GradientOption::Preset {
-				preset,
-				independent_gradient,
-			} => (preset.stops().to_vec(), true, *independent_gradient),
+			GradientOption::TwoStop { start, end, independent_gradient } => {
+				(vec![start.to_rgb(), end.to_rgb()], false, *independent_gradient)
+			}
+			GradientOption::Transition { stops, independent_gradient } => {
+				(stops.iter().map(GradientStop::to_rgb).collect(), true, *independent_gradient)
+			}
+			GradientOption::Preset { preset, independent_gradient } => (preset.stops().to_vec(), true, *independent_gradient),
 		};
 
-		Self {
-			stops,
-			transition,
-			independent,
-			colors: GradientColors::new(),
-		}
+		Self { stops, transition, independent, colors: GradientColors::new() }
 	}
 
 	/// Refills the ramp to exactly `steps` colors, reusing the buffer
@@ -499,14 +458,7 @@ impl GradientPlans {
 			}
 		}
 
-		Self {
-			blocks,
-			global,
-			indent_floor,
-			global_cursor: 0,
-			block_cursor: 0,
-			cursor_block: None,
-		}
+		Self { blocks, global, indent_floor, global_cursor: 0, block_cursor: 0, cursor_block: None }
 	}
 
 	/// Starts one row: refills the independent ramps and resets the cursors

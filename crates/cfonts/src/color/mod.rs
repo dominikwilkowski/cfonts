@@ -247,81 +247,21 @@ impl Color {
 	pub fn to_rgb(self) -> Option<Rgb> {
 		match self {
 			Self::System | Self::Candy => None,
-			Self::Black => Some(Rgb {
-				red: 0,
-				green: 0,
-				blue: 0,
-			}),
-			Self::Red => Some(Rgb {
-				red: 234,
-				green: 50,
-				blue: 35,
-			}),
-			Self::Green => Some(Rgb {
-				red: 55,
-				green: 125,
-				blue: 34,
-			}),
-			Self::Yellow => Some(Rgb {
-				red: 255,
-				green: 253,
-				blue: 84,
-			}),
-			Self::Blue => Some(Rgb {
-				red: 0,
-				green: 32,
-				blue: 245,
-			}),
-			Self::Magenta => Some(Rgb {
-				red: 234,
-				green: 61,
-				blue: 247,
-			}),
-			Self::Cyan => Some(Rgb {
-				red: 116,
-				green: 251,
-				blue: 253,
-			}),
-			Self::White | Self::WhiteBright => Some(Rgb {
-				red: 255,
-				green: 255,
-				blue: 255,
-			}),
-			Self::Gray => Some(Rgb {
-				red: 128,
-				green: 128,
-				blue: 128,
-			}),
-			Self::RedBright => Some(Rgb {
-				red: 238,
-				green: 119,
-				blue: 109,
-			}),
-			Self::GreenBright => Some(Rgb {
-				red: 140,
-				green: 245,
-				blue: 123,
-			}),
-			Self::YellowBright => Some(Rgb {
-				red: 255,
-				green: 251,
-				blue: 127,
-			}),
-			Self::BlueBright => Some(Rgb {
-				red: 105,
-				green: 116,
-				blue: 246,
-			}),
-			Self::MagentaBright => Some(Rgb {
-				red: 238,
-				green: 130,
-				blue: 248,
-			}),
-			Self::CyanBright => Some(Rgb {
-				red: 141,
-				green: 250,
-				blue: 253,
-			}),
+			Self::Black => Some(Rgb { red: 0, green: 0, blue: 0 }),
+			Self::Red => Some(Rgb { red: 234, green: 50, blue: 35 }),
+			Self::Green => Some(Rgb { red: 55, green: 125, blue: 34 }),
+			Self::Yellow => Some(Rgb { red: 255, green: 253, blue: 84 }),
+			Self::Blue => Some(Rgb { red: 0, green: 32, blue: 245 }),
+			Self::Magenta => Some(Rgb { red: 234, green: 61, blue: 247 }),
+			Self::Cyan => Some(Rgb { red: 116, green: 251, blue: 253 }),
+			Self::White | Self::WhiteBright => Some(Rgb { red: 255, green: 255, blue: 255 }),
+			Self::Gray => Some(Rgb { red: 128, green: 128, blue: 128 }),
+			Self::RedBright => Some(Rgb { red: 238, green: 119, blue: 109 }),
+			Self::GreenBright => Some(Rgb { red: 140, green: 245, blue: 123 }),
+			Self::YellowBright => Some(Rgb { red: 255, green: 251, blue: 127 }),
+			Self::BlueBright => Some(Rgb { red: 105, green: 116, blue: 246 }),
+			Self::MagentaBright => Some(Rgb { red: 238, green: 130, blue: 248 }),
+			Self::CyanBright => Some(Rgb { red: 141, green: 250, blue: 253 }),
 			Self::Rgb(rgb) => Some(rgb),
 		}
 	}
@@ -436,51 +376,15 @@ impl GradientStop {
 	/// The RGB value of this stop, from the gradient parser's canonical table
 	pub fn to_rgb(self) -> Rgb {
 		match self {
-			Self::Black => Rgb {
-				red: 0,
-				green: 0,
-				blue: 0,
-			},
-			Self::Red => Rgb {
-				red: 255,
-				green: 0,
-				blue: 0,
-			},
-			Self::Green => Rgb {
-				red: 0,
-				green: 255,
-				blue: 0,
-			},
-			Self::Blue => Rgb {
-				red: 0,
-				green: 0,
-				blue: 255,
-			},
-			Self::Yellow => Rgb {
-				red: 255,
-				green: 255,
-				blue: 0,
-			},
-			Self::Magenta => Rgb {
-				red: 255,
-				green: 0,
-				blue: 255,
-			},
-			Self::Cyan => Rgb {
-				red: 0,
-				green: 255,
-				blue: 255,
-			},
-			Self::White => Rgb {
-				red: 255,
-				green: 255,
-				blue: 255,
-			},
-			Self::Gray => Rgb {
-				red: 128,
-				green: 128,
-				blue: 128,
-			},
+			Self::Black => Rgb { red: 0, green: 0, blue: 0 },
+			Self::Red => Rgb { red: 255, green: 0, blue: 0 },
+			Self::Green => Rgb { red: 0, green: 255, blue: 0 },
+			Self::Blue => Rgb { red: 0, green: 0, blue: 255 },
+			Self::Yellow => Rgb { red: 255, green: 255, blue: 0 },
+			Self::Magenta => Rgb { red: 255, green: 0, blue: 255 },
+			Self::Cyan => Rgb { red: 0, green: 255, blue: 255 },
+			Self::White => Rgb { red: 255, green: 255, blue: 255 },
+			Self::Gray => Rgb { red: 128, green: 128, blue: 128 },
 			Self::Rgb(rgb) => rgb,
 		}
 	}
@@ -520,11 +424,7 @@ impl TryFrom<Vec<GradientStop>> for TransitionStops {
 		let mut stops = stops.into_iter();
 
 		match (stops.next(), stops.next()) {
-			(Some(first), Some(second)) => Ok(Self {
-				first,
-				second,
-				rest: stops.collect(),
-			}),
+			(Some(first), Some(second)) => Ok(Self { first, second, rest: stops.collect() }),
 			_ => Err(ColorError::TransitionStops(count)),
 		}
 	}
@@ -534,23 +434,13 @@ impl TryFrom<Vec<GradientStop>> for TransitionStops {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GradientOption {
 	/// Two colors interpolated through hue space; every color in between gets visited
-	TwoStop {
-		start: GradientStop,
-		end: GradientStop,
-		independent_gradient: bool,
-	},
+	TwoStop { start: GradientStop, end: GradientStop, independent_gradient: bool },
 
 	/// Two or more stops connected by straight lines through RGB space
-	Transition {
-		stops: TransitionStops,
-		independent_gradient: bool,
-	},
+	Transition { stops: TransitionStops, independent_gradient: bool },
 
 	/// A bundled transition over a preset's stops
-	Preset {
-		preset: GradientPreset,
-		independent_gradient: bool,
-	},
+	Preset { preset: GradientPreset, independent_gradient: bool },
 }
 
 /// One scope's color configuration: a block's own or the whole composition's
@@ -629,66 +519,17 @@ mod tests {
 
 	#[test]
 	fn from_hex_parses_the_forms() {
-		assert_eq!(
-			Rgb::from_hex("#000000"),
-			Ok(Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			})
-		);
-		assert_eq!(
-			Rgb::from_hex("#ffffff"),
-			Ok(Rgb {
-				red: 255,
-				green: 255,
-				blue: 255
-			})
-		);
-		assert_eq!(
-			Rgb::from_hex("#00ffff"),
-			Ok(Rgb {
-				red: 0,
-				green: 255,
-				blue: 255
-			})
-		);
-		assert_eq!(
-			Rgb::from_hex("#ff00ff"),
-			Ok(Rgb {
-				red: 255,
-				green: 0,
-				blue: 255
-			})
-		);
-		assert_eq!(
-			Rgb::from_hex("ff8800"),
-			Ok(Rgb {
-				red: 255,
-				green: 136,
-				blue: 0
-			})
-		);
+		assert_eq!(Rgb::from_hex("#000000"), Ok(Rgb { red: 0, green: 0, blue: 0 }));
+		assert_eq!(Rgb::from_hex("#ffffff"), Ok(Rgb { red: 255, green: 255, blue: 255 }));
+		assert_eq!(Rgb::from_hex("#00ffff"), Ok(Rgb { red: 0, green: 255, blue: 255 }));
+		assert_eq!(Rgb::from_hex("#ff00ff"), Ok(Rgb { red: 255, green: 0, blue: 255 }));
+		assert_eq!(Rgb::from_hex("ff8800"), Ok(Rgb { red: 255, green: 136, blue: 0 }));
 	}
 
 	#[test]
 	fn from_hex_expands_the_three_digit_shorthand() {
-		assert_eq!(
-			Rgb::from_hex("#f80"),
-			Ok(Rgb {
-				red: 255,
-				green: 136,
-				blue: 0
-			})
-		);
-		assert_eq!(
-			Rgb::from_hex("#000"),
-			Ok(Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			})
-		);
+		assert_eq!(Rgb::from_hex("#f80"), Ok(Rgb { red: 255, green: 136, blue: 0 }));
+		assert_eq!(Rgb::from_hex("#000"), Ok(Rgb { red: 0, green: 0, blue: 0 }));
 	}
 
 	#[test]
@@ -711,84 +552,20 @@ mod tests {
 
 	#[test]
 	fn to_hex_prints() {
-		assert_eq!(
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			}
-			.to_hex(),
-			"#000000"
-		);
-		assert_eq!(
-			Rgb {
-				red: 255,
-				green: 255,
-				blue: 255
-			}
-			.to_hex(),
-			"#ffffff"
-		);
-		assert_eq!(
-			Rgb {
-				red: 127,
-				green: 127,
-				blue: 127
-			}
-			.to_hex(),
-			"#7f7f7f"
-		);
-		assert_eq!(
-			Rgb {
-				red: 255,
-				green: 136,
-				blue: 0
-			}
-			.to_hex(),
-			"#ff8800"
-		);
+		assert_eq!(Rgb { red: 0, green: 0, blue: 0 }.to_hex(), "#000000");
+		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.to_hex(), "#ffffff");
+		assert_eq!(Rgb { red: 127, green: 127, blue: 127 }.to_hex(), "#7f7f7f");
+		assert_eq!(Rgb { red: 255, green: 136, blue: 0 }.to_hex(), "#ff8800");
 	}
 
 	// Rgb::ansi256_index
 
 	#[test]
 	fn ansi256_index_matches() {
-		assert_eq!(
-			Rgb {
-				red: 100,
-				green: 200,
-				blue: 100
-			}
-			.ansi256_index(),
-			77
-		);
-		assert_eq!(
-			Rgb {
-				red: 255,
-				green: 255,
-				blue: 255
-			}
-			.ansi256_index(),
-			231
-		);
-		assert_eq!(
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			}
-			.ansi256_index(),
-			16
-		);
-		assert_eq!(
-			Rgb {
-				red: 167,
-				green: 5,
-				blue: 98
-			}
-			.ansi256_index(),
-			125
-		);
+		assert_eq!(Rgb { red: 100, green: 200, blue: 100 }.ansi256_index(), 77);
+		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.ansi256_index(), 231);
+		assert_eq!(Rgb { red: 0, green: 0, blue: 0 }.ansi256_index(), 16);
+		assert_eq!(Rgb { red: 167, green: 5, blue: 98 }.ansi256_index(), 125);
 	}
 
 	#[test]
@@ -871,51 +648,11 @@ mod tests {
 	#[test]
 	fn ansi16_sgr_matches() {
 		// index 16 is the cube's black: it must paint black, not reset to the default foreground
-		assert_eq!(
-			Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			}
-			.ansi16_sgr(),
-			"\x1b[30m"
-		);
-		assert_eq!(
-			Rgb {
-				red: 255,
-				green: 0,
-				blue: 0
-			}
-			.ansi16_sgr(),
-			"\x1b[91m"
-		);
-		assert_eq!(
-			Rgb {
-				red: 255,
-				green: 255,
-				blue: 0
-			}
-			.ansi16_sgr(),
-			"\x1b[93m"
-		);
-		assert_eq!(
-			Rgb {
-				red: 255,
-				green: 255,
-				blue: 255
-			}
-			.ansi16_sgr(),
-			"\x1b[97m"
-		);
-		assert_eq!(
-			Rgb {
-				red: 157,
-				green: 5,
-				blue: 98
-			}
-			.ansi16_sgr(),
-			"\x1b[31m"
-		);
+		assert_eq!(Rgb { red: 0, green: 0, blue: 0 }.ansi16_sgr(), "\x1b[30m");
+		assert_eq!(Rgb { red: 255, green: 0, blue: 0 }.ansi16_sgr(), "\x1b[91m");
+		assert_eq!(Rgb { red: 255, green: 255, blue: 0 }.ansi16_sgr(), "\x1b[93m");
+		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.ansi16_sgr(), "\x1b[97m");
+		assert_eq!(Rgb { red: 157, green: 5, blue: 98 }.ansi16_sgr(), "\x1b[31m");
 	}
 
 	// Color::from_name
@@ -967,22 +704,8 @@ mod tests {
 	fn colors_parse_from_names_and_hex_values() {
 		assert_eq!("red".parse::<Color>(), Ok(Color::Red));
 		assert_eq!("REDBRIGHT".parse::<Color>(), Ok(Color::RedBright));
-		assert_eq!(
-			"#ff8800".parse::<Color>(),
-			Ok(Color::Rgb(Rgb {
-				red: 255,
-				green: 136,
-				blue: 0,
-			}))
-		);
-		assert_eq!(
-			"f80".parse::<Color>(),
-			Ok(Color::Rgb(Rgb {
-				red: 255,
-				green: 136,
-				blue: 0,
-			}))
-		);
+		assert_eq!("#ff8800".parse::<Color>(), Ok(Color::Rgb(Rgb { red: 255, green: 136, blue: 0 })));
+		assert_eq!("f80".parse::<Color>(), Ok(Color::Rgb(Rgb { red: 255, green: 136, blue: 0 })));
 	}
 
 	#[test]
@@ -1028,11 +751,7 @@ mod tests {
 
 	#[test]
 	fn rgb_colors_pass_through() {
-		let rgb = Rgb {
-			red: 1,
-			green: 2,
-			blue: 3,
-		};
+		let rgb = Rgb { red: 1, green: 2, blue: 3 };
 		assert_eq!(Color::Rgb(rgb).to_rgb(), Some(rgb));
 	}
 
@@ -1048,15 +767,7 @@ mod tests {
 		assert_eq!(Color::RedBright.ansi16_sgr(), Some("\x1b[91m"));
 		assert_eq!(Color::WhiteBright.ansi16_sgr(), Some("\x1b[97m"));
 		assert_eq!(Color::Candy.ansi16_sgr(), None);
-		assert_eq!(
-			Color::Rgb(Rgb {
-				red: 0,
-				green: 0,
-				blue: 0
-			})
-			.ansi16_sgr(),
-			None
-		);
+		assert_eq!(Color::Rgb(Rgb { red: 0, green: 0, blue: 0 }).ansi16_sgr(), None);
 	}
 
 	// GradientStop::from_name
@@ -1098,14 +809,7 @@ mod tests {
 	#[test]
 	fn stops_parse_from_names_and_hex_values() {
 		assert_eq!("blue".parse::<GradientStop>(), Ok(GradientStop::Blue));
-		assert_eq!(
-			"f80".parse::<GradientStop>(),
-			Ok(GradientStop::Rgb(Rgb {
-				red: 255,
-				green: 136,
-				blue: 0,
-			}))
-		);
+		assert_eq!("f80".parse::<GradientStop>(), Ok(GradientStop::Rgb(Rgb { red: 255, green: 136, blue: 0 })));
 	}
 
 	#[test]
@@ -1139,11 +843,8 @@ mod tests {
 
 	#[test]
 	fn transition_stops_iterate_in_order_and_count_from_two() {
-		let stops = TransitionStops {
-			first: GradientStop::Red,
-			second: GradientStop::Blue,
-			rest: vec![GradientStop::Green],
-		};
+		let stops =
+			TransitionStops { first: GradientStop::Red, second: GradientStop::Blue, rest: vec![GradientStop::Green] };
 
 		assert_eq!(stops.len(), 3);
 		assert!(!stops.is_empty());
@@ -1172,11 +873,8 @@ mod tests {
 	fn color_lists_gradients_and_presets_convert_into_the_option() {
 		assert_eq!(ColorOption::from(vec![Color::Red]), ColorOption::Colors(vec![Color::Red]));
 
-		let gradient = GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		};
+		let gradient =
+			GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false };
 		assert_eq!(ColorOption::from(gradient.clone()), ColorOption::Gradient(gradient));
 
 		assert_eq!(

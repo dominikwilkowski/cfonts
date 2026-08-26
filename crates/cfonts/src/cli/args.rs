@@ -37,11 +37,7 @@ macro_rules! help_line {
 		};
 		const RESET: &str = if $colored { "\x1B[0m" } else { "" };
 		const PROMPT: &str = if $colored { PROMPT_COLORED } else { PROMPT_PLAIN };
-		const VALUE: &str = if $colored {
-			Color::Green.ansi16_sgr().unwrap()
-		} else {
-			""
-		};
+		const VALUE: &str = if $colored { Color::Green.ansi16_sgr().unwrap() } else { "" };
 		const VALUE_OFF: &str = if $colored { Color::ANSI_RESET } else { "" };
 		const SHORT_LEAD: &str = match INFO.short.len() {
 			0 => "",
@@ -193,10 +189,7 @@ impl Args {
 				state.options.blocks.push(CliBlockOptions::new(value));
 			}
 			Self::NextStdin => {
-				state.options.blocks.push(CliBlockOptions {
-					stdin: true,
-					..Default::default()
-				});
+				state.options.blocks.push(CliBlockOptions { stdin: true, ..Default::default() });
 			}
 			Self::Font => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
@@ -253,20 +246,12 @@ impl Args {
 
 	/// Parses one value through a name lookup, or reports it against this argument
 	fn parse_name<'a, T>(self, value: &'a str, from_name: impl Fn(&str) -> Option<T>) -> Result<T, ParseError<'a>> {
-		from_name(value).ok_or(ParseError::InvalidValue {
-			argument: self,
-			value,
-			source: None,
-		})
+		from_name(value).ok_or(ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
 	/// Parses one numeric value, or reports it against this argument
 	fn parse_number<'a, T: std::str::FromStr>(self, value: &'a str) -> Result<T, ParseError<'a>> {
-		value.parse().map_err(|_| ParseError::InvalidValue {
-			argument: self,
-			value,
-			source: None,
-		})
+		value.parse().map_err(|_| ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
 	/// Parses one comma separated color list through the core name-or-hex parser,
@@ -571,11 +556,7 @@ mod tests {
 
 			assert_eq!(
 				Args::Gradient.apply(Some(name), &mut state),
-				Err(ParseError::InvalidValue {
-					argument: Args::Gradient,
-					value: name,
-					source: Some(ColorError::UnknownColor),
-				}),
+				Err(ParseError::InvalidValue { argument: Args::Gradient, value: name, source: Some(ColorError::UnknownColor) }),
 				"{name} must not be accepted as a gradient stop"
 			);
 			assert_eq!(state.gradient, None);

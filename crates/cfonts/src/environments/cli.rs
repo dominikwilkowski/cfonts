@@ -27,9 +27,7 @@ impl CliEnv {
 	/// Creates the terminal formatter; raw mode ends every line with `\r\n`
 	#[must_use]
 	pub const fn new(raw_mode: bool) -> Self {
-		Self {
-			line_end: if raw_mode { "\r\n" } else { "\n" },
-		}
+		Self { line_end: if raw_mode { "\r\n" } else { "\n" } }
 	}
 }
 
@@ -53,10 +51,7 @@ impl Environment for CliEnv {
 			named => Cow::Borrowed(named.ansi16_sgr().expect("every named color carries a fixed code")),
 		};
 
-		ColorTokens {
-			start,
-			end: Cow::Borrowed(Color::ANSI_RESET),
-		}
+		ColorTokens { start, end: Cow::Borrowed(Color::ANSI_RESET) }
 	}
 
 	/// Every column gets its own run: the ramp color's start, the character, the reset
@@ -111,11 +106,7 @@ mod tests {
 
 	#[test]
 	fn rgb_colors_level_down() {
-		let rgb = Color::Rgb(Rgb {
-			red: 255,
-			green: 136,
-			blue: 0,
-		});
+		let rgb = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
 
 		assert_eq!(
 			CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
@@ -130,11 +121,7 @@ mod tests {
 
 	#[test]
 	fn rgb_black_levels_down_to_ansi_black() {
-		let black = Color::Rgb(Rgb {
-			red: 0,
-			green: 0,
-			blue: 0,
-		});
+		let black = Color::Rgb(Rgb { red: 0, green: 0, blue: 0 });
 		let tokens = CliEnv::default().color_tokens(black, &RenderContext::colored(ColorLevel::Basic));
 
 		assert_eq!(tokens.start, "\u{1b}[30m");

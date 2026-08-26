@@ -90,12 +90,7 @@ impl Widget for &CfontsWidget<'_> {
 					x = area.x.saturating_add(row.align_offset as u16);
 				}
 			}
-			RowEvent::Text {
-				text,
-				block_index,
-				slot,
-				paintable,
-			} if visible => match plan.domain(block_index) {
+			RowEvent::Text { text, block_index, slot, paintable } if visible => match plan.domain(block_index) {
 				PaintDomain::Slots => {
 					if x < area.right() {
 						let style = plan.paint_for(block_index, slot, paintable).copied().unwrap_or_default();
@@ -161,10 +156,7 @@ mod tests {
 	#[test]
 	fn widget_draws_the_banner_into_the_buffer() {
 		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(5, 3)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -175,10 +167,7 @@ mod tests {
 	#[test]
 	fn widget_ignores_an_empty_area() {
 		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(0, 0)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -188,10 +177,7 @@ mod tests {
 	fn widget_aligns_rows_inside_the_area() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.align = Align::Right;
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(5, 2)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -204,10 +190,7 @@ mod tests {
 		// an uneven gap floors the left padding, like the CLI environment
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.align = Align::Center;
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -219,10 +202,7 @@ mod tests {
 	fn widget_truncates_at_the_area() {
 		// an area too small for the banner: rows clip at the width, extra rows are dropped
 		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(2, 1)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -234,10 +214,7 @@ mod tests {
 	fn widget_rewraps_at_the_area_width() {
 		// two words that fit side by side in a wide area wrap in a narrow one
 		let options = options(Valign::Top, None, vec![block("AA BB", Font::Tiny, true)]);
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(9, 5)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -261,10 +238,7 @@ mod tests {
 	fn widget_paints_named_colors_as_the_terminals_own() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Block, false)]);
 		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Red, crate::Color::Blue]));
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(12, 6)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -290,10 +264,7 @@ mod tests {
 			end: crate::GradientStop::Blue,
 			independent_gradient: false,
 		}));
-		let widget = CfontsWidget {
-			options: &options,
-			seed: 0,
-		};
+		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
 		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
@@ -309,10 +280,7 @@ mod tests {
 		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Candy]));
 
 		let draw = |seed: u64| {
-			let widget = CfontsWidget {
-				options: &options,
-				seed,
-			};
+			let widget = CfontsWidget { options: &options, seed };
 			let mut terminal = Terminal::new(TestBackend::new(8, 2)).unwrap();
 			terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
 			terminal.backend().buffer().clone()

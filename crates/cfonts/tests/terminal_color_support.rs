@@ -18,17 +18,8 @@ fn process_environment(name: &str) -> Option<String> {
 
 /// Every variable the resolution reads: the named ones are set, the rest cleared
 fn with_environment<T>(vars: &[(&str, &str)], operation: impl FnOnce() -> T) -> T {
-	const CONTROLLED: &[&str] = &[
-		"FORCE_COLOR",
-		"NO_COLOR",
-		"TERM",
-		"COLORTERM",
-		"TMUX",
-		"CI",
-		"TF_BUILD",
-		"TEAMCITY_VERSION",
-		"TERM_PROGRAM",
-	];
+	const CONTROLLED: &[&str] =
+		&["FORCE_COLOR", "NO_COLOR", "TERM", "COLORTERM", "TMUX", "CI", "TF_BUILD", "TEAMCITY_VERSION", "TERM_PROGRAM"];
 
 	let values: Vec<(&str, Option<&str>)> =
 		CONTROLLED.iter().map(|name| (*name, vars.iter().find(|(key, _)| key == name).map(|(_, value)| *value))).collect();
@@ -162,10 +153,7 @@ fn a_non_unicode_force_color_keeps_its_presence() {
 	let garbage = std::ffi::OsString::from_vec(vec![b'j', b'u', b'n', b'k', 0xFF]);
 
 	temp_env::with_vars(
-		[
-			("FORCE_COLOR", Some(garbage)),
-			("TERM", Some(std::ffi::OsString::from("xterm-256color"))),
-		],
+		[("FORCE_COLOR", Some(garbage)), ("TERM", Some(std::ffi::OsString::from("xterm-256color")))],
 		|| {
 			assert_eq!(attached(ColorOverride::Auto, None), Some(ColorLevel::Basic));
 		},

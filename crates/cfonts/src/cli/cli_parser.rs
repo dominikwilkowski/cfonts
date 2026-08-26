@@ -127,11 +127,7 @@ pub enum ParseError<'a> {
 	///     }
 	/// );
 	/// ```
-	InvalidValue {
-		argument: Args,
-		value: &'a str,
-		source: Option<ColorError>,
-	},
+	InvalidValue { argument: Args, value: &'a str, source: Option<ColorError> },
 
 	/// A flag that takes a value sat inside a short flag cluster instead of at its end
 	///
@@ -226,11 +222,7 @@ impl ParseError<'_> {
 	}
 
 	fn write_message(&self, f: &mut impl std::fmt::Write, color_enabled: bool) -> std::fmt::Result {
-		let open = if color_enabled {
-			Color::Yellow.ansi16_sgr().unwrap_or("")
-		} else {
-			""
-		};
+		let open = if color_enabled { Color::Yellow.ansi16_sgr().unwrap_or("") } else { "" };
 		let close = if color_enabled { Color::ANSI_RESET } else { "" };
 		let prompt = if color_enabled { PROMPT_COLORED } else { PROMPT_PLAIN };
 		let warning_open = if color_enabled { "\x1B[43m\x1B[30m" } else { "" };
@@ -252,16 +244,8 @@ impl ParseError<'_> {
 				write!(
 					f,
 					"{flag} Text was already supplied, so \"{open}{text}{close}\" can't be added\nUse --next for another text block, or --next-stdin to fill one from a pipe\n\n{}\n\n{}",
-					if color_enabled {
-						Args::Next.help_colored()
-					} else {
-						Args::Next.help_plain()
-					},
-					if color_enabled {
-						Args::NextStdin.help_colored()
-					} else {
-						Args::NextStdin.help_plain()
-					}
+					if color_enabled { Args::Next.help_colored() } else { Args::Next.help_plain() },
+					if color_enabled { Args::NextStdin.help_colored() } else { Args::NextStdin.help_plain() }
 				)
 			}
 			Self::UnknownFlag(unknown_flag) => {
@@ -281,18 +265,10 @@ impl ParseError<'_> {
 					f,
 					"{flag} The option \"{open}{}{close}\" was supplied but no value was given\n\n{}",
 					args.infos().long,
-					if color_enabled {
-						args.help_colored()
-					} else {
-						args.help_plain()
-					}
+					if color_enabled { args.help_colored() } else { args.help_plain() }
 				)
 			}
-			Self::InvalidValue {
-				argument: args,
-				value,
-				source,
-			} => {
+			Self::InvalidValue { argument: args, value, source } => {
 				write!(
 					f,
 					"{flag} The option \"{open}{}{close}\" was given an invalid value \"{open}{value}{close}\"",
@@ -303,26 +279,14 @@ impl ParseError<'_> {
 					write!(f, "\nCause: {source}")?;
 				}
 
-				write!(
-					f,
-					"\n\n{}",
-					if color_enabled {
-						args.help_colored()
-					} else {
-						args.help_plain()
-					}
-				)
+				write!(f, "\n\n{}", if color_enabled { args.help_colored() } else { args.help_plain() })
 			}
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
 					f,
 					"{flag} The option \"{open}{}{close}\" was supplied in a cluster without a value\nTo keep it in a cluster, make sure you add it to the end of it\n\n{}",
 					args.infos().long,
-					if color_enabled {
-						args.help_colored()
-					} else {
-						args.help_plain()
-					}
+					if color_enabled { args.help_colored() } else { args.help_plain() }
 				)
 			}
 			Self::BadGradientColors { count, transition } => {
@@ -330,21 +294,13 @@ impl ParseError<'_> {
 					write!(
 						f,
 						"{flag} A transition gradient holds at least two colors, this one holds {open}{count}{close}\n\n{}",
-						if color_enabled {
-							Args::Gradient.help_colored()
-						} else {
-							Args::Gradient.help_plain()
-						}
+						if color_enabled { Args::Gradient.help_colored() } else { Args::Gradient.help_plain() }
 					)
 				} else {
 					write!(
 						f,
 						"{flag} A gradient holds exactly two colors, this one holds {open}{count}{close}\nFor more colors use the transition gradient option\n\n{}",
-						if color_enabled {
-							Args::Gradient.help_colored()
-						} else {
-							Args::Gradient.help_plain()
-						}
+						if color_enabled { Args::Gradient.help_colored() } else { Args::Gradient.help_plain() }
 					)
 				}
 			}
@@ -353,16 +309,8 @@ impl ParseError<'_> {
 					f,
 					"{flag} \"{open}{}{close}\" was ignored because no gradient was specified\n\n{}\n\n{}",
 					args.infos().long,
-					if color_enabled {
-						Args::Gradient.help_colored()
-					} else {
-						Args::Gradient.help_plain()
-					},
-					if color_enabled {
-						args.help_colored()
-					} else {
-						args.help_plain()
-					}
+					if color_enabled { Args::Gradient.help_colored() } else { Args::Gradient.help_plain() },
+					if color_enabled { args.help_colored() } else { args.help_plain() }
 				)
 			}
 			Self::EmptyStdin => {
@@ -372,16 +320,8 @@ impl ParseError<'_> {
 				write!(
 					f,
 					"{flag} The stdin flag can't be used inside blocks,\nuse the --next-stdin flag instead\n\n{}\n\n{}",
-					if color_enabled {
-						Args::Stdin.help_colored()
-					} else {
-						Args::Stdin.help_plain()
-					},
-					if color_enabled {
-						Args::NextStdin.help_colored()
-					} else {
-						Args::NextStdin.help_plain()
-					}
+					if color_enabled { Args::Stdin.help_colored() } else { Args::Stdin.help_plain() },
+					if color_enabled { Args::NextStdin.help_colored() } else { Args::NextStdin.help_plain() }
 				)
 			}
 			Self::StdinUnreadable(stdin_error) => {
@@ -408,9 +348,7 @@ impl Display for ParseError<'_> {
 impl Error for ParseError<'_> {
 	fn source(&self) -> Option<&(dyn Error + 'static)> {
 		match self {
-			Self::InvalidValue {
-				source: Some(source), ..
-			} => Some(source),
+			Self::InvalidValue { source: Some(source), .. } => Some(source),
 			Self::StdinUnreadable(stdin_error) => Some(&stdin_error.0),
 			_ => None,
 		}
@@ -444,10 +382,7 @@ pub(crate) struct CliBlockOptions {
 impl CliBlockOptions {
 	/// Builds one text block and normalizes text to the supported uppercase glyph set
 	pub(crate) fn new(text: impl Into<String>) -> Self {
-		Self {
-			text: Some(text.into()),
-			..Default::default()
-		}
+		Self { text: Some(text.into()), ..Default::default() }
 	}
 }
 
@@ -509,23 +444,13 @@ impl TryFrom<ParseState> for Options {
 	type Error = ParseError<'static>;
 
 	fn try_from(state: ParseState) -> Result<Self, Self::Error> {
-		let ParseState {
-			options,
-			gradient,
-			independent,
-			transition,
-			..
-		} = state;
+		let ParseState { options, gradient, independent, transition, .. } = state;
 
 		let mut blocks = Vec::with_capacity(options.blocks.len());
 
 		for cli_block in options.blocks {
 			let Some(text) = cli_block.text else {
-				return Err(if cli_block.stdin {
-					ParseError::EmptyStdin
-				} else {
-					ParseError::NoTextSupplied
-				});
+				return Err(if cli_block.stdin { ParseError::EmptyStdin } else { ParseError::NoTextSupplied });
 			};
 
 			let mut block = cli_block.block;
@@ -549,29 +474,19 @@ impl TryFrom<ParseState> for Options {
 			Some(GradientInput::Stops(stops)) if transition => {
 				// the two stop minimum has one home: the TransitionStops constructor
 				let count = stops.len();
-				let stops = TransitionStops::try_from(stops).map_err(|_| ParseError::BadGradientColors {
-					count,
-					transition: true,
-				})?;
+				let stops =
+					TransitionStops::try_from(stops).map_err(|_| ParseError::BadGradientColors { count, transition: true })?;
 
-				converted.global_colors = Some(ColorOption::Gradient(GradientOption::Transition {
-					stops,
-					independent_gradient: independent,
-				}));
+				converted.global_colors =
+					Some(ColorOption::Gradient(GradientOption::Transition { stops, independent_gradient: independent }));
 			}
 			Some(GradientInput::Stops(stops)) => match stops.as_slice() {
 				&[start, end] => {
-					converted.global_colors = Some(ColorOption::Gradient(GradientOption::TwoStop {
-						start,
-						end,
-						independent_gradient: independent,
-					}));
+					converted.global_colors =
+						Some(ColorOption::Gradient(GradientOption::TwoStop { start, end, independent_gradient: independent }));
 				}
 				_ => {
-					return Err(ParseError::BadGradientColors {
-						count: stops.len(),
-						transition: false,
-					});
+					return Err(ParseError::BadGradientColors { count: stops.len(), transition: false });
 				}
 			},
 			// the transition and independent flags without a gradient have nothing to modify;
@@ -645,11 +560,7 @@ fn apply_with_value<'a>(
 	args_iter: &mut std::slice::Iter<'a, String>,
 	state: &mut ParseState,
 ) -> Result<(), ParseError<'a>> {
-	let value = if arg.infos().arguments.is_some() {
-		args_iter.next().map(String::as_str)
-	} else {
-		None
-	};
+	let value = if arg.infos().arguments.is_some() { args_iter.next().map(String::as_str) } else { None };
 
 	arg.apply(value, state)
 }
@@ -754,13 +665,7 @@ fn parse_args_with<'a>(
 		state.try_into()?
 	};
 
-	Ok(ParsedArgs {
-		warnings: std::mem::take(warnings),
-		options,
-		raw_mode,
-		show_help,
-		show_version,
-	})
+	Ok(ParsedArgs { warnings: std::mem::take(warnings), options, raw_mode, show_help, show_version })
 }
 
 #[cfg(test)]
@@ -768,10 +673,7 @@ pub(crate) mod helpers {
 	use super::*;
 
 	pub(crate) fn tty() -> StdinProvider {
-		StdinProvider {
-			interactive: true,
-			read: || panic!("stdin must never be read in this test"),
-		}
+		StdinProvider { interactive: true, read: || panic!("stdin must never be read in this test") }
 	}
 
 	pub(crate) fn args(list: &[&str]) -> Vec<String> {
@@ -836,10 +738,7 @@ mod gradient_resolution {
 
 		assert_eq!(
 			Options::try_from(with_gradient).unwrap_err(),
-			ParseError::BadGradientColors {
-				count: 3,
-				transition: false,
-			}
+			ParseError::BadGradientColors { count: 3, transition: false }
 		);
 	}
 
@@ -852,10 +751,9 @@ mod gradient_resolution {
 
 		let options: Options = with_gradient.try_into().unwrap();
 		match options.global_colors {
-			Some(ColorOption::Gradient(GradientOption::Transition {
-				stops,
-				independent_gradient: false,
-			})) => assert_eq!(stops.len(), 3),
+			Some(ColorOption::Gradient(GradientOption::Transition { stops, independent_gradient: false })) => {
+				assert_eq!(stops.len(), 3)
+			}
 			other => panic!("expected a transition gradient, got {other:?}"),
 		}
 	}
@@ -868,10 +766,7 @@ mod gradient_resolution {
 
 		assert_eq!(
 			Options::try_from(with_gradient).unwrap_err(),
-			ParseError::BadGradientColors {
-				count: 1,
-				transition: true,
-			}
+			ParseError::BadGradientColors { count: 1, transition: true }
 		);
 	}
 
@@ -913,10 +808,7 @@ mod gradient_resolution {
 
 	#[test]
 	fn bad_gradient_colors_are_hard_errors() {
-		let error = ParseError::BadGradientColors {
-			count: 1,
-			transition: false,
-		};
+		let error = ParseError::BadGradientColors { count: 1, transition: false };
 		assert_eq!(error.error_type(), ErrorType::Error);
 	}
 }
@@ -943,11 +835,9 @@ mod argument_parsing {
 
 	#[test]
 	fn boolean_flags_work_long_short_and_stacked() {
-		for invocation in [
-			args(&["my text", "--spaceless", "--raw-mode"]),
-			args(&["my text", "-s", "-r"]),
-			args(&["my text", "-sr"]),
-		] {
+		for invocation in
+			[args(&["my text", "--spaceless", "--raw-mode"]), args(&["my text", "-s", "-r"]), args(&["my text", "-sr"])]
+		{
 			let parsed = parse_args(&invocation, tty()).unwrap();
 			assert!(parsed.options.spaceless);
 			assert!(parsed.raw_mode);
@@ -962,10 +852,7 @@ mod argument_parsing {
 		let negative = args(&["my text", "-l", "-1"]);
 		assert!(matches!(
 			parse_args(&negative, tty()).unwrap_err().error,
-			ParseError::InvalidValue {
-				argument: Args::LetterSpacing,
-				..
-			}
+			ParseError::InvalidValue { argument: Args::LetterSpacing, .. }
 		));
 	}
 
@@ -1007,29 +894,18 @@ mod argument_parsing {
 		let unknown = args(&["my text", "-f", "unknown"]);
 		assert!(matches!(
 			parse_args(&unknown, tty()).unwrap_err().error,
-			ParseError::InvalidValue {
-				argument: Args::Font,
-				..
-			}
+			ParseError::InvalidValue { argument: Args::Font, .. }
 		));
 	}
 
 	#[test]
 	fn align_and_valign_parse_case_insensitively() {
-		for (value, expected) in [
-			("left", Align::Left),
-			("cEnTeR", Align::Center),
-			("RIGHT", Align::Right),
-		] {
+		for (value, expected) in [("left", Align::Left), ("cEnTeR", Align::Center), ("RIGHT", Align::Right)] {
 			let input = args(&["my text", "-a", value]);
 			assert_eq!(parse_args(&input, tty()).unwrap().options.align, expected, "{value}");
 		}
 
-		for (value, expected) in [
-			("top", Valign::Top),
-			("mIdDlE", Valign::Middle),
-			("BOTTOM", Valign::Bottom),
-		] {
+		for (value, expected) in [("top", Valign::Top), ("mIdDlE", Valign::Middle), ("BOTTOM", Valign::Bottom)] {
 			let input = args(&["my text", "-y", value]);
 			assert_eq!(parse_args(&input, tty()).unwrap().options.valign, expected, "{value}");
 		}
@@ -1050,11 +926,7 @@ mod argument_parsing {
 			);
 		}
 
-		let gray = Rgb {
-			red: 136,
-			green: 136,
-			blue: 136,
-		};
+		let gray = Rgb { red: 136, green: 136, blue: 136 };
 		for hex in ["#888", "#888888"] {
 			let input = args(&["my text", "-c", hex]);
 			assert_eq!(
@@ -1092,11 +964,7 @@ mod argument_parsing {
 			assert!(
 				matches!(
 					parse_args(&input, tty()).unwrap_err().error,
-					ParseError::InvalidValue {
-						argument: Args::Color,
-						source: Some(_),
-						..
-					}
+					ParseError::InvalidValue { argument: Args::Color, source: Some(_), .. }
 				),
 				"{bad_hex} must be rejected with a cause"
 			);
@@ -1110,13 +978,7 @@ mod argument_parsing {
 		for bad in ["", ",", "red,", ",red", "red, ,blue"] {
 			let input = args(&["my text", "-c", bad]);
 			assert!(
-				matches!(
-					parse_args(&input, tty()).unwrap_err().error,
-					ParseError::InvalidValue {
-						argument: Args::Color,
-						..
-					}
-				),
+				matches!(parse_args(&input, tty()).unwrap_err().error, ParseError::InvalidValue { argument: Args::Color, .. }),
 				"{bad:?} must be rejected"
 			);
 		}
@@ -1124,10 +986,7 @@ mod argument_parsing {
 		let gradient = args(&["my text", "-g", "red,"]);
 		assert!(matches!(
 			parse_args(&gradient, tty()).unwrap_err().error,
-			ParseError::InvalidValue {
-				argument: Args::Gradient,
-				..
-			}
+			ParseError::InvalidValue { argument: Args::Gradient, .. }
 		));
 	}
 
@@ -1156,19 +1015,13 @@ mod argument_parsing {
 		let one_stop_transition = args(&["my text", "-g", "red", "-t"]);
 		assert_eq!(
 			parse_args(&one_stop_transition, tty()).unwrap_err().error,
-			ParseError::BadGradientColors {
-				count: 1,
-				transition: true,
-			}
+			ParseError::BadGradientColors { count: 1, transition: true }
 		);
 
 		let three_without_transition = args(&["my text", "-g", "red,green,blue"]);
 		assert_eq!(
 			parse_args(&three_without_transition, tty()).unwrap_err().error,
-			ParseError::BadGradientColors {
-				count: 3,
-				transition: false,
-			}
+			ParseError::BadGradientColors { count: 3, transition: false }
 		);
 
 		let three_with_transition = args(&["my text", "-g", "red,green,blue", "-t"]);
@@ -1275,10 +1128,9 @@ mod argument_parsing {
 			assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 
 			match &parsed.options.global_colors {
-				Some(ColorOption::Gradient(GradientOption::Transition {
-					stops,
-					independent_gradient: true,
-				})) => assert_eq!(stops.len(), 2),
+				Some(ColorOption::Gradient(GradientOption::Transition { stops, independent_gradient: true })) => {
+					assert_eq!(stops.len(), 2)
+				}
 				other => panic!("expected an independent transition gradient, got {other:?}"),
 			}
 		}
@@ -1343,10 +1195,7 @@ mod preset_tests {
 		let independent = args(&["my text", "-g", "pride", "-i"]);
 		assert_eq!(
 			parse_args(&independent, tty()).unwrap().options.global_colors,
-			Some(ColorOption::Gradient(GradientOption::Preset {
-				preset: GradientPreset::Pride,
-				independent_gradient: true,
-			}))
+			Some(ColorOption::Gradient(GradientOption::Preset { preset: GradientPreset::Pride, independent_gradient: true }))
 		);
 
 		// presets are bundled transitions; a redundant -t neither errors nor warns
@@ -1430,10 +1279,7 @@ mod block_composition {
 		let unknown = args(&["my text", "-y", "diagonal"]);
 		assert!(matches!(
 			parse_args(&unknown, tty()).unwrap_err().error,
-			ParseError::InvalidValue {
-				argument: Args::Valign,
-				..
-			}
+			ParseError::InvalidValue { argument: Args::Valign, .. }
 		));
 	}
 
@@ -1528,10 +1374,7 @@ mod stdin_handling {
 	use std::sync::atomic::{AtomicUsize, Ordering};
 
 	fn piped(read: fn() -> io::Result<String>) -> StdinProvider {
-		StdinProvider {
-			interactive: false,
-			read,
-		}
+		StdinProvider { interactive: false, read }
 	}
 
 	#[test]
@@ -1708,25 +1551,11 @@ mod error_messages {
 			ParseError::UnknownShortFlag('u'),
 			ParseError::DelimiterIgnored,
 			ParseError::MissingValue(Args::Font),
-			ParseError::InvalidValue {
-				argument: Args::Color,
-				value: "nope",
-				source: None,
-			},
-			ParseError::InvalidValue {
-				argument: Args::Color,
-				value: "#zz",
-				source: Some(ColorError::HexCharacter),
-			},
+			ParseError::InvalidValue { argument: Args::Color, value: "nope", source: None },
+			ParseError::InvalidValue { argument: Args::Color, value: "#zz", source: Some(ColorError::HexCharacter) },
 			ParseError::MidClusterArgumentRequired(Args::Font),
-			ParseError::BadGradientColors {
-				count: 3,
-				transition: false,
-			},
-			ParseError::BadGradientColors {
-				count: 1,
-				transition: true,
-			},
+			ParseError::BadGradientColors { count: 3, transition: false },
+			ParseError::BadGradientColors { count: 1, transition: true },
 			ParseError::GradientFlagIgnored(Args::IndependentGradient),
 			ParseError::EmptyStdin,
 			ParseError::StdinInsideBlock,

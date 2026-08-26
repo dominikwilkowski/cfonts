@@ -48,13 +48,7 @@ impl Cfonts {
 	/// assert_eq!(options.blocks[0].font, Font::Tiny);
 	/// ```
 	pub fn text(input: impl Into<String>) -> Self {
-		Self {
-			options: Options {
-				blocks: vec![BlockOptions::new(input)],
-				..Default::default()
-			},
-			_state: PhantomData,
-		}
+		Self { options: Options { blocks: vec![BlockOptions::new(input)], ..Default::default() }, _state: PhantomData }
 	}
 }
 
@@ -351,10 +345,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 		let mut options = self.options;
 		options.align = align;
 
-		Cfonts {
-			options,
-			_state: PhantomData,
-		}
+		Cfonts { options, _state: PhantomData }
 	}
 
 	/// Sets the vertical alignment used when blocks with different font heights share a line
@@ -381,10 +372,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 		let mut options = self.options;
 		options.valign = valign;
 
-		Cfonts {
-			options,
-			_state: PhantomData,
-		}
+		Cfonts { options, _state: PhantomData }
 	}
 
 	/// Controls whether the environment adds its usual top and bottom padding
@@ -411,10 +399,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 		let mut options = self.options;
 		options.spaceless = true;
 
-		Cfonts {
-			options,
-			_state: PhantomData,
-		}
+		Cfonts { options, _state: PhantomData }
 	}
 
 	/// Sets the maximum number of printable glyphs per rendered line
@@ -442,10 +427,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 		let mut options = self.options;
 		options.max_length = NonZeroUsize::new(max_length);
 
-		Cfonts {
-			options,
-			_state: PhantomData,
-		}
+		Cfonts { options, _state: PhantomData }
 	}
 
 	/// Sets the colors or a gradient across the whole composition
@@ -486,10 +468,7 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 		let mut options = self.options;
 		options.global_colors = Some(color.into());
 
-		Cfonts {
-			options,
-			_state: PhantomData,
-		}
+		Cfonts { options, _state: PhantomData }
 	}
 }
 
@@ -554,11 +533,8 @@ mod tests {
 		let options: Options = Cfonts::text("hello").global_colors(vec![Color::Red, Color::System]).into();
 		assert_eq!(options.global_colors, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
 
-		let two_stop = GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: true,
-		};
+		let two_stop =
+			GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: true };
 		let options: Options = Cfonts::text("hello").global_colors(two_stop.clone()).into();
 		assert_eq!(options.global_colors, Some(ColorOption::Gradient(two_stop)));
 

@@ -63,10 +63,7 @@ impl Cfonts {
 	pub fn text(input: String) -> Self {
 		let options: Options = CoreCfonts::text(input).into();
 
-		Self {
-			options,
-			configured_globals: 0,
-		}
+		Self { options, configured_globals: 0 }
 	}
 
 	/// Starts a new text block
@@ -245,11 +242,7 @@ fn color_error(input: &str, error: ColorError) -> JsError {
 
 /// Builds the two stop boundary gradient from its stop strings
 fn two_stop(start: &str, end: &str, independent_gradient: bool) -> Result<GradientOption, JsError> {
-	Ok(GradientOption::TwoStop {
-		start: parse_stop(start)?,
-		end: parse_stop(end)?,
-		independent_gradient,
-	})
+	Ok(GradientOption::TwoStop { start: parse_stop(start)?, end: parse_stop(end)?, independent_gradient })
 }
 
 /// Builds the transition boundary gradient from its stop strings

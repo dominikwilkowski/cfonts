@@ -65,13 +65,7 @@ fn main() -> ExitCode {
 	};
 
 	// parsing args
-	let ParsedArgs {
-		options,
-		warnings,
-		raw_mode,
-		show_help,
-		show_version,
-	} = match parse_args(&args, std_provider) {
+	let ParsedArgs { options, warnings, raw_mode, show_help, show_version } = match parse_args(&args, std_provider) {
 		Ok(parsed) => parsed,
 		Err(failure) => {
 			emit_stderr(&failure);

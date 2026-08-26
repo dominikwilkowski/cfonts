@@ -51,10 +51,7 @@ impl Environment for BrowserEnv {
 		}
 
 		match color.to_rgb() {
-			Some(rgb) => ColorTokens {
-				start: Cow::Owned(rgb.to_hex()),
-				end: Cow::Borrowed(""),
-			},
+			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_hex()), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
 	}
@@ -115,19 +112,7 @@ mod tests {
 		let context = RenderContext::colored(ColorLevel::Basic);
 
 		assert_eq!(BrowserEnv.color_tokens(Color::Red, &context).start, "#ea3223");
-		assert_eq!(
-			BrowserEnv
-				.color_tokens(
-					Color::Rgb(Rgb {
-						red: 1,
-						green: 2,
-						blue: 3,
-					}),
-					&context,
-				)
-				.start,
-			"#010203"
-		);
+		assert_eq!(BrowserEnv.color_tokens(Color::Rgb(Rgb { red: 1, green: 2, blue: 3 }), &context,).start, "#010203");
 		assert!(!BrowserEnv.color_tokens(Color::System, &context).paints());
 		assert!(!BrowserEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
 	}
@@ -138,10 +123,7 @@ mod tests {
 	fn paint_escapes_the_text_but_not_the_color_markup() {
 		// the console font's `&` glyph and simple3d's `</` art must not parse as HTML
 		let mut out = Rendered::default();
-		let tokens = ColorTokens {
-			start: Cow::Borrowed("red"),
-			end: Cow::Borrowed(""),
-		};
+		let tokens = ColorTokens { start: Cow::Borrowed("red"), end: Cow::Borrowed("") };
 		BrowserEnv.paint("</&>", &tokens, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
 	}

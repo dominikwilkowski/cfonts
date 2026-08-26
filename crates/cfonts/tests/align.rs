@@ -252,11 +252,7 @@ fn align_is_global_ignores_setter_position() {
 	assert_eq!(rendered1.text.matches("text-align:left").count(), 1);
 
 	let expected = &rendered1.text;
-	for (name, rendered) in [
-		("rendered2", &rendered2),
-		("rendered3", &rendered3),
-		("rendered4", &rendered4),
-	] {
+	for (name, rendered) in [("rendered2", &rendered2), ("rendered3", &rendered3), ("rendered4", &rendered4)] {
 		assert_eq!(&rendered.text, expected, "{name} differs from rendered1");
 	}
 }

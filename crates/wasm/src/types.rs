@@ -141,10 +141,7 @@ pub struct Rendered {
 
 impl From<CoreRendered> for Rendered {
 	fn from(rendered: CoreRendered) -> Self {
-		Self {
-			text: rendered.text,
-			styles: rendered.styles,
-		}
+		Self { text: rendered.text, styles: rendered.styles }
 	}
 }
 

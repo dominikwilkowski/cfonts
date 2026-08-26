@@ -38,10 +38,7 @@ impl RustHost {
 	/// Creates a native host with explicit overrides
 	#[must_use]
 	pub fn from_overrides(overrides: RenderOverrides) -> Self {
-		Self {
-			overrides,
-			environment: CliEnv::default(),
-		}
+		Self { overrides, environment: CliEnv::default() }
 	}
 }
 
@@ -224,16 +221,9 @@ mod tests {
 	fn forced_junk_resolves_through_the_real_environment_without_detection() {
 		// junk forces basic and beats NO_COLOR; the detection library never runs,
 		// so its own reading of FORCE_COLOR cannot reinterpret the value
-		temp_env::with_vars(
-			[
-				("FORCE_SIZE", None::<&str>),
-				("FORCE_COLOR", Some("junk")),
-				("NO_COLOR", Some("")),
-			],
-			|| {
-				assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));
-			},
-		);
+		temp_env::with_vars([("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", Some("junk")), ("NO_COLOR", Some(""))], || {
+			assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));
+		});
 	}
 
 	#[test]
@@ -282,11 +272,7 @@ mod tests {
 	#[test]
 	fn the_context_carries_the_seed_override() {
 		temp_env::with_vars(
-			[
-				("FORCE_SIZE", None::<&str>),
-				("FORCE_COLOR", None::<&str>),
-				("NO_COLOR", None::<&str>),
-			],
+			[("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", None::<&str>), ("NO_COLOR", None::<&str>)],
 			|| {
 				let host = RustHost::from_overrides(RenderOverrides::default().with_seed(42));
 
@@ -298,11 +284,7 @@ mod tests {
 	#[test]
 	fn the_context_seeds_itself_without_an_override() {
 		temp_env::with_vars(
-			[
-				("FORCE_SIZE", None::<&str>),
-				("FORCE_COLOR", None::<&str>),
-				("NO_COLOR", None::<&str>),
-			],
+			[("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", None::<&str>), ("NO_COLOR", None::<&str>)],
 			|| {
 				let one = RustHost::default().resolve_context().seed();
 				let two = RustHost::default().resolve_context().seed();
@@ -346,21 +328,14 @@ mod tests {
 	#[test]
 	fn with_raw_mode_reaches_the_rendered_output() {
 		// the host builds its environment before options exist, so the raw flag arrives through the builder method
-		temp_env::with_vars(
-			[
-				("FORCE_SIZE", None::<&str>),
-				("FORCE_COLOR", Some("0")),
-				("NO_COLOR", None),
-			],
-			|| {
-				let options = crate::Options::from(crate::Cfonts::text("A").font(crate::Font::Tiny));
-				let raw = RustHost::default().with_raw_mode(true).render(&options);
-				let neutral = RustHost::default().with_raw_mode(false).render(&options);
+		temp_env::with_vars([("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", Some("0")), ("NO_COLOR", None)], || {
+			let options = crate::Options::from(crate::Cfonts::text("A").font(crate::Font::Tiny));
+			let raw = RustHost::default().with_raw_mode(true).render(&options);
+			let neutral = RustHost::default().with_raw_mode(false).render(&options);
 
-				assert!(raw.text.contains("\r\n"));
-				assert!(!neutral.text.contains('\r'));
-			},
-		);
+			assert!(raw.text.contains("\r\n"));
+			assert!(!neutral.text.contains('\r'));
+		});
 	}
 
 	#[test]

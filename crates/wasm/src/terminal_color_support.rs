@@ -43,10 +43,7 @@ pub fn detect_color_support(
 	TerminalColorSupport {
 		attached,
 		environment: &environment,
-		windows_console: windows_build.map(|build| WindowsConsole {
-			ansi_enabled: true,
-			build,
-		}),
+		windows_console: windows_build.map(|build| WindowsConsole { ansi_enabled: true, build }),
 		override_color,
 		fallback: Some(cfonts::ColorLevel::TrueColor),
 	}

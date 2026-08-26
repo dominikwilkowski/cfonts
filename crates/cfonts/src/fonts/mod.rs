@@ -72,10 +72,7 @@ pub struct GlyphRef {
 
 impl<const ROWS: usize> From<&'static Glyph<ROWS>> for GlyphRef {
 	fn from(glyph: &'static Glyph<ROWS>) -> Self {
-		Self {
-			rows: &glyph.rows[..],
-			width: glyph.width,
-		}
+		Self { rows: &glyph.rows[..], width: glyph.width }
 	}
 }
 
@@ -191,17 +188,11 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 	}
 
 	fn buffer_start(&self) -> GlyphRef {
-		GlyphRef {
-			rows: self.buffer_start,
-			width: self.buffer_size,
-		}
+		GlyphRef { rows: self.buffer_start, width: self.buffer_size }
 	}
 
 	fn buffer_end(&self) -> GlyphRef {
-		GlyphRef {
-			rows: self.buffer_end,
-			width: self.buffer_size,
-		}
+		GlyphRef { rows: self.buffer_end, width: self.buffer_size }
 	}
 
 	fn letter_space(&self) -> GlyphRef {
@@ -210,11 +201,7 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 
 	fn get_glyph(&self, character: char) -> Option<GlyphRef> {
 		let index = character as usize;
-		if index < self.glyphs.len() {
-			self.glyphs[index].map(GlyphRef::from)
-		} else {
-			None
-		}
+		if index < self.glyphs.len() { self.glyphs[index].map(GlyphRef::from) } else { None }
 	}
 }
 
@@ -317,12 +304,8 @@ mod tests {
 	static DEAD_SLOT_FIXTURE: FontFile<1> = FontFile {
 		name: "dead-slot-fixture",
 		colors: 3,
-		buffer_start: &[GlyphRow {
-			segments: &[Segment::Plain("")],
-		}],
-		buffer_end: &[GlyphRow {
-			segments: &[Segment::Plain("")],
-		}],
+		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
 		letter_space: glyph!(r" "),
 		glyphs: {
@@ -336,12 +319,8 @@ mod tests {
 	static OUT_OF_RANGE_FIXTURE: FontFile<1> = FontFile {
 		name: "out-of-range-fixture",
 		colors: 2,
-		buffer_start: &[GlyphRow {
-			segments: &[Segment::Plain("")],
-		}],
-		buffer_end: &[GlyphRow {
-			segments: &[Segment::Plain("")],
-		}],
+		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
 		letter_space: glyph!(r" "),
 		glyphs: {
@@ -387,10 +366,8 @@ mod tests {
 	}
 
 	pub(crate) fn assert_buffers_plain<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (label, buffer) in [
-			("buffer_start", font.buffer_start.as_slice()),
-			("buffer_end", font.buffer_end.as_slice()),
-		] {
+		for (label, buffer) in [("buffer_start", font.buffer_start.as_slice()), ("buffer_end", font.buffer_end.as_slice())]
+		{
 			for (row, glyph_row) in buffer.iter().enumerate() {
 				for segment in glyph_row.segments {
 					assert!(

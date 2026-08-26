@@ -42,11 +42,7 @@ fn main() -> std::io::Result<()> {
 		.colors(vec![Color::Yellow, Color::Blue])
 		.new_text(" there")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Blue,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false })
 		.into();
 
 	enable_raw_mode()?;
