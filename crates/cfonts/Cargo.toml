@@ -9,6 +9,7 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 documentation = "https://docs.rs/cfonts/"
+readme = "../../README.md"
 keywords = ["fonts", "color", "console", "ascii", "ANSI"]
 categories = ["command-line-interface", "command-line-utilities", "graphics"]
 include = [
@@ -16,8 +17,7 @@ include = [
 	"!**/.DS_Store",
 	"examples/**",
 	"Cargo.toml",
-	"../../README.md",
-	"../../LICENSE",
+	"LICENSE",
 ]
 
 [dependencies]

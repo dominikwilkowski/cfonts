@@ -169,6 +169,20 @@ jobs:
       - name: Check the core WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
 
+      - name: Check the packages carry license and readme
+        run: |
+          cargo package --list -p cfonts --allow-dirty | grep --line-regexp LICENSE
+          cargo package --list -p cfonts --allow-dirty | grep --line-regexp README.md
+          cargo package --list -p cfonts-macros --allow-dirty | grep --line-regexp LICENSE
+          npm pack --dry-run --json | node -e "
+          const [pack] = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+          const files = new Set(pack.files.map((file) => file.path));
+          if (!files.has('LICENSE') || !files.has('README.md')) {
+           	console.error('the npm package must carry LICENSE and README.md');
+           	process.exit(1);
+          }
+          "
+
       - name: Check the ratatui feature on the WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
 
