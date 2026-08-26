@@ -166,8 +166,8 @@ impl Rgb {
 			50..=51 | 86..=87 | 121..=123 | 158..=159 => "\x1b[96m",
 			52..=54 | 88..=90 | 124..=126 | 166..=168 => "\x1b[31m",
 			55..=57 | 91..=93 | 96..=99 | 127..=129 | 132..=135 | 139..=141 | 145..=147 | 169..=171 | 175..=177 => "\x1b[35m",
-			160..=163 | 196..=199 | 202..=213 => "\x1b[91m",
-			164..=165 | 182..=183 | 200..=201 | 218..=219 => "\x1b[95m",
+			160..=163 | 196..=199 | 202..=205 | 208..=211 => "\x1b[91m",
+			164..=165 | 182..=183 | 200..=201 | 206..=207 | 212..=213 | 218..=219 => "\x1b[95m",
 			190..=193 | 214..=217 | 220..=228 => "\x1b[93m",
 			194..=195 | 229..=231 | 253..=255 => "\x1b[97m",
 			232..=239 => "\x1b[30m",
@@ -653,6 +653,16 @@ mod tests {
 		assert_eq!(Rgb { red: 255, green: 255, blue: 0 }.ansi16_sgr(), "\x1b[93m");
 		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.ansi16_sgr(), "\x1b[97m");
 		assert_eq!(Rgb { red: 157, green: 5, blue: 98 }.ansi16_sgr(), "\x1b[31m");
+	}
+
+	#[test]
+	fn bright_magenta_agrees_between_named_and_hex() {
+		// the slot value classified through the palette must land on the same
+		// code the named color pins
+		let hex = Color::MagentaBright.to_rgb().expect("MagentaBright carries a value");
+		let named = Color::MagentaBright.ansi16_sgr().expect("MagentaBright has a fixed code");
+
+		assert_eq!(hex.ansi16_sgr(), named);
 	}
 
 	// Color::from_name
