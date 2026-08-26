@@ -75,7 +75,7 @@ impl Align {
 /// Options for one text block in a composed render
 ///
 /// A block owns the text plus settings that may differ from neighbouring blocks, such as font, spacing, color mode, and word wrapping
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BlockOptions {
 	/// Text for this block
 	///
@@ -123,7 +123,16 @@ impl BlockOptions {
 	}
 
 	/// Replaces this block's text, normalizing to the supported uppercase glyph set
-	pub(crate) fn set_text(&mut self, text: impl Into<String>) {
+	///
+	/// ```
+	/// use cfonts::BlockOptions;
+	///
+	/// let mut block = BlockOptions::new("hello");
+	/// block.set_text("world");
+	///
+	/// assert_eq!(block.text(), "WORLD");
+	/// ```
+	pub fn set_text(&mut self, text: impl Into<String>) {
 		let mut text = text.into();
 		text.make_ascii_uppercase();
 		self.text = text;
