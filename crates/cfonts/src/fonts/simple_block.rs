@@ -564,32 +564,32 @@ mod tests {
 	};
 
 	#[test]
-	fn simple_block_test_all_supported_glyphs_defined() {
+	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_SIMPLE_BLOCK);
 	}
 
 	#[test]
-	fn simple_block_test_colors_all_used() {
+	fn colors_all_used() {
 		assert_colors_all_used(&super::FONT_SIMPLE_BLOCK);
 	}
 
 	#[test]
-	fn simple_block_test_buffer_start_size() {
+	fn buffer_start_size() {
 		assert_buffer_start_size(&super::FONT_SIMPLE_BLOCK);
 	}
 
 	#[test]
-	fn simple_block_test_buffer_end_size() {
+	fn buffer_end_size() {
 		assert_buffer_end_size(&super::FONT_SIMPLE_BLOCK);
 	}
 
 	#[test]
-	fn simple_block_test_buffers_plain() {
+	fn buffers_plain() {
 		assert_buffers_plain(&super::FONT_SIMPLE_BLOCK);
 	}
 
 	#[test]
-	fn simple_block_test_buffers_complementary() {
+	fn buffers_complementary() {
 		assert_buffers_complementary(&super::FONT_SIMPLE_BLOCK);
 	}
 }
