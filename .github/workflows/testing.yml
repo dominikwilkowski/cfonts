@@ -144,6 +144,9 @@ jobs:
       - name: Check the core WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
 
+      - name: Check the ratatui feature on the WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
+
       - name: Check framework examples
         run: pnpm run test:frameworks
         env:
