@@ -444,64 +444,48 @@ impl Args {
 		crate::RustHost::stderr_color_level().is_some()
 	}
 
-	/// The styled help line, built at compile time
-	pub(crate) const fn help_colored(self) -> &'static str {
+	/// The colored and plain help lines, built at compile time from one variant list
+	const fn help_pair(self) -> (&'static str, &'static str) {
 		match self {
 			// Global config
-			Self::Align => help_line!(Args::Align, true),
-			Self::Valign => help_line!(Args::Valign, true),
-			Self::Spaceless => help_line!(Args::Spaceless, true),
-			Self::MaxLength => help_line!(Args::MaxLength, true),
-			Self::Stdin => help_line!(Args::Stdin, true),
-			Self::RawMode => help_line!(Args::RawMode, true),
+			Self::Align => (help_line!(Args::Align, true), help_line!(Args::Align, false)),
+			Self::Valign => (help_line!(Args::Valign, true), help_line!(Args::Valign, false)),
+			Self::Spaceless => (help_line!(Args::Spaceless, true), help_line!(Args::Spaceless, false)),
+			Self::MaxLength => (help_line!(Args::MaxLength, true), help_line!(Args::MaxLength, false)),
+			Self::Stdin => (help_line!(Args::Stdin, true), help_line!(Args::Stdin, false)),
+			Self::RawMode => (help_line!(Args::RawMode, true), help_line!(Args::RawMode, false)),
 
 			// Block config
-			Self::Next => help_line!(Args::Next, true),
-			Self::NextStdin => help_line!(Args::NextStdin, true),
-			Self::Font => help_line!(Args::Font, true),
-			Self::Color => help_line!(Args::Color, true),
-			Self::Background => help_line!(Args::Background, true),
-			Self::LetterSpacing => help_line!(Args::LetterSpacing, true),
-			Self::LineHeight => help_line!(Args::LineHeight, true),
-			Self::WordWrap => help_line!(Args::WordWrap, true),
+			Self::Next => (help_line!(Args::Next, true), help_line!(Args::Next, false)),
+			Self::NextStdin => (help_line!(Args::NextStdin, true), help_line!(Args::NextStdin, false)),
+			Self::Font => (help_line!(Args::Font, true), help_line!(Args::Font, false)),
+			Self::Color => (help_line!(Args::Color, true), help_line!(Args::Color, false)),
+			Self::Background => (help_line!(Args::Background, true), help_line!(Args::Background, false)),
+			Self::LetterSpacing => (help_line!(Args::LetterSpacing, true), help_line!(Args::LetterSpacing, false)),
+			Self::LineHeight => (help_line!(Args::LineHeight, true), help_line!(Args::LineHeight, false)),
+			Self::WordWrap => (help_line!(Args::WordWrap, true), help_line!(Args::WordWrap, false)),
 
 			// CLI specific config
-			Self::Gradient => help_line!(Args::Gradient, true),
-			Self::IndependentGradient => help_line!(Args::IndependentGradient, true),
-			Self::TransitionGradient => help_line!(Args::TransitionGradient, true),
-			Self::Version => help_line!(Args::Version, true),
-			Self::Help => help_line!(Args::Help, true),
+			Self::Gradient => (help_line!(Args::Gradient, true), help_line!(Args::Gradient, false)),
+			Self::IndependentGradient => {
+				(help_line!(Args::IndependentGradient, true), help_line!(Args::IndependentGradient, false))
+			}
+			Self::TransitionGradient => {
+				(help_line!(Args::TransitionGradient, true), help_line!(Args::TransitionGradient, false))
+			}
+			Self::Version => (help_line!(Args::Version, true), help_line!(Args::Version, false)),
+			Self::Help => (help_line!(Args::Help, true), help_line!(Args::Help, false)),
 		}
+	}
+
+	/// The colored help line, built at compile time
+	pub(crate) const fn help_colored(self) -> &'static str {
+		self.help_pair().0
 	}
 
 	/// The plain help line, built at compile time
 	pub(crate) const fn help_plain(self) -> &'static str {
-		match self {
-			// Global config
-			Self::Align => help_line!(Args::Align, false),
-			Self::Valign => help_line!(Args::Valign, false),
-			Self::Spaceless => help_line!(Args::Spaceless, false),
-			Self::MaxLength => help_line!(Args::MaxLength, false),
-			Self::Stdin => help_line!(Args::Stdin, false),
-			Self::RawMode => help_line!(Args::RawMode, false),
-
-			// Block config
-			Self::Next => help_line!(Args::Next, false),
-			Self::NextStdin => help_line!(Args::NextStdin, false),
-			Self::Font => help_line!(Args::Font, false),
-			Self::Color => help_line!(Args::Color, false),
-			Self::Background => help_line!(Args::Background, false),
-			Self::LetterSpacing => help_line!(Args::LetterSpacing, false),
-			Self::LineHeight => help_line!(Args::LineHeight, false),
-			Self::WordWrap => help_line!(Args::WordWrap, false),
-
-			// CLI specific config
-			Self::Gradient => help_line!(Args::Gradient, false),
-			Self::IndependentGradient => help_line!(Args::IndependentGradient, false),
-			Self::TransitionGradient => help_line!(Args::TransitionGradient, false),
-			Self::Version => help_line!(Args::Version, false),
-			Self::Help => help_line!(Args::Help, false),
-		}
+		self.help_pair().1
 	}
 }
 

@@ -4,52 +4,11 @@
 pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
 pub(crate) const PROMPT_PLAIN: &str = "  $";
 
-/// The summed byte length of all parts, computed at compile time
-pub(crate) const fn total_len(parts: &[&str]) -> usize {
-	let mut length = 0;
-	let mut index = 0;
-
-	while index < parts.len() {
-		length += parts[index].len();
-		index += 1;
-	}
-
-	length
-}
-
-/// Copies all parts into one fixed buffer, computed at compile time
-pub(crate) const fn concat_into<const LENGTH: usize>(parts: &[&str]) -> [u8; LENGTH] {
-	let mut buffer = [0u8; LENGTH];
-	let mut offset = 0;
-	let mut part_index = 0;
-
-	while part_index < parts.len() {
-		let bytes = parts[part_index].as_bytes();
-		let mut byte_index = 0;
-
-		while byte_index < bytes.len() {
-			buffer[offset] = bytes[byte_index];
-			offset += 1;
-			byte_index += 1;
-		}
-
-		part_index += 1;
-	}
-
-	buffer
-}
-
 /// Concatenates `&'static str` parts into one `&'static str` at compile time
 macro_rules! const_concat {
 	($($part:expr),+ $(,)?) => {{
 		const PARTS: &[&str] = &[$($part),+];
-		const LENGTH: usize = crate::cli::helper::total_len(PARTS);
-		const BUFFER: [u8; LENGTH] = crate::cli::helper::concat_into(PARTS);
-		const TEXT: &str = match std::str::from_utf8(&BUFFER) {
-			Ok(text) => text,
-			Err(_) => panic!("concatenating valid utf8 always yields valid utf8"),
-		};
-		TEXT
+		crate::cli::helper::const_join!(PARTS, "")
 	}};
 }
 pub(crate) use const_concat;
@@ -125,37 +84,19 @@ mod tests {
 	use std::hint::black_box;
 
 	#[test]
-	fn total_len_of_no_parts_is_zero() {
-		let parts: &[&str] = &[];
-
-		let length = total_len(black_box(parts));
-
-		assert_eq!(length, 0);
-	}
-
-	#[test]
-	fn total_len_counts_utf8_bytes_across_empty_parts() {
+	fn joined_len_with_an_empty_separator_counts_only_the_parts() {
 		let parts: &[&str] = &["é", "", "\0", "", "🦀"];
 
-		let length = total_len(black_box(parts));
+		let length = joined_len(black_box(parts), black_box(""));
 
 		assert_eq!(length, 7);
 	}
 
 	#[test]
-	fn concat_into_accepts_no_parts_and_a_zero_length_buffer() {
-		let parts: &[&str] = &[];
-
-		let buffer: [u8; 0] = concat_into(black_box(parts));
-
-		assert!(buffer.is_empty());
-	}
-
-	#[test]
-	fn concat_into_copies_utf8_and_nuls_across_empty_parts() {
+	fn join_into_with_an_empty_separator_concatenates() {
 		let parts: &[&str] = &["é", "", "\0", "", "🦀"];
 
-		let buffer: [u8; 7] = concat_into(black_box(parts));
+		let buffer: [u8; 7] = join_into(black_box(parts), black_box(""));
 
 		assert_eq!(buffer, [0xc3, 0xa9, 0x00, 0xf0, 0x9f, 0xa6, 0x80]);
 	}

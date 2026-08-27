@@ -174,6 +174,8 @@ jobs:
           cargo package --list -p cfonts --allow-dirty | grep --line-regexp LICENSE
           cargo package --list -p cfonts --allow-dirty | grep --line-regexp README.md
           cargo package --list -p cfonts-macros --allow-dirty | grep --line-regexp LICENSE
+          diff LICENSE crates/cfonts/LICENSE
+          diff LICENSE crates/macros/LICENSE
           npm pack --dry-run --json | node -e "
           const [pack] = JSON.parse(require('fs').readFileSync(0, 'utf8'));
           const files = new Set(pack.files.map((file) => file.path));
