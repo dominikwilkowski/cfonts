@@ -1,10 +1,15 @@
 use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
 
+use crate::glyph_macro::compile_error;
+
 pub(crate) fn derive_all(input: TokenStream) -> TokenStream {
 	match expand(input) {
 		Ok(generated) => generated,
 		Err(message) => {
-			format!("compile_error!({message:?});").parse().expect("compile_error! with a string literal always parses")
+			// derive output sits in item position, so the invocation takes its semicolon
+			let mut error = compile_error(&message);
+			error.extend(";".parse::<TokenStream>().expect("a semicolon always parses"));
+			error
 		}
 	}
 }

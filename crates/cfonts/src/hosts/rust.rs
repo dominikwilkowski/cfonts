@@ -56,7 +56,7 @@ impl Host for RustHost {
 	}
 
 	fn resolve_context(&self) -> RenderContext {
-		let forced_width = std::env::var("FORCE_SIZE").ok();
+		let forced_width = TerminalColorSupport::process_environment("FORCE_SIZE");
 		let width =
 			Self::resolve_canvas_width(forced_width.as_deref(), self.overrides.canvas_width(), Self::detect_canvas_width);
 

@@ -206,7 +206,7 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
 	use super::*;
 	use crate::SUPPORTED_CHARS;
 	use cfonts_macros::glyph;
@@ -343,7 +343,7 @@ mod tests {
 	}
 
 	/// Column width of a single row: the char count across all its segments
-	fn row_width(row: &GlyphRow) -> usize {
+	pub(crate) fn row_width(row: &GlyphRow) -> usize {
 		row.segments.iter().map(|segment| segment.parts().0.chars().count()).sum()
 	}
 

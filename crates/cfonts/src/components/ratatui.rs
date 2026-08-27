@@ -10,10 +10,11 @@ use ::ratatui::{
 
 use crate::{
 	color::Color,
+	components::render_context,
 	environments::RowEvent,
 	layout::Layout,
 	options::Options,
-	render::{ColorLevel, GradientPlans, PaintDomain, PaintPlan, RenderContext},
+	render::{GradientPlans, PaintDomain, PaintPlan},
 };
 
 /// A Ratatui widget that renders cfonts directly into a terminal buffer
@@ -68,7 +69,7 @@ impl Widget for &CfontsWidget<'_> {
 		}
 
 		let rows = Layout::build(self.options, Some(area.width as usize)).into_rows();
-		let context = RenderContext::colored(ColorLevel::TrueColor).with_seed(self.seed);
+		let context = render_context(self.seed);
 		let mut plan = PaintPlan::build(self.options, &context, style_for);
 		let mut gradients = GradientPlans::build(self.options, &context, &rows);
 

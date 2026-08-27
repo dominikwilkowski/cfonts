@@ -44,7 +44,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 	output.push_str(&banner.text);
 	output.push_str(USAGE);
 	for arg in Args::ALL {
-		let line = if styled { arg.help_colored() } else { arg.help_plain() };
+		let line = arg.help(styled);
 		output.push_str(line);
 		output.push_str("\n\n");
 	}

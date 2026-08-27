@@ -11,11 +11,6 @@ use cfonts::{
 
 // helpers
 
-/// The real process environment, read the way the one-shot binding reads it
-fn process_environment(name: &str) -> Option<String> {
-	std::env::var_os(name).map(|value| value.to_string_lossy().into_owned())
-}
-
 /// Every variable the resolution reads: the named ones are set, the rest cleared
 fn with_environment<T>(vars: &[(&str, &str)], operation: impl FnOnce() -> T) -> T {
 	const CONTROLLED: &[&str] =
@@ -31,7 +26,7 @@ fn with_environment<T>(vars: &[(&str, &str)], operation: impl FnOnce() -> T) -> 
 fn attached(override_color: ColorOverride, fallback: Option<ColorLevel>) -> Option<ColorLevel> {
 	TerminalColorSupport {
 		attached: true,
-		environment: &process_environment,
+		environment: &TerminalColorSupport::process_environment,
 		windows_console: None,
 		override_color,
 		fallback,

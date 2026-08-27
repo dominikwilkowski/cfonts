@@ -1,3 +1,5 @@
+// each test binary compiles this module separately and uses its own subset
+#![allow(dead_code)]
 //! Common utilities for tests
 
 use cfonts::Rendered;

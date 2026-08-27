@@ -1,3 +1,6 @@
+mod common;
+use common::browser_content;
+
 use cfonts::{
 	Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientOption, GradientPreset,
 	GradientStop, NEW_LINE_CHAR, Options, RenderContext, Rgb, Valign, render_with,
@@ -603,8 +606,7 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 		.into();
 
 	let rendered = render_with(&options, &BrowserEnv, RenderContext::colored(ColorLevel::TrueColor));
-	let content_start = rendered.text.find('>').expect("wrapper div present") + 1;
-	let lines: Vec<&str> = rendered.text[content_start..].split("<br>").collect();
+	let lines: Vec<&str> = browser_content(&rendered).split("<br>").collect();
 
 	// eleven columns: three tiny glyphs and their two letter spaces; the short
 	// line pads (11 - 3) / 2 = 4 columns, sampling column four of the ramp

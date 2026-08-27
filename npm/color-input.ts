@@ -88,12 +88,13 @@ export function hexToRgb(hex: string): RgbInput {
 }
 
 /**
- * Validates one color's shape and encodes it for the boundary
- *
- * Enum selections travel as their names and channel values as hex;
- * name and hex validity is checked once, in Rust
+ * Routes one color-like input by shape and encodes it for the boundary
  */
-export function normalizeColor(input: ColorInput, method: string): string {
+function normalizeColorLike(
+	input: ColorInput | GradientStopInput,
+	method: string,
+	shapeError: (method: string) => TypeError,
+): string {
 	if (typeof input === "number") {
 		return Color[expectEnum<Color>(input, Color, method)];
 	}
@@ -103,12 +104,26 @@ export function normalizeColor(input: ColorInput, method: string): string {
 	}
 
 	if (input === null || typeof input !== "object") {
-		throw new TypeError(
-			`\`${method}()\` expects colors as Color values, names, hex values, or {red, green, blue} channels`,
-		);
+		throw shapeError(method);
 	}
 
 	return encodeRgb(input, method);
+}
+
+/**
+ * The teaching error for a color input of the wrong shape
+ */
+function colorShapeError(method: string): TypeError {
+	return new TypeError(
+		`\`${method}()\` expects colors as Color values, names, hex values, or {red, green, blue} channels`,
+	);
+}
+
+/**
+ * Validates one color's shape and encodes it for the boundary
+ */
+export function normalizeColor(input: ColorInput, method: string): string {
+	return normalizeColorLike(input, method, colorShapeError);
 }
 
 /**
@@ -129,19 +144,7 @@ export function normalizeColorList(colors: readonly ColorInput[], method: string
  * which colors may participate in a gradient is decided once, in Rust
  */
 export function normalizeStop(input: GradientStopInput, method: string): string {
-	if (typeof input === "number") {
-		return Color[expectEnum<Color>(input, Color, method)];
-	}
-
-	if (typeof input === "string") {
-		return input;
-	}
-
-	if (input === null || typeof input !== "object") {
-		throw stopColorError(method);
-	}
-
-	return encodeRgb(input, method);
+	return normalizeColorLike(input, method, stopColorError);
 }
 
 /**

@@ -280,7 +280,7 @@ fn raw_string_literal_value(source: &str) -> Result<String, String> {
 }
 
 /// Produce a compile error usable from expression position
-fn compile_error(message: &str) -> TokenStream {
+pub(crate) fn compile_error(message: &str) -> TokenStream {
 	let message: String = rust_string_literal(message);
 	let source: String = format!("compile_error!({message})");
 

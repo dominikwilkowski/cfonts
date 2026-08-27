@@ -509,7 +509,7 @@ impl<'a> Layout<'a> {
 mod tests {
 	use super::*;
 	use crate::{
-		fonts::Font,
+		fonts::{Font, tests::row_width as glyph_row_width},
 		options::{Align, BlockOptions, Valign},
 		tests::{block, options, spaced_block},
 	};
@@ -521,9 +521,7 @@ mod tests {
 		row
 			.iter()
 			.map(|entry| match entry {
-				RowEntry::Data { glyph_row, .. } => {
-					glyph_row.segments.iter().map(|segment| segment.parts().0.chars().count()).sum()
-				}
+				RowEntry::Data { glyph_row, .. } => glyph_row_width(glyph_row),
 				RowEntry::Blank { width, .. } => *width,
 			})
 			.sum()

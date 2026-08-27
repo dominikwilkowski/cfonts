@@ -244,8 +244,8 @@ impl ParseError<'_> {
 				write!(
 					f,
 					"{flag} Text was already supplied, so \"{open}{text}{close}\" can't be added\nUse --next for another text block, or --next-stdin to fill one from a pipe\n\n{}\n\n{}",
-					if color_enabled { Args::Next.help_colored() } else { Args::Next.help_plain() },
-					if color_enabled { Args::NextStdin.help_colored() } else { Args::NextStdin.help_plain() }
+					Args::Next.help(color_enabled),
+					Args::NextStdin.help(color_enabled)
 				)
 			}
 			Self::UnknownFlag(unknown_flag) => {
@@ -265,7 +265,7 @@ impl ParseError<'_> {
 					f,
 					"{flag} The option \"{open}{}{close}\" was supplied but no value was given\n\n{}",
 					args.infos().long,
-					if color_enabled { args.help_colored() } else { args.help_plain() }
+					args.help(color_enabled)
 				)
 			}
 			Self::InvalidValue { argument: args, value, source } => {
@@ -279,14 +279,14 @@ impl ParseError<'_> {
 					write!(f, "\nCause: {source}")?;
 				}
 
-				write!(f, "\n\n{}", if color_enabled { args.help_colored() } else { args.help_plain() })
+				write!(f, "\n\n{}", args.help(color_enabled))
 			}
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
 					f,
 					"{flag} The option \"{open}{}{close}\" was supplied in a cluster without a value\nTo keep it in a cluster, make sure you add it to the end of it\n\n{}",
 					args.infos().long,
-					if color_enabled { args.help_colored() } else { args.help_plain() }
+					args.help(color_enabled)
 				)
 			}
 			Self::BadGradientColors { count, transition } => {
@@ -294,13 +294,13 @@ impl ParseError<'_> {
 					write!(
 						f,
 						"{flag} A transition gradient holds at least two colors, this one holds {open}{count}{close}\n\n{}",
-						if color_enabled { Args::Gradient.help_colored() } else { Args::Gradient.help_plain() }
+						Args::Gradient.help(color_enabled)
 					)
 				} else {
 					write!(
 						f,
 						"{flag} A gradient holds exactly two colors, this one holds {open}{count}{close}\nFor more colors use the transition gradient option\n\n{}",
-						if color_enabled { Args::Gradient.help_colored() } else { Args::Gradient.help_plain() }
+						Args::Gradient.help(color_enabled)
 					)
 				}
 			}
@@ -309,8 +309,8 @@ impl ParseError<'_> {
 					f,
 					"{flag} \"{open}{}{close}\" was ignored because no gradient was specified\n\n{}\n\n{}",
 					args.infos().long,
-					if color_enabled { Args::Gradient.help_colored() } else { Args::Gradient.help_plain() },
-					if color_enabled { args.help_colored() } else { args.help_plain() }
+					Args::Gradient.help(color_enabled),
+					args.help(color_enabled)
 				)
 			}
 			Self::EmptyStdin => {
@@ -320,8 +320,8 @@ impl ParseError<'_> {
 				write!(
 					f,
 					"{flag} The stdin flag can't be used inside blocks,\nuse the --next-stdin flag instead\n\n{}\n\n{}",
-					if color_enabled { Args::Stdin.help_colored() } else { Args::Stdin.help_plain() },
-					if color_enabled { Args::NextStdin.help_colored() } else { Args::NextStdin.help_plain() }
+					Args::Stdin.help(color_enabled),
+					Args::NextStdin.help(color_enabled)
 				)
 			}
 			Self::StdinUnreadable(stdin_error) => {

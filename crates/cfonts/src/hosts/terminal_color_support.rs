@@ -260,7 +260,15 @@ impl TerminalColorSupport<'_> {
 
 	/// The process environment as the resolution reads it: presence survives
 	/// values that are not valid UTF-8
-	fn process_environment(name: &str) -> Option<String> {
+	///
+	/// ```
+	/// use cfonts::hosts::terminal_color_support::TerminalColorSupport;
+	///
+	/// temp_env::with_var("CFONTS_DOCTEST_PROBE", Some("value"), || {
+	///     assert_eq!(TerminalColorSupport::process_environment("CFONTS_DOCTEST_PROBE"), Some(String::from("value")));
+	/// });
+	/// ```
+	pub fn process_environment(name: &str) -> Option<String> {
 		std::env::var_os(name).map(|value| value.to_string_lossy().into_owned())
 	}
 
@@ -339,26 +347,22 @@ mod tests {
 
 	/// An attached terminal over fixed variables, resolved without a fallback
 	fn classify_vars(vars: &[(&str, &str)]) -> Option<ColorLevel> {
-		let environment = |name: &str| vars.iter().find(|(key, _)| *key == name).map(|(_, value)| String::from(*value));
-
-		TerminalColorSupport {
-			attached: true,
-			environment: &environment,
-			windows_console: None,
-			override_color: ColorOverride::Auto,
-			fallback: None,
-		}
-		.resolve()
+		resolve_over(vars, None)
 	}
 
 	/// An attached terminal over fixed variables and console facts, resolved without a fallback
 	fn classify_windows(vars: &[(&str, &str)], console: WindowsConsole) -> Option<ColorLevel> {
+		resolve_over(vars, Some(console))
+	}
+
+	/// The resolution over fixed variables: the one home of the slice-backed environment
+	fn resolve_over(vars: &[(&str, &str)], windows_console: Option<WindowsConsole>) -> Option<ColorLevel> {
 		let environment = |name: &str| vars.iter().find(|(key, _)| *key == name).map(|(_, value)| String::from(*value));
 
 		TerminalColorSupport {
 			attached: true,
 			environment: &environment,
-			windows_console: Some(console),
+			windows_console,
 			override_color: ColorOverride::Auto,
 			fallback: None,
 		}

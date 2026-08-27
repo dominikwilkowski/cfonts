@@ -487,6 +487,11 @@ impl Args {
 	pub(crate) const fn help_plain(self) -> &'static str {
 		self.help_pair().1
 	}
+
+	/// The help line for one color mode
+	pub(crate) const fn help(self, colored: bool) -> &'static str {
+		if colored { self.help_colored() } else { self.help_plain() }
+	}
 }
 
 #[cfg(test)]

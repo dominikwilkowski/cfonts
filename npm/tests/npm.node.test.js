@@ -158,6 +158,20 @@ function wrappingBanner() {
 	return Cfonts.text("AA").font(Font.Tiny).lineHeight(0).spaceless();
 }
 
+/**
+ * A one block hex colored banner for the color precedence tests
+ */
+function colorBanner() {
+	return Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
+}
+
+/**
+ * The banner rendered at one explicit color level, as the reference output
+ */
+function reference(colorLevel) {
+	return colorBanner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
+}
+
 for (const [method, invoke] of [
 	["text", (value) => Cfonts.text(value)],
 	["newText", (value) => Cfonts.text("A").newText(value)],
@@ -699,10 +713,6 @@ test("colors paint through the node host", () => {
 });
 
 test("the host delegates color precedence to the shared chain", () => {
-	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
-	const reference = (colorLevel) =>
-		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
-
 	// a tty whose cascade would answer Ansi256: any resolved row that renders
 	// something else proves detection never ran
 	const restoreTty = overrideProperty(process.stdout, "isTTY", true);
@@ -719,17 +729,19 @@ test("the host delegates color precedence to the shared chain", () => {
 				["false", undefined],
 			]) {
 				const rendered = withColorEnv(forced, "1", () =>
-					NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(banner()),
+					NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(colorBanner()),
 				);
 				assert.equal(rendered.text, reference(expected), `FORCE_COLOR=${JSON.stringify(forced)}`);
 			}
 
 			// NO_COLOR and the API override resolve without detection
-			const noColor = withColorEnv(undefined, "1", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+			const noColor = withColorEnv(undefined, "1", () =>
+				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner()),
+			);
 			assert.equal(noColor.text, reference(undefined));
 
 			const overridden = withColorEnv(undefined, undefined, () =>
-				NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic }).render(banner()),
+				NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic }).render(colorBanner()),
 			);
 			assert.equal(overridden.text, reference(ColorLevel.Basic));
 		});
@@ -739,21 +751,17 @@ test("the host delegates color precedence to the shared chain", () => {
 });
 
 test("NO_COLOR counts only when present and non-empty", { skip: process.platform === "win32" }, () => {
-	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
-	const reference = (colorLevel) =>
-		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
-
 	const restoreTty = overrideProperty(process.stdout, "isTTY", true);
 
 	try {
 		withDetectionEnv({ TERM: "xterm-256color" }, () => {
 			// an empty value is not set: the chain falls through to detection,
 			// which answers the terminal and never the leftover variable
-			const empty = withColorEnv(undefined, "", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+			const empty = withColorEnv(undefined, "", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner()));
 			assert.equal(empty.text, reference(ColorLevel.Ansi256));
 
 			// any non-empty value counts, zero included
-			const zero = withColorEnv(undefined, "0", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()));
+			const zero = withColorEnv(undefined, "0", () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner()));
 			assert.equal(zero.text, reference(undefined));
 		});
 	} finally {
@@ -762,10 +770,6 @@ test("NO_COLOR counts only when present and non-empty", { skip: process.platform
 });
 
 test("detection runs the shared cascade", { skip: process.platform === "win32" }, () => {
-	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
-	const reference = (colorLevel) =>
-		banner().renderWith(CliEnv, colorLevel === undefined ? undefined : { colorLevel }).text;
-
 	for (const [vars, expected] of [
 		[{ TERM: "ansi" }, ColorLevel.Basic],
 		[{ TERM: "xterm-256color" }, ColorLevel.Ansi256],
@@ -778,7 +782,7 @@ test("detection runs the shared cascade", { skip: process.platform === "win32" }
 		try {
 			withDetectionEnv(vars, () => {
 				const rendered = withColorEnv(undefined, undefined, () =>
-					NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()),
+					NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner()),
 				);
 				assert.equal(rendered.text, reference(expected), JSON.stringify(vars));
 			});
@@ -819,14 +823,13 @@ test("the boundary answers the windows console by build", () => {
 });
 
 test("piped output has no terminal to ask and falls back to full color", () => {
-	const banner = () => Cfonts.text("AB").font(Font.Tiny).colors(["#ff8800"]);
 	const restoreTty = overrideProperty(process.stdout, "isTTY", false);
 
 	try {
 		const rendered = withColorEnv(undefined, undefined, () =>
-			NodeHost.fromOverrides({ canvasWidth: 0 }).render(banner()),
+			NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner()),
 		);
-		assert.equal(rendered.text, banner().renderWith(CliEnv, { colorLevel: ColorLevel.TrueColor }).text);
+		assert.equal(rendered.text, colorBanner().renderWith(CliEnv, { colorLevel: ColorLevel.TrueColor }).text);
 	} finally {
 		restoreTty();
 	}

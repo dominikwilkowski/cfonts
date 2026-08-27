@@ -13,7 +13,7 @@ mod ratatui;
 #[cfg(feature = "ratatui")]
 pub use ratatui::CfontsWidget;
 
-#[cfg(any(feature = "leptos", feature = "dioxus"))]
+#[cfg(any(feature = "leptos", feature = "dioxus", feature = "ratatui"))]
 use crate::{ColorLevel, RenderContext};
 
 #[cfg(feature = "dioxus")]
@@ -37,7 +37,7 @@ pub(crate) fn render_browser(options: &Options, seed: u64) -> Rendered {
 	render_with(options, &BrowserEnv, render_context(seed))
 }
 
-#[cfg(all(test, any(feature = "leptos", feature = "dioxus")))]
+#[cfg(all(test, any(feature = "leptos", feature = "dioxus", feature = "ratatui")))]
 mod tests {
 	use super::*;
 
