@@ -23,7 +23,7 @@ use crate::{BrowserEnv, Options, Rendered, render_with};
 /// because the artifact is CSS, and the canvas stays unlimited because browser
 /// capability discovery belongs to the application host
 /// The seed makes candy picks reproducible across renders
-#[cfg(any(feature = "leptos", feature = "dioxus"))]
+#[cfg(any(feature = "leptos", feature = "dioxus", feature = "ratatui"))]
 pub(crate) fn render_context(seed: u64) -> RenderContext {
 	RenderContext::colored(ColorLevel::TrueColor).with_seed(seed)
 }

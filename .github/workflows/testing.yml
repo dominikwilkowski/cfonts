@@ -61,6 +61,12 @@ jobs:
       - name: Check the release profile
         run: cargo check --locked --workspace --all-targets --all-features --release
 
+      - name: Check each feature in isolation
+        run: |
+          cargo check --locked -p cfonts --features ratatui
+          cargo check --locked -p cfonts --features leptos
+          cargo check --locked -p cfonts --features dioxus
+
   msrv:
     name: MSRV
     runs-on: ubuntu-24.04
