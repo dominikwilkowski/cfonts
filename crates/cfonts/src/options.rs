@@ -96,7 +96,9 @@ pub struct BlockOptions {
 	pub letter_spacing: usize,
 
 	/// Number of blank rows inserted after each rendered line from this block
-	pub line_height: usize,
+	///
+	/// `None` uses the line height the font declares for itself
+	pub line_height: Option<usize>,
 
 	/// Whether wrapping should prefer word boundaries
 	pub word_wrap: bool,
@@ -104,7 +106,14 @@ pub struct BlockOptions {
 
 impl Default for BlockOptions {
 	fn default() -> Self {
-		Self { text: String::new(), font: Font::Block, colors: None, letter_spacing: 1, line_height: 1, word_wrap: false }
+		Self {
+			text: String::new(),
+			font: Font::Block,
+			colors: None,
+			letter_spacing: 1,
+			line_height: None,
+			word_wrap: false,
+		}
 	}
 }
 

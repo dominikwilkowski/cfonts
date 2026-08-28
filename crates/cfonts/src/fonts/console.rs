@@ -17,6 +17,7 @@ pub static FONT_CONSOLE: FontFile<1> = FontFile {
 		r"",
 	),
 	colors: 1,
+	line_height: 0,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

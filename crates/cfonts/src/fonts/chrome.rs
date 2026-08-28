@@ -23,6 +23,7 @@ pub static FONT_CHROME: FontFile<3> = FontFile {
 		r" ",
 	),
 	colors: 3,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

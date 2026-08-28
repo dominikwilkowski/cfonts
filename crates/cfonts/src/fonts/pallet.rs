@@ -32,6 +32,7 @@ pub static FONT_PALLET: FontFile<6> = FontFile {
 		r"<c2>─</c2>",
 	),
 	colors: 2,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

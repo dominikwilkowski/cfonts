@@ -167,6 +167,8 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 
 	/// Sets how many blank rows are inserted after each rendered line from the current block
 	///
+	/// Unset, the font decides: console stacks lines, every other font inserts one blank row
+	///
 	/// ```
 	/// use cfonts::{Cfonts, Options};
 	///
@@ -174,10 +176,10 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///     .line_height(2)
 	///     .into();
 	///
-	/// assert_eq!(options.blocks[0].line_height, 2);
+	/// assert_eq!(options.blocks[0].line_height, Some(2));
 	/// ```
 	pub fn line_height(mut self, line_height: usize) -> Self {
-		self.current_block_mut().line_height = line_height;
+		self.current_block_mut().line_height = Some(line_height);
 		self
 	}
 

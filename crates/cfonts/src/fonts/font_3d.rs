@@ -41,6 +41,7 @@ pub static FONT_3D: FontFile<9> = FontFile {
 		r"<c2>_</c2>",
 	),
 	colors: 2,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

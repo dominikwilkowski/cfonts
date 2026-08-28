@@ -47,6 +47,7 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 		r" ",
 	),
 	colors: 2,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

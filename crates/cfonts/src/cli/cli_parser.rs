@@ -862,7 +862,7 @@ mod argument_parsing {
 		let parsed = parse_args(&input, tty()).unwrap();
 
 		assert_eq!(parsed.options.blocks[0].letter_spacing, 9);
-		assert_eq!(parsed.options.blocks[0].line_height, 2);
+		assert_eq!(parsed.options.blocks[0].line_height, Some(2));
 		assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 	}
 
@@ -1118,7 +1118,7 @@ mod argument_parsing {
 			assert_eq!(block.text(), "LONG TEXT|WITH NEW LINE");
 			assert_eq!(block.font, Font::Simple3D);
 			assert_eq!(block.letter_spacing, 9);
-			assert_eq!(block.line_height, 2);
+			assert_eq!(block.line_height, Some(2));
 			// -g beats -c on the global scope; the gradient assert below covers it
 			assert_eq!(block.colors, None);
 			assert_eq!(parsed.options.align, Align::Center);

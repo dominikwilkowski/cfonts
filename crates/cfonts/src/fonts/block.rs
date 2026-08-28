@@ -32,6 +32,7 @@ pub static FONT_BLOCK: FontFile<6> = FontFile {
 		r" ",
 	),
 	colors: 2,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

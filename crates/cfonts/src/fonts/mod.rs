@@ -84,6 +84,9 @@ pub trait FontData {
 	/// Returns the number of colors supported by the font
 	fn colors(&self) -> usize;
 
+	/// Returns the number of blank rows the font asks for between rendered lines
+	fn line_height(&self) -> usize;
+
 	/// Returns the number of rows of each glyph in a font (height of the font in the terminal)
 	fn rows(&self) -> usize;
 
@@ -167,6 +170,7 @@ pub struct FontFile<const ROWS: usize> {
 	#[cfg_attr(not(test), allow(dead_code))]
 	pub name: &'static str,
 	pub colors: usize,
+	pub line_height: usize,
 	pub buffer_start: &'static [GlyphRow; ROWS],
 	pub buffer_end: &'static [GlyphRow; ROWS],
 	pub buffer_size: usize,
@@ -181,6 +185,10 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 
 	fn colors(&self) -> usize {
 		self.colors
+	}
+
+	fn line_height(&self) -> usize {
+		self.line_height
 	}
 
 	fn rows(&self) -> usize {
@@ -304,6 +312,7 @@ pub(crate) mod tests {
 	static DEAD_SLOT_FIXTURE: FontFile<1> = FontFile {
 		name: "dead-slot-fixture",
 		colors: 3,
+		line_height: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
@@ -319,6 +328,7 @@ pub(crate) mod tests {
 	static OUT_OF_RANGE_FIXTURE: FontFile<1> = FontFile {
 		name: "out-of-range-fixture",
 		colors: 2,
+		line_height: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
@@ -329,6 +339,30 @@ pub(crate) mod tests {
 			table
 		},
 	};
+
+	#[test]
+	fn the_fonts_declare_their_line_heights() {
+		// console renders plain text, so its lines stack; every other font
+		// asks for one blank row between lines
+		for font in [
+			Font::Block,
+			Font::Chrome,
+			Font::Font3D,
+			Font::Grid,
+			Font::Huge,
+			Font::Pallet,
+			Font::Shade,
+			Font::Simple,
+			Font::Simple3D,
+			Font::SimpleBlock,
+			Font::Slick,
+			Font::Tiny,
+		] {
+			assert_eq!(font.get_font().line_height(), 1, "{}", font.get_font().name());
+		}
+
+		assert_eq!(Font::Console.get_font().line_height(), 0);
+	}
 
 	#[test]
 	#[should_panic(expected = "no glyph uses <c2>")]

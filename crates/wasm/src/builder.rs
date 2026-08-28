@@ -92,7 +92,7 @@ impl Cfonts {
 	/// Sets the line height for the current block
 	#[wasm_bindgen(js_name = lineHeight)]
 	pub fn line_height(&mut self, line_height: u32) {
-		self.current_block_mut().line_height = line_height as usize;
+		self.current_block_mut().line_height = Some(line_height as usize);
 	}
 
 	/// Sets the colors for the current block

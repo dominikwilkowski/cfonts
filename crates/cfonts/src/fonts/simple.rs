@@ -26,6 +26,7 @@ pub static FONT_SIMPLE: FontFile<4> = FontFile {
 		r" ",
 	),
 	colors: 1,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];

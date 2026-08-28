@@ -220,7 +220,11 @@ impl<'a> Layout<'a> {
 
 		// The block's line contribution is only staged: its first committing char
 		// commits it, so a block whose text commits nothing adds no buffers and no height
-		self.staged_block = Some(StagedBlock { buffer_start, font_rows: font.rows(), line_height: block.line_height });
+		self.staged_block = Some(StagedBlock {
+			buffer_start,
+			font_rows: font.rows(),
+			line_height: block.line_height.unwrap_or_else(|| font.line_height()),
+		});
 
 		// We make the letter space a glyph so flush_line handles it like any other
 		let letter_space_glyph = LayoutGlyph { glyph: font.letter_space(), block_index, paintable: true };
@@ -1347,7 +1351,7 @@ mod tests {
 			vec![{
 				let mut block = BlockOptions::new(format!("A{NEW_LINE_CHAR}B"));
 				block.font = Font::Tiny;
-				block.line_height = 2;
+				block.line_height = Some(2);
 				block
 			}],
 		);
@@ -1361,6 +1365,42 @@ mod tests {
 	}
 
 	#[test]
+	fn an_unset_line_height_uses_the_font_declaration() {
+		// console declares zero: its lines stack like plain text
+		let options = options(
+			Valign::Top,
+			None,
+			vec![{
+				let mut block = BlockOptions::new(format!("A{NEW_LINE_CHAR}B"));
+				block.font = Font::Console;
+				block
+			}],
+		);
+		let layout = Layout::build(&options, None);
+		assert_eq!(layout.output.len(), 2);
+		assert!(layout.output.iter().all(|row| !row.entries.is_empty()));
+	}
+
+	#[test]
+	fn an_explicit_line_height_beats_the_font_declaration() {
+		// the user asks console for a gap and gets one
+		let options = options(
+			Valign::Top,
+			None,
+			vec![{
+				let mut block = BlockOptions::new(format!("A{NEW_LINE_CHAR}B"));
+				block.font = Font::Console;
+				block.line_height = Some(1);
+				block
+			}],
+		);
+		let layout = Layout::build(&options, None);
+		let output = &layout.output;
+		assert_eq!(output.len(), 3); // 1 row + 1 gap row + 1 row
+		assert!(output[1].entries.is_empty());
+	}
+
+	#[test]
 	fn line_height_zero_packs_lines() {
 		let options = options(
 			Valign::Top,
@@ -1368,7 +1408,7 @@ mod tests {
 			vec![{
 				let mut block = BlockOptions::new(format!("A{NEW_LINE_CHAR}B"));
 				block.font = Font::Tiny;
-				block.line_height = 0;
+				block.line_height = Some(0);
 				block
 			}],
 		);

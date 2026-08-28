@@ -215,7 +215,7 @@ impl Args {
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.current_block_mut().block.line_height = self.parse_number(value)?;
+				state.current_block_mut().block.line_height = Some(self.parse_number(value)?);
 			}
 
 			// CLI specific config

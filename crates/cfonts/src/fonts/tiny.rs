@@ -20,6 +20,7 @@ pub static FONT_TINY: FontFile<2> = FontFile {
 		r" ",
 	),
 	colors: 1,
+	line_height: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
