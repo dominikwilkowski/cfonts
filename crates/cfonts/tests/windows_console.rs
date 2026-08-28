@@ -13,7 +13,8 @@ use cfonts::{CanvasWidth, hosts::terminal_canvas_width::TerminalCanvasWidth};
 #[test]
 fn a_console_reports_its_configured_width() {
 	use windows_sys::Win32::System::Console::{
-		AllocConsole, GetStdHandle, SMALL_RECT, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE, SetConsoleWindowInfo, SetStdHandle,
+		AllocConsole, FreeConsole, GetStdHandle, SMALL_RECT, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE, SetConsoleWindowInfo,
+		SetStdHandle,
 	};
 
 	// SAFETY: every call touches only this process' console state, and this
@@ -21,7 +22,11 @@ fn a_console_reports_its_configured_width() {
 	unsafe {
 		let piped_stderr = GetStdHandle(STD_ERROR_HANDLE);
 
-		assert_ne!(AllocConsole(), 0, "the test process must start without a console");
+		// the harness hands the test an inherited console; only a fresh one
+		// has a window this process may configure, so detaching may not fail
+		// but allocating must succeed
+		FreeConsole();
+		assert_ne!(AllocConsole(), 0, "a console must open once the inherited one is gone");
 
 		// a sixty-six column window; the buffer opens larger and stays so
 		let window = SMALL_RECT { Left: 0, Top: 0, Right: 65, Bottom: 23 };
