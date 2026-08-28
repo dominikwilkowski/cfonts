@@ -108,13 +108,73 @@ impl TerminalCanvasWidth<'_> {
 	///
 	/// Captured output is never wrapped to an invisible window, so a fully
 	/// redirected process falls back instead of probing stdin
-	#[cfg(not(target_arch = "wasm32"))]
+	#[cfg(any(unix, windows))]
 	fn measure() -> Option<NonZeroUsize> {
-		use terminal_size::{Width, terminal_size_of};
+		Self::width_of(&std::io::stdout()).or_else(|| Self::width_of(&std::io::stderr()))
+	}
 
-		terminal_size_of(std::io::stdout())
-			.or_else(|| terminal_size_of(std::io::stderr()))
-			.and_then(|(Width(width), _)| NonZeroUsize::new(width as usize))
+	/// A target without terminals measures nothing
+	#[cfg(not(any(unix, windows, target_arch = "wasm32")))]
+	fn measure() -> Option<NonZeroUsize> {
+		None
+	}
+
+	/// The width of the terminal behind one stream
+	///
+	/// Only the column count matters, so a zero-row terminal still measures —
+	/// the same reading the npm host takes from `stream.columns`
+	/// A stream without a terminal fails the ioctl and measures nothing
+	#[cfg(unix)]
+	fn width_of(stream: &impl std::os::fd::AsRawFd) -> Option<NonZeroUsize> {
+		let mut size = libc::winsize { ws_row: 0, ws_col: 0, ws_xpixel: 0, ws_ypixel: 0 };
+
+		// SAFETY: TIOCGWINSZ writes only the winsize struct behind the valid
+		// pointer and fails on a stream without a terminal
+		if unsafe { libc::ioctl(stream.as_raw_fd(), libc::TIOCGWINSZ, &raw mut size) } != 0 {
+			return None;
+		}
+
+		NonZeroUsize::new(size.ws_col as usize)
+	}
+
+	/// The width of the console window behind one stream
+	#[cfg(windows)]
+	fn width_of(stream: &impl std::os::windows::io::AsRawHandle) -> Option<NonZeroUsize> {
+		Self::console_width(stream.as_raw_handle().cast())
+	}
+
+	/// The width of the console window behind one handle
+	///
+	/// Only the column count matters; a handle without a console fails the
+	/// call and measures nothing
+	#[cfg(windows)]
+	fn console_width(handle: windows_sys::Win32::Foundation::HANDLE) -> Option<NonZeroUsize> {
+		use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
+		use windows_sys::Win32::System::Console::{
+			CONSOLE_SCREEN_BUFFER_INFO, COORD, GetConsoleScreenBufferInfo, SMALL_RECT,
+		};
+
+		if handle.is_null() || handle == INVALID_HANDLE_VALUE {
+			return None;
+		}
+
+		let corner = COORD { X: 0, Y: 0 };
+		let mut info = CONSOLE_SCREEN_BUFFER_INFO {
+			dwSize: corner,
+			dwCursorPosition: corner,
+			wAttributes: 0,
+			srWindow: SMALL_RECT { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+			dwMaximumWindowSize: corner,
+		};
+
+		// SAFETY: the call writes only the buffer info struct behind the valid
+		// pointer and fails on a handle without a console
+		if unsafe { GetConsoleScreenBufferInfo(handle, &raw mut info) } == 0 {
+			return None;
+		}
+
+		let width = i32::from(info.srWindow.Right) - i32::from(info.srWindow.Left) + 1;
+		usize::try_from(width).ok().and_then(NonZeroUsize::new)
 	}
 }
 
@@ -207,5 +267,113 @@ mod tests {
 		temp_env::with_var("FORCE_SIZE", Some("0"), || {
 			assert_eq!(TerminalCanvasWidth::detect(CanvasWidth::Columns(width(42))), None);
 		});
+	}
+
+	#[cfg(unix)]
+	mod unix {
+		use std::os::fd::{FromRawFd, OwnedFd};
+
+		use super::*;
+
+		/// A real terminal pair with the given geometry
+		fn pty(columns: u16, rows: u16) -> (OwnedFd, OwnedFd) {
+			let mut controller = 0;
+			let mut follower = 0;
+			let mut size = libc::winsize { ws_row: rows, ws_col: columns, ws_xpixel: 0, ws_ypixel: 0 };
+
+			// SAFETY: openpty writes the two file descriptors and reads the size
+			let result = unsafe {
+				libc::openpty(&raw mut controller, &raw mut follower, std::ptr::null_mut(), std::ptr::null_mut(), &raw mut size)
+			};
+			assert_eq!(result, 0, "openpty must succeed");
+
+			// SAFETY: both descriptors were just opened and are owned here
+			unsafe { (OwnedFd::from_raw_fd(controller), OwnedFd::from_raw_fd(follower)) }
+		}
+
+		#[test]
+		fn a_pty_reports_its_configured_width() {
+			let (controller, follower) = pty(137, 43);
+
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroUsize::new(137));
+			assert_eq!(TerminalCanvasWidth::width_of(&follower), NonZeroUsize::new(137));
+		}
+
+		#[test]
+		fn a_zero_width_pty_measures_nothing() {
+			let (controller, _follower) = pty(0, 43);
+
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), None);
+		}
+
+		#[test]
+		fn a_zero_row_pty_still_measures() {
+			let (controller, _follower) = pty(120, 0);
+
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroUsize::new(120));
+		}
+
+		#[test]
+		fn a_pipe_measures_nothing() {
+			let (reader, writer) = std::io::pipe().expect("a pipe always opens");
+
+			assert_eq!(TerminalCanvasWidth::width_of(&reader), None);
+			assert_eq!(TerminalCanvasWidth::width_of(&writer), None);
+		}
+
+		#[test]
+		fn a_resize_reaches_the_next_measurement() {
+			let (controller, _follower) = pty(80, 24);
+			let size = libc::winsize { ws_row: 24, ws_col: 66, ws_xpixel: 0, ws_ypixel: 0 };
+
+			// SAFETY: TIOCSWINSZ reads only the winsize struct behind the valid pointer
+			let result =
+				unsafe { libc::ioctl(std::os::fd::AsRawFd::as_raw_fd(&controller), libc::TIOCSWINSZ, &raw const size) };
+			assert_eq!(result, 0);
+
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroUsize::new(66));
+		}
+
+		/// The oracle comparison ported from the terminal_size crate
+		#[test]
+		fn the_measurement_matches_stty() {
+			use std::process::{Command, Stdio};
+
+			// cargo test pipes stdout, so stderr is the stream a local run still
+			// attaches; without a terminal there is nothing to compare against
+			if TerminalCanvasWidth::width_of(&std::io::stderr()).is_none() {
+				return;
+			}
+
+			let output = if cfg!(target_os = "linux") {
+				Command::new("stty").arg("size").arg("-F").arg("/dev/stderr").stderr(Stdio::inherit()).output()
+			} else {
+				Command::new("stty").arg("-f").arg("/dev/stderr").arg("size").stderr(Stdio::inherit()).output()
+			}
+			.expect("stty must run");
+			assert!(output.status.success());
+
+			// stty answers "rows columns"
+			let answer = String::from_utf8(output.stdout).expect("stty answers text");
+			let columns = answer.split_whitespace().nth(1).expect("stty answers rows then columns");
+
+			assert_eq!(
+				TerminalCanvasWidth::width_of(&std::io::stderr()),
+				NonZeroUsize::new(columns.parse().expect("stty answers numbers"))
+			);
+		}
+	}
+
+	#[cfg(windows)]
+	mod windows {
+		use super::*;
+
+		#[test]
+		fn an_invalid_handle_measures_nothing() {
+			use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
+
+			assert_eq!(TerminalCanvasWidth::console_width(INVALID_HANDLE_VALUE), None);
+			assert_eq!(TerminalCanvasWidth::console_width(std::ptr::null_mut()), None);
+		}
 	}
 }

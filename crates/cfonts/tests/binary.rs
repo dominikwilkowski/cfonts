@@ -149,6 +149,70 @@ fn no_color_beats_a_capable_terminal() {
 }
 
 #[test]
+fn a_piped_process_falls_back_to_eighty_columns() {
+	// eighteen four-glyph words: sixteen fill exactly eighty columns with
+	// their separators, the remaining two wrap onto a second row
+	let words = ["AAAA"; 18].join(" ");
+	let output = run(&[&words, "-f", "console"], &[("NO_COLOR", "1")], None);
+
+	assert_eq!(output.status.code(), Some(0));
+	let rendered = text(&output.stdout);
+	let full_line = "aaaa ".repeat(16);
+	assert!(rendered.contains(&format!("{full_line}\n")));
+	assert!(rendered.contains("aaaa aaaa\n"));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_terminal_width_wraps_through_the_process_boundary() {
+	use std::{
+		io::Read,
+		os::fd::{FromRawFd, OwnedFd},
+	};
+
+	// a real six-column terminal: the same expectation as the FORCE_SIZE row,
+	// reached through measurement instead of the environment
+	let mut controller = 0;
+	let mut follower = 0;
+	let mut size = libc::winsize { ws_row: 24, ws_col: 6, ws_xpixel: 0, ws_ypixel: 0 };
+
+	// SAFETY: openpty writes the two file descriptors and reads the size
+	let result = unsafe {
+		libc::openpty(&raw mut controller, &raw mut follower, std::ptr::null_mut(), std::ptr::null_mut(), &raw mut size)
+	};
+	assert_eq!(result, 0, "openpty must succeed");
+
+	// SAFETY: both descriptors were just opened and are owned here
+	let controller = unsafe { OwnedFd::from_raw_fd(controller) };
+	let follower = unsafe { OwnedFd::from_raw_fd(follower) };
+
+	let mut child = hermetic_binary(&["HELLO WORLD", "-f", "console"], &[("NO_COLOR", "1")])
+		.stdin(Stdio::null())
+		.stdout(Stdio::from(follower))
+		.stderr(Stdio::null())
+		.spawn()
+		.expect("the binary must spawn");
+
+	// drain until the binary exits and its terminal closes
+	let mut reader = std::fs::File::from(controller);
+	let mut rendered = Vec::new();
+	let mut chunk = [0u8; 1024];
+	loop {
+		match reader.read(&mut chunk) {
+			Ok(0) => break,
+			Ok(count) => rendered.extend_from_slice(&chunk[..count]),
+			// linux answers EIO instead of a clean end once the terminal closes
+			Err(_) => break,
+		}
+	}
+	assert_eq!(child.wait().expect("the binary must run").code(), Some(0));
+
+	let narrow = text(&rendered);
+	assert!(narrow.contains("hello") && narrow.contains("world"));
+	assert!(!narrow.contains("hello world"));
+}
+
+#[test]
 fn the_columns_variable_is_deliberately_ignored() {
 	// sixteen glyphs stay on one line: a redirected process falls back to
 	// eighty columns instead of reading COLUMNS
