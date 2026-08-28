@@ -50,9 +50,7 @@
 		"example:dioxus": "cd crates/cfonts/examples/dioxus && trunk serve",
 		"prepublishOnly": "pnpm run test"
 	},
-	"dependencies": {
-		"window-size": "^1"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@biomejs/biome": "2",
 		"@playwright/test": "^1",

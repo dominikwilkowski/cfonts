@@ -9,7 +9,6 @@ const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const NODE_ONLY_MARKERS = [
 	["NodeHost", /\bNodeHost\b/],
 	["node:fs", /node:fs/],
-	["window-size", /window-size/],
 	["process.env", /process\.env/],
 	["process.stdout", /process\.stdout/],
 ];

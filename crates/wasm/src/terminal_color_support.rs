@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::hosts::terminal_color_support::{TerminalColorSupport, WindowsConsole};
 
-use crate::ColorLevel;
+use crate::{ColorLevel, environment};
 
 /// Detects color support from the facts a JavaScript host gathered
 ///
@@ -37,8 +37,7 @@ pub fn detect_color_support(
 		}
 	};
 
-	let environment =
-		|name: &str| names.iter().position(|candidate| candidate == name).and_then(|index| values.get(index).cloned());
+	let environment = environment::lookup(&names, &values);
 
 	TerminalColorSupport {
 		attached,

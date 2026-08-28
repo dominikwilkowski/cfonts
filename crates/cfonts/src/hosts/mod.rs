@@ -8,6 +8,7 @@ use crate::{
 
 #[cfg(not(target_arch = "wasm32"))]
 mod rust;
+pub mod terminal_canvas_width;
 pub mod terminal_color_support;
 #[cfg(not(target_arch = "wasm32"))]
 pub use rust::RustHost;

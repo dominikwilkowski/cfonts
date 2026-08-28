@@ -1,17 +1,10 @@
 import { release } from "node:os";
 
-// window-size's main export is a load-time snapshot that is undefined in pipes;
-// its get() in utils always detects fresh, per render
-import windowSize from "window-size/utils.js";
-
-import { type ColorLevel, detectColorSupport } from "../../pkg/cfonts_wasm.js";
+import { type ColorLevel, detectCanvasWidth, detectColorSupport } from "../../pkg/cfonts_wasm.js";
 import { CliEnv } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
-import { parseU32 } from "../validation.js";
 import type { Host } from "./types.js";
-
-const FALLBACK_WIDTH = 80;
 
 /**
  * The Windows build number, which dates the console's palette
@@ -26,6 +19,36 @@ function windowsBuild(): number | undefined {
 
 	const build = Number(release().split(".")[2]);
 	return Number.isInteger(build) && build >= 0 ? build : 0;
+}
+
+/**
+ * The environment as parallel name/value arrays, the shape the boundary takes
+ */
+function environmentEntries(): [names: string[], values: string[]] {
+	const names: string[] = [];
+	const values: string[] = [];
+	for (const [name, value] of Object.entries(process.env)) {
+		if (value !== undefined) {
+			names.push(name);
+			values.push(value);
+		}
+	}
+
+	return [names, values];
+}
+
+/**
+ * The measured width of the stream still attached to a terminal: stdout, else
+ * stderr — a zero-width stream measures nothing, matching the native probe
+ */
+function measuredColumns(): number | undefined {
+	for (const stream of [process.stdout, process.stderr]) {
+		if (typeof stream.columns === "number" && stream.columns > 0) {
+			return stream.columns;
+		}
+	}
+
+	return undefined;
 }
 
 /**
@@ -62,39 +85,24 @@ export class NodeHost implements Host {
 	}
 
 	#resolveContext(): RenderContext {
+		const [names, values] = environmentEntries();
+
 		return Object.freeze({
-			canvasWidth: this.#resolveCanvasWidth(),
-			colorLevel: this.#resolveColorLevel(),
+			canvasWidth: this.#resolveCanvasWidth(names, values),
+			colorLevel: this.#resolveColorLevel(names, values),
 			seed: this.#overrides.seed ?? randomSeed(),
 		});
 	}
 
-	#resolveCanvasWidth(): number | undefined {
-		const forced = parseU32(process.env.FORCE_SIZE);
-
-		if (forced !== undefined) {
-			return forced === 0 ? undefined : forced;
-		}
-
-		if (this.#overrides.canvasWidth !== undefined) {
-			return this.#overrides.canvasWidth === 0 ? undefined : this.#overrides.canvasWidth;
-		}
-
-		return windowSize.get()?.width ?? FALLBACK_WIDTH;
+	#resolveCanvasWidth(names: string[], values: string[]): number | undefined {
+		// the whole decision lives behind the boundary: FORCE_SIZE, the API
+		// override, the measured width and the eighty-column fallback
+		return detectCanvasWidth(measuredColumns(), names, values, this.#overrides.canvasWidth);
 	}
 
-	#resolveColorLevel(): ColorLevel | undefined {
+	#resolveColorLevel(names: string[], values: string[]): ColorLevel | undefined {
 		// the chain and the cascade both live behind the boundary: the
 		// environment crosses whole, FORCE_COLOR and NO_COLOR included
-		const names: string[] = [];
-		const values: string[] = [];
-		for (const [name, value] of Object.entries(process.env)) {
-			if (value !== undefined) {
-				names.push(name);
-				values.push(value);
-			}
-		}
-
 		return detectColorSupport(
 			process.stdout.isTTY === true,
 			names,

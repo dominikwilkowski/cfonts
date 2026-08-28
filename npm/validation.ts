@@ -39,17 +39,3 @@ export function expectEnum<T extends number>(value: unknown, enumeration: object
 
 	return value as T;
 }
-
-export function parseU32(value: string | undefined): number | undefined {
-	if (value === undefined || !/^\d+$/.test(value)) {
-		return undefined;
-	}
-
-	const parsed = Number(value);
-
-	if (!Number.isInteger(parsed) || parsed < 0 || parsed > U32_MAX) {
-		return undefined;
-	}
-
-	return parsed;
-}

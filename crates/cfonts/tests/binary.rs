@@ -149,6 +149,16 @@ fn no_color_beats_a_capable_terminal() {
 }
 
 #[test]
+fn the_columns_variable_is_deliberately_ignored() {
+	// sixteen glyphs stay on one line: a redirected process falls back to
+	// eighty columns instead of reading COLUMNS
+	let output = run(&["AAAAAAAAAAAAAAAA", "-f", "console"], &[("COLUMNS", "13"), ("NO_COLOR", "1")], None);
+
+	assert_eq!(output.status.code(), Some(0));
+	assert!(text(&output.stdout).contains("aaaaaaaaaaaaaaaa"));
+}
+
+#[test]
 fn force_size_wraps_through_the_process_boundary() {
 	let wrapped = run(&["HELLO WORLD", "-f", "console"], &[("FORCE_SIZE", "6"), ("NO_COLOR", "1")], None);
 	let unlimited = run(&["HELLO WORLD", "-f", "console"], &[("FORCE_SIZE", "0"), ("NO_COLOR", "1")], None);

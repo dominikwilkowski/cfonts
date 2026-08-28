@@ -78,16 +78,14 @@ function withDetectionEnv(vars, operation) {
 
 function withTerminal(columns, forceSize, operation) {
 	return withEnv("FORCE_SIZE", forceSize, () => {
-		const restoreGetWindowSize = overrideProperty(process.stdout, "getWindowSize", () => [columns, 24]);
-		const restoreColumns = overrideProperty(process.stdout, "columns", columns);
-		const restoreRows = overrideProperty(process.stdout, "rows", 24);
+		const restoreStdout = overrideProperty(process.stdout, "columns", columns);
+		const restoreStderr = overrideProperty(process.stderr, "columns", undefined);
 
 		try {
 			return operation();
 		} finally {
-			restoreRows();
-			restoreColumns();
-			restoreGetWindowSize();
+			restoreStderr();
+			restoreStdout();
 		}
 	});
 }
@@ -401,6 +399,76 @@ test("NodeHost detects width on each render", () => {
 	const wide = withTerminal(120, undefined, () => banner.render(host).text);
 
 	assert.notEqual(narrow, wide);
+});
+
+test("stdout answers before stderr", () => {
+	const restoreStdout = overrideProperty(process.stdout, "columns", 120);
+	const restoreStderr = overrideProperty(process.stderr, "columns", 13);
+
+	try {
+		const preferred = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+		const viaStdout = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+		assert.equal(preferred, viaStdout);
+	} finally {
+		restoreStderr();
+		restoreStdout();
+	}
+});
+
+test("a zero-width stream measures nothing", () => {
+	const restoreStdout = overrideProperty(process.stdout, "columns", 0);
+	const restoreStderr = overrideProperty(process.stderr, "columns", 13);
+
+	try {
+		const viaStderr = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+		const reference = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+		assert.equal(viaStderr, reference);
+	} finally {
+		restoreStderr();
+		restoreStdout();
+	}
+});
+
+test("the measurement falls back to stderr when stdout is redirected", () => {
+	const restoreStdout = overrideProperty(process.stdout, "columns", undefined);
+	const restoreStderr = overrideProperty(process.stderr, "columns", 13);
+
+	try {
+		const viaStderr = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+		const viaStdout = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost()).text);
+
+		assert.equal(viaStderr, viaStdout);
+	} finally {
+		restoreStderr();
+		restoreStdout();
+	}
+});
+
+test("a fully redirected process falls back to eighty columns", () => {
+	const restoreStdout = overrideProperty(process.stdout, "columns", undefined);
+	const restoreStderr = overrideProperty(process.stderr, "columns", undefined);
+
+	try {
+		const fallback = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAAAAAAAA").render(new NodeHost()).text);
+		const eighty = withEnv(
+			"FORCE_SIZE",
+			undefined,
+			() => Cfonts.text("AAAAAAAAAA").render(NodeHost.fromOverrides({ canvasWidth: 80 })).text,
+		);
+		const unlimited = withEnv(
+			"FORCE_SIZE",
+			undefined,
+			() => Cfonts.text("AAAAAAAAAA").render(NodeHost.fromOverrides({ canvasWidth: 0 })).text,
+		);
+
+		assert.equal(fallback, eighty);
+		assert.notEqual(fallback, unlimited);
+	} finally {
+		restoreStderr();
+		restoreStdout();
+	}
 });
 
 test("FORCE_SIZE overrides terminal detection", () => {
