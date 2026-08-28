@@ -21,7 +21,7 @@ include = [
 ]
 
 [dependencies]
-cfonts-macros = { path = "../macros", version = "=4.0.0" }
+cfonts-macros.workspace = true
 dioxus = { version = "0.7", optional = true, default-features = false, features = [
 	"html",
 	"macro",

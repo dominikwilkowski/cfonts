@@ -4,6 +4,9 @@
 //! Every variable the resolution reads is pinned per test via temp-env, so
 //! the rows hold in any shell or CI runner
 
+mod common;
+use common::DETECTION_VARS;
+
 use cfonts::{
 	ColorLevel, ColorOverride,
 	hosts::terminal_color_support::{Stream, TerminalColorSupport},
@@ -13,11 +16,10 @@ use cfonts::{
 
 /// Every variable the resolution reads: the named ones are set, the rest cleared
 fn with_environment<T>(vars: &[(&str, &str)], operation: impl FnOnce() -> T) -> T {
-	const CONTROLLED: &[&str] =
-		&["FORCE_COLOR", "NO_COLOR", "TERM", "COLORTERM", "TMUX", "CI", "TF_BUILD", "TEAMCITY_VERSION", "TERM_PROGRAM"];
-
-	let values: Vec<(&str, Option<&str>)> =
-		CONTROLLED.iter().map(|name| (*name, vars.iter().find(|(key, _)| key == name).map(|(_, value)| *value))).collect();
+	let values: Vec<(&str, Option<&str>)> = DETECTION_VARS
+		.iter()
+		.map(|name| (*name, vars.iter().find(|(key, _)| key == name).map(|(_, value)| *value)))
+		.collect();
 
 	temp_env::with_vars(values, operation)
 }

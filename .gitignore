@@ -18,3 +18,4 @@ target
 dist
 pkg
 test-results
+*.profraw

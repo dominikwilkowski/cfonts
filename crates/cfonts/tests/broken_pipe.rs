@@ -2,7 +2,10 @@
 //!
 //! Each test spawns the real binary and closes a stream before it writes
 
-use std::process::{Command, Stdio};
+use std::process::Stdio;
+
+mod common;
+use common::hermetic_binary;
 
 // helpers
 
@@ -14,8 +17,8 @@ enum Closed {
 
 /// Runs the binary with one stream piped and dropped before the write happens
 fn exit_with_closed(closed: Closed, arguments: &[&str]) -> Option<i32> {
-	let mut command = Command::new(env!("CARGO_BIN_EXE_cfonts"));
-	command.args(arguments).stdin(Stdio::null());
+	let mut command = hermetic_binary(arguments, &[]);
+	command.stdin(Stdio::null());
 
 	let mut child = match closed {
 		Closed::Stdout => command.stdout(Stdio::piped()).stderr(Stdio::null()),

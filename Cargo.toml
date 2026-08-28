@@ -11,3 +11,6 @@ authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
 homepage = "https://github.com/dominikwilkowski/cfonts"
 repository = "https://github.com/dominikwilkowski/cfonts"
+
+[workspace.dependencies]
+cfonts-macros = { path = "crates/macros", version = "=4.0.0" }

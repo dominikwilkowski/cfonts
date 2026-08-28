@@ -191,6 +191,14 @@ jobs:
           }
           "
 
+      - name: Check version parity
+        run: |
+          cargo_v=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name=="cfonts") | .version')
+          npm_v=$(node -p "require('./package.json').version")
+          pin=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name=="cfonts") | .dependencies[] | select(.name=="cfonts-macros") | .req')
+          test "$cargo_v" = "$npm_v" || { echo "crate $cargo_v != npm $npm_v"; exit 1; }
+          test "$pin" = "=$cargo_v" || { echo "macros pin $pin != =$cargo_v"; exit 1; }
+
       - name: Check the ratatui feature on the WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
 
@@ -231,12 +239,12 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@c93ccc03e00cd0e08e494f5fd058a6c55a6a1907 # v2.82.8
         with:
-          tool: cargo-llvm-cov@0.8.7
+          tool: cargo-llvm-cov@0.9.0
           fallback: none
           checksum: true
 
       - name: Generate code coverage
-        run: cargo llvm-cov --locked --all-features --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --locked --all-features --workspace --lcov --exclude cfonts-wasm --output-path lcov.info
 
       - name: Print last few lines of lcov.info
         run: tail ./lcov.info
