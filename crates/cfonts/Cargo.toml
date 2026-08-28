@@ -41,6 +41,9 @@ windows-version = "0.1"
 ratatui = { version = "0.30", features = ["crossterm"] }
 temp-env = "0.3"
 
+[target.'cfg(windows)'.dev-dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Security"] }
+
 [features]
 dioxus = ["dep:dioxus"]
 leptos = ["dep:leptos"]
