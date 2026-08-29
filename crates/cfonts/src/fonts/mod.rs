@@ -236,6 +236,45 @@ pub(crate) mod tests {
 		assert!(font.get_glyph('ü').is_none());
 	}
 
+	/// The display name of a glyph slot: its character, or `letter_space` for
+	/// the slot chained after the table
+	fn glyph_name<const ROWS: usize>(font: &FontFile<ROWS>, code_point: usize) -> String {
+		if code_point == font.glyphs.len() {
+			String::from("letter_space")
+		} else {
+			format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
+		}
+	}
+
+	/// Assert each row tags only its own slot: the first row `<c1>`, the second `<c2>`...
+	///
+	/// Row-striped fonts color by line, so a tag on the wrong line paints one
+	/// row in another row's stripe
+	pub(crate) fn assert_rows_stripe_their_slot<const ROWS: usize>(font: &FontFile<ROWS>) {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
+			let Some(glyph) = glyph else {
+				continue;
+			};
+
+			for (line, row) in glyph.rows.iter().enumerate() {
+				for segment in row.segments {
+					if let Segment::Colored { slot, .. } = segment {
+						assert_eq!(
+							*slot,
+							line,
+							"font \"{}\" glyph {} (line {}) tags <c{}>; a row-striped font colors this line with <c{}>",
+							font.name,
+							glyph_name(font, code_point),
+							line,
+							slot + 1,
+							line + 1,
+						);
+					}
+				}
+			}
+		}
+	}
+
 	/// Assert the font uses every color it declares and tags none beyond them
 	///
 	/// A declared slot no glyph tags means a configured color silently never paints;
@@ -256,11 +295,7 @@ pub(crate) mod tests {
 						continue;
 					};
 
-					let glyph_name = if code_point == font.glyphs.len() {
-						String::from("letter_space")
-					} else {
-						format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
-					};
+					let glyph_name = glyph_name(font, code_point);
 
 					for (line, row) in glyph.rows.iter().enumerate() {
 						for segment in row.segments {
@@ -276,9 +311,11 @@ pub(crate) mod tests {
 			}
 			_ => {
 				let mut used = vec![false; font.colors];
-				let mut out_of_range: Vec<usize> = Vec::new();
+				let mut out_of_range: Vec<(usize, String)> = Vec::new();
 
-				for glyph in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))) {
+				for (code_point, glyph) in
+					font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
+				{
 					let Some(glyph) = glyph else {
 						continue;
 					};
@@ -288,15 +325,16 @@ pub(crate) mod tests {
 							if let Segment::Colored { slot, .. } = segment {
 								if *slot < font.colors {
 									used[*slot] = true;
-								} else if !out_of_range.contains(&(slot + 1)) {
-									out_of_range.push(slot + 1);
+								} else if !out_of_range.iter().any(|(tagged, _)| *tagged == slot + 1) {
+									out_of_range.push((slot + 1, glyph_name(font, code_point)));
 								}
 							}
 						}
 					}
 				}
 
-				let out_of_range: Vec<String> = out_of_range.iter().map(|slot| format!("<c{slot}>")).collect();
+				let out_of_range: Vec<String> =
+					out_of_range.iter().map(|(slot, glyph)| format!("<c{slot}> (first in glyph {glyph})")).collect();
 				assert!(
 					out_of_range.is_empty(),
 					"font \"{}\" declares {} colors but tags {} beyond them",
@@ -381,7 +419,7 @@ pub(crate) mod tests {
 	}
 
 	#[test]
-	#[should_panic(expected = "tags <c3> beyond them")]
+	#[should_panic(expected = "tags <c3> (first in glyph 'A') beyond them")]
 	fn out_of_range_color_slots_fail_the_validation() {
 		assert_colors_all_used(&OUT_OF_RANGE_FIXTURE);
 	}

@@ -224,8 +224,8 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 		));
 		table['+' as usize] = Some(glyph!(
 			r"   ",
-			r"<c1>▄█▄</c1>",
-			r"<c2> ▀ </c2>",
+			r"<c2>▄█▄</c2>",
+			r"<c3> ▀ </c3>",
 		));
 		table['-' as usize] = Some(glyph!(
 			r"   ",
@@ -239,8 +239,8 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 		));
 		table['=' as usize] = Some(glyph!(
 			r"   ",
-			r"<c1>▄▄▄</c1>",
-			r"<c2>▀▀▀</c2>",
+			r"<c2>▄▄▄</c2>",
+			r"<c3>▀▀▀</c3>",
 		));
 		table['@' as usize] = Some(glyph!(
 			r"<c1>▄▀█▀▄ </c1>",
@@ -321,7 +321,7 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_supported,
+		assert_colors_all_used, assert_rows_stripe_their_slot, assert_supported,
 	};
 
 	#[test]
@@ -332,6 +332,11 @@ mod tests {
 	#[test]
 	fn colors_all_used() {
 		assert_colors_all_used(&super::FONT_RETRO);
+	}
+
+	#[test]
+	fn rows_stripe_their_slot() {
+		assert_rows_stripe_their_slot(&super::FONT_RETRO);
 	}
 
 	#[test]
