@@ -1,6 +1,6 @@
 use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
 
-use crate::glyph_macro::compile_error;
+use crate::glyph::compile_error;
 
 pub(crate) fn derive_all(input: TokenStream) -> TokenStream {
 	match expand(input) {

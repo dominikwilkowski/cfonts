@@ -320,23 +320,7 @@ fn hex_values_convert_into_channel_values() {
 
 #[wasm_bindgen_test]
 fn the_font_bridge_covers_every_core_font() {
-	// mirrors the bridge_enum list in types.rs: a new core font must land in both
-	let bridged = [
-		Font::Block,
-		Font::Chrome,
-		Font::Console,
-		Font::Font3D,
-		Font::Grid,
-		Font::Huge,
-		Font::Pallet,
-		Font::Shade,
-		Font::Simple,
-		Font::Simple3D,
-		Font::SimpleBlock,
-		Font::Slick,
-		Font::Tiny,
-	]
-	.map(CoreFont::from);
+	let bridged = Font::ALL.map(CoreFont::from);
 
 	assert_eq!(bridged.len(), CoreFont::ALL.len(), "the wasm bridge and the core font list disagree");
 

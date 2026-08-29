@@ -119,6 +119,12 @@ impl GlyphSegment {
 
 /// Parse one marker row into typed segments
 fn parse_row(row: &str) -> Result<Vec<GlyphSegment>, String> {
+	// a tab has no fixed terminal width, so it would break every width the
+	// glyph declares
+	if row.contains('\t') {
+		return Err(String::from("tabs have no fixed terminal width; use spaces inside glyph rows"));
+	}
+
 	let mut segments: Vec<GlyphSegment> = Vec::new();
 	let mut text: String = String::new();
 	let mut active_slot: Option<usize> = None;
@@ -399,6 +405,14 @@ mod macro_glyph {
 	#[test]
 	fn accepts_segments_of_different_width_inside_the_same_row() {
 		assert!(expand(&["<c1>A</c1><c2>BC</c2>", "XYZ"]).is_ok());
+	}
+
+	#[test]
+	fn rejects_tabs_anywhere_in_a_row() {
+		assert!(parse_row("\tAB").is_err());
+		assert!(parse_row("A\tB").is_err());
+		assert!(parse_row("<c1>A\t</c1>").is_err());
+		assert!(expand_glyph_rows(&[String::from("A\tB")]).is_err());
 	}
 
 	#[test]

@@ -14,7 +14,7 @@ macro_rules! bridge_enum {
 		$($variant:ident),+ $(,)?
 	}) => {
 		#[wasm_bindgen]
-		#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+		#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 		pub enum $wasm {
 			$($variant),+
 		}
@@ -103,6 +103,7 @@ bridge_enum!(GradientPreset => CoreGradientPreset {
 
 bridge_enum!(Font => CoreFont {
 	Block,
+	Bubble,
 	Chrome,
 	Console,
 	Font3D,

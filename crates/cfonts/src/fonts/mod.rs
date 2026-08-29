@@ -2,6 +2,8 @@
 
 mod block;
 pub use block::FONT_BLOCK;
+mod bubble;
+pub use bubble::FONT_BUBBLE;
 mod chrome;
 pub use chrome::FONT_CHROME;
 mod console;
@@ -108,6 +110,7 @@ pub trait FontData {
 pub enum Font {
 	#[default]
 	Block,
+	Bubble,
 	Chrome,
 	Grid,
 	Pallet,
@@ -128,6 +131,7 @@ impl Font {
 	pub fn get_font(self) -> &'static dyn FontData {
 		match self {
 			Self::Block => &FONT_BLOCK,
+			Self::Bubble => &FONT_BUBBLE,
 			Self::Chrome => &FONT_CHROME,
 			Self::Console => &FONT_CONSOLE,
 			Self::Font3D => &FONT_3D,
@@ -147,6 +151,7 @@ impl Font {
 	pub fn from_name(value: &str) -> Option<Self> {
 		match value.to_ascii_lowercase().as_str() {
 			"block" => Some(Font::Block),
+			"bubble" => Some(Font::Bubble),
 			"chrome" => Some(Font::Chrome),
 			"console" => Some(Font::Console),
 			"3d" | "font3d" => Some(Font::Font3D),

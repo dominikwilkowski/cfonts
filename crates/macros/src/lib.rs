@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 
 mod all;
-mod glyph_macro;
+mod glyph;
 
 /// Derives `ALL`, a `pub const` array holding every variant of a fieldless enum
 ///
@@ -70,5 +70,5 @@ pub fn all(input: TokenStream) -> TokenStream {
 /// Invalid input turns into a `compile_error!` at the call site
 #[proc_macro]
 pub fn glyph(input: TokenStream) -> TokenStream {
-	glyph_macro::expand(input)
+	glyph::expand(input)
 }
