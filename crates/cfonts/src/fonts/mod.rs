@@ -16,6 +16,8 @@ mod huge;
 pub use huge::FONT_HUGE;
 mod pallet;
 pub use pallet::FONT_PALLET;
+mod retro;
+pub use retro::FONT_RETRO;
 mod shade;
 pub use shade::FONT_SHADE;
 mod simple;
@@ -114,6 +116,7 @@ pub enum Font {
 	Chrome,
 	Grid,
 	Pallet,
+	Retro,
 	Slick,
 	Shade,
 	#[all(rename = "3d")]
@@ -138,6 +141,7 @@ impl Font {
 			Self::Grid => &FONT_GRID,
 			Self::Huge => &FONT_HUGE,
 			Self::Pallet => &FONT_PALLET,
+			Self::Retro => &FONT_RETRO,
 			Self::Shade => &FONT_SHADE,
 			Self::Simple => &FONT_SIMPLE,
 			Self::Simple3D => &FONT_SIMPLE_3D,
@@ -158,6 +162,7 @@ impl Font {
 			"grid" => Some(Font::Grid),
 			"huge" => Some(Font::Huge),
 			"pallet" => Some(Font::Pallet),
+			"retro" => Some(Font::Retro),
 			"shade" => Some(Font::Shade),
 			"simple" => Some(Font::Simple),
 			"simple3d" => Some(Font::Simple3D),

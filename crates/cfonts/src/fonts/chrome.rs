@@ -218,29 +218,29 @@ pub static FONT_CHROME: FontFile<3> = FontFile {
 			r"<c3> o </c3>",
 		));
 		table['.' as usize] = Some(glyph!(
-			r"<c1> </c1>",
-			r"<c2> </c2>",
+			r" ",
+			r" ",
 			r"<c3>o</c3>",
 		));
 		table['+' as usize] = Some(glyph!(
-			r"<c1>   </c1>",
+			r"   ",
 			r"<c2>═╬═</c2>",
-			r"<c3>   </c3>",
+			r"   ",
 		));
 		table['-' as usize] = Some(glyph!(
-			r"<c1>  </c1>",
+			r"  ",
 			r"<c2>──</c2>",
-			r"<c3>  </c3>",
+			r"  ",
 		));
 		table['_' as usize] = Some(glyph!(
-			r"<c1>  </c1>",
-			r"<c2>  </c2>",
+			r"  ",
+			r"  ",
 			r"<c3>──</c3>",
 		));
 		table['=' as usize] = Some(glyph!(
-			r"<c1>  </c1>",
+			r"  ",
 			r"<c2>══</c2>",
-			r"<c3>  </c3>",
+			r"  ",
 		));
 		table['@' as usize] = Some(glyph!(
 			r"<c1>╔═╗</c1>",
@@ -248,7 +248,7 @@ pub static FONT_CHROME: FontFile<3> = FontFile {
 			r"<c3>╚══</c3>",
 		));
 		table['#' as usize] = Some(glyph!(
-			r"<c1>  </c1>",
+			r"  ",
 			r"<c2>╬╬</c2>",
 			r"<c3>╬╬</c3>",
 		));
@@ -283,29 +283,29 @@ pub static FONT_CHROME: FontFile<3> = FontFile {
 			r"<c3>╝ </c3>",
 		));
 		table[':' as usize] = Some(glyph!(
-			r"<c1> </c1>",
+			r" ",
 			r"<c2>o</c2>",
 			r"<c3>o</c3>",
 		));
 		table[';' as usize] = Some(glyph!(
-			r"<c1> </c1>",
+			r" ",
 			r"<c2>o</c2>",
 			r"<c3>╔</c3>",
 		));
 		table[',' as usize] = Some(glyph!(
-			r"<c1> </c1>",
-			r"<c1> </c1>",
+			r" ",
+			r" ",
 			r"<c3>╔</c3>",
 		));
 		table['\'' as usize] = Some(glyph!(
 			r"<c1>╗</c1>",
-			r"<c1> </c1>",
-			r"<c3> </c3>",
+			r" ",
+			r" ",
 		));
 		table['"' as usize] = Some(glyph!(
 			r"<c1>╗╗</c1>",
-			r"<c1>  </c1>",
-			r"<c3>  </c3>",
+			r"  ",
+			r"  ",
 		));
 		table[' ' as usize] = Some(glyph!(
 			r"    ",

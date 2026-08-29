@@ -519,7 +519,7 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c1>█████</c1>",
 			r"<c1>█  █</c1> ",
 			r"<c1>████</c1><c2>░</c2>",
-			r"<c2>    </c2> ",
+			r"     ",
 			r"<c2>░░░░░</c2>",
 		));
 		table['(' as usize] = Some(glyph!(

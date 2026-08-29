@@ -144,6 +144,13 @@ fn parse_row(row: &str) -> Result<Vec<GlyphSegment>, String> {
 
 				Marker::Close(slot) => match active_slot {
 					Some(open_slot) if open_slot == slot => {
+						if !text.chars().any(|character| character != ' ') {
+							return Err(format!(
+								"`<c{}>` colors nothing visible; a colored segment needs at least one non-space character",
+								slot + 1,
+							));
+						}
+
 						push_segment(&mut segments, &mut text, active_slot);
 						active_slot = None;
 					}
@@ -405,6 +412,16 @@ mod macro_glyph {
 	#[test]
 	fn accepts_segments_of_different_width_inside_the_same_row() {
 		assert!(expand(&["<c1>A</c1><c2>BC</c2>", "XYZ"]).is_ok());
+	}
+
+	#[test]
+	fn rejects_color_tags_wrapping_only_spaces() {
+		assert!(parse_row("<c1>   </c1>").is_err());
+		assert!(parse_row("<c2> </c2>").is_err());
+		assert!(parse_row("<c1></c1>").is_err());
+		assert!(parse_row("A <c1>   </c1> B").is_err());
+		assert!(parse_row("<c1>   \u{2580}</c1>").is_ok());
+		assert!(parse_row("<c1>\u{2580}   </c1>").is_ok());
 	}
 
 	#[test]
