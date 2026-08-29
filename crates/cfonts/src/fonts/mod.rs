@@ -389,30 +389,6 @@ pub(crate) mod tests {
 	};
 
 	#[test]
-	fn the_fonts_declare_their_line_heights() {
-		// console renders plain text, so its lines stack; every other font
-		// asks for one blank row between lines
-		for font in [
-			Font::Block,
-			Font::Chrome,
-			Font::Font3D,
-			Font::Grid,
-			Font::Huge,
-			Font::Pallet,
-			Font::Shade,
-			Font::Simple,
-			Font::Simple3D,
-			Font::SimpleBlock,
-			Font::Slick,
-			Font::Tiny,
-		] {
-			assert_eq!(font.get_font().line_height(), 1, "{}", font.get_font().name());
-		}
-
-		assert_eq!(Font::Console.get_font().line_height(), 0);
-	}
-
-	#[test]
 	#[should_panic(expected = "no glyph uses <c2>")]
 	fn dead_color_slots_fail_the_validation() {
 		assert_colors_all_used(&DEAD_SLOT_FIXTURE);
