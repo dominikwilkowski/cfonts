@@ -70,7 +70,7 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 		table['I' as usize] = Some(glyph!(
 			r"<c1>▀█▀</c1>",
 			r"<c2> █ </c2>",
-			r"<c3>▄█▄</c3>",
+			r"<c3>▀▀▀</c3>",
 		));
 		table['J' as usize] = Some(glyph!(
 			r"<c1>█   </c1>",
@@ -138,9 +138,9 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 			r"<c3>  ▀  </c3>",
 		));
 		table['W' as usize] = Some(glyph!(
-			r"<c1>▄   ▄</c1>",
+			r"<c1>█   █</c1>",
 			r"<c2>█ ▄ █</c2>",
-			r"<c3>▀▄▀▄▀</c3>",
+			r"<c3> ▀ ▀ </c3>",
 		));
 		table['X' as usize] = Some(glyph!(
 			r"<c1>▀▄ ▄▀</c1>",
@@ -209,23 +209,23 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 		));
 		table['!' as usize] = Some(glyph!(
 			r"<c1>█</c1>",
-			r"<c2>█</c2>",
-			r"<c3>▄</c3>",
+			r"<c2>▀</c2>",
+			r"<c3>▀</c3>",
 		));
 		table['?' as usize] = Some(glyph!(
-			r"<c1>▄▄ </c1>",
-			r"<c2> ▄▀</c2>",
-			r"<c3> ▄ </c3>",
+			r"<c1>▄▀▀▄</c1>",
+			r"<c2>  ▄▀</c2>",
+			r"<c3>  ▀ </c3>",
 		));
 		table['.' as usize] = Some(glyph!(
 			r" ",
 			r" ",
-			r"<c3>▄</c3>",
+			r"<c3>▀</c3>",
 		));
 		table['+' as usize] = Some(glyph!(
+			r"   ",
 			r"<c1>▄█▄</c1>",
 			r"<c2> ▀ </c2>",
-			r"   ",
 		));
 		table['-' as usize] = Some(glyph!(
 			r"   ",
@@ -235,12 +235,12 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 		table['_' as usize] = Some(glyph!(
 			r"   ",
 			r"   ",
-			r"<c3>▄▄▄</c3>",
+			r"<c3>▀▀▀</c3>",
 		));
 		table['=' as usize] = Some(glyph!(
-			r"<c1>▄▄▄</c1>",
-			r"<c2>▄▄▄</c2>",
 			r"   ",
+			r"<c1>▄▄▄</c1>",
+			r"<c2>▀▀▀</c2>",
 		));
 		table['@' as usize] = Some(glyph!(
 			r"<c1>▄▀█▀▄ </c1>",
@@ -258,7 +258,7 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 			r"<c3>▀█▀ </c3>",
 		));
 		table['%' as usize] = Some(glyph!(
-			r"<c1>█  ▄ </c1>",
+			r"<c1>█   ▄</c1>",
 			r"<c2>  ▄▀ </c2>",
 			r"<c3>▄▀ █ </c3>",
 		));
