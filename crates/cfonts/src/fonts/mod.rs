@@ -8,6 +8,8 @@ mod bubble;
 pub use bubble::FONT_BUBBLE;
 mod chrome;
 pub use chrome::FONT_CHROME;
+mod dense;
+pub use dense::FONT_DENSE;
 mod console;
 pub use console::FONT_CONSOLE;
 mod font_3d;
@@ -117,6 +119,7 @@ pub enum Font {
 	Braille,
 	Bubble,
 	Chrome,
+	Dense,
 	Grid,
 	Pallet,
 	Retro,
@@ -140,6 +143,7 @@ impl Font {
 			Self::Braille => &FONT_BRAILLE,
 			Self::Bubble => &FONT_BUBBLE,
 			Self::Chrome => &FONT_CHROME,
+			Self::Dense => &FONT_DENSE,
 			Self::Console => &FONT_CONSOLE,
 			Self::Font3D => &FONT_3D,
 			Self::Grid => &FONT_GRID,
@@ -162,6 +166,7 @@ impl Font {
 			"braille" => Some(Font::Braille),
 			"bubble" => Some(Font::Bubble),
 			"chrome" => Some(Font::Chrome),
+			"dense" => Some(Font::Dense),
 			"console" => Some(Font::Console),
 			"3d" | "font3d" => Some(Font::Font3D),
 			"grid" => Some(Font::Grid),
