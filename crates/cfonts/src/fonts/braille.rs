@@ -225,8 +225,8 @@ pub static FONT_BRAILLE: FontFile<2> = FontFile {
 			r"<c2>⢀⠜</c2>",
 		));
 		table['/' as usize] = Some(glyph!(
-			r"<c1>⡜</c1>",
-			r"<c2>⠎</c2>",
+			r"<c1> ⡜</c1>",
+			r"<c2>⠎ </c2>",
 		));
 		table[':' as usize] = Some(glyph!(
 			r"<c1>⢀</c1>",
