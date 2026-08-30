@@ -103,6 +103,7 @@ bridge_enum!(GradientPreset => CoreGradientPreset {
 
 bridge_enum!(Font => CoreFont {
 	Block,
+	Board,
 	Braille,
 	Bubble,
 	Chrome,
