@@ -501,7 +501,7 @@ pub static FONT_BLOCK: FontFile<6> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_supported,
+		assert_colors_all_used, assert_plain_segments_are_spaces, assert_supported,
 	};
 
 	#[test]
@@ -512,6 +512,11 @@ mod tests {
 	#[test]
 	fn colors_all_used() {
 		assert_colors_all_used(&super::FONT_BLOCK);
+	}
+
+	#[test]
+	fn plain_segments_are_spaces() {
+		assert_plain_segments_are_spaces(&super::FONT_BLOCK);
 	}
 
 	#[test]

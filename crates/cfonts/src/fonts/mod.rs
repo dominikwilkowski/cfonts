@@ -253,7 +253,7 @@ pub(crate) mod tests {
 
 	/// The display name of a glyph slot: its character, or `letter_space` for
 	/// the slot chained after the table
-	fn glyph_name<const ROWS: usize>(font: &FontFile<ROWS>, code_point: usize) -> String {
+	pub(crate) fn glyph_name<const ROWS: usize>(font: &FontFile<ROWS>, code_point: usize) -> String {
 		if code_point == font.glyphs.len() {
 			String::from("letter_space")
 		} else {
@@ -283,6 +283,35 @@ pub(crate) mod tests {
 							line,
 							slot + 1,
 							line + 1,
+						);
+					}
+				}
+			}
+		}
+	}
+
+	/// Assert plain segments hold only spaces: every visible character sits inside a color tag
+	///
+	/// Multi-color fonts paint per tag, so untagged ink renders in the
+	/// terminal's default color instead of a configured one
+	pub(crate) fn assert_plain_segments_are_spaces<const ROWS: usize>(font: &FontFile<ROWS>) {
+		assert!(font.colors > 1, "font \"{}\" paints wholesale with one color; plain segments are its ink", font.name);
+
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
+			let Some(glyph) = glyph else {
+				continue;
+			};
+
+			for (line, row) in glyph.rows.iter().enumerate() {
+				for segment in row.segments {
+					if let Segment::Plain(text) = segment {
+						assert!(
+							text.chars().all(|character| character == ' '),
+							"font \"{}\" glyph {} (line {}) leaves {:?} unpainted; every visible character needs a color tag",
+							font.name,
+							glyph_name(font, code_point),
+							line,
+							text,
 						);
 					}
 				}
@@ -402,6 +431,27 @@ pub(crate) mod tests {
 			table
 		},
 	};
+
+	static UNPAINTED_INK_FIXTURE: FontFile<1> = FontFile {
+		name: "unpainted-ink-fixture",
+		colors: 3,
+		line_height: 1,
+		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_size: 0,
+		letter_space: glyph!(r" "),
+		glyphs: {
+			let mut table = [None; 128];
+			table['A' as usize] = Some(glyph!(r"<c3>═</c3>│<c2>∙</c2>╒══╕"));
+			table
+		},
+	};
+
+	#[test]
+	#[should_panic(expected = "leaves \"│\" unpainted")]
+	fn unpainted_ink_fails_the_validation() {
+		assert_plain_segments_are_spaces(&UNPAINTED_INK_FIXTURE);
+	}
 
 	#[test]
 	#[should_panic(expected = "no glyph uses <c2>")]

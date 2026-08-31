@@ -181,6 +181,28 @@ fn parse_row(row: &str) -> Result<Vec<GlyphSegment>, String> {
 	}
 
 	push_segment(&mut segments, &mut text, active_slot);
+
+	for pair in segments.windows(2) {
+		if let [GlyphSegment::Colored { slot: first, .. }, GlyphSegment::Colored { slot: second, .. }] = pair
+			&& first == second
+		{
+			return Err(format!("`<c{}>` closes and reopens immediately; merge the two segments", first + 1));
+		}
+	}
+
+	for triple in segments.windows(3) {
+		if let [
+			GlyphSegment::Colored { slot: first, .. },
+			GlyphSegment::Plain(between),
+			GlyphSegment::Colored { slot: second, .. },
+		] = triple
+			&& first == second
+			&& between.chars().all(|character| character == ' ')
+		{
+			return Err(format!("`<c{}>` closes and reopens across spaces; keep the spaces inside one tag", first + 1));
+		}
+	}
+
 	Ok(segments)
 }
 
@@ -412,6 +434,26 @@ mod macro_glyph {
 	#[test]
 	fn accepts_segments_of_different_width_inside_the_same_row() {
 		assert!(expand(&["<c1>A</c1><c2>BC</c2>", "XYZ"]).is_ok());
+	}
+
+	#[test]
+	fn rejects_the_same_slot_reopened_adjacently() {
+		assert!(parse_row("<c4>░</c4><c4>░</c4><c4>░</c4>").is_err());
+	}
+
+	#[test]
+	fn rejects_the_same_slot_reopened_across_spaces() {
+		assert!(parse_row("<c2>∙</c2> <c2>∙</c2>").is_err());
+		assert!(parse_row("<c2>∙</c2>     <c2>∙</c2>").is_err());
+		assert!(parse_row("<c2>∙</c2>        <c2>∙</c2>").is_err());
+		assert!(parse_row("<c2>∙</c2>             <c2>∙</c2>").is_err());
+		assert!(parse_row("<c3>═</c3>│<c2>∙</c2>     <c2>∙</c2>│").is_err());
+	}
+
+	#[test]
+	fn allows_the_same_slot_after_visible_text() {
+		assert!(parse_row("<c1>A</c1>B<c1>C</c1>").is_ok());
+		assert!(parse_row("<c1>A</c1><c2>B</c2><c1>C</c1>").is_ok());
 	}
 
 	#[test]

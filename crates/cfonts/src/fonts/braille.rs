@@ -261,7 +261,7 @@ pub static FONT_BRAILLE: FontFile<2> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_rows_stripe_their_slot, assert_supported,
+		assert_colors_all_used, assert_plain_segments_are_spaces, assert_rows_stripe_their_slot, assert_supported,
 	};
 
 	#[test]
@@ -272,6 +272,11 @@ mod tests {
 	#[test]
 	fn colors_all_used() {
 		assert_colors_all_used(&super::FONT_BRAILLE);
+	}
+
+	#[test]
+	fn plain_segments_are_spaces() {
+		assert_plain_segments_are_spaces(&super::FONT_BRAILLE);
 	}
 
 	#[test]
