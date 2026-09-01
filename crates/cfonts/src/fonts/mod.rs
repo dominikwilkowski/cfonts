@@ -20,6 +20,8 @@ mod grid;
 pub use grid::FONT_GRID;
 mod huge;
 pub use huge::FONT_HUGE;
+mod edge;
+pub use edge::FONT_EDGE;
 mod pallet;
 pub use pallet::FONT_PALLET;
 mod retro;
@@ -135,6 +137,7 @@ pub enum Font {
 	SimpleBlock,
 	Tiny,
 	Huge,
+	Edge,
 	Console,
 }
 
@@ -152,6 +155,7 @@ impl Font {
 			Self::Font3D => &FONT_3D,
 			Self::Grid => &FONT_GRID,
 			Self::Huge => &FONT_HUGE,
+			Self::Edge => &FONT_EDGE,
 			Self::Pallet => &FONT_PALLET,
 			Self::Retro => &FONT_RETRO,
 			Self::Shade => &FONT_SHADE,
@@ -176,6 +180,7 @@ impl Font {
 			"3d" | "font3d" => Some(Font::Font3D),
 			"grid" => Some(Font::Grid),
 			"huge" => Some(Font::Huge),
+			"edge" => Some(Font::Edge),
 			"pallet" => Some(Font::Pallet),
 			"retro" => Some(Font::Retro),
 			"shade" => Some(Font::Shade),
