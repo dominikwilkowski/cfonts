@@ -452,6 +452,8 @@ mod macro_glyph {
 
 	#[test]
 	fn allows_the_same_slot_after_visible_text() {
+		// merging across ink would repaint it, so the grammar permits the resume
+		// whether plain ink is allowed at all is each font's own invariant, not the macro's
 		assert!(parse_row("<c1>A</c1>B<c1>C</c1>").is_ok());
 		assert!(parse_row("<c1>A</c1><c2>B</c2><c1>C</c1>").is_ok());
 	}
