@@ -249,7 +249,7 @@ pub static FONT_EDGE: FontFile<3> = FontFile {
 		));
 		table['#' as usize] = Some(glyph!(
 			r"<c1> ╓╜╓╜</c1>",
-			r"<c2>╔ ╓╜ </c2>",
+			r"<c2> ╔ ╓╜</c2>",
 			r"<c3>═╝ ═╝</c3>",
 		));
 		table['$' as usize] = Some(glyph!(

@@ -120,6 +120,7 @@ bridge_enum!(Font => CoreFont {
 	Simple3D,
 	SimpleBlock,
 	Slick,
+	Thin,
 	Tiny,
 });
 
