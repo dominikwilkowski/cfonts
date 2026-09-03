@@ -437,7 +437,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 		));
 		table['#' as usize] = Some(glyph!(
 			r"  __ __      ",
-			r" _\ \\ \__   ",
+			r"/_\ \\ \__   ",
 			r"/\__  _  _\  ",
 			r"\/__\ \\ \__ ",
 			r"  /\_   _  _\",
