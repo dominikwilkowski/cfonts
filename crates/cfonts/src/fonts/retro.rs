@@ -243,9 +243,9 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 			r"<c3>▀▀▀</c3>",
 		));
 		table['@' as usize] = Some(glyph!(
-			r"<c1>▄▀█▀▄ </c1>",
-			r"<c2>█▀▄▄█ </c2>",
-			r"<c3> ▀▀▀  </c3>",
+			r"<c1>▄▀█▀▄</c1>",
+			r"<c2>█▀▄▄█</c2>",
+			r"<c3> ▀▀▀ </c3>",
 		));
 		table['#' as usize] = Some(glyph!(
 			r"<c1> ▄ ▄ </c1>",

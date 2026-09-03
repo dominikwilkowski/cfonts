@@ -294,9 +294,9 @@ pub static FONT_DEPTH: FontFile<5> = FontFile {
 		));
 		table['?' as usize] = Some(glyph!(
 			r"<c2> /</c2><c1>▀▀▀█</c1>",
-			r"<c2> --/</c2><c1>▓</c1><c2>/</c2>",
+			r"<c2>│/_/</c2><c1>▓</c1><c2>/</c2>",
 			r"<c2>  │// </c2>",
-			r"<c2>   /</c2><c1>▒ </c1>",
+			r"<c2>   /</c2><c1>░ </c1>",
 			r"<c2>  │// </c2>",
 		));
 		table['.' as usize] = Some(glyph!(
@@ -378,8 +378,8 @@ pub static FONT_DEPTH: FontFile<5> = FontFile {
 		));
 		table[')' as usize] = Some(glyph!(
 			r"<c2> /</c2><c1>█ </c1>",
-			r"<c2> | </c2><c1>▓</c1>",
-			r"<c2> | </c2><c1>▒</c1>",
+			r"<c2> │ </c2><c1>▓</c1>",
+			r"<c2> │ </c2><c1>▒</c1>",
 			r"<c2> /</c2><c1>░ </c1>",
 			r"<c2>│// </c2>",
 		));

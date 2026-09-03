@@ -79,10 +79,10 @@ pub static FONT_BUBBLE: FontFile<4> = FontFile {
 			r"(_) (_)",
 		));
 		table['I' as usize] = Some(glyph!(
-			r"  __ ",
-			r" (  )",
-			r"  )( ",
-			r" (__)",
+			r" __ ",
+			r"(  )",
+			r" )( ",
+			r"(__)",
 		));
 		table['J' as usize] = Some(glyph!(
 			r"   __ ",

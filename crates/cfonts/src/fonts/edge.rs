@@ -74,7 +74,7 @@ pub static FONT_EDGE: FontFile<3> = FontFile {
 		));
 		table['J' as usize] = Some(glyph!(
 			r"<c1> ╝</c1>",
-			r"<c2>║ </c2>",
+			r"<c2> ║</c2>",
 			r"<c3>═╝</c3>",
 		));
 		table['K' as usize] = Some(glyph!(
@@ -225,7 +225,7 @@ pub static FONT_EDGE: FontFile<3> = FontFile {
 		table['+' as usize] = Some(glyph!(
 			r"<c1> ║ </c1>",
 			r"<c2>═╔╝</c2>",
-			r"<c3>╝  </c3>",
+			r"<c3> ╝ </c3>",
 		));
 		table['-' as usize] = Some(glyph!(
 			r"   ",
@@ -268,9 +268,9 @@ pub static FONT_EDGE: FontFile<3> = FontFile {
 			r"<c3>══╝ </c3>",
 		));
 		table['(' as usize] = Some(glyph!(
-			r"<c1> ╝</c1>",
+			r"<c1> ═</c1>",
 			r"<c2>║ </c2>",
-			r"<c3>╝ </c3>",
+			r"<c3> ═</c3>",
 		));
 		table[')' as usize] = Some(glyph!(
 			r"<c1>═ </c1>",

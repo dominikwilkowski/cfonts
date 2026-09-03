@@ -135,7 +135,7 @@ pub static FONT_BOARD: FontFile<7> = FontFile {
 			r"<c4>░</c4><c1>│   └─┘╒╛</c1>",
 			r"<c4>▒</c4><c1>│   ╒═╕└┐</c1>",
 			r"<c4>▓</c4><c1>│   │</c1><c4>▓</c4><c1>│ │</c1>",
-			r"<c3>═</c3><c1>│</c1><c2>∙</c2>  <c1>│</c1><c3>═</c3><c1>│</c1><c2>∙</c2><c1>│</c1>",
+			r"<c3>═</c3><c1>│</c1><c2>∙</c2><c1>  │</c1><c3>═</c3><c1>│</c1><c2>∙</c2><c1>│</c1>",
 			r"<c1> ╘═══╛ ╘═╛</c1>",
 		));
 		table['L' as usize] = Some(glyph!(
@@ -465,8 +465,8 @@ pub static FONT_BOARD: FontFile<7> = FontFile {
 		table['&' as usize] = Some(glyph!(
 			r"<c1>     ┌──┐  </c1>",
 			r"<c3>═════</c3><c1>│ </c1><c2>∙</c2><c1>│</c1><c3>══</c3>",
-			r"<c4>░</c4><c1>┌───────┐ </c1>",
-			r"<c4>▒</c4><c1>│</c1><c2>∙</c2><c1> ╒════╛ </c1>",
+			r"<c4>░</c4><c1>┌───────┐</c1><c4>░</c4>",
+			r"<c4>▒</c4><c1>│</c1><c2>∙</c2><c1> ╒════╛</c1><c4>▒</c4>",
 			r"<c4>▓</c4><c1>│  └┘  │</c1><c4>▓▓</c4>",
 			r"<c3>═</c3><c1>│</c1><c2>∙    ∙</c2><c1>│</c1><c3>══</c3>",
 			r"<c1> ╘══════╛  </c1>",
@@ -494,7 +494,7 @@ pub static FONT_BOARD: FontFile<7> = FontFile {
 			r"<c3>═════</c3><c1>┌┘</c1><c2>∙</c2><c1>│</c1><c3>═</c3>",
 			r"<c4>░░░░</c4><c1>┌┘ ╒╛</c1><c4>░</c4>",
 			r"<c4>▒▒▒</c4><c1>┌┘ ╒╛</c1><c4>▒▒</c4>",
-			r"<c4>▓</c4><c1> ┌┘ ╒╛</c1><c4>▓▓▓</c4>",
+			r"<c4>▓▓</c4><c1>┌┘ ╒╛</c1><c4>▓▓▓</c4>",
 			r"<c1>┌─┘</c1><c2>∙</c2><c1>╒╛</c1><c3>════</c3>",
 			r"<c1>╘═══╛     </c1>",
 		));
@@ -609,7 +609,7 @@ mod tests {
 		// a slot painting a foreign character fails the same row
 		let font = &super::FONT_BOARD;
 
-		for (code_point, glyph) in font.glyphs.iter().copied().enumerate() {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
 			let Some(glyph) = glyph else {
 				continue;
 			};
@@ -648,7 +648,7 @@ mod tests {
 		// <c3>: box frames always carry a corner in the same segment
 		let font = &super::FONT_BOARD;
 
-		for (code_point, glyph) in font.glyphs.iter().copied().enumerate() {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
 			let Some(glyph) = glyph else {
 				continue;
 			};
