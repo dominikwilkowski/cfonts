@@ -22,6 +22,8 @@ mod grid;
 pub use grid::FONT_GRID;
 mod huge;
 pub use huge::FONT_HUGE;
+mod neat;
+pub use neat::FONT_NEAT;
 mod edge;
 pub use edge::FONT_EDGE;
 mod pallet;
@@ -136,6 +138,7 @@ pub enum Font {
 	Slick,
 	Thin,
 	Shade,
+	Neat,
 	#[all(rename = "3d")]
 	Font3D,
 	Simple,
@@ -162,6 +165,7 @@ impl Font {
 			Self::Font3D => &FONT_3D,
 			Self::Grid => &FONT_GRID,
 			Self::Huge => &FONT_HUGE,
+			Self::Neat => &FONT_NEAT,
 			Self::Edge => &FONT_EDGE,
 			Self::Pallet => &FONT_PALLET,
 			Self::Retro => &FONT_RETRO,
@@ -189,6 +193,7 @@ impl Font {
 			"3d" | "font3d" => Some(Font::Font3D),
 			"grid" => Some(Font::Grid),
 			"huge" => Some(Font::Huge),
+			"neat" => Some(Font::Neat),
 			"edge" => Some(Font::Edge),
 			"pallet" => Some(Font::Pallet),
 			"retro" => Some(Font::Retro),
