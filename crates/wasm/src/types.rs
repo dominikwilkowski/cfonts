@@ -108,6 +108,7 @@ bridge_enum!(Font => CoreFont {
 	Bubble,
 	Chrome,
 	Dense,
+	Depth,
 	Console,
 	Font3D,
 	Grid,

@@ -12,6 +12,8 @@ mod chrome;
 pub use chrome::FONT_CHROME;
 mod dense;
 pub use dense::FONT_DENSE;
+mod depth;
+pub use depth::FONT_DEPTH;
 mod console;
 pub use console::FONT_CONSOLE;
 mod font_3d;
@@ -127,6 +129,7 @@ pub enum Font {
 	Bubble,
 	Chrome,
 	Dense,
+	Depth,
 	Grid,
 	Pallet,
 	Retro,
@@ -154,6 +157,7 @@ impl Font {
 			Self::Bubble => &FONT_BUBBLE,
 			Self::Chrome => &FONT_CHROME,
 			Self::Dense => &FONT_DENSE,
+			Self::Depth => &FONT_DEPTH,
 			Self::Console => &FONT_CONSOLE,
 			Self::Font3D => &FONT_3D,
 			Self::Grid => &FONT_GRID,
@@ -180,6 +184,7 @@ impl Font {
 			"bubble" => Some(Font::Bubble),
 			"chrome" => Some(Font::Chrome),
 			"dense" => Some(Font::Dense),
+			"depth" => Some(Font::Depth),
 			"console" => Some(Font::Console),
 			"3d" | "font3d" => Some(Font::Font3D),
 			"grid" => Some(Font::Grid),
