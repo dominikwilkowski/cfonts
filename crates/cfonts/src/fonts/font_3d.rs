@@ -387,15 +387,15 @@ pub static FONT_3D: FontFile<9> = FontFile {
 			r"<c2>__________</c2><c1>\///</c1><c2>____</c2>",
 		));
 		table['5' as usize] = Some(glyph!(
-			r"<c2>__</c2><c1>/\\\\\\\\\\\\\\\</c1><c2>_</c2>",
-			r"<c2>_</c2><c1>\/\\\///////////</c1><c2>__</c2>",
-			r"<c2>_</c2><c1>\/\\\</c1><c2>_____________</c2>",
-			r"<c2>_</c2><c1>\/\\\\\\\\\\\\</c1><c2>____</c2>",
-			r"<c2>_</c2><c1>\////////////\\\</c1><c2>__</c2>",
-			r"<c2>____________</c2><c1>\//\\\</c1><c2>_</c2>",
-			r"<c2>_</c2><c1>/\\\</c1><c2>________</c2><c1>\/\\\</c1><c2>_</c2>",
-			r"<c1>\//\\\\\\\\\\\\\/</c1><c2>__</c2>",
-			r"<c2>_</c2><c1>\/////////////</c1><c2>____</c2>",
+			r"<c2>__</c2><c1>/\\\\\\\\\\\\\\\</c1>",
+			r"<c2>_</c2><c1>\/\\\///////////</c1><c2>_</c2>",
+			r"<c2>_</c2><c1>\/\\\</c1><c2>____________</c2>",
+			r"<c2>_</c2><c1>\/\\\\\\\\\\\\</c1><c2>___</c2>",
+			r"<c2>_</c2><c1>\////////////\\\</c1><c2>_</c2>",
+			r"<c2>____________</c2><c1>\//\\\</c1>",
+			r"<c2>_</c2><c1>/\\\</c1><c2>________</c2><c1>\/\\\</c1>",
+			r"<c1>\//\\\\\\\\\\\\\/</c1><c2>_</c2>",
+			r"<c2>_</c2><c1>\/////////////</c1><c2>___</c2>",
 		));
 		table['6' as usize] = Some(glyph!(
 			r"<c2>___________</c2><c1>/\\\\\</c1>",
@@ -431,15 +431,15 @@ pub static FONT_3D: FontFile<9> = FontFile {
 			r"<c2>___</c2><c1>\/////////</c1><c2>____</c2>",
 		));
 		table['9' as usize] = Some(glyph!(
-			r"<c2>_____</c2><c1>/\\\\\\\\\</c1><c2>___</c2>",
-			r"<c2>___</c2><c1>/\\\///////\\\</c1><c2>_</c2>",
-			r"<c2>__</c2><c1>/\\\</c1><c2>______</c2><c1>\//\\\</c1>",
-			r"<c2>_</c2><c1>\//\\\</c1><c2>_____</c2><c1>/\\\\\</c1>",
-			r"<c2>__</c2><c1>\///\\\\\\\\/\\\</c1>",
-			r"<c2>____</c2><c1>\////////\/\\\</c1>",
-			r"<c2>__</c2><c1>/\\</c1><c2>________</c2><c1>/\\\</c1><c2>_</c2>",
-			r"<c2>_</c2><c1>\//\\\\\\\\\\\/</c1><c2>__</c2>",
-			r"<c2>__</c2><c1>\///////////</c1><c2>____</c2>",
+			r"<c2>____</c2><c1>/\\\\\\\\\</c1><c2>___</c2>",
+			r"<c2>__</c2><c1>/\\\///////\\\</c1><c2>_</c2>",
+			r"<c2>_</c2><c1>/\\\</c1><c2>______</c2><c1>\//\\\</c1>",
+			r"<c1>\//\\\</c1><c2>_____</c2><c1>/\\\\\</c1>",
+			r"<c2>_</c2><c1>\///\\\\\\\\/\\\</c1>",
+			r"<c2>___</c2><c1>\////////\/\\\</c1>",
+			r"<c2>_</c2><c1>/\\</c1><c2>________</c2><c1>/\\\</c1><c2>_</c2>",
+			r"<c1>\//\\\\\\\\\\\/</c1><c2>__</c2>",
+			r"<c2>_</c2><c1>\///////////</c1><c2>____</c2>",
 		));
 		table['!' as usize] = Some(glyph!(
 			r"<c2>____</c2><c1>/\\\</c1><c2>___</c2>",
@@ -640,15 +640,15 @@ pub static FONT_3D: FontFile<9> = FontFile {
 			r"<c1>\//</c1><c2>___</c2>",
 		));
 		table['\'' as usize] = Some(glyph!(
-			r"<c2>_</c2><c1>/\\\</c1><c2>_</c2>",
-			r"<c1>\/\\\</c1><c2>_</c2>",
-			r"<c1>\///</c1><c2>__</c2>",
-			r"<c2>______</c2>",
-			r"<c2>______</c2>",
-			r"<c2>______</c2>",
-			r"<c2>______</c2>",
-			r"<c2>______</c2>",
-			r"<c2>______</c2>",
+			r"<c2>_</c2><c1>/\\\</c1>",
+			r"<c1>\/\\\</c1>",
+			r"<c1>\///</c1><c2>_</c2>",
+			r"<c2>_____</c2>",
+			r"<c2>_____</c2>",
+			r"<c2>_____</c2>",
+			r"<c2>_____</c2>",
+			r"<c2>_____</c2>",
+			r"<c2>_____</c2>",
 		));
 		table['"' as usize] = Some(glyph!(
 			r"<c2>_</c2><c1>/\\\/\\\</c1>",
@@ -681,12 +681,23 @@ pub static FONT_3D: FontFile<9> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_plain_segments_are_spaces, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_no_space_cells, assert_plain_segments_are_spaces,
+		assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_3D);
+	}
+
+	#[test]
+	fn no_space_cells() {
+		assert_no_space_cells(&super::FONT_3D);
+	}
+
+	#[test]
+	fn glyph_edges_carry_ink() {
+		assert_glyph_edges_carry_ink(&super::FONT_3D);
 	}
 
 	#[test]

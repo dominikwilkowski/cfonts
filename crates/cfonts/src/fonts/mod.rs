@@ -310,6 +310,73 @@ pub(crate) mod tests {
 		}
 	}
 
+	/// The characters the font uses as ground: whatever its letter-space glyph
+	/// is drawn with, plus the space itself
+	fn ground_characters<const ROWS: usize>(font: &FontFile<ROWS>) -> Vec<char> {
+		let mut ground: Vec<char> = font
+			.letter_space
+			.rows
+			.iter()
+			.flat_map(|row| row.segments.iter().flat_map(|segment| segment.parts().0.chars()))
+			.collect();
+		ground.push(' ');
+		ground
+	}
+
+	/// Assert no glyph, nor the letter space, carries a space: the font fills
+	/// every cell with ink or with its own ground character, so a space is a hole
+	pub(crate) fn assert_no_space_cells<const ROWS: usize>(font: &FontFile<ROWS>) {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
+			let Some(glyph) = glyph else {
+				continue;
+			};
+
+			for (line, row) in glyph.rows.iter().enumerate() {
+				let text: String = row.segments.iter().map(|segment| segment.parts().0).collect();
+				assert!(
+					!text.contains(' '),
+					"font \"{}\" glyph {} (line {}) contains a space; this font fills every cell",
+					font.name,
+					glyph_name(font, code_point),
+					line,
+				);
+			}
+		}
+	}
+
+	/// Assert every glyph reaches both of its edges with more than ground:
+	/// a leading or trailing column of the font's own ground character on every row is padding baked into the glyph
+	/// exactly like a blank column in a font whose ground is the space
+	/// glyphs made only of ground are exempt
+	pub(crate) fn assert_glyph_edges_carry_ink<const ROWS: usize>(font: &FontFile<ROWS>) {
+		let ground = ground_characters(font);
+
+		for (code_point, glyph) in font.glyphs.iter().copied().enumerate() {
+			let Some(glyph) = glyph else {
+				continue;
+			};
+
+			let rows: Vec<String> =
+				glyph.rows.iter().map(|row| row.segments.iter().map(|segment| segment.parts().0).collect::<String>()).collect();
+
+			if rows.iter().all(|row| row.chars().all(|character| ground.contains(&character))) {
+				continue;
+			}
+
+			for (edge, padded) in [
+				("leading", rows.iter().all(|row| row.chars().next().is_some_and(|first| ground.contains(&first)))),
+				("trailing", rows.iter().all(|row| row.chars().last().is_some_and(|last| ground.contains(&last)))),
+			] {
+				assert!(
+					!padded,
+					"font \"{}\" glyph {} has a {edge} column of ground on every row; trim it and let letter_spacing space the glyph",
+					font.name,
+					glyph_name(font, code_point),
+				);
+			}
+		}
+	}
+
 	/// Assert plain segments hold only spaces: every visible character sits inside a color tag
 	///
 	/// Multi-color fonts paint per tag, so untagged ink renders in the
@@ -451,6 +518,49 @@ pub(crate) mod tests {
 			table
 		},
 	};
+
+	static SPACE_CELL_FIXTURE: FontFile<1> = FontFile {
+		name: "space-cell-fixture",
+		colors: 1,
+		line_height: 1,
+		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_size: 0,
+		letter_space: glyph!(r"╱"),
+		glyphs: {
+			let mut table = [None; 128];
+			table['A' as usize] = Some(glyph!(r"╱A B╱"));
+			table
+		},
+	};
+
+	#[test]
+	#[should_panic(expected = "glyph 'A' (line 0) contains a space")]
+	fn space_cells_fail_the_validation() {
+		assert_no_space_cells(&SPACE_CELL_FIXTURE);
+	}
+
+	static GROUND_EDGE_FIXTURE: FontFile<2> = FontFile {
+		name: "ground-edge-fixture",
+		colors: 1,
+		line_height: 1,
+		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }, GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }, GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_size: 0,
+		letter_space: glyph!(r"╋", r"╋"),
+		glyphs: {
+			let mut table = [None; 128];
+			table['A' as usize] = Some(glyph!(r"╋A╋", r"╋B╋"));
+			table[' ' as usize] = Some(glyph!(r"╋╋", r"╋╋"));
+			table
+		},
+	};
+
+	#[test]
+	#[should_panic(expected = "glyph 'A' has a leading column of ground on every row")]
+	fn ground_edge_columns_fail_the_validation() {
+		assert_glyph_edges_carry_ink(&GROUND_EDGE_FIXTURE);
+	}
 
 	static UNPAINTED_INK_FIXTURE: FontFile<1> = FontFile {
 		name: "unpainted-ink-fixture",
