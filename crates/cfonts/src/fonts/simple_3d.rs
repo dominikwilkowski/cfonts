@@ -72,7 +72,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r" \_\ \  ",
 			r"/\ ,. \ ",
 			r"\ \____\",
-			r" \/___ /",
+			r" \/____/",
 			r"        ",
 		));
 		table['E' as usize] = Some(glyph!(
@@ -130,13 +130,13 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r" \/___/ ",
 		));
 		table['K' as usize] = Some(glyph!(
-			r"  __  __    ",
-			r" /\ \/  \   ",
-			r" \ \    <   ",
-			r"  \ \  ^  \ ",
-			r"   \ \_\ \_\",
-			r"    \/_/\/_/",
-			r"            ",
+			r" __  __    ",
+			r"/\ \/  \   ",
+			r"\ \    <   ",
+			r" \ \  ^  \ ",
+			r"  \ \_\ \_\",
+			r"   \/_/\/_/",
+			r"           ",
 		));
 		table['L' as usize] = Some(glyph!(
 			r" ___     ",
@@ -187,7 +187,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"          ",
 			r"   __     ",
 			r" /'__`\   ",
-			r"/\ \L\ \  ",
+			r"/\ \_\ \  ",
 			r"\ \___, \ ",
 			r" \/___/\_\",
 			r"      \/_/",
@@ -256,13 +256,13 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"        ",
 		));
 		table['Y' as usize] = Some(glyph!(
-			r"           ",
-			r"  __  __   ",
-			r" /\ \_\ \  ",
-			r" \/`____ \ ",
-			r"  `/___/> \",
-			r"     /\___/",
-			r"     \/__/ ",
+			r"          ",
+			r" __  __   ",
+			r"/\ \_\ \  ",
+			r"\/`____ \ ",
+			r" `/___/> \",
+			r"    /\___/",
+			r"    \/__/ ",
 		));
 		table['Z' as usize] = Some(glyph!(
 			r"         ",
@@ -303,9 +303,9 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 		table['3' as usize] = Some(glyph!(
 			r"   __     ",
 			r" /'__`\   ",
-			r"/\_\L\ \  ",
+			r"/\_\_\ \  ",
 			r"\/_/_\_<_ ",
-			r"  /\ \L\ \",
+			r"  /\ \_\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
 		));
@@ -323,7 +323,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"/\  ___\   ",
 			r"\ \ \__/   ",
 			r" \ \___``\ ",
-			r"  \/\ \L\ \",
+			r"  \/\ \_\ \",
 			r"   \ \____/",
 			r"    \/___/ ",
 		));
@@ -332,7 +332,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r" /'___\   ",
 			r"/\ \__/   ",
 			r"\ \  _``\ ",
-			r" \ \ \L\ \",
+			r" \ \ \_\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
 		));
@@ -348,16 +348,16 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 		table['8' as usize] = Some(glyph!(
 			r"   __     ",
 			r" /' _`\   ",
-			r"/\ \L\ \  ",
+			r"/\ \_\ \  ",
 			r"\/_> _ <_ ",
-			r"  /\ \L\ \",
+			r"  /\ \_\ \",
 			r"  \ \____/",
 			r"   \/___/ ",
 		));
 		table['9' as usize] = Some(glyph!(
 			r"   __      ",
 			r" /'_ `\    ",
-			r"/\ \L\ \   ",
+			r"/\ \_\ \   ",
 			r"\ \___, \  ",
 			r" \/__,/\ \ ",
 			r"      \ \_\",
@@ -409,13 +409,13 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"         ",
 		));
 		table['_' as usize] = Some(glyph!(
-			r"          ",
-			r"          ",
-			r"          ",
-			r"          ",
-			r"  _______ ",
-			r" /\______\",
-			r" \/______/",
+			r"         ",
+			r"         ",
+			r"         ",
+			r"         ",
+			r" _______ ",
+			r"/\______\",
+			r"\/______/",
 		));
 		table['=' as usize] = Some(glyph!(
 			r"           ",
@@ -430,7 +430,7 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"   __      ",
 			r"  /'_`\_   ",
 			r" /'/'_` \  ",
-			r"/\ \ \L\ \ ",
+			r"/\ \ \_\ \ ",
 			r"\ \ `\__,_\",
 			r" \ `\_____\",
 			r"  `\/_____/",
@@ -439,19 +439,19 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"  __ __      ",
 			r" _\ \\ \__   ",
 			r"/\__  _  _\  ",
-			r"\/_L\ \\ \L_ ",
+			r"\/__\ \\ \__ ",
 			r"  /\_   _  _\",
 			r"  \/_/\_\\_\/",
 			r"     \/_//_/ ",
 		));
 		table['$' as usize] = Some(glyph!(
-			r"    _     ",
-			r"  /|_\_   ",
-			r" /'  _ `\ ",
-			r" \ \___  \",
-			r"  \ `\_ _/",
-			r"   `\_/\_\",
-			r"      \/_/",
+			r"   _     ",
+			r" /|_\_   ",
+			r"/'  _ `\ ",
+			r"\ \___  \",
+			r" \ `\_ _/",
+			r"  `\_/\_\",
+			r"     \/_/",
 		));
 		table['%' as usize] = Some(glyph!(
 			r" __    __    ",
@@ -463,13 +463,13 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"  \/_/   \/_/",
 		));
 		table['&' as usize] = Some(glyph!(
-			r"   ____     ",
-			r" /|  _ \    ",
-			r" |/\ ` |    ",
-			r" \ / __`\/\ ",
-			r" /|  \L>  <_",
-			r" | \_____/\/",
-			r"  \/____/\/ ",
+			r"  ____     ",
+			r"/|  _ \    ",
+			r"|/\ ` |    ",
+			r"\ / __`\/\ ",
+			r"/|  \_>  <_",
+			r"| \_____/\/",
+			r" \/____/\/ ",
 		));
 		table['(' as usize] = Some(glyph!(
 			r"   _     ",
@@ -517,31 +517,31 @@ pub static FONT_SIMPLE_3D: FontFile<7> = FontFile {
 			r"   \/ ",
 		));
 		table[',' as usize] = Some(glyph!(
-			r"     ",
-			r"     ",
-			r"     ",
-			r"   _ ",
-			r" /\ \",
-			r" \ \/",
-			r"  \/ ",
+			r"    ",
+			r"    ",
+			r"    ",
+			r"  _ ",
+			r"/\ \",
+			r"\ \/",
+			r" \/ ",
 		));
 		table['\'' as usize] = Some(glyph!(
-			r"  _  ",
-			r"/\ \ ",
-			r"\ \/ ",
-			r" \/  ",
-			r"     ",
-			r"     ",
-			r"     ",
+			r"  _ ",
+			r"/\ \",
+			r"\ \/",
+			r" \/ ",
+			r"    ",
+			r"    ",
+			r"    ",
 		));
 		table['"' as usize] = Some(glyph!(
-			r"  _   _  ",
-			r"/\ \/\ \ ",
-			r"\ \/\ \/ ",
-			r" \/  \/  ",
-			r"         ",
-			r"         ",
-			r"         ",
+			r"  _   _ ",
+			r"/\ \/\ \",
+			r"\ \/\ \/",
+			r" \/  \/ ",
+			r"        ",
+			r"        ",
+			r"        ",
 		));
 		table[' ' as usize] = Some(glyph!(
 			r"       ",

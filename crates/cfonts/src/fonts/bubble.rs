@@ -355,10 +355,10 @@ pub static FONT_BUBBLE: FontFile<4> = FontFile {
 			r"(/ ",
 		));
 		table['\'' as usize] = Some(glyph!(
-			r" _ ",
-			r"(/ ",
-			r"   ",
-			r"   ",
+			r" _",
+			r"(/",
+			r"  ",
+			r"  ",
 		));
 		table['"' as usize] = Some(glyph!(
 			r" _ _",

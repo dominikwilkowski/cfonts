@@ -162,7 +162,7 @@ pub static FONT_DEPTH: FontFile<5> = FontFile {
 		table['S' as usize] = Some(glyph!(
 			r"<c2>  /</c2><c1>███</c1>",
 			r"<c2> │ </c2><c1>▓</c1><c2>_/</c2>",
-			r"<c2> │/_</c2><c1>▒</c1> ",
+			r"<c2> │/_</c2><c1>▒ </c1>",
 			r"<c2> /</c2><c1>░░░ </c1>",
 			r"<c2>│/__/ </c2>",
 		));
@@ -349,11 +349,11 @@ pub static FONT_DEPTH: FontFile<5> = FontFile {
 			r"<c2>│//</c2><c1>░</c1><c2>/</c2><c1>░</c1><c2>/</c2>",
 		));
 		table['$' as usize] = Some(glyph!(
-			r"<c2>   /</c2><c1>██ </c1>",
-			r"<c2>  /</c2><c1>▓▓▓▓</c1>",
-			r"<c2> │ </c2><c1>▒▒</c1><c2>_/</c2>",
-			r"<c2> │/_/</c2><c1>░░</c1>",
-			r"<c2>  /</c2><c1>░░░░</c1>",
+			r"<c2>  /</c2><c1>██ </c1>",
+			r"<c2> /</c2><c1>▓▓▓▓</c1>",
+			r"<c2>│ </c2><c1>▒▒</c1><c2>_/</c2>",
+			r"<c2>│/_/</c2><c1>░░</c1>",
+			r"<c2> /</c2><c1>░░░░</c1>",
 		));
 		table['%' as usize] = Some(glyph!(
 			r"<c2> /</c2><c1>██</c1><c2> /</c2><c1>███</c1>",
@@ -398,11 +398,11 @@ pub static FONT_DEPTH: FontFile<5> = FontFile {
 			r"<c2>│//</c2>",
 		));
 		table[';' as usize] = Some(glyph!(
-			r"    ",
-			r"<c2>  /</c2><c1>▓</c1>",
-			r"<c2> │//</c2>",
-			r"<c2>  /</c2><c1>░</c1>",
-			r"<c2> /</c2><c1>░</c1><c2>/</c2>",
+			r"   ",
+			r"<c2> /</c2><c1>▓</c1>",
+			r"<c2>│//</c2>",
+			r"<c2> /</c2><c1>░</c1>",
+			r"<c2>/</c2><c1>░</c1><c2>/</c2>",
 		));
 		table[',' as usize] = Some(glyph!(
 			r"   ",
@@ -412,11 +412,11 @@ pub static FONT_DEPTH: FontFile<5> = FontFile {
 			r"<c2>/</c2><c1>░ </c1>",
 		));
 		table['\'' as usize] = Some(glyph!(
-			r"<c2>  /</c2><c1>█</c1>",
-			r"<c2> │//</c2>",
-			r"    ",
-			r"    ",
-			r"    ",
+			r"<c2> /</c2><c1>█</c1>",
+			r"<c2>│//</c2>",
+			r"   ",
+			r"   ",
+			r"   ",
 		));
 		table['"' as usize] = Some(glyph!(
 			r"<c2> /</c2><c1>█</c1><c2> /</c2><c1>█</c1>",

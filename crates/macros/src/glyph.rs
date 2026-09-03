@@ -73,10 +73,32 @@ fn expand_glyph_rows(rows: &[String]) -> Result<String, String> {
 		rows.iter().map(|row| parse_row(row)).collect::<Result<Vec<Vec<GlyphSegment>>, String>>()?;
 
 	let width: usize = glyph_width(&parsed_rows)?;
+	assert_edges_carry_ink(&parsed_rows)?;
 
 	let emitted_rows: Vec<String> = parsed_rows.iter().map(|segments| emit_row(segments)).collect();
 
 	Ok(format!("&Glyph {{ rows: &[{}], width: {width} }}", emitted_rows.join(", "),))
+}
+
+/// A glyph with ink must reach both of its edges:
+/// a blank leading or trailing column on every row bakes spacing into the glyph that letter_spacing cannot see
+/// blank glyphs such as the space are exempt
+fn assert_edges_carry_ink(rows: &[Vec<GlyphSegment>]) -> Result<(), String> {
+	let texts: Vec<String> = rows.iter().map(|segments| segments.iter().map(GlyphSegment::text).collect()).collect();
+
+	if texts.iter().all(|text| text.trim().is_empty()) {
+		return Ok(());
+	}
+
+	if texts.iter().all(|text| text.starts_with(' ')) {
+		return Err(String::from("every row starts with a space; trim the blank leading column"));
+	}
+
+	if texts.iter().all(|text| text.ends_with(' ')) {
+		return Err(String::from("every row ends with a space; trim the blank trailing column"));
+	}
+
+	Ok(())
 }
 
 fn glyph_width(rows: &[Vec<GlyphSegment>]) -> Result<usize, String> {
@@ -190,16 +212,32 @@ fn parse_row(row: &str) -> Result<Vec<GlyphSegment>, String> {
 		}
 	}
 
-	for triple in segments.windows(3) {
-		if let [
-			GlyphSegment::Colored { slot: first, .. },
-			GlyphSegment::Plain(between),
-			GlyphSegment::Colored { slot: second, .. },
-		] = triple
-			&& first == second
-			&& between.chars().all(|character| character == ' ')
-		{
-			return Err(format!("`<c{}>` closes and reopens across spaces; keep the spaces inside one tag", first + 1));
+	// a run of spaces beside a tag belongs inside that tag: the output cannot
+	// tell the difference and the glyph carries one segment less
+	if segments.iter().any(|segment| matches!(segment, GlyphSegment::Colored { .. })) {
+		for (index, segment) in segments.iter().enumerate() {
+			let GlyphSegment::Plain(text) = segment else {
+				continue;
+			};
+
+			if !text.chars().all(|character| character == ' ') {
+				continue;
+			}
+
+			let before = index.checked_sub(1).and_then(|previous| segments.get(previous));
+			let after = segments.get(index + 1);
+
+			return Err(match (before, after) {
+				(Some(GlyphSegment::Colored { slot: first, .. }), Some(GlyphSegment::Colored { slot: second, .. }))
+					if first == second =>
+				{
+					format!("`<c{}>` closes and reopens across spaces; keep the spaces inside one tag", first + 1)
+				}
+				(Some(GlyphSegment::Colored { slot, .. }), _) | (_, Some(GlyphSegment::Colored { slot, .. })) => {
+					format!("spaces sit outside `<c{}>`; move them inside the tag", slot + 1)
+				}
+				_ => String::from("spaces sit outside a tag; move them inside"),
+			});
 		}
 	}
 
@@ -381,8 +419,8 @@ mod macro_glyph {
 	#[test]
 	fn keeps_leading_and_trailing_plain_text() {
 		assert_eq!(
-			expand(&[" <c1>X</c1> "]).unwrap(),
-			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Plain(" "), Segment::Colored { slot: 0, text: "X" }, Segment::Plain(" ")] }], width: 3 }"#,
+			expand(&["A<c1>X</c1>B"]).unwrap(),
+			r#"&Glyph { rows: &[GlyphRow { segments: &[Segment::Plain("A"), Segment::Colored { slot: 0, text: "X" }, Segment::Plain("B")] }], width: 3 }"#,
 		);
 	}
 
@@ -451,6 +489,33 @@ mod macro_glyph {
 	}
 
 	#[test]
+	fn rejects_spaces_sandwiched_between_different_slots() {
+		assert!(parse_row("<c2>∙</c2>  <c1>│</c1>").is_err());
+		assert!(parse_row("<c1>A</c1><c2> B</c2> <c3> C</c3>").is_err());
+		assert!(parse_row("<c1>A</c1> <c2>B</c2> <c3>C</c3>").is_err());
+	}
+
+	#[test]
+	fn rejects_untagged_spaces_beside_tags() {
+		assert!(parse_row("  <c1>A</c1>").is_err());
+		assert!(parse_row("        <c1> A </c1>").is_err());
+		assert!(parse_row("<c1>A</c1>  ").is_err());
+		assert!(parse_row(" <c1>A</c1><c2>B</c2> ").is_err());
+	}
+
+	#[test]
+	fn allows_untagged_spaces_in_rows_without_tags() {
+		assert!(parse_row("   ").is_ok());
+		assert!(parse_row("A B ").is_ok());
+	}
+
+	#[test]
+	fn allows_plain_ink_beside_tags() {
+		assert!(parse_row("A<c1>X</c1>B").is_ok());
+		assert!(parse_row("<c1>A</c1><c2> B</c2><c3>C </c3>").is_ok());
+	}
+
+	#[test]
 	fn allows_the_same_slot_after_visible_text() {
 		// merging across ink would repaint it, so the grammar permits the resume
 		// whether plain ink is allowed at all is each font's own invariant, not the macro's
@@ -474,6 +539,31 @@ mod macro_glyph {
 		assert!(parse_row("A\tB").is_err());
 		assert!(parse_row("<c1>A\t</c1>").is_err());
 		assert!(expand_glyph_rows(&[String::from("A\tB")]).is_err());
+	}
+
+	#[test]
+	fn rejects_a_blank_leading_column() {
+		assert!(expand(&[" A", " B"]).is_err());
+		assert!(expand(&["  <c1>A</c1>", " <c1>B</c1>"]).is_err());
+	}
+
+	#[test]
+	fn rejects_a_blank_trailing_column() {
+		assert!(expand(&["A ", "B "]).is_err());
+		assert!(expand(&["<c1>A</c1> ", "<c1>B</c1>  "]).is_err());
+	}
+
+	#[test]
+	fn allows_ink_that_reaches_each_edge_on_some_row() {
+		assert!(expand(&[" A", "B "]).is_ok());
+		assert!(expand(&["A ", " B"]).is_ok());
+	}
+
+	#[test]
+	fn allows_blank_glyphs() {
+		assert!(expand(&[" ", " "]).is_ok());
+		assert!(expand(&["", ""]).is_ok());
+		assert!(expand(&["  "]).is_ok());
 	}
 
 	#[test]

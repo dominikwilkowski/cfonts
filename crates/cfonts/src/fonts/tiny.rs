@@ -198,7 +198,7 @@ pub static FONT_TINY: FontFile<2> = FontFile {
 		));
 		table['@' as usize] = Some(glyph!(
 			r"▛█▜",
-			r"▙▟▃",
+			r"▙▟▄",
 		));
 		table['#' as usize] = Some(glyph!(
 			r"▟▄▙",
@@ -233,15 +233,15 @@ pub static FONT_TINY: FontFile<2> = FontFile {
 			r"▄",
 		));
 		table[';' as usize] = Some(glyph!(
-			r"  ",
+			r" ▀",
 			r"▄▀",
 		));
 		table[',' as usize] = Some(glyph!(
-			r" ",
-			r"█",
+			r"  ",
+			r"▄▀",
 		));
 		table['\'' as usize] = Some(glyph!(
-			r"▀",
+			r"▛",
 			r" ",
 		));
 		table['"' as usize] = Some(glyph!(
