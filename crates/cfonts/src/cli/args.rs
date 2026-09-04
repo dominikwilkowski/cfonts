@@ -436,7 +436,7 @@ impl Args {
 				short: &["d"],
 				description: "Print a demo of all fonts and exit",
 				scope: "",
-				example: "cfonts --demo",
+				example: "cfonts --demo --color yellow",
 				arguments: None,
 			},
 			Self::Help => ArgInfo {
