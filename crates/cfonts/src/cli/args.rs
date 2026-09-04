@@ -114,6 +114,7 @@ pub enum Args {
 	IndependentGradient,
 	TransitionGradient,
 	Version,
+	Demo,
 	Help,
 }
 
@@ -144,6 +145,7 @@ impl Args {
 			"independent-gradient" | "i" => Some(Self::IndependentGradient),
 			"transition-gradient" | "t" => Some(Self::TransitionGradient),
 			"version" | "v" | "V" => Some(Self::Version),
+			"demo" | "d" => Some(Self::Demo),
 			"help" | "h" => Some(Self::Help),
 			_ => None,
 		}
@@ -238,6 +240,7 @@ impl Args {
 			Self::IndependentGradient => state.independent = true,
 			Self::TransitionGradient => state.transition = true,
 			Self::Version => state.show_version = true,
+			Self::Demo => state.show_demo = true,
 			Self::Help => state.show_help = true,
 		}
 
@@ -428,6 +431,14 @@ impl Args {
 				example: "cfonts --version",
 				arguments: None,
 			},
+			Self::Demo => ArgInfo {
+				long: "demo",
+				short: &["d"],
+				description: "Print a demo of all fonts and exit",
+				scope: "",
+				example: "cfonts --demo",
+				arguments: None,
+			},
 			Self::Help => ArgInfo {
 				long: "help",
 				short: &["h"],
@@ -474,6 +485,7 @@ impl Args {
 				(help_line!(Args::TransitionGradient, true), help_line!(Args::TransitionGradient, false))
 			}
 			Self::Version => (help_line!(Args::Version, true), help_line!(Args::Version, false)),
+			Self::Demo => (help_line!(Args::Demo, true), help_line!(Args::Demo, false)),
 			Self::Help => (help_line!(Args::Help, true), help_line!(Args::Help, false)),
 		}
 	}

@@ -21,7 +21,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 			end: GradientStop::Green,
 			independent_gradient: false,
 		})
-		.new_text(VERSION)
+		.new_text(format!(" {VERSION}"))
 		.font(Font::Console)
 		.valign(Valign::Bottom)
 		.colors(vec![Color::System])

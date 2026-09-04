@@ -394,6 +394,7 @@ pub(crate) struct ParseState {
 	pub(crate) transition: bool,
 	pub(crate) raw_mode: bool,
 	pub(crate) show_help: bool,
+	pub(crate) show_demo: bool,
 	pub(crate) show_version: bool,
 }
 
@@ -435,6 +436,7 @@ impl Default for ParseState {
 			transition: false,
 			raw_mode: false,
 			show_help: false,
+			show_demo: false,
 			show_version: false,
 		}
 	}
@@ -512,6 +514,9 @@ pub struct ParsedArgs<'a> {
 
 	/// Whether the help screen was requested instead of a render
 	pub show_help: bool,
+
+	/// Whether the demo screen was requested instead of a render
+	pub show_demo: bool,
 
 	/// Whether the version was requested instead of a render
 	pub show_version: bool,
@@ -656,16 +661,17 @@ fn parse_args_with<'a>(
 	warnings.extend(state.gradient_flag_warnings());
 
 	let show_help = state.show_help;
+	let show_demo = state.show_demo;
 	let show_version = state.show_version;
 	let raw_mode = state.raw_mode;
-	let options = if show_help || show_version {
+	let options = if show_help || show_demo || show_version {
 		// help and version render nothing, so their invocations need no text and skip the conversion
 		Options::default()
 	} else {
 		state.try_into()?
 	};
 
-	Ok(ParsedArgs { warnings: std::mem::take(warnings), options, raw_mode, show_help, show_version })
+	Ok(ParsedArgs { warnings: std::mem::take(warnings), options, raw_mode, show_help, show_demo, show_version })
 }
 
 #[cfg(test)]

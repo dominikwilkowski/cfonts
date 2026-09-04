@@ -7,7 +7,7 @@ use std::{
 
 use cfonts::{
 	Host, RustHost,
-	cli::{ParseError, ParsedArgs, StdinProvider, VERSION, cli_help, parse_args},
+	cli::{ParseError, ParsedArgs, StdinProvider, VERSION, cli_demo, cli_help, parse_args},
 };
 
 // terminology
@@ -65,18 +65,19 @@ fn main() -> ExitCode {
 	};
 
 	// parsing args
-	let ParsedArgs { options, warnings, raw_mode, show_help, show_version } = match parse_args(&args, std_provider) {
-		Ok(parsed) => parsed,
-		Err(failure) => {
-			emit_stderr(&failure);
-			let code = if matches!(failure.error, ParseError::StdinUnreadable(_)) {
-				74 // EX_IOERR for a failed stdin read
-			} else {
-				64 // EX_USAGE for everything else
-			};
-			return ExitCode::from(code);
-		}
-	};
+	let ParsedArgs { options, warnings, raw_mode, show_help, show_demo, show_version } =
+		match parse_args(&args, std_provider) {
+			Ok(parsed) => parsed,
+			Err(failure) => {
+				emit_stderr(&failure);
+				let code = if matches!(failure.error, ParseError::StdinUnreadable(_)) {
+					74 // EX_IOERR for a failed stdin read
+				} else {
+					64 // EX_USAGE for everything else
+				};
+				return ExitCode::from(code);
+			}
+		};
 
 	for warning in &warnings {
 		emit_stderr(warning);
@@ -86,6 +87,8 @@ fn main() -> ExitCode {
 		emit_stdout(cli_help())
 	} else if show_version {
 		emit_stdout(VERSION)
+	} else if show_demo {
+		emit_stdout(cli_demo())
 	} else {
 		RustHost::default().with_raw_mode(raw_mode).say(&options)
 	};
