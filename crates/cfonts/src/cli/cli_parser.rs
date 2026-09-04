@@ -636,7 +636,11 @@ fn parse_args_with<'a>(
 	}
 
 	let implicit = state.options.blocks[0].text.is_none() && !std_provider.interactive;
-	if !state.show_help && !state.show_version && (implicit || state.options.blocks.iter().any(|block| block.stdin)) {
+	if !state.show_help
+		&& !state.show_version
+		&& !state.show_demo
+		&& (implicit || state.options.blocks.iter().any(|block| block.stdin))
+	{
 		// some shadowing fun and I won't apologize for it either!
 		let buffer = (std_provider.read)().map_err(|error| ParseError::StdinUnreadable(StdinError(error)))?;
 		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
@@ -664,9 +668,13 @@ fn parse_args_with<'a>(
 	let show_demo = state.show_demo;
 	let show_version = state.show_version;
 	let raw_mode = state.raw_mode;
-	let options = if show_help || show_demo || show_version {
+	let options = if show_help || show_version {
 		// help and version render nothing, so their invocations need no text and skip the conversion
 		Options::default()
+	} else if show_demo {
+		let mut options = Options::default();
+		options.global_colors = state.options.global_colors;
+		options
 	} else {
 		state.try_into()?
 	};
@@ -1527,7 +1535,7 @@ mod stdin_handling {
 	}
 
 	#[test]
-	fn help_and_version_never_read_stdin() {
+	fn help_version_and_demo_never_read_stdin() {
 		// yes | cfonts --help  must not consume the pipe
 		let help = args(&["--help"]);
 		let parsed = parse_args(&help, piped(|| panic!("help must not read stdin"))).unwrap();
@@ -1537,10 +1545,18 @@ mod stdin_handling {
 		let parsed = parse_args(&version, piped(|| panic!("version must not read stdin"))).unwrap();
 		assert!(parsed.show_version);
 
-		// even an explicit stdin flag defers to help
+		let demo = args(&["--demo"]);
+		let parsed = parse_args(&demo, piped(|| panic!("demo must not read stdin"))).unwrap();
+		assert!(parsed.show_demo);
+
+		// even an explicit stdin flag defers to the screens
 		let with_flag = args(&["--stdin", "--help"]);
 		let parsed = parse_args(&with_flag, piped(|| panic!("help must not read stdin, even with --stdin"))).unwrap();
 		assert!(parsed.show_help);
+
+		let with_flag = args(&["--stdin", "--demo"]);
+		let parsed = parse_args(&with_flag, piped(|| panic!("demo must not read stdin, even with --stdin"))).unwrap();
+		assert!(parsed.show_demo);
 	}
 }
 

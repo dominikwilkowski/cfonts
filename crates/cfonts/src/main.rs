@@ -88,7 +88,7 @@ fn main() -> ExitCode {
 	} else if show_version {
 		emit_stdout(VERSION)
 	} else if show_demo {
-		emit_stdout(cli_demo())
+		emit_stdout(cli_demo(options.global_colors))
 	} else {
 		RustHost::default().with_raw_mode(raw_mode).say(&options)
 	};
