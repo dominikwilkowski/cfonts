@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"target": "ES2024",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
+		"types": ["node"],
+		"outDir": "dist",
+		"rootDir": "npm",
+		"strict": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"declaration": true,
+		"noEmitOnError": true,
+		"removeComments": false,
+	},
+	"include": ["npm/**/*.ts"],
+	"exclude": ["node_modules", "pkg", "dist", "tests", "npm/tests"],
+}

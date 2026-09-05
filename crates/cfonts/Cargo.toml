@@ -1,0 +1,54 @@
+[package]
+name = "cfonts"
+description = "Sexy ANSI fonts for the console"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/cfonts/"
+readme = "../../README.md"
+keywords = ["fonts", "color", "console", "ascii", "ANSI"]
+categories = ["command-line-interface", "command-line-utilities", "graphics"]
+include = [
+	"src/**",
+	"!**/.DS_Store",
+	"examples/**",
+	"Cargo.toml",
+	"LICENSE",
+]
+
+[dependencies]
+cfonts-macros.workspace = true
+dioxus = { version = "0.7", optional = true, default-features = false, features = [
+	"html",
+	"macro",
+	"signals",
+] }
+leptos = { version = "0.8", optional = true, default-features = false }
+ratatui = { version = "0.30", optional = true, default-features = false }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console"] }
+windows-version = "0.1"
+
+[dev-dependencies]
+ratatui = { version = "0.30", features = ["crossterm"] }
+temp-env = "0.3"
+
+[target.'cfg(windows)'.dev-dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Security"] }
+
+[features]
+dioxus = ["dep:dioxus"]
+leptos = ["dep:leptos"]
+ratatui = ["dep:ratatui"]
+
+[[example]]
+name = "ratatui"
+required-features = ["ratatui"]

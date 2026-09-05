@@ -1,0 +1,16 @@
+[workspace]
+members = ["crates/cfonts", "crates/macros", "crates/wasm"]
+default-members = ["crates/cfonts"]
+resolver = "3"
+
+[workspace.package]
+version = "4.0.0"
+edition = "2024"
+rust-version = "1.88.0"
+authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
+license = "GPL-3.0-or-later"
+homepage = "https://github.com/dominikwilkowski/cfonts"
+repository = "https://github.com/dominikwilkowski/cfonts"
+
+[workspace.dependencies]
+cfonts-macros = { path = "crates/macros", version = "=4.0.0" }

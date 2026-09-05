@@ -1,0 +1,190 @@
+use std::borrow::Cow;
+
+use crate::{
+	color::{Color, Rgb},
+	environments::{ColorTokens, Environment, Rendered, each_ramp_column, push_escaped},
+	options::Options,
+	render::RenderContext,
+};
+
+/// The browser environment renders HTML
+#[derive(Debug, Clone, Copy, Default)]
+pub struct BrowserEnv;
+
+impl BrowserEnv {
+	/// Wraps escaped content in the span markup that carries one CSS color
+	///
+	/// Both the slot and the gradient paint paths route through this,
+	/// so the markup has exactly one home
+	fn push_span(css: &str, content: impl FnOnce(&mut String), out: &mut String) {
+		out.push_str(r#"<span style="color:"#);
+		out.push_str(css);
+		out.push_str(r#"">"#);
+		content(out);
+		out.push_str("</span>");
+	}
+
+	/// Escapes one HTML-special character
+	/// (the console font's `&` glyph and simple3d's `</` art would otherwise parse as HTML markup)
+	fn push_escaped_char(character: char, out: &mut String) {
+		match character {
+			'&' => out.push_str("&amp;"),
+			'<' => out.push_str("&lt;"),
+			'>' => out.push_str("&gt;"),
+			_ => out.push(character),
+		}
+	}
+}
+
+impl Environment for BrowserEnv {
+	/// Rows align physically within the widest line, so gradient columns line up
+	/// with the padding; placing the banner on the page belongs to the consumer
+	fn frames_alignment_to_widest(&self) -> bool {
+		true
+	}
+
+	/// The browser has no terminal palette, so named colors flatten to their RGB
+	/// values and every color level paints the same CSS
+	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+		if context.color_level().is_none() {
+			return ColorTokens::default();
+		}
+
+		match color.to_rgb() {
+			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_hex()), end: Cow::Borrowed("") },
+			None => ColorTokens::default(),
+		}
+	}
+
+	/// Every column gets its own span so each character carries its ramp color
+	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+		each_ramp_column(text, colors, |character, rgb| match rgb {
+			Some(rgb) => Self::push_span(&rgb.to_hex(), |out| Self::push_escaped_char(character, out), &mut out.text),
+			None => Self::push_escaped_char(character, &mut out.text),
+		})
+	}
+
+	/// The start token is the CSS color value; the span markup is the paint
+	fn paint(&self, text: &str, tokens: &ColorTokens, _will_style: bool, _context: &RenderContext, out: &mut Rendered) {
+		if tokens.start.is_empty() {
+			push_escaped(text, Self::push_escaped_char, &mut out.text);
+			return;
+		}
+
+		Self::push_span(&tokens.start, |out| push_escaped(text, Self::push_escaped_char, out), &mut out.text);
+	}
+
+	fn row_break(&self, out: &mut Rendered) {
+		out.text.push_str("<br>");
+	}
+
+	fn top_padding(&self, out: &mut Rendered) {
+		out.text.push_str("<br><br>");
+	}
+
+	fn bottom_padding(&self, out: &mut Rendered) {
+		out.text.push_str("<br><br>");
+	}
+
+	fn wrapper_start(&self, _options: &Options, out: &mut Rendered) {
+		out.text.push_str(
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"#,
+		);
+		out.text.push_str(""); // TODO: add background color
+		out.text.push_str(r#"">"#);
+	}
+
+	fn wrapper_end(&self, _options: &Options, out: &mut Rendered) {
+		out.text.push_str("</div>");
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{Cfonts, color::Rgb, fonts::Font, options::Valign, render::ColorLevel};
+
+	// color_tokens
+
+	#[test]
+	fn named_colors_flatten_to_their_rgb_values() {
+		// the browser has no terminal palette, so every level paints the same CSS
+		let context = RenderContext::colored(ColorLevel::Basic);
+
+		assert_eq!(BrowserEnv.color_tokens(Color::Red, &context).start, "#ea3223");
+		assert_eq!(BrowserEnv.color_tokens(Color::Rgb(Rgb { red: 1, green: 2, blue: 3 }), &context,).start, "#010203");
+		assert!(!BrowserEnv.color_tokens(Color::System, &context).paints());
+		assert!(!BrowserEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+	}
+
+	// paint
+
+	#[test]
+	fn paint_escapes_the_text_but_not_the_color_markup() {
+		// the console font's `&` glyph and simple3d's `</` art must not parse as HTML
+		let mut out = Rendered::default();
+		let tokens = ColorTokens { start: Cow::Borrowed("red"), end: Cow::Borrowed("") };
+		BrowserEnv.paint("</&>", &tokens, true, &RenderContext::unlimited(), &mut out);
+		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
+	}
+
+	// blank
+
+	#[test]
+	fn blank_stays_horizontal_in_the_browser() {
+		// valign padding is empty COLUMNS: spaces under white-space:pre, never line breaks
+		let mut out = Rendered::default();
+		BrowserEnv.blank(3, &mut out);
+		assert_eq!(out.text, "   ");
+	}
+
+	// row_break
+
+	#[test]
+	fn row_break_emits_br_without_a_raw_newline() {
+		let mut out = Rendered::default();
+		BrowserEnv.row_break(&mut out);
+		assert_eq!(out.text, "<br>");
+	}
+
+	// render
+
+	#[test]
+	fn render_wraps_the_rows_in_a_styled_div() {
+		let rendered =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderContext::unlimited());
+
+		assert_eq!(
+			rendered.text,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:"><br><br>▄▀█<br>█▀█<br><br></div>"#,
+		);
+	}
+
+	#[test]
+	fn spaceless_skips_the_browser_padding() {
+		// spaceless means no padding, and for the browser the wrapper is the padding:
+		// the output becomes an embeddable fragment for the consumer's own container
+		let rendered = Cfonts::text("A")
+			.font(Font::Tiny)
+			.valign(Valign::Top)
+			.spaceless()
+			.render_with(&BrowserEnv, RenderContext::unlimited());
+		assert_eq!(
+			rendered.text,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█</div>"#,
+		);
+	}
+
+	#[test]
+	fn multi_font_valign_padding_renders_as_spaces() {
+		// Tiny beside Block gets Blank rows; under the blank default they are spaces,
+		// so the only <br> are the 5 row breaks plus the 4 padding breaks
+		let rendered = Cfonts::text("A")
+			.font(Font::Block)
+			.valign(Valign::Top)
+			.new_text("B")
+			.font(Font::Tiny)
+			.render_with(&BrowserEnv, RenderContext::unlimited());
+		assert_eq!(rendered.text.matches("<br>").count(), 9);
+	}
+}

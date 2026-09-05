@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>cfonts browser example</title>
+		<style>
+			:root {
+				color-scheme: light dark;
+				font-family: system-ui, sans-serif;
+			}
+
+			body {
+				display: grid;
+				min-height: 100vh;
+				margin: 0;
+				place-items: center;
+			}
+
+			form {
+				margin-top: 3rem;
+				padding-top: 3rem;
+				border-top: 2px dashed #ccc;
+			}
+
+			#banner {
+				width: 100%;
+				display: grid;
+
+				> div {
+					justify-self: center;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<div id="banner"></div>
+			<form id="console_form">
+				<p>Open the devtools console to see the banner</p>
+
+				<label for="input">Text: </label>
+				<input type="text" id="input" value="Hello">
+
+				<button type="submit">
+					Show in devtool console
+				</button>
+			</form>
+		</main>
+		<script type="module" src="./script.js"></script>
+	</body>
+</html>
