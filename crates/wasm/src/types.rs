@@ -119,7 +119,6 @@ bridge_enum!(Font => CoreFont {
 	Retro,
 	Shade,
 	Simple,
-	Simple3D,
 	SimpleBlock,
 	Slick,
 	Thin,

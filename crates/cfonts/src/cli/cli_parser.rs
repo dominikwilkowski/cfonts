@@ -1085,7 +1085,7 @@ mod argument_parsing {
 			args(&[
 				"long text|with new line",
 				"--font",
-				"simple3d",
+				"simpleBlock",
 				"--align",
 				"center",
 				"--valign",
@@ -1108,7 +1108,7 @@ mod argument_parsing {
 			args(&[
 				"long text|with new line",
 				"-f",
-				"simple3d",
+				"simpleBlock",
 				"-a",
 				"center",
 				"-y",
@@ -1130,7 +1130,7 @@ mod argument_parsing {
 			let block = &parsed.options.blocks[0];
 
 			assert_eq!(block.text(), "LONG TEXT|WITH NEW LINE");
-			assert_eq!(block.font, Font::Simple3D);
+			assert_eq!(block.font, Font::SimpleBlock);
 			assert_eq!(block.letter_spacing, 9);
 			assert_eq!(block.line_height, Some(2));
 			// -g beats -c on the global scope; the gradient assert below covers it

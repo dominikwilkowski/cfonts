@@ -34,8 +34,6 @@ mod shade;
 pub use shade::FONT_SHADE;
 mod simple;
 pub use simple::FONT_SIMPLE;
-mod simple_3d;
-pub use simple_3d::FONT_SIMPLE_3D;
 mod simple_block;
 pub use simple_block::FONT_SIMPLE_BLOCK;
 mod slick;
@@ -142,7 +140,6 @@ pub enum Font {
 	#[all(rename = "3d")]
 	Font3D,
 	Simple,
-	Simple3D,
 	SimpleBlock,
 	Tiny,
 	Huge,
@@ -171,7 +168,6 @@ impl Font {
 			Self::Retro => &FONT_RETRO,
 			Self::Shade => &FONT_SHADE,
 			Self::Simple => &FONT_SIMPLE,
-			Self::Simple3D => &FONT_SIMPLE_3D,
 			Self::SimpleBlock => &FONT_SIMPLE_BLOCK,
 			Self::Slick => &FONT_SLICK,
 			Self::Thin => &FONT_THIN,
@@ -199,7 +195,6 @@ impl Font {
 			"retro" => Some(Font::Retro),
 			"shade" => Some(Font::Shade),
 			"simple" => Some(Font::Simple),
-			"simple3d" => Some(Font::Simple3D),
 			"simpleblock" => Some(Font::SimpleBlock),
 			"slick" => Some(Font::Slick),
 			"thin" => Some(Font::Thin),
