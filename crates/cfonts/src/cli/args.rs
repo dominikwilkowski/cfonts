@@ -72,6 +72,10 @@ macro_rules! help_line {
 			0 => "",
 			_ => "\n  ",
 		};
+		const SCOPE_RESET: &str = match INFO.scope.len() {
+			0 => "",
+			_ => RESET,
+		};
 		const DESCRIPTION_LEAD: &str = match INFO.description.len() {
 			0 => "",
 			_ => "\n  ",
@@ -96,7 +100,7 @@ macro_rules! help_line {
 			SCOPE_LEAD,
 			ITALIC,
 			INFO.scope,
-			RESET,
+			SCOPE_RESET,
 			DESCRIPTION_LEAD,
 			INFO.description,
 			"\n  --",
@@ -611,19 +615,44 @@ mod tests {
 
 	#[test]
 	fn help_lines_are_built_at_compile_time() {
+		// a const binding only compiles when the line is a compile time constant
+		const COLORED: &str = Args::Align.help_colored();
+		const PLAIN: &str = Args::Align.help_plain();
+
+		assert!(COLORED.starts_with("  \x1B[1m"));
+		assert!(PLAIN.starts_with("  "));
+	}
+
+	#[test]
+	fn help_lines_follow_one_layout() {
+		// title, scope, description, flags, examples and arguments, each in its place with its own styling
 		let open = Color::Green.ansi16_sgr().unwrap();
 		let close = Color::ANSI_RESET;
 
-		assert_eq!(
-			Args::Align.help_colored(),
-			&format!(
-				"  \x1B[1mAlign the output horizontally\x1B[0m\n  \x1B[3mThis will apply globally\n  The output aligns within the width of your terminal\x1B[0m\n  --align, -a\n  \x1B[1m$\x1B[0m cfonts hello --align center\n  \x1B[1m$\x1B[0m cfonts hello --align right --font tiny\n  Possible arguments:\n    [ {open}left, center, right{close} ]"
-			),
-		);
-		assert_eq!(
-			Args::Spaceless.help_colored(),
-			"  \x1B[1mRemove the padding around the output\x1B[0m\n  \x1B[3mThis will apply globally\n  Without it two empty lines pad the output above and below\x1B[0m\n  --spaceless, -s\n  \x1B[1m$\x1B[0m cfonts hello --spaceless\n  \x1B[1m$\x1B[0m cfonts hello --spaceless --font console"
-		);
+		for argument in Args::ALL {
+			let info = argument.infos();
+			let mut expected = format!("  \x1B[1m{}\x1B[0m", info.title);
+
+			if !info.scope.is_empty() {
+				expected.push_str(&format!("\n  \x1B[3m{}\x1B[0m", info.scope));
+			}
+			if !info.description.is_empty() {
+				expected.push_str(&format!("\n  {}", info.description));
+			}
+
+			expected.push_str(&format!("\n  --{}", info.long));
+			for short in info.short {
+				expected.push_str(&format!(", -{short}"));
+			}
+			for example in info.examples {
+				expected.push_str(&format!("\n{PROMPT_COLORED} {example}"));
+			}
+			if let Some(arguments) = info.arguments {
+				expected.push_str(&format!("\n  Possible arguments:\n    [ {open}{arguments}{close} ]"));
+			}
+
+			assert_eq!(argument.help_colored(), expected, "{argument:?}");
+		}
 	}
 
 	#[test]
