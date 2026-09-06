@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, ops::Range};
 
 use crate::{
 	color::{CANDY, CandyRng, Color, ColorOption, GradientColors, GradientOption, GradientStop, Rgb},
@@ -178,7 +178,7 @@ pub(crate) enum PaintDomain {
 	/// The block's own gradient, ramping over the block's columns
 	Block,
 
-	/// The composition wide gradient, ramping over the whole row
+	/// The composition wide gradient, ramping over the columns of every block that paints from it
 	Global,
 }
 
@@ -346,180 +346,164 @@ impl<T> PaintPlan<T> {
 	}
 }
 
-/// One gradient domain's stops and the ramp buffer they fill
+/// One gradient domain: its stops, the ramp they fill and the absolute column the ramp starts at
 #[derive(Debug)]
 pub(crate) struct GradientState {
 	stops: Vec<Rgb>,
 	transition: bool,
-	independent: bool,
 	colors: GradientColors,
+
+	/// The absolute column of the ramp's first color
+	origin: usize,
 }
 
 impl GradientState {
 	fn new(gradient: &GradientOption) -> Self {
-		let (stops, transition, independent) = match gradient {
-			GradientOption::TwoStop { start, end, independent_gradient } => {
-				(vec![start.to_rgb(), end.to_rgb()], false, *independent_gradient)
-			}
-			GradientOption::Transition { stops, independent_gradient } => {
-				(stops.iter().map(GradientStop::to_rgb).collect(), true, *independent_gradient)
-			}
-			GradientOption::Preset { preset, independent_gradient } => (preset.stops().to_vec(), true, *independent_gradient),
+		let (stops, transition) = match gradient {
+			GradientOption::TwoStop { start, end } => (vec![start.to_rgb(), end.to_rgb()], false),
+			GradientOption::Transition(stops) => (stops.iter().map(GradientStop::to_rgb).collect(), true),
+			GradientOption::Preset(preset) => (preset.stops().to_vec(), true),
 		};
 
-		Self { stops, transition, independent, colors: GradientColors::new() }
+		Self { stops, transition, colors: GradientColors::new(), origin: 0 }
 	}
 
-	/// Refills the ramp to exactly `steps` colors, reusing the buffer
-	fn fill(&mut self, steps: usize) {
-		self.colors.fill(&self.stops, self.transition, steps);
+	/// Refills the ramp over one column extent, reusing the buffer; no extent leaves the ramp empty
+	fn fill(&mut self, extent: Option<Range<usize>>) {
+		let extent = extent.unwrap_or(0..0);
+		self.origin = extent.start;
+		self.colors.fill(&self.stops, self.transition, extent.len());
 	}
 
-	/// The ramp from `cursor` onward; empty when the cursor ran past the ramp
-	fn window(&self, cursor: usize) -> &[Rgb] {
-		self.colors.colors().get(cursor..).unwrap_or(&[])
+	/// The ramp from one absolute column onward; empty before the origin and past the ramp
+	fn window(&self, column: usize) -> &[Rgb] {
+		column.checked_sub(self.origin).and_then(|cursor| self.colors.colors().get(cursor..)).unwrap_or(&[])
 	}
 }
 
-/// The gradient ramps of one render: one state per active domain
+/// The gradient ramps of one render: one state per active domain, every ramp indexed by absolute column
 ///
-/// Fixed ramps fill once over their domain's widest row, independent ramps refill per row
+/// A domain is the global gradient or one block's own gradient, and its extent runs from the first column
+/// of the first block that paints from it to the last column of the last one: a block in between that paints
+/// its own colors consumes its columns of the ramp, a block at either edge stretches nothing
+///
+/// A fixed ramp fills once over the extent across every row, an independent one refills per row
 #[derive(Debug)]
 pub(crate) struct GradientPlans {
+	/// The paint path of every block, deciding which ramp its columns sample
+	domains: Vec<PaintDomain>,
 	blocks: Vec<Option<GradientState>>,
 	global: Option<GradientState>,
 
-	/// The smallest alignment indent across painted rows: the fixed global ramp's origin column
-	indent_floor: usize,
+	/// Whether every ramp refills per row over that row's extent
+	independent: bool,
 
-	/// The global ramp cursor: every column of the current row counts here
-	global_cursor: usize,
-
-	/// The block ramp cursor, counting within the block currently painting
-	block_cursor: usize,
-
-	/// The block the block cursor counts for, reset as blocks change
-	cursor_block: Option<usize>,
+	/// The absolute column the next cell of the current row lands on
+	column: usize,
 }
 
 impl GradientPlans {
-	/// Builds every active gradient domain and fills the fixed ramps
+	/// Builds every active gradient domain along the paint plan's routing and fills the fixed ramps
 	///
-	/// Without a color level nothing ramps
-	pub(crate) fn build(options: &Options, context: &RenderContext, rows: &[LayoutRow]) -> Self {
-		if context.color_level().is_none() {
-			return Self {
-				blocks: options.blocks.iter().map(|_| None).collect(),
-				global: None,
-				indent_floor: 0,
-				global_cursor: 0,
-				block_cursor: 0,
-				cursor_block: None,
-			};
-		}
+	/// Without a color level the plan routes every block through its slots, so nothing ramps
+	pub(crate) fn build<T>(plan: &PaintPlan<T>, options: &Options, rows: &[LayoutRow]) -> Self {
+		let domains: Vec<PaintDomain> = (0..options.blocks.len()).map(|block_index| plan.domain(block_index)).collect();
 
 		let mut blocks: Vec<Option<GradientState>> = options
 			.blocks
 			.iter()
-			.map(|block| match &block.colors {
-				Some(ColorOption::Gradient(gradient)) => Some(GradientState::new(gradient)),
+			.zip(&domains)
+			.map(|(block, domain)| match (domain, &block.colors) {
+				(PaintDomain::Block, Some(ColorOption::Gradient(gradient))) => Some(GradientState::new(gradient)),
 				_ => None,
 			})
 			.collect();
 
 		let mut global = match &options.global_colors {
-			Some(ColorOption::Gradient(gradient)) => Some(GradientState::new(gradient)),
+			Some(ColorOption::Gradient(gradient)) if domains.contains(&PaintDomain::Global) => {
+				Some(GradientState::new(gradient))
+			}
 			_ => None,
 		};
 
-		// Painted rows anchor the fixed global ramp: rows index it by their absolute
-		// column, so a more indented row samples deeper into the ramp
-		let painted = || rows.iter().filter(|row| row.has_columns());
-		let indent_floor = painted().map(|row| row.align_offset).min().unwrap_or(0);
+		let independent = options.independent_gradient;
 
-		if let Some(global) = global.as_mut()
-			&& !global.independent
-		{
-			global.fill(painted().map(|row| row.align_offset + row.width - indent_floor).max().unwrap_or(0));
-		}
+		if !independent {
+			if let Some(global) = global.as_mut() {
+				global.fill(Self::extent(rows, |block_index| domains.get(block_index) == Some(&PaintDomain::Global)));
+			}
 
-		for (block_index, state) in blocks.iter_mut().enumerate() {
-			if let Some(state) = state
-				&& !state.independent
-			{
-				let widest = rows
-					.iter()
-					.flat_map(|row| row.block_spans.iter())
-					.filter(|span| span.block_index == block_index)
-					.map(|span| span.width)
-					.max()
-					.unwrap_or(0);
-				state.fill(widest);
+			for (block_index, state) in blocks.iter_mut().enumerate() {
+				if let Some(state) = state {
+					state.fill(Self::extent(rows, |span_block| span_block == block_index));
+				}
 			}
 		}
 
-		Self { blocks, global, indent_floor, global_cursor: 0, block_cursor: 0, cursor_block: None }
+		Self { domains, blocks, global, independent, column: 0 }
 	}
 
-	/// Starts one row: refills the independent ramps and resets the cursors
+	/// The absolute columns one domain paints on one row: from its first participating span to the end of its last
 	///
-	/// Fixed ramps index by absolute column, so the row's extra indent beyond the
-	/// shared floor seeds the global cursor; independent ramps start at their own row
-	pub(crate) fn start_row(&mut self, row: &LayoutRow) {
-		if let Some(global) = self.global.as_mut()
-			&& global.independent
-		{
-			global.fill(row.width);
-		}
+	/// Zero width spans paint nothing and anchor nothing, so an empty line never pulls the ramp to its column
+	fn row_extent(row: &LayoutRow, participates: impl Fn(usize) -> bool) -> Option<Range<usize>> {
+		let mut column = row.align_offset;
+		let mut extent: Option<Range<usize>> = None;
 
 		for span in &row.block_spans {
-			if let Some(Some(state)) = self.blocks.get_mut(span.block_index)
-				&& state.independent
-			{
-				state.fill(span.width);
+			if span.width > 0 && participates(span.block_index) {
+				extent.get_or_insert(column..column).end = column + span.width;
+			}
+			column += span.width;
+		}
+
+		extent
+	}
+
+	/// The absolute columns one domain paints across every row: the union of its row extents
+	fn extent(rows: &[LayoutRow], participates: impl Fn(usize) -> bool) -> Option<Range<usize>> {
+		rows
+			.iter()
+			.filter_map(|row| Self::row_extent(row, &participates))
+			.reduce(|whole, extent| whole.start.min(extent.start)..whole.end.max(extent.end))
+	}
+
+	/// Starts one row: an independent composition refills every ramp over the row's own extent,
+	/// then the cursor moves to the row's first column
+	pub(crate) fn start_row(&mut self, row: &LayoutRow) {
+		if self.independent {
+			let domains = &self.domains;
+			if let Some(global) = self.global.as_mut() {
+				global.fill(Self::row_extent(row, |block_index| domains.get(block_index) == Some(&PaintDomain::Global)));
+			}
+
+			// a block occupies one run of columns per row, which is its whole extent there
+			let mut column = row.align_offset;
+			for span in &row.block_spans {
+				if let Some(Some(state)) = self.blocks.get_mut(span.block_index) {
+					state.fill(Some(column..column + span.width));
+				}
+				column += span.width;
 			}
 		}
 
-		self.global_cursor = match &self.global {
-			Some(state) if !state.independent => row.align_offset.saturating_sub(self.indent_floor),
-			_ => 0,
+		self.column = row.align_offset;
+	}
+
+	/// The ramp one block samples at the current column; a block painted through its slots has none
+	pub(crate) fn window(&self, block_index: usize) -> &[Rgb] {
+		let state = match self.domains.get(block_index) {
+			Some(PaintDomain::Global) => self.global.as_ref(),
+			Some(PaintDomain::Block) => self.blocks.get(block_index).and_then(Option::as_ref),
+			_ => None,
 		};
-		self.block_cursor = 0;
-		self.cursor_block = None;
+
+		state.map_or(&[], |state| state.window(self.column))
 	}
 
-	/// The global ramp at the cursor; advance with [`advance_global`](Self::advance_global)
-	pub(crate) fn global_window(&self) -> &[Rgb] {
-		self.global.as_ref().map_or(&[], |state| state.window(self.global_cursor))
-	}
-
-	/// One block's ramp at its cursor, resetting the cursor when the block changes
-	pub(crate) fn block_window(&mut self, block_index: usize) -> &[Rgb] {
-		if self.cursor_block != Some(block_index) {
-			self.cursor_block = Some(block_index);
-			self.block_cursor = 0;
-		}
-
-		self.blocks.get(block_index).and_then(Option::as_ref).map_or(&[], |state| state.window(self.block_cursor))
-	}
-
-	/// Claims painted columns of the global ramp
-	pub(crate) fn advance_global(&mut self, columns: usize) {
-		self.global_cursor += columns;
-	}
-
-	/// Claims painted columns of the current block's ramp
-	pub(crate) fn advance_block(&mut self, columns: usize) {
-		self.block_cursor += columns;
-	}
-
-	/// Blank columns consume the global ramp and the current block's ramp alike
-	pub(crate) fn skip_blank(&mut self, width: usize, block_index: usize) {
-		self.global_cursor += width;
-
-		if self.cursor_block == Some(block_index) {
-			self.block_cursor += width;
-		}
+	/// Claims columns of the current row, painted or blank: every ramp indexes by absolute column
+	pub(crate) fn advance(&mut self, columns: usize) {
+		self.column += columns;
 	}
 }
 
@@ -726,5 +710,36 @@ mod tests {
 
 		assert_eq!(plan.domain(0), PaintDomain::Slots);
 		assert_eq!(plan.domain(1), PaintDomain::Global);
+	}
+
+	// GradientPlans::extent
+
+	#[test]
+	fn extents_cover_the_participating_spans_only() {
+		use crate::layout::BlockSpan;
+
+		// extents read only the alignment offset and the spans, so the rows carry no entries
+		let row = |align_offset: usize, spans: &[(usize, usize)]| LayoutRow {
+			entries: Vec::new(),
+			width: spans.iter().map(|(_, width)| width).sum(),
+			align_offset,
+			block_spans: spans.iter().map(|&(block_index, width)| BlockSpan { block_index, width }).collect(),
+		};
+		let rows = [row(2, &[(0, 3), (1, 2), (2, 4)]), row(0, &[(2, 5)])];
+
+		// blocks zero and two share the first row's extent, block one in between is consumed
+		assert_eq!(GradientPlans::row_extent(&rows[0], |block| block != 1), Some(2..11));
+		assert_eq!(GradientPlans::row_extent(&rows[0], |block| block == 1), Some(5..7));
+		assert_eq!(GradientPlans::row_extent(&rows[0], |_| false), None);
+
+		// across rows the extent is the union: block two starts at column zero on the second row
+		assert_eq!(GradientPlans::extent(&rows, |block| block == 2), Some(0..11));
+		assert_eq!(GradientPlans::extent(&rows, |block| block == 1), Some(5..7));
+		assert_eq!(GradientPlans::extent(&rows, |block| block == 3), None);
+
+		// an empty line keeps a zero width span at column zero, which must not anchor the ramp there
+		let with_empty_line = [row(4, &[(0, 3)]), row(0, &[(0, 0)])];
+		assert_eq!(GradientPlans::row_extent(&with_empty_line[1], |_| true), None);
+		assert_eq!(GradientPlans::extent(&with_empty_line, |_| true), Some(4..7));
 	}
 }

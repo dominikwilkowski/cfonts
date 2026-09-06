@@ -1,6 +1,5 @@
 use crate::{
-	Cfonts, CliEnv, Color, ColorOption, Font, GradientOption, GradientStop, Host, Options, RenderContext, RustHost,
-	Valign,
+	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, Options, RenderContext, RustHost, Valign,
 	cli::{
 		VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -9,20 +8,18 @@ use crate::{
 };
 
 /// The full demo screen, resolved like any render: real width, real color level
-pub fn cli_demo(global_colors: Option<ColorOption>) -> String {
-	cli_demo_with(RustHost::default().resolve_context(), global_colors)
+///
+/// The composition wide paint settings of `options` reach every font example
+pub fn cli_demo(options: &Options) -> String {
+	cli_demo_with(RustHost::default().resolve_context(), options)
 }
 
 /// Assembles the demo screen for one known context
-pub(crate) fn cli_demo_with(context: RenderContext, global_colors: Option<ColorOption>) -> String {
+pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
 	let banner = crate::Cfonts::text("Demo")
-		.global_colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Green,
-			independent_gradient: false,
-		})
+		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
 		.new_text(format!(" {VERSION}"))
 		.font(Font::Console)
 		.valign(Valign::Bottom)
@@ -36,10 +33,11 @@ pub(crate) fn cli_demo_with(context: RenderContext, global_colors: Option<ColorO
 
 	for font in Font::ALL {
 		let name = font.get_font().name();
-		let mut options: Options = Cfonts::text(format!(" {name} ")).font(font).spaceless().into();
-		options.global_colors = global_colors.clone();
-		let example = render::render_with(&options, &CliEnv::default(), context);
-		output.push_str(&format!("{prompt} cfonts \" {name} \" --font {name}\n\n{}\n\n\n\n", example.text));
+		let mut example: Options = Cfonts::text(format!(" {name} ")).font(font).spaceless().into();
+		example.global_colors = options.global_colors.clone();
+		example.independent_gradient = options.independent_gradient;
+		let rendered = render::render_with(&example, &CliEnv::default(), context);
+		output.push_str(&format!("{prompt} cfonts \" {name} \" --font {name}\n\n{}\n\n\n\n", rendered.text));
 	}
 
 	output
@@ -51,7 +49,7 @@ mod tests {
 
 	#[test]
 	fn the_demo_shows_every_font_with_a_runnable_command() {
-		let screen = cli_demo_with(RenderContext::unlimited(), None);
+		let screen = cli_demo_with(RenderContext::unlimited(), &Options::default());
 
 		for font in Font::ALL {
 			let name = font.get_font().name();
@@ -64,12 +62,12 @@ mod tests {
 
 	#[test]
 	fn the_banner_carries_the_version() {
-		assert!(cli_demo_with(RenderContext::unlimited(), None).contains(VERSION));
+		assert!(cli_demo_with(RenderContext::unlimited(), &Options::default()).contains(VERSION));
 	}
 
 	#[test]
 	fn a_plain_context_renders_a_plain_screen() {
-		let screen = cli_demo_with(RenderContext::unlimited(), None);
+		let screen = cli_demo_with(RenderContext::unlimited(), &Options::default());
 
 		assert!(screen.contains(PROMPT_PLAIN));
 		assert!(!screen.contains(PROMPT_COLORED));
@@ -80,16 +78,19 @@ mod tests {
 	fn the_demo_paints_at_the_given_level() {
 		use crate::ColorLevel;
 
-		let basic = cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)), None);
+		let basic =
+			cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)), &Options::default());
 		assert!(basic.contains(PROMPT_COLORED));
 		assert!(!basic.contains("\u{1b}[38;"), "basic quantizes to palette codes");
 		assert!(basic.contains("\u{1b}[9") || basic.contains("\u{1b}[3"));
 
-		let ansi256 = cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Ansi256)), None);
+		let ansi256 =
+			cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Ansi256)), &Options::default());
 		assert!(ansi256.contains("\u{1b}[38;5;"));
 		assert!(!ansi256.contains("\u{1b}[38;2;"));
 
-		let truecolor = cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor)), None);
+		let truecolor =
+			cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::TrueColor)), &Options::default());
 		assert!(truecolor.contains("\u{1b}[38;2;"));
 	}
 
@@ -97,24 +98,22 @@ mod tests {
 	fn the_real_demo_honors_the_forced_level() {
 		// FORCE_COLOR makes the real path deterministic, which is what it is for
 		temp_env::with_vars([("FORCE_COLOR", Some("1")), ("NO_COLOR", None::<&str>), ("FORCE_SIZE", None)], || {
-			let demo = cli_demo(None);
+			let demo = cli_demo(&Options::default());
 			assert!(!demo.contains("\u{1b}[38;"), "a forced basic level reaches the banner");
 			assert!(demo.contains("\u{1b}[3"));
 		});
 
 		temp_env::with_vars([("FORCE_COLOR", Some("0")), ("NO_COLOR", None::<&str>), ("FORCE_SIZE", None)], || {
-			assert!(!cli_demo(None).contains('\u{1b}'), "no color means a plain screen");
+			assert!(!cli_demo(&Options::default()).contains('\u{1b}'), "no color means a plain screen");
 		});
 	}
 
 	#[test]
 	fn the_colors_reach_every_font_example() {
-		use crate::ColorLevel;
+		use crate::{ColorLevel, ColorOption};
 
-		let screen = cli_demo_with(
-			RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)),
-			Some(ColorOption::Colors(vec![Color::Red])),
-		);
+		let options = Options { global_colors: Some(ColorOption::Colors(vec![Color::Red])), ..Default::default() };
+		let screen = cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)), &options);
 
 		// everything after a prompt is one font's example
 		for example in screen.split(PROMPT_COLORED).skip(1) {
@@ -123,14 +122,35 @@ mod tests {
 	}
 
 	#[test]
+	fn the_independent_flag_reaches_every_font_example() {
+		use crate::{ColorLevel, ColorOption, GradientOption, GradientStop};
+
+		// a narrow canvas wraps the examples, so the flag has lines to restart the ramp on
+		let context = RenderContext::with_canvas_width(40).with_color_level(Some(ColorLevel::TrueColor));
+		let ramp =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		let fixed = cli_demo_with(context, &Options { global_colors: ramp.clone(), ..Default::default() });
+		let independent =
+			cli_demo_with(context, &Options { global_colors: ramp, independent_gradient: true, ..Default::default() });
+
+		// everything after the first prompt is a font example, the banner before it keeps its own ramp
+		let (fixed_banner, fixed_examples) = fixed.split_once(PROMPT_COLORED).expect("the screen carries examples");
+		let (independent_banner, independent_examples) =
+			independent.split_once(PROMPT_COLORED).expect("the screen carries examples");
+
+		assert_eq!(independent_banner, fixed_banner, "the banner keeps its own fixed ramp");
+		assert_ne!(independent_examples, fixed_examples, "the flag reaches the font examples");
+	}
+
+	#[test]
 	fn the_examples_wrap_to_the_context_width() {
-		let narrow = cli_demo_with(RenderContext::with_canvas_width(60), None);
+		let narrow = cli_demo_with(RenderContext::with_canvas_width(60), &Options::default());
 		for line in narrow.lines() {
 			assert!(line.chars().count() <= 60, "line is {} columns: {line:?}", line.chars().count());
 		}
 
 		// the bound above only proves wrapping if the unbounded screen is wider somewhere
-		let unlimited = cli_demo_with(RenderContext::unlimited(), None);
+		let unlimited = cli_demo_with(RenderContext::unlimited(), &Options::default());
 		assert!(unlimited.lines().any(|line| line.chars().count() > 60));
 	}
 }

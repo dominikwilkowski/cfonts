@@ -6,8 +6,7 @@ use std::{
 };
 
 use crate::{
-	Align, BlockOptions, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, NEW_LINE_CHAR,
-	Options, TransitionStops, Valign,
+	Align, BlockOptions, Color, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
 	cli::{
 		Args,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -56,7 +55,7 @@ pub enum ParseError<'a> {
 	/// ```
 	NoTextSupplied,
 
-	/// A second text source appeared after one was already set; carries the rejected token
+	/// A second text source appeared after one was already set, carries the rejected token
 	///
 	/// ```
 	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
@@ -67,7 +66,7 @@ pub enum ParseError<'a> {
 	/// ```
 	TextAlreadySupplied(&'a str),
 
-	/// A flag token no argument matches, ignored with a warning; carries the token as typed
+	/// A flag token no argument matches, ignored with a warning, carries the token as typed
 	///
 	/// ```
 	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
@@ -140,34 +139,98 @@ pub enum ParseError<'a> {
 	/// ```
 	MidClusterArgumentRequired(Args),
 
-	/// A gradient with the wrong number of stops: plain gradients take exactly two,
-	/// transition gradients at least two
-	///
-	/// ```
-	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
-	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
-	/// let args = ["hello", "--gradient", "red,blue,green"].map(String::from);
-	/// let failure = parse_args(&args, terminal).unwrap_err();
-	/// assert_eq!(
-	///     failure.error,
-	///     ParseError::BadGradientColors {
-	///         count: 3,
-	///         transition: false,
-	///     }
-	/// );
-	/// ```
-	BadGradientColors { count: usize, transition: bool },
-
-	/// A gradient modifier without a gradient to modify, ignored with a warning
+	/// A color value with nothing between or beside its delimiters, carries the value as typed
 	///
 	/// ```
 	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
 	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--colors", "red-"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::EmptyColorSegment {
+	///         argument: Args::Color,
+	///         value: "red-",
+	///     }
+	/// );
+	/// ```
+	EmptyColorSegment { argument: Args, value: &'a str },
+
+	/// A color value that mixes delimiters, so its shape is ambiguous, carries the value as typed
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--colors", "red,blue-green"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::MixedColorDelimiters {
+	///         argument: Args::Color,
+	///         value: "red,blue-green",
+	///     }
+	/// );
+	/// ```
+	MixedColorDelimiters { argument: Args, value: &'a str },
+
+	/// A dash gradient with a stop count other than two, carries the value as typed
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--colors", "red-blue-green"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::TwoStopCount {
+	///         argument: Args::Color,
+	///         value: "red-blue-green",
+	///         count: 3,
+	///     }
+	/// );
+	/// ```
+	TwoStopCount { argument: Args, value: &'a str, count: usize },
+
+	/// A preset name inside a color list or among gradient stops, a preset stands alone
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--colors", "pride,red"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::PresetNotAlone {
+	///         argument: Args::Color,
+	///         value: "pride,red",
+	///         preset: "pride",
+	///     }
+	/// );
+	/// ```
+	PresetNotAlone { argument: Args, value: &'a str, preset: &'a str },
+
+	/// The independent gradient flag without a gradient to modify, ignored with a warning
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
 	/// let args = ["hello", "--independent-gradient"].map(String::from);
 	/// let parsed = parse_args(&args, terminal).unwrap();
-	/// assert_eq!(parsed.warnings, vec![ParseError::GradientFlagIgnored(Args::IndependentGradient)]);
+	/// assert_eq!(parsed.warnings, vec![ParseError::IndependentGradientIgnored]);
 	/// ```
-	GradientFlagIgnored(Args),
+	IndependentGradientIgnored,
+
+	/// A gradient flag that does not exist, since gradients are colors joined by a dash or
+	/// colons; carries the flag's spelling without its dashes
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--gradient", "red,blue"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::GradientFlagMoved("gradient"));
+	/// ```
+	GradientFlagMoved(&'a str),
 
 	/// A stdin flag asked for piped text but the pipe was empty
 	///
@@ -213,8 +276,12 @@ impl ParseError<'_> {
 			Self::MissingValue(_) => ErrorType::Error,
 			Self::InvalidValue { .. } => ErrorType::Error,
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
-			Self::BadGradientColors { .. } => ErrorType::Error,
-			Self::GradientFlagIgnored(_) => ErrorType::Warning,
+			Self::EmptyColorSegment { .. } => ErrorType::Error,
+			Self::MixedColorDelimiters { .. } => ErrorType::Error,
+			Self::TwoStopCount { .. } => ErrorType::Error,
+			Self::PresetNotAlone { .. } => ErrorType::Error,
+			Self::IndependentGradientIgnored => ErrorType::Warning,
+			Self::GradientFlagMoved(_) => ErrorType::Error,
 			Self::EmptyStdin => ErrorType::Error,
 			Self::StdinInsideBlock => ErrorType::Error,
 			Self::StdinUnreadable(_) => ErrorType::Error,
@@ -289,28 +356,50 @@ impl ParseError<'_> {
 					args.help(color_enabled)
 				)
 			}
-			Self::BadGradientColors { count, transition } => {
-				if *transition {
-					write!(
-						f,
-						"{flag} A transition gradient holds at least two colors, this one holds {open}{count}{close}\n\n{}",
-						Args::Gradient.help(color_enabled)
-					)
-				} else {
-					write!(
-						f,
-						"{flag} A gradient holds exactly two colors, this one holds {open}{count}{close}\nFor more colors use the transition gradient option\n\n{}",
-						Args::Gradient.help(color_enabled)
-					)
-				}
-			}
-			Self::GradientFlagIgnored(args) => {
+			Self::EmptyColorSegment { argument: args, value } => {
 				write!(
 					f,
-					"{flag} \"{open}{}{close}\" was ignored because no gradient was specified\n\n{}\n\n{}",
+					"{flag} The option \"{open}{}{close}\" has an empty segment in \"{open}{value}{close}\"\nEvery comma, dash or colon needs a color on both sides\n\n{}",
 					args.infos().long,
-					Args::Gradient.help(color_enabled),
 					args.help(color_enabled)
+				)
+			}
+			Self::MixedColorDelimiters { argument: args, value } => {
+				write!(
+					f,
+					"{flag} The option \"{open}{}{close}\" mixes delimiters in \"{open}{value}{close}\"\nUse commas for a list, a dash for a gradient or colons for a transition\n\n{}",
+					args.infos().long,
+					args.help(color_enabled)
+				)
+			}
+			Self::TwoStopCount { argument: args, value, count } => {
+				write!(
+					f,
+					"{flag} A gradient holds exactly two colors, \"{open}{value}{close}\" holds {open}{count}{close}\nJoin more colors with colons for a transition\n\n{}",
+					args.help(color_enabled)
+				)
+			}
+			Self::PresetNotAlone { argument: args, value, preset } => {
+				write!(
+					f,
+					"{flag} The preset \"{open}{preset}{close}\" stands alone, it cannot join \"{open}{value}{close}\"\n\n{}",
+					args.help(color_enabled)
+				)
+			}
+			Self::IndependentGradientIgnored => {
+				write!(
+					f,
+					"{flag} \"{open}independent-gradient{close}\" was ignored because no gradient was specified\n\n{}\n\n{}",
+					Args::Color.help(color_enabled),
+					Args::IndependentGradient.help(color_enabled)
+				)
+			}
+			Self::GradientFlagMoved(spelling) => {
+				let dashes = if spelling.chars().count() == 1 { "-" } else { "--" };
+				write!(
+					f,
+					"{flag} The flag \"{open}{dashes}{spelling}{close}\" does not exist\nA gradient is colors joined by a dash, a transition by colons\n{prompt} cfonts Hello --colors red-blue\n{prompt} cfonts Hello --colors red:blue:green\n\n{}",
+					Args::Color.help(color_enabled)
 				)
 			}
 			Self::EmptyStdin => {
@@ -355,13 +444,6 @@ impl Error for ParseError<'_> {
 	}
 }
 
-/// The two ways a gradient can arrive from the command line
-#[derive(Debug, PartialEq)]
-pub(crate) enum GradientInput {
-	Stops(Vec<GradientStop>),
-	Preset(GradientPreset),
-}
-
 #[derive(Debug, Default)]
 pub(crate) struct CliOptions {
 	pub(crate) align: Align,
@@ -369,6 +451,7 @@ pub(crate) struct CliOptions {
 	pub(crate) spaceless: bool,
 	pub(crate) max_length: Option<NonZeroUsize>,
 	pub(crate) global_colors: Option<ColorOption>,
+	pub(crate) independent_gradient: bool,
 	pub(crate) blocks: Vec<CliBlockOptions>,
 }
 
@@ -389,9 +472,6 @@ impl CliBlockOptions {
 #[derive(Debug)]
 pub(crate) struct ParseState {
 	pub(crate) options: CliOptions,
-	pub(crate) gradient: Option<GradientInput>,
-	pub(crate) independent: bool,
-	pub(crate) transition: bool,
 	pub(crate) raw_mode: bool,
 	pub(crate) show_help: bool,
 	pub(crate) show_demo: bool,
@@ -406,20 +486,12 @@ impl ParseState {
 		self.options.blocks.last_mut().expect("the parse state must always hold at least one block")
 	}
 
-	/// The warnings for gradient flags that have no gradient to modify
-	fn gradient_flag_warnings(&self) -> Vec<ParseError<'static>> {
-		let mut warnings = Vec::new();
+	/// Whether the independent gradient flag is set with no gradient anywhere to modify
+	fn independent_gradient_is_orphaned(&self) -> bool {
+		let mut colors =
+			std::iter::once(&self.options.global_colors).chain(self.options.blocks.iter().map(|block| &block.block.colors));
 
-		if self.gradient.is_none() {
-			if self.independent {
-				warn(&mut warnings, ParseError::GradientFlagIgnored(Args::IndependentGradient));
-			}
-			if self.transition {
-				warn(&mut warnings, ParseError::GradientFlagIgnored(Args::TransitionGradient));
-			}
-		}
-
-		warnings
+		self.options.independent_gradient && !colors.any(|colors| matches!(colors, Some(ColorOption::Gradient(_))))
 	}
 }
 
@@ -431,9 +503,6 @@ impl Default for ParseState {
 				blocks: vec![CliBlockOptions::default()],
 				..CliOptions::default()
 			},
-			gradient: None,
-			independent: false,
-			transition: false,
 			raw_mode: false,
 			show_help: false,
 			show_demo: false,
@@ -446,7 +515,7 @@ impl TryFrom<ParseState> for Options {
 	type Error = ParseError<'static>;
 
 	fn try_from(state: ParseState) -> Result<Self, Self::Error> {
-		let ParseState { options, gradient, independent, transition, .. } = state;
+		let ParseState { options, .. } = state;
 
 		let mut blocks = Vec::with_capacity(options.blocks.len());
 
@@ -460,43 +529,15 @@ impl TryFrom<ParseState> for Options {
 			blocks.push(block);
 		}
 
-		let mut converted = Options {
+		Ok(Options {
 			align: options.align,
 			valign: options.valign,
 			spaceless: options.spaceless,
 			max_length: options.max_length,
 			global_colors: options.global_colors,
+			independent_gradient: options.independent_gradient,
 			blocks,
-		};
-
-		match gradient {
-			Some(GradientInput::Preset(preset)) => {
-				converted.global_colors = Some(ColorOption::Gradient(preset.to_gradient(independent)));
-			}
-			Some(GradientInput::Stops(stops)) if transition => {
-				// the two stop minimum has one home: the TransitionStops constructor
-				let count = stops.len();
-				let stops =
-					TransitionStops::try_from(stops).map_err(|_| ParseError::BadGradientColors { count, transition: true })?;
-
-				converted.global_colors =
-					Some(ColorOption::Gradient(GradientOption::Transition { stops, independent_gradient: independent }));
-			}
-			Some(GradientInput::Stops(stops)) => match stops.as_slice() {
-				&[start, end] => {
-					converted.global_colors =
-						Some(ColorOption::Gradient(GradientOption::TwoStop { start, end, independent_gradient: independent }));
-				}
-				_ => {
-					return Err(ParseError::BadGradientColors { count: stops.len(), transition: false });
-				}
-			},
-			// the transition and independent flags without a gradient have nothing to modify;
-			// parse_args reports them as warnings before this conversion runs
-			None => {}
-		}
-
-		Ok(converted)
+		})
 	}
 }
 
@@ -553,7 +594,15 @@ pub struct StdinProvider {
 	pub read: fn() -> io::Result<String>,
 }
 
-/// The one door into the warnings channel; only warning-typed problems may pass
+/// Whether a flag spelling asks for a gradient option that the colors option covers
+///
+/// These spellings stay out of [`Args`] so the help never lists them,
+/// and are caught before the unknown flag fallback so a stray gradient value never passes as text
+fn gradient_flag_moved(spelling: &str) -> bool {
+	matches!(spelling, "g" | "gradient" | "t" | "transition-gradient")
+}
+
+/// The one door into the warnings channel, only warning-typed problems may pass
 fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
 	debug_assert_eq!(warning.error_type(), ErrorType::Warning, "{warning:?} is not a warning");
 	warnings.push(warning);
@@ -596,6 +645,8 @@ fn parse_args_with<'a>(
 		if let Some(name) = arg_str.strip_prefix("--") {
 			if name.is_empty() {
 				warn(warnings, ParseError::DelimiterIgnored);
+			} else if gradient_flag_moved(name) {
+				return Err(ParseError::GradientFlagMoved(name));
 			} else if let Some(arg) = Args::parse(name) {
 				apply_with_value(arg, &mut args_iter, &mut state)?;
 			} else {
@@ -610,6 +661,10 @@ fn parse_args_with<'a>(
 				for (index, short) in cluster.char_indices() {
 					let length = short.len_utf8();
 					let short_str = &cluster[index..index + length];
+
+					if gradient_flag_moved(short_str) {
+						return Err(ParseError::GradientFlagMoved(short_str));
+					}
 
 					if let Some(arg) = Args::parse(short_str) {
 						if arg.infos().arguments.is_some() && index + length < cluster.len() {
@@ -662,7 +717,9 @@ fn parse_args_with<'a>(
 		}
 	}
 
-	warnings.extend(state.gradient_flag_warnings());
+	if state.independent_gradient_is_orphaned() {
+		warn(warnings, ParseError::IndependentGradientIgnored);
+	}
 
 	let show_help = state.show_help;
 	let show_demo = state.show_demo;
@@ -674,6 +731,7 @@ fn parse_args_with<'a>(
 	} else if show_demo {
 		let mut options = Options::default();
 		options.global_colors = state.options.global_colors;
+		options.independent_gradient = state.options.independent_gradient;
 		options
 	} else {
 		state.try_into()?
@@ -711,119 +769,193 @@ pub(crate) mod helpers {
 }
 
 #[cfg(test)]
-mod gradient_resolution {
+mod color_values {
+	use super::helpers::*;
 	use super::*;
-	use crate::GradientOption;
+	use crate::{GradientOption, GradientPreset, GradientStop, Rgb, TransitionStops};
 
-	fn state() -> ParseState {
-		let mut state = ParseState::default();
-		state.options.blocks[0].text = Some(String::from("HI"));
-		state
+	/// The global colors of one parsed command line
+	fn global(list: &[&str]) -> ColorOption {
+		run(list).options.global_colors.expect("the command line sets colors")
 	}
 
 	#[test]
-	fn a_state_without_gradient_passes_through() {
-		let options: Options = state().try_into().unwrap();
-		assert_eq!(options.global_colors, None);
+	fn a_comma_list_fills_the_font_color_slots() {
+		assert_eq!(global(&["hi", "-c", "red,blue"]), ColorOption::Colors(vec![Color::Red, Color::Blue]));
+		assert_eq!(global(&["hi", "-c", "red"]), ColorOption::Colors(vec![Color::Red]));
 	}
 
 	#[test]
-	fn two_stops_resolve_to_a_two_stop_gradient() {
-		let mut with_gradient = state();
-		with_gradient.gradient = Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue]));
-		with_gradient.independent = true;
-
-		let options: Options = with_gradient.try_into().unwrap();
+	fn a_dash_joins_two_stops_and_colons_join_a_transition() {
 		assert_eq!(
-			options.global_colors,
-			Some(ColorOption::Gradient(GradientOption::TwoStop {
-				start: GradientStop::Red,
-				end: GradientStop::Blue,
-				independent_gradient: true,
-			}))
+			global(&["hi", "-c", "red-blue"]),
+			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		);
+
+		// two stops joined by colons are a transition, not the hue space walk of the dash
+		let stops = TransitionStops::try_from(vec![GradientStop::Red, GradientStop::Blue]).expect("two stops");
+		assert_eq!(global(&["hi", "-c", "red:blue"]), ColorOption::Gradient(GradientOption::Transition(stops)));
+
+		let stops =
+			TransitionStops::try_from(vec![GradientStop::Red, GradientStop::Blue, GradientStop::Green]).expect("three stops");
+		assert_eq!(global(&["hi", "-c", "red:blue:green"]), ColorOption::Gradient(GradientOption::Transition(stops)));
+	}
+
+	#[test]
+	fn a_bare_preset_name_is_a_gradient_of_its_own() {
+		assert_eq!(global(&["hi", "-c", "pride"]), ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride)));
+		assert_eq!(
+			global(&["hi", "-c", " Trans "]),
+			ColorOption::Gradient(GradientOption::Preset(GradientPreset::Transgender))
 		);
 	}
 
 	#[test]
-	fn three_stops_without_transition_are_rejected() {
-		let mut with_gradient = state();
-		with_gradient.gradient =
-			Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue, GradientStop::White]));
-
+	fn stops_take_names_and_hex_values_in_any_case() {
+		let gray = Rgb { red: 136, green: 136, blue: 136 };
 		assert_eq!(
-			Options::try_from(with_gradient).unwrap_err(),
-			ParseError::BadGradientColors { count: 3, transition: false }
+			global(&["hi", "-c", "RED - #888"]),
+			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Rgb(gray) })
 		);
 	}
 
 	#[test]
-	fn transition_gradients_take_more_stops() {
-		let mut with_gradient = state();
-		with_gradient.gradient =
-			Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue, GradientStop::White]));
-		with_gradient.transition = true;
+	fn a_gradient_after_next_belongs_to_that_block() {
+		let parsed = run(&["one", "--next", "two", "-c", "red-blue"]);
 
-		let options: Options = with_gradient.try_into().unwrap();
-		match options.global_colors {
-			Some(ColorOption::Gradient(GradientOption::Transition { stops, independent_gradient: false })) => {
-				assert_eq!(stops.len(), 3)
-			}
-			other => panic!("expected a transition gradient, got {other:?}"),
+		assert_eq!(parsed.options.global_colors, None);
+		assert_eq!(parsed.options.blocks[0].colors, None);
+		assert_eq!(
+			parsed.options.blocks[1].colors,
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+	}
+
+	#[test]
+	fn a_gradient_on_the_first_block_covers_every_block() {
+		let parsed = run(&["one", "-c", "pride", "--next", "two"]);
+
+		assert_eq!(
+			parsed.options.global_colors,
+			Some(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride)))
+		);
+		assert!(parsed.options.blocks.iter().all(|block| block.colors.is_none()));
+	}
+
+	#[test]
+	fn the_last_colors_of_a_scope_win() {
+		// a gradient after a list replaces it and a list after a gradient replaces that, in silence
+		let parsed = run(&["hi", "-c", "red,blue", "-c", "red-blue"]);
+		assert!(matches!(parsed.options.global_colors, Some(ColorOption::Gradient(_))));
+		assert!(parsed.warnings.is_empty());
+
+		let parsed = run(&["hi", "-c", "red-blue", "-c", "red,blue"]);
+		assert_eq!(parsed.options.global_colors, Some(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+		assert!(parsed.warnings.is_empty());
+	}
+
+	#[test]
+	fn mixed_delimiters_are_a_hard_error_naming_the_whole_value() {
+		let input = args(&["hi", "-c", "red,blue-green"]);
+		assert_eq!(
+			parse_args(&input, tty()).unwrap_err().error,
+			ParseError::MixedColorDelimiters { argument: Args::Color, value: "red,blue-green" }
+		);
+	}
+
+	#[test]
+	fn a_dash_gradient_with_more_than_two_stops_teaches_the_transition_form() {
+		let input = args(&["hi", "-c", "red-blue-green"]);
+		assert_eq!(
+			parse_args(&input, tty()).unwrap_err().error,
+			ParseError::TwoStopCount { argument: Args::Color, value: "red-blue-green", count: 3 }
+		);
+	}
+
+	#[test]
+	fn slot_only_colors_are_not_stops() {
+		for value in ["candy-red", "red:system", "redBright-blue"] {
+			let input = args(&["hi", "-c", value]);
+			assert_eq!(
+				parse_args(&input, tty()).unwrap_err().error,
+				ParseError::InvalidValue { argument: Args::Color, value, source: Some(ColorError::NotAGradientStop) },
+				"{value:?}"
+			);
 		}
 	}
 
 	#[test]
-	fn a_transition_with_one_stop_is_rejected() {
-		let mut with_gradient = state();
-		with_gradient.gradient = Some(GradientInput::Stops(vec![GradientStop::Red]));
-		with_gradient.transition = true;
-
-		assert_eq!(
-			Options::try_from(with_gradient).unwrap_err(),
-			ParseError::BadGradientColors { count: 1, transition: true }
-		);
+	fn a_preset_stands_alone() {
+		for (value, preset) in [("pride,red", "pride"), ("red-pride", "pride"), ("red:bi:blue", "bi")] {
+			let input = args(&["hi", "-c", value]);
+			assert_eq!(
+				parse_args(&input, tty()).unwrap_err().error,
+				ParseError::PresetNotAlone { argument: Args::Color, value, preset },
+				"{value:?}"
+			);
+		}
 	}
 
 	#[test]
-	fn gradient_flags_without_a_gradient_are_ignored_by_the_conversion() {
-		let mut orphan = state();
-		orphan.independent = true;
-		orphan.transition = true;
-
-		let options: Options = orphan.try_into().unwrap();
-		assert_eq!(options.global_colors, None);
+	fn a_bad_color_reports_the_whole_value_as_typed() {
+		// the value is shown as typed, whatever shape it has and wherever the bad segment sits
+		for (value, cause) in [
+			(" nope ", ColorError::UnknownColor),
+			("red,nope", ColorError::UnknownColor),
+			("#ff8800,#zz", ColorError::HexCharacter),
+			("red:#12345", ColorError::HexLength(5)),
+		] {
+			let input = args(&["hi", "-c", value]);
+			assert_eq!(
+				parse_args(&input, tty()).unwrap_err().error,
+				ParseError::InvalidValue { argument: Args::Color, value, source: Some(cause) },
+				"{value:?}"
+			);
+		}
 	}
 
 	#[test]
-	fn gradient_flags_without_a_gradient_produce_warnings() {
-		let mut orphan = state();
-		orphan.independent = true;
-		orphan.transition = true;
+	fn the_independent_flag_warns_only_when_no_block_holds_a_gradient() {
+		// static colors are not a gradient, a gradient after --next is a gradient somewhere
+		for list in [&["hi", "-i"][..], &["hi", "-c", "red,blue", "-i"], &["--demo", "-c", "red", "-i"]] {
+			assert_eq!(run(list).warnings, vec![ParseError::IndependentGradientIgnored], "{list:?}");
+		}
 
-		let warnings = orphan.gradient_flag_warnings();
-		assert_eq!(
-			warnings,
-			vec![
-				ParseError::GradientFlagIgnored(Args::IndependentGradient),
-				ParseError::GradientFlagIgnored(Args::TransitionGradient),
-			]
-		);
-		assert!(warnings.iter().all(|warning| warning.error_type() == ErrorType::Warning));
+		for list in [
+			&["one", "-i", "--next", "two", "-c", "red-blue"][..],
+			&["one", "-c", "red", "--next", "two", "-c", "pride", "-i"],
+		] {
+			assert!(run(list).warnings.is_empty(), "{list:?}");
+		}
+	}
+}
+
+#[cfg(test)]
+mod moved_gradient_flags {
+	use super::helpers::*;
+	use super::*;
+
+	#[test]
+	fn the_gradient_flags_teach_the_colors_forms() {
+		for (list, spelling) in [
+			(vec!["hello", "-g", "red,blue"], "g"),
+			(vec!["hello", "--gradient", "red,blue"], "gradient"),
+			(vec!["hello", "-t"], "t"),
+			(vec!["hello", "--transition-gradient"], "transition-gradient"),
+			(vec!["hello", "-sg", "red,blue"], "g"),
+		] {
+			let input = args(&list);
+			assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::GradientFlagMoved(spelling), "{list:?}");
+		}
 	}
 
 	#[test]
-	fn gradient_flags_with_a_gradient_produce_no_warnings() {
-		let mut with_gradient = state();
-		with_gradient.gradient = Some(GradientInput::Stops(vec![GradientStop::Red, GradientStop::Blue]));
-		with_gradient.independent = true;
+	fn a_gradient_flag_stops_the_parse_before_its_value_can_pass_as_text() {
+		// with the text still open, the value would otherwise become the text and the pipe would go unread
+		let input = args(&["-g", "red,blue"]);
+		let never = StdinProvider { interactive: false, read: || panic!("a failed parse must not read the pipe") };
 
-		assert_eq!(with_gradient.gradient_flag_warnings(), vec![]);
-	}
-
-	#[test]
-	fn bad_gradient_colors_are_hard_errors() {
-		let error = ParseError::BadGradientColors { count: 1, transition: false };
-		assert_eq!(error.error_type(), ErrorType::Error);
+		assert_eq!(parse_args(&input, never).unwrap_err().error, ParseError::GradientFlagMoved("g"));
 	}
 }
 
@@ -831,7 +963,7 @@ mod gradient_resolution {
 mod argument_parsing {
 	use super::helpers::*;
 	use super::*;
-	use crate::{Align, Color, ColorOption, Font, GradientOption, Rgb, Valign};
+	use crate::{Align, Color, ColorOption, Font, GradientOption, GradientStop, Rgb, Valign};
 
 	#[test]
 	fn the_first_argument_becomes_the_text_block() {
@@ -988,60 +1120,30 @@ mod argument_parsing {
 	#[test]
 	fn empty_color_list_segments_are_rejected() {
 		// an empty segment can never name a color, and a silently empty list
-		// would even suppress a global color, so every malformed list rejects alike
-		for bad in ["", ",", "red,", ",red", "red, ,blue"] {
+		// would even suppress a global color, so every malformed value rejects alike
+		for bad in [",", "red,", ",red", "red, ,blue", "red-", ":blue", "red::green"] {
 			let input = args(&["my text", "-c", bad]);
-			assert!(
-				matches!(parse_args(&input, tty()).unwrap_err().error, ParseError::InvalidValue { argument: Args::Color, .. }),
+			assert_eq!(
+				parse_args(&input, tty()).unwrap_err().error,
+				ParseError::EmptyColorSegment { argument: Args::Color, value: bad },
 				"{bad:?} must be rejected"
 			);
 		}
 
-		let gradient = args(&["my text", "-g", "red,"]);
-		assert!(matches!(
-			parse_args(&gradient, tty()).unwrap_err().error,
-			ParseError::InvalidValue { argument: Args::Gradient, .. }
-		));
+		// an empty value has no delimiter to split on, so it fails as a color that is not one
+		let input = args(&["my text", "-c", ""]);
+		assert_eq!(
+			parse_args(&input, tty()).unwrap_err().error,
+			ParseError::InvalidValue { argument: Args::Color, value: "", source: Some(ColorError::UnknownColor) }
+		);
 	}
 
 	#[test]
-	fn gradients_parse_stops_and_enforce_the_count_rules() {
-		let two = args(&["my text", "-g", "rEd,GREEN"]);
-		assert_eq!(
-			parse_args(&two, tty()).unwrap().options.global_colors,
-			Some(ColorOption::Gradient(GradientOption::TwoStop {
-				start: GradientStop::Red,
-				end: GradientStop::Green,
-				independent_gradient: false,
-			}))
-		);
-
-		let independent = args(&["my text", "-g", "red,green", "-i"]);
-		assert_eq!(
-			parse_args(&independent, tty()).unwrap().options.global_colors,
-			Some(ColorOption::Gradient(GradientOption::TwoStop {
-				start: GradientStop::Red,
-				end: GradientStop::Green,
-				independent_gradient: true,
-			}))
-		);
-
-		let one_stop_transition = args(&["my text", "-g", "red", "-t"]);
-		assert_eq!(
-			parse_args(&one_stop_transition, tty()).unwrap_err().error,
-			ParseError::BadGradientColors { count: 1, transition: true }
-		);
-
-		let three_without_transition = args(&["my text", "-g", "red,green,blue"]);
-		assert_eq!(
-			parse_args(&three_without_transition, tty()).unwrap_err().error,
-			ParseError::BadGradientColors { count: 3, transition: false }
-		);
-
-		let three_with_transition = args(&["my text", "-g", "red,green,blue", "-t"]);
-		match parse_args(&three_with_transition, tty()).unwrap().options.global_colors {
-			Some(ColorOption::Gradient(GradientOption::Transition { stops, .. })) => assert_eq!(stops.len(), 3),
-			other => panic!("expected a transition gradient, got {other:?}"),
+	fn the_independent_flag_rides_any_gradient_shape() {
+		for value in ["red-green", "red:green", "pride"] {
+			let parsed = run(&["my text", "-c", value, "-i"]);
+			assert!(parsed.options.independent_gradient, "{value}");
+			assert!(parsed.warnings.is_empty(), "{value}");
 		}
 	}
 
@@ -1091,7 +1193,7 @@ mod argument_parsing {
 				"--valign",
 				"top",
 				"--colors",
-				"blue,white",
+				"red:blue",
 				"--letter-spacing",
 				"9",
 				"--line-height",
@@ -1099,10 +1201,7 @@ mod argument_parsing {
 				"--spaceless",
 				"--max-length",
 				"100",
-				"--gradient",
-				"red,blue",
 				"--independent-gradient",
-				"--transition-gradient",
 				"--raw-mode",
 			]),
 			args(&[
@@ -1114,16 +1213,14 @@ mod argument_parsing {
 				"-y",
 				"top",
 				"-c",
-				"blue,white",
+				"red:blue",
 				"-l",
 				"9",
 				"-z",
 				"2",
 				"-m",
 				"100",
-				"-g",
-				"red,blue",
-				"-sitr",
+				"-sir",
 			]),
 		] {
 			let parsed = parse_args(&invocation, tty()).unwrap();
@@ -1133,7 +1230,7 @@ mod argument_parsing {
 			assert_eq!(block.font, Font::SimpleBlock);
 			assert_eq!(block.letter_spacing, 9);
 			assert_eq!(block.line_height, Some(2));
-			// -g beats -c on the global scope; the gradient assert below covers it
+			// the first block's colors cascade to the global scope
 			assert_eq!(block.colors, None);
 			assert_eq!(parsed.options.align, Align::Center);
 			assert_eq!(parsed.options.valign, Valign::Top);
@@ -1142,11 +1239,10 @@ mod argument_parsing {
 			assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 
 			match &parsed.options.global_colors {
-				Some(ColorOption::Gradient(GradientOption::Transition { stops, independent_gradient: true })) => {
-					assert_eq!(stops.len(), 2)
-				}
-				other => panic!("expected an independent transition gradient, got {other:?}"),
+				Some(ColorOption::Gradient(GradientOption::Transition(stops))) => assert_eq!(stops.len(), 2),
+				other => panic!("expected a transition gradient, got {other:?}"),
 			}
+			assert!(parsed.options.independent_gradient);
 		}
 	}
 
@@ -1157,16 +1253,29 @@ mod argument_parsing {
 		assert!(run(&["hi", "-v"]).show_version);
 		assert!(run(&["-h"]).show_help);
 	}
+
+	#[test]
+	fn the_demo_keeps_the_composition_wide_paint_settings() {
+		let parsed = run(&["--demo", "-c", "red-blue", "-i"]);
+
+		assert!(parsed.show_demo);
+		assert_eq!(
+			parsed.options.global_colors,
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+		assert!(parsed.options.independent_gradient);
+	}
 }
 
 #[cfg(test)]
 mod preset_tests {
 	use super::helpers::*;
 	use super::*;
+	use crate::{GradientOption, GradientPreset};
 
 	fn preset_of(parsed: &ParsedArgs) -> GradientPreset {
 		match parsed.options.global_colors {
-			Some(ColorOption::Gradient(GradientOption::Preset { preset, .. })) => preset,
+			Some(ColorOption::Gradient(GradientOption::Preset(preset))) => preset,
 			ref other => panic!("expected a preset gradient, got {other:?}"),
 		}
 	}
@@ -1199,33 +1308,30 @@ mod preset_tests {
 		];
 
 		for (name, expected) in expectations {
-			let input = args(&["my text", "-g", name]);
+			let input = args(&["my text", "-c", name]);
 			assert_eq!(preset_of(&parse_args(&input, tty()).unwrap()), expected, "{name}");
 		}
 	}
 
 	#[test]
-	fn presets_take_the_independent_flag_and_tolerate_the_transition_flag() {
-		let independent = args(&["my text", "-g", "pride", "-i"]);
-		assert_eq!(
-			parse_args(&independent, tty()).unwrap().options.global_colors,
-			Some(ColorOption::Gradient(GradientOption::Preset { preset: GradientPreset::Pride, independent_gradient: true }))
-		);
-
-		// presets are bundled transitions; a redundant -t neither errors nor warns
-		let redundant = args(&["my text", "-g", "trans", "-t"]);
-		let parsed = parse_args(&redundant, tty()).unwrap();
-		assert_eq!(preset_of(&parsed), GradientPreset::Transgender);
+	fn presets_take_the_independent_flag() {
+		let independent = args(&["my text", "-c", "pride", "-i"]);
+		let parsed = parse_args(&independent, tty()).unwrap();
+		assert_eq!(preset_of(&parsed), GradientPreset::Pride);
+		assert!(parsed.options.independent_gradient);
 		assert!(parsed.warnings.is_empty());
 	}
 
 	#[test]
-	fn preset_names_do_not_shadow_stop_lists() {
-		let stops = args(&["my text", "-g", "red,blue"]);
+	fn preset_names_do_not_shadow_colors_or_stops() {
+		let stops = args(&["my text", "-c", "red-blue"]);
 		assert!(matches!(
 			parse_args(&stops, tty()).unwrap().options.global_colors,
 			Some(ColorOption::Gradient(GradientOption::TwoStop { .. }))
 		));
+
+		let colors = args(&["my text", "-c", "red,blue"]);
+		assert!(matches!(parse_args(&colors, tty()).unwrap().options.global_colors, Some(ColorOption::Colors(_))));
 	}
 }
 
@@ -1274,6 +1380,16 @@ mod block_composition {
 
 		assert!(parsed.options.blocks[0].word_wrap);
 		assert!(!parsed.options.blocks[1].word_wrap);
+	}
+
+	#[test]
+	fn the_independent_gradient_flag_applies_globally_wherever_it_appears() {
+		// every gradient of the composition restarts per line, so the flag has no block position
+		let after_next = args(&["one", "--next", "two", "-c", "red-blue", "-i"]);
+		assert!(parse_args(&after_next, tty()).unwrap().options.independent_gradient);
+
+		let before_next = args(&["one", "-i", "--next", "two", "-c", "red-blue"]);
+		assert!(parse_args(&before_next, tty()).unwrap().options.independent_gradient);
 	}
 
 	#[test]
@@ -1576,9 +1692,13 @@ mod error_messages {
 			ParseError::InvalidValue { argument: Args::Color, value: "nope", source: None },
 			ParseError::InvalidValue { argument: Args::Color, value: "#zz", source: Some(ColorError::HexCharacter) },
 			ParseError::MidClusterArgumentRequired(Args::Font),
-			ParseError::BadGradientColors { count: 3, transition: false },
-			ParseError::BadGradientColors { count: 1, transition: true },
-			ParseError::GradientFlagIgnored(Args::IndependentGradient),
+			ParseError::EmptyColorSegment { argument: Args::Color, value: "red-" },
+			ParseError::MixedColorDelimiters { argument: Args::Color, value: "red,blue-green" },
+			ParseError::TwoStopCount { argument: Args::Color, value: "red-blue-green", count: 3 },
+			ParseError::PresetNotAlone { argument: Args::Color, value: "pride,red", preset: "pride" },
+			ParseError::IndependentGradientIgnored,
+			ParseError::GradientFlagMoved("g"),
+			ParseError::GradientFlagMoved("transition-gradient"),
 			ParseError::EmptyStdin,
 			ParseError::StdinInsideBlock,
 			ParseError::StdinUnreadable(StdinError(io::ErrorKind::BrokenPipe.into())),
@@ -1597,8 +1717,12 @@ mod error_messages {
 				| ParseError::MissingValue(_)
 				| ParseError::InvalidValue { .. }
 				| ParseError::MidClusterArgumentRequired(_)
-				| ParseError::BadGradientColors { .. }
-				| ParseError::GradientFlagIgnored(_)
+				| ParseError::EmptyColorSegment { .. }
+				| ParseError::MixedColorDelimiters { .. }
+				| ParseError::TwoStopCount { .. }
+				| ParseError::PresetNotAlone { .. }
+				| ParseError::IndependentGradientIgnored
+				| ParseError::GradientFlagMoved(_)
 				| ParseError::EmptyStdin
 				| ParseError::StdinInsideBlock
 				| ParseError::StdinUnreadable(_) => {}

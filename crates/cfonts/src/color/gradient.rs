@@ -359,17 +359,12 @@ impl GradientPreset {
 			],
 		}
 	}
-
-	/// This preset as a gradient
-	pub fn to_gradient(self, independent_gradient: bool) -> GradientOption {
-		GradientOption::Preset { preset: self, independent_gradient }
-	}
 }
 
 /// A preset used directly is a gradient over its stops
 impl From<GradientPreset> for GradientOption {
 	fn from(preset: GradientPreset) -> Self {
-		preset.to_gradient(false)
+		Self::Preset(preset)
 	}
 }
 
@@ -566,14 +561,7 @@ mod tests {
 
 	#[test]
 	fn presets_convert_into_preset_gradients() {
-		assert_eq!(
-			GradientPreset::Transgender.to_gradient(true),
-			GradientOption::Preset { preset: GradientPreset::Transgender, independent_gradient: true }
-		);
-		assert_eq!(
-			GradientOption::from(GradientPreset::Pride),
-			GradientOption::Preset { preset: GradientPreset::Pride, independent_gradient: false }
-		);
+		assert_eq!(GradientOption::from(GradientPreset::Pride), GradientOption::Preset(GradientPreset::Pride));
 	}
 
 	#[test]

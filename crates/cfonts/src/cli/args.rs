@@ -1,9 +1,10 @@
 use std::num::NonZeroUsize;
 
 use crate::{
-	Align, Color, /*Background,*/ ColorError, ColorOption, Font, GradientPreset, Valign,
+	Align, Color, /*Background,*/ ColorError, ColorOption, Font, GradientOption, GradientPreset, TransitionStops,
+	Valign,
 	cli::{
-		CliBlockOptions, GradientInput, ParseError, ParseState,
+		CliBlockOptions, ParseError, ParseState,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN, const_concat, const_join},
 	},
 	color::GradientStop,
@@ -16,8 +17,28 @@ pub(crate) struct ArgInfo {
 	pub(crate) short: &'static [&'static str],
 	pub(crate) scope: &'static str,
 	pub(crate) description: &'static str,
-	pub(crate) example: &'static str,
+	pub(crate) examples: &'static [&'static str],
 	pub(crate) arguments: Option<&'static str>,
+}
+
+/// The shape of one color value, told apart by the delimiter it uses
+///
+/// The delimiter decides the vocabulary:
+/// - commas separate slot colors
+/// - a dash and colons separate gradient stops
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum ColorShape<'a> {
+	/// One color name, hex value or preset name
+	Single(&'a str),
+
+	/// Comma separated colors, one per font color slot
+	List(Vec<&'a str>),
+
+	/// Two gradient stops joined by a dash
+	Pair(&'a str, &'a str),
+
+	/// Two or more transition stops joined by colons
+	Stops(Vec<&'a str>),
 }
 
 /// One compile time help line from one arg's infos
@@ -44,6 +65,8 @@ macro_rules! help_line {
 			_ => ", -",
 		};
 		const SHORT: &str = const_join!(INFO.short, ", -");
+		const EXAMPLE_LEAD: &str = const_concat!("\n", PROMPT, " ");
+		const EXAMPLES: &str = const_join!(INFO.examples, EXAMPLE_LEAD);
 		const SCOPE_LEAD: &str = match INFO.scope.len() {
 			0 => "",
 			_ => "\n  ",
@@ -74,10 +97,8 @@ macro_rules! help_line {
 			INFO.long,
 			SHORT_LEAD,
 			SHORT,
-			"\n",
-			PROMPT,
-			" ",
-			INFO.example,
+			EXAMPLE_LEAD,
+			EXAMPLES,
 			OPTIONS_OPEN,
 			OPTIONS,
 			OPTIONS_CLOSE
@@ -98,6 +119,7 @@ pub enum Args {
 	MaxLength,
 	Stdin,
 	RawMode,
+	IndependentGradient,
 
 	// Block config
 	Next,
@@ -110,9 +132,6 @@ pub enum Args {
 	WordWrap,
 
 	// CLI specific config
-	Gradient,
-	IndependentGradient,
-	TransitionGradient,
 	Version,
 	Demo,
 	Help,
@@ -129,6 +148,7 @@ impl Args {
 			"max-length" | "m" => Some(Self::MaxLength),
 			"stdin" => Some(Self::Stdin),
 			"raw-mode" | "r" => Some(Self::RawMode),
+			"independent-gradient" | "i" => Some(Self::IndependentGradient),
 
 			// Block config
 			"next" | "n" => Some(Self::Next),
@@ -141,9 +161,6 @@ impl Args {
 			"word-wrap" | "w" => Some(Self::WordWrap),
 
 			// CLI specific config
-			"gradient" | "g" => Some(Self::Gradient),
-			"independent-gradient" | "i" => Some(Self::IndependentGradient),
-			"transition-gradient" | "t" => Some(Self::TransitionGradient),
 			"version" | "v" | "V" => Some(Self::Version),
 			"demo" | "d" => Some(Self::Demo),
 			"help" | "h" => Some(Self::Help),
@@ -199,12 +216,12 @@ impl Args {
 			}
 			Self::Color => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				let colors = self.parse_color_list(value)?;
+				let colors = self.parse_colors(value)?;
 
 				if state.options.blocks.len() == 1 {
-					state.options.global_colors = Some(ColorOption::Colors(colors));
+					state.options.global_colors = Some(colors);
 				} else {
-					state.current_block_mut().block.colors = Some(ColorOption::Colors(colors));
+					state.current_block_mut().block.colors = Some(colors);
 				}
 			}
 			Self::Background => {
@@ -220,25 +237,11 @@ impl Args {
 				state.current_block_mut().block.line_height = Some(self.parse_number(value)?);
 			}
 
-			// CLI specific config
-			Self::Gradient => {
-				let value = value.ok_or(ParseError::MissingValue(self))?;
-
-				// a preset name covers the whole value; anything else is a list of stops
-				if let Some(preset) = GradientPreset::from_name(value) {
-					state.gradient = Some(GradientInput::Preset(preset));
-					return Ok(());
-				}
-
-				state.gradient = Some(GradientInput::Stops(self.parse_color_list(value)?));
-			}
-
 			// Boolean flags
 			Self::Spaceless => state.options.spaceless = true,
 			Self::RawMode => state.raw_mode = true,
+			Self::IndependentGradient => state.options.independent_gradient = true,
 			Self::WordWrap => state.current_block_mut().block.word_wrap = true,
-			Self::IndependentGradient => state.independent = true,
-			Self::TransitionGradient => state.transition = true,
 			Self::Version => state.show_version = true,
 			Self::Demo => state.show_demo = true,
 			Self::Help => state.show_help = true,
@@ -257,25 +260,75 @@ impl Args {
 		value.parse().map_err(|_| ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
-	/// Parses one comma separated color list through the core name-or-hex parser,
-	/// so both color flags share one list rule
-	/// Every segment must name a color: empty segments reject like any other non-color,
-	/// to skip a slot, use the [`Color::System`] color
-	fn parse_color_list<'a, T: std::str::FromStr<Err = ColorError>>(
+	/// Splits one color value by the delimiter it uses, so the shape decides how its segments parse
+	///
+	/// A value uses at most one kind of delimiter and every segment names something:
+	/// a mixed value or an empty segment is the whole value's problem and is reported as such
+	fn color_shape<'a>(self, value: &'a str) -> Result<ColorShape<'a>, ParseError<'a>> {
+		let delimiters: Vec<char> = [',', '-', ':'].into_iter().filter(|delimiter| value.contains(*delimiter)).collect();
+		let Some(delimiter) = delimiters.first().copied() else {
+			return Ok(ColorShape::Single(value.trim()));
+		};
+		if delimiters.len() > 1 {
+			return Err(ParseError::MixedColorDelimiters { argument: self, value });
+		}
+
+		let segments: Vec<&'a str> = value.split(delimiter).map(str::trim).collect();
+		if segments.iter().any(|segment| segment.is_empty()) {
+			return Err(ParseError::EmptyColorSegment { argument: self, value });
+		}
+
+		Ok(match delimiter {
+			',' => ColorShape::List(segments),
+			':' => ColorShape::Stops(segments),
+			_ => match segments.as_slice() {
+				&[start, end] => ColorShape::Pair(start, end),
+				_ => return Err(ParseError::TwoStopCount { argument: self, value, count: segments.len() }),
+			},
+		})
+	}
+
+	/// Parses one segment of a color value through the core name-or-hex parser
+	///
+	/// A preset name is refused here: a preset stands alone as the whole value
+	fn parse_segment<'a, T: std::str::FromStr<Err = ColorError>>(
 		self,
 		value: &'a str,
-	) -> Result<Vec<T>, ParseError<'a>> {
-		value
-			.split(',')
-			.map(|segment| {
-				let segment = segment.trim();
-				segment.parse().map_err(|error| ParseError::InvalidValue {
-					argument: self,
-					value: segment,
-					source: Some(error),
-				})
-			})
-			.collect()
+		segment: &'a str,
+	) -> Result<T, ParseError<'a>> {
+		if GradientPreset::from_name(segment).is_some() {
+			return Err(ParseError::PresetNotAlone { argument: self, value, preset: segment });
+		}
+
+		segment.parse().map_err(|error| ParseError::InvalidValue { argument: self, value, source: Some(error) })
+	}
+
+	/// Parses one colors value: its delimiter picks the shape and the shape picks the vocabulary
+	///
+	/// Names and hex values fill font color slots, stops travel a gradient
+	/// and a bare preset name is a gradient of its own
+	fn parse_colors<'a>(self, value: &'a str) -> Result<ColorOption, ParseError<'a>> {
+		Ok(match self.color_shape(value)? {
+			ColorShape::Single(token) => match GradientPreset::from_name(token) {
+				Some(preset) => ColorOption::Gradient(GradientOption::Preset(preset)),
+				None => ColorOption::Colors(vec![self.parse_segment(value, token)?]),
+			},
+			ColorShape::List(segments) => ColorOption::Colors(
+				segments.into_iter().map(|segment| self.parse_segment(value, segment)).collect::<Result<_, _>>()?,
+			),
+			ColorShape::Pair(start, end) => ColorOption::Gradient(GradientOption::TwoStop {
+				start: self.parse_segment(value, start)?,
+				end: self.parse_segment(value, end)?,
+			}),
+			ColorShape::Stops(segments) => {
+				let stops: Vec<GradientStop> =
+					segments.into_iter().map(|segment| self.parse_segment(value, segment)).collect::<Result<_, _>>()?;
+
+				ColorOption::Gradient(GradientOption::Transition(
+					TransitionStops::try_from(stops).expect("the colon shape holds two or more stops"),
+				))
+			}
+		})
 	}
 
 	pub(crate) const fn infos(self) -> ArgInfo {
@@ -285,48 +338,65 @@ impl Args {
 				long: "align",
 				short: &["a"],
 				description: "Align the output horizontally",
-				scope: "This will apply globally",
-				example: "cfonts --align center",
+				scope: "This will apply globally\n  The output aligns within the width of your terminal",
+				examples: &["cfonts hello --align center", "cfonts hello --align right --font tiny"],
 				arguments: Some(Align::LIST_CHUNKED),
 			},
 			Self::Valign => ArgInfo {
 				long: "valign",
 				short: &["y"],
 				description: "Align the output vertically against another text block",
-				scope: "This will apply globally",
-				example: "cfonts --valign middle",
+				scope: "This will apply globally\n  Blocks of different heights on one line meet at their top,\n  their middle or their bottom row",
+				examples: &[
+					"cfonts Big --font block --next \" small\" --font tiny --valign bottom",
+					"cfonts --valign middle Big --next \" small\" --font console",
+				],
 				arguments: Some(Valign::LIST_CHUNKED),
 			},
 			Self::Spaceless => ArgInfo {
 				long: "spaceless",
 				short: &["s"],
 				description: "Remove the padding around the output",
-				scope: "This will apply globally",
-				example: "cfonts --spaceless",
+				scope: "This will apply globally\n  Without it two empty lines pad the output above and below",
+				examples: &["cfonts hello --spaceless", "cfonts hello --spaceless --font console"],
 				arguments: None,
 			},
 			Self::MaxLength => ArgInfo {
 				long: "max-length",
 				short: &["m"],
 				description: "Limit the characters per line",
-				scope: "This will apply globally",
-				example: "cfonts --max-length 10",
-				arguments: Some("0 (unlimited), 10, 20, 42..."),
+				scope: "This will apply globally\n  Text wraps onto the next line after this many characters\n  0 lifts this limit, your terminal width still wraps the output",
+				examples: &[
+					"cfonts \"a long line of text\" --max-length 10",
+					"cfonts \"a long line of text\" --max-length 10 --word-wrap",
+				],
+				arguments: Some("0, 10, 20, 42..."),
 			},
 			Self::Stdin => ArgInfo {
 				long: "stdin",
 				short: &[],
 				description: "Read the text from stdin instead of passing it as an argument",
-				scope: "This will apply only to the first block",
-				example: "echo \"Hello \" | cfonts --stdin --next World",
+				scope: "This will apply only to the first block\n  A bare pipe into cfonts reads stdin without the flag",
+				examples: &["echo hello | cfonts --stdin", "echo \"Hello \" | cfonts --stdin --next World"],
 				arguments: None,
 			},
 			Self::RawMode => ArgInfo {
 				long: "raw-mode",
 				short: &["r"],
 				description: "End lines with \\r\\n instead of \\n",
-				scope: "This will apply globally",
-				example: "cfonts --raw-mode",
+				scope: "This will apply globally\n  For raw terminal modes and tools that expect Windows line ends",
+				examples: &["cfonts hello --raw-mode"],
+				arguments: None,
+			},
+			Self::IndependentGradient => ArgInfo {
+				long: "independent-gradient",
+				short: &["i"],
+				description: "Restart every gradient fresh on every line",
+				scope: "This will apply globally\n  Without it a gradient ramps once across every line of the output",
+				examples: &[
+					"cfonts \"line one|line two\" --colors red-blue --independent-gradient",
+					"cfonts \"one|two\" --colors pride --independent-gradient",
+				],
 				arguments: None,
 			},
 
@@ -335,40 +405,58 @@ impl Args {
 				long: "next",
 				short: &["n"],
 				description: "Start a new text block",
-				scope: "",
-				example: "cfonts Hello --next world",
+				scope: "Font, colors, spacing and wrap options after it style the new block only,\n  blocks share one line and meet at the row --valign picks",
+				examples: &[
+					"cfonts Hello --next world",
+					"cfonts Logo --font chrome --next \" v4\" --font console --valign bottom",
+				],
 				arguments: Some("any text you want to style with cfonts"),
 			},
 			Self::NextStdin => ArgInfo {
 				long: "next-stdin",
 				short: &[],
 				description: "Start a new text block, filled from stdin",
-				scope: "",
-				example: "echo \" World\" | cfonts Hello --next-stdin",
+				scope: "Font, colors, spacing and wrap options after it style the new block only",
+				examples: &[
+					"echo \" World\" | cfonts Hello --next-stdin",
+					"cat name.txt | cfonts \"Hi \" --next-stdin --font tiny",
+				],
 				arguments: None,
 			},
 			Self::Font => ArgInfo {
 				long: "font",
 				short: &["f"],
 				description: "Set the font. Applies to the current text block",
-				scope: "",
-				example: "cfonts --font chrome",
+				scope: "Every block can use its own font",
+				examples: &["cfonts hello --font chrome", "cfonts hello --font tiny --next \" world\" --font block"],
 				arguments: Some(Font::LIST_CHUNKED),
 			},
 			Self::Color => ArgInfo {
 				long: "colors",
 				short: &["c"],
-				description: "Set the font colors. Applies to the current text block",
-				scope: "On the first text block this sets the color for all blocks\n  after --next it colors only that block",
-				example: "cfonts --colors red,blue",
-				arguments: Some(const_concat!(Color::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
+				description: "Set the font colors or a gradient. Applies to the current text block",
+				scope: "On the first text block this sets the colors for all blocks,\n  after --next it colors only that block\n  red,blue = one color per font slot\n  red-blue = a gradient\n  red:blue:green = a transition through every stop, or a preset name\n  A block with its own colors keeps them, a gradient set for\n  all blocks steps over its columns and carries on after it",
+				examples: &[
+					"cfonts hello --colors red,blue",
+					"cfonts hello --colors red-blue",
+					"cfonts hello --colors red:yellow:green",
+					"cfonts hello --colors pride",
+					"cfonts Hi --colors red-blue --next \" there\" --colors system",
+				],
+				arguments: Some(const_concat!(
+					Color::LIST_CHUNKED,
+					",\n      or any hex color like #ff8800 or #f80,\n      stops of a gradient: ",
+					GradientStop::LIST_CHUNKED,
+					" or any hex color,\n      presets: ",
+					GradientPreset::LIST_CHUNKED
+				)),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
 				short: &["b"],
 				description: "Set the background color",
 				scope: "",
-				example: "cfonts --background blue",
+				examples: &["cfonts hello --background blue"],
 				arguments: Some("TODO"),
 				// arguments: Some(const_concat!(Background::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
 				// TODO: add background
@@ -376,67 +464,47 @@ impl Args {
 			Self::LetterSpacing => ArgInfo {
 				long: "letter-spacing",
 				short: &["l"],
-				description: "Set the space between letters",
-				scope: "",
-				example: "cfonts --letter-spacing 2",
-				arguments: Some("1, 2, 5, 20..."),
+				description: "Set the space between letters. Applies to the current text block",
+				scope: "0 removes the gap the font puts between letters",
+				examples: &["cfonts hello --letter-spacing 2", "cfonts hello --letter-spacing 0 --font tiny"],
+				arguments: Some("0, 1, 2, 5, 20..."),
 			},
 			Self::LineHeight => ArgInfo {
 				long: "line-height",
 				short: &["z"],
-				description: "Set the space between lines",
-				scope: "",
-				example: "cfonts --line-height 5",
-				arguments: Some("2, 5, 10..."),
+				description: "Set the space between lines. Applies to the current text block",
+				scope: "The | character in the text starts a new line",
+				examples: &["cfonts \"one|two\" --line-height 3"],
+				arguments: Some("0, 2, 5, 10..."),
 			},
 			Self::WordWrap => ArgInfo {
 				long: "word-wrap",
 				short: &["w"],
-				description: "Wrap whole words at the end of lines",
-				scope: "",
-				example: "cfonts --word-wrap",
+				description: "Wrap whole words at the end of lines. Applies to the current text block",
+				scope: "Without it a line breaks wherever the width runs out",
+				examples: &["cfonts \"wrap whole words here\" --word-wrap --max-length 12"],
 				arguments: None,
 			},
 
 			// CLI specific config
-			Self::Gradient => ArgInfo {
-				long: "gradient",
-				short: &["g"],
-				description: "Paints a gradient across the whole output, spanning all text blocks",
-				scope: "Blocks with their own colors keep them; the gradient resumes after",
-				example: "cfonts --gradient red,blue",
-				arguments: Some(const_concat!(GradientStop::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
-			},
-			Self::IndependentGradient => ArgInfo {
-				long: "independent-gradient",
-				short: &["i"],
-				description: "Restart the gradient fresh on every line",
-				scope: "",
-				example: "cfonts --gradient red,blue --independent-gradient",
-				arguments: None,
-			},
-			Self::TransitionGradient => ArgInfo {
-				long: "transition-gradient",
-				short: &["t"],
-				description: "Allow more than two gradient colors, connected as transitions",
-				scope: "",
-				example: "cfonts --gradient red,blue,green --transition-gradient",
-				arguments: None,
-			},
 			Self::Version => ArgInfo {
 				long: "version",
 				short: &["v", "V"],
 				description: "Print the version and exit",
 				scope: "",
-				example: "cfonts --version",
+				examples: &["cfonts --version"],
 				arguments: None,
 			},
 			Self::Demo => ArgInfo {
 				long: "demo",
 				short: &["d"],
 				description: "Print a demo of all fonts and exit",
-				scope: "",
-				example: "cfonts --demo --colors yellow",
+				scope: "Colors and gradients apply to every font of the demo",
+				examples: &[
+					"cfonts --demo",
+					"cfonts --demo --colors yellow",
+					"cfonts --demo --colors red-blue --independent-gradient",
+				],
 				arguments: None,
 			},
 			Self::Help => ArgInfo {
@@ -444,7 +512,7 @@ impl Args {
 				short: &["h"],
 				description: "Print this help and exit",
 				scope: "",
-				example: "cfonts --help",
+				examples: &["cfonts --help"],
 				arguments: None,
 			},
 		}
@@ -465,6 +533,9 @@ impl Args {
 			Self::MaxLength => (help_line!(Args::MaxLength, true), help_line!(Args::MaxLength, false)),
 			Self::Stdin => (help_line!(Args::Stdin, true), help_line!(Args::Stdin, false)),
 			Self::RawMode => (help_line!(Args::RawMode, true), help_line!(Args::RawMode, false)),
+			Self::IndependentGradient => {
+				(help_line!(Args::IndependentGradient, true), help_line!(Args::IndependentGradient, false))
+			}
 
 			// Block config
 			Self::Next => (help_line!(Args::Next, true), help_line!(Args::Next, false)),
@@ -477,13 +548,6 @@ impl Args {
 			Self::WordWrap => (help_line!(Args::WordWrap, true), help_line!(Args::WordWrap, false)),
 
 			// CLI specific config
-			Self::Gradient => (help_line!(Args::Gradient, true), help_line!(Args::Gradient, false)),
-			Self::IndependentGradient => {
-				(help_line!(Args::IndependentGradient, true), help_line!(Args::IndependentGradient, false))
-			}
-			Self::TransitionGradient => {
-				(help_line!(Args::TransitionGradient, true), help_line!(Args::TransitionGradient, false))
-			}
 			Self::Version => (help_line!(Args::Version, true), help_line!(Args::Version, false)),
 			Self::Demo => (help_line!(Args::Demo, true), help_line!(Args::Demo, false)),
 			Self::Help => (help_line!(Args::Help, true), help_line!(Args::Help, false)),
@@ -529,12 +593,12 @@ mod tests {
 		assert_eq!(
 			Args::Align.help_colored(),
 			&format!(
-				"  \x1B[1mAlign the output horizontally\x1B[0m\n  \x1B[3mThis will apply globally\x1B[0m\n  --align, -a\n  \x1B[1m$\x1B[0m cfonts --align center\n  Possible arguments:\n    [ {open}left, center, right{close} ]"
+				"  \x1B[1mAlign the output horizontally\x1B[0m\n  \x1B[3mThis will apply globally\n  The output aligns within the width of your terminal\x1B[0m\n  --align, -a\n  \x1B[1m$\x1B[0m cfonts hello --align center\n  \x1B[1m$\x1B[0m cfonts hello --align right --font tiny\n  Possible arguments:\n    [ {open}left, center, right{close} ]"
 			),
 		);
 		assert_eq!(
 			Args::Spaceless.help_colored(),
-			"  \x1B[1mRemove the padding around the output\x1B[0m\n  \x1B[3mThis will apply globally\x1B[0m\n  --spaceless, -s\n  \x1B[1m$\x1B[0m cfonts --spaceless"
+			"  \x1B[1mRemove the padding around the output\x1B[0m\n  \x1B[3mThis will apply globally\n  Without it two empty lines pad the output above and below\x1B[0m\n  --spaceless, -s\n  \x1B[1m$\x1B[0m cfonts hello --spaceless\n  \x1B[1m$\x1B[0m cfonts hello --spaceless --font console"
 		);
 	}
 
@@ -549,19 +613,75 @@ mod tests {
 		}
 	}
 
-	#[test]
-	fn gradients_reject_colors_that_are_not_stops() {
-		for name in ["system", "candy"] {
-			let mut state = ParseState::default();
-			state.options.blocks.push(CliBlockOptions::new("HI"));
+	// Args::parse
 
-			assert_eq!(
-				Args::Gradient.apply(Some(name), &mut state),
-				Err(ParseError::InvalidValue { argument: Args::Gradient, value: name, source: Some(ColorError::UnknownColor) }),
-				"{name} must not be accepted as a gradient stop"
-			);
-			assert_eq!(state.gradient, None);
+	#[test]
+	fn the_gradient_spellings_are_no_options() {
+		// the tokenizer refuses them before the parse table, so they never reach an option
+		for spelling in ["g", "gradient", "t", "transition-gradient"] {
+			assert_eq!(Args::parse(spelling), None, "{spelling}");
 		}
+	}
+
+	// Args::color_shape
+
+	#[test]
+	fn the_delimiter_picks_the_shape() {
+		assert_eq!(Args::Color.color_shape(" red "), Ok(ColorShape::Single("red")));
+		assert_eq!(Args::Color.color_shape("red, blue"), Ok(ColorShape::List(vec!["red", "blue"])));
+		assert_eq!(Args::Color.color_shape("red - blue"), Ok(ColorShape::Pair("red", "blue")));
+		assert_eq!(Args::Color.color_shape("red:blue:green"), Ok(ColorShape::Stops(vec!["red", "blue", "green"])));
+		assert_eq!(Args::Color.color_shape("#ff8800-#0000ff"), Ok(ColorShape::Pair("#ff8800", "#0000ff")));
+	}
+
+	#[test]
+	fn mixed_delimiters_and_empty_segments_reject_the_whole_value() {
+		for value in ["red,blue-green", "red-blue:green", "red,blue:green"] {
+			assert_eq!(
+				Args::Color.color_shape(value),
+				Err(ParseError::MixedColorDelimiters { argument: Args::Color, value }),
+				"{value:?}"
+			);
+		}
+
+		for value in [",", "red,", "-blue", "red::blue", "red- -blue"] {
+			assert_eq!(
+				Args::Color.color_shape(value),
+				Err(ParseError::EmptyColorSegment { argument: Args::Color, value }),
+				"{value:?}"
+			);
+		}
+	}
+
+	#[test]
+	fn a_dash_gradient_holds_exactly_two_stops() {
+		assert_eq!(
+			Args::Color.color_shape("red-blue-green"),
+			Err(ParseError::TwoStopCount { argument: Args::Color, value: "red-blue-green", count: 3 })
+		);
+	}
+
+	// Args::parse_colors
+
+	#[test]
+	fn slot_only_colors_and_presets_are_refused_where_they_cannot_go() {
+		// a font color is not a stop, and a preset joins nothing
+		assert_eq!(
+			Args::Color.parse_colors("candy-red"),
+			Err(ParseError::InvalidValue {
+				argument: Args::Color,
+				value: "candy-red",
+				source: Some(ColorError::NotAGradientStop)
+			})
+		);
+		assert_eq!(
+			Args::Color.parse_colors("pride,red"),
+			Err(ParseError::PresetNotAlone { argument: Args::Color, value: "pride,red", preset: "pride" })
+		);
+		assert_eq!(
+			Args::Color.parse_colors("red:pride"),
+			Err(ParseError::PresetNotAlone { argument: Args::Color, value: "red:pride", preset: "pride" })
+		);
 	}
 
 	#[test]
@@ -584,11 +704,25 @@ mod tests {
 		for argument in Args::ALL {
 			let info = argument.infos();
 			let flag = format!("--{}", info.long);
-			assert!(
-				info.example.split_whitespace().any(|token| token == flag),
-				"the example for {:?} does not use {flag}",
-				argument
-			);
+			assert!(!info.examples.is_empty(), "{argument:?} has no example");
+
+			for example in info.examples {
+				assert!(
+					example.split_whitespace().any(|token| token == flag),
+					"the example {example:?} for {argument:?} does not use {flag}"
+				);
+			}
+		}
+	}
+
+	#[test]
+	fn help_text_keeps_to_plain_punctuation() {
+		// commas and full stops only, no semicolon or dash standing in for them
+		for argument in Args::ALL {
+			let help = argument.help_plain();
+			for token in [";", "\u{2014}", "\u{2013}"] {
+				assert!(!help.contains(token), "the help for {argument:?} contains {token:?}");
+			}
 		}
 	}
 }

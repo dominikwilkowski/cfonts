@@ -636,13 +636,12 @@ test("gradient shapes are validated", () => {
 	assert.throws(() => Cfonts.text("A").gradient({}), TypeError); // no shape
 	assert.throws(() => Cfonts.text("A").gradient({ start: "red", transition: ["red", "blue"] }), TypeError); // two shapes
 	assert.throws(() => Cfonts.text("A").gradient({ start: "red" }), TypeError); // missing end
-	assert.throws(() => Cfonts.text("A").gradient({ start: "red", end: "blue", independentGradient: 1 }), TypeError);
 	assert.throws(() => Cfonts.text("A").gradient({ transition: "red" }), TypeError); // not an array
 	assert.throws(() => Cfonts.text("A").gradient({ preset: 99 }), TypeError); // not a preset
 	assert.throws(() => Cfonts.text("A").gradient(99), TypeError);
 	assert.throws(() => Cfonts.text("A").gradient({ transition: [] }), /at least two stops, this one holds 0/); // empty, rejected in Rust
 	assert.throws(() => Cfonts.text("A").gradient({ transition: ["red"] }), /at least two stops, this one holds 1/); // one stop, rejected in Rust
-	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), /Unsupported color/); // system is not a gradient stop
+	assert.throws(() => Cfonts.text("A").gradient({ start: "system", end: "blue" }), /Unsupported gradient stop/); // system is not a gradient stop
 });
 
 test("gradient stops accept the base Color values", () => {
@@ -666,10 +665,13 @@ test("gradient stops accept the base Color values", () => {
 test("gradient stops outside the base palette are rejected in Rust", () => {
 	// valid enum members travel as their names; which colors may blend is Rust's decision
 	for (const color of [Color.System, Color.Candy, Color.RedBright]) {
-		assert.throws(() => Cfonts.text("A").gradient({ start: color, end: Color.Blue }), /Unsupported color/);
+		assert.throws(() => Cfonts.text("A").gradient({ start: color, end: Color.Blue }), /Unsupported gradient stop/);
 	}
 
-	assert.throws(() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.WhiteBright] }), /Unsupported color/);
+	assert.throws(
+		() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.WhiteBright] }),
+		/Unsupported gradient stop/,
+	);
 
 	// an unknown number is still a shape error, caught at the boundary
 	assert.throws(() => Cfonts.text("A").gradient({ start: 99, end: Color.Blue }), {
@@ -681,7 +683,7 @@ test("gradient stops outside the base palette are rejected in Rust", () => {
 test("gradient shape errors teach the shapes", () => {
 	assert.throws(() => Cfonts.text("A").gradient({}), {
 		name: "TypeError",
-		message: /start: Color\.Red.*independentGradient/,
+		message: /start: Color\.Red.*GradientPreset value itself/,
 	});
 	assert.throws(() => Cfonts.text("A").gradient({ start: Color.Red }), {
 		name: "TypeError",
@@ -715,13 +717,15 @@ test("gradients accept every shape and paint nothing without a color level", () 
 
 	const preset = Cfonts.text("A").gradient(GradientPreset.Pride).renderWith(CliEnv).text;
 	const twoStop = Cfonts.text("A")
-		.gradient({ start: "red", end: "#0000ff", independentGradient: true })
+		.gradient({ start: "red", end: "#0000ff" })
+		.independentGradient()
 		.renderWith(CliEnv).text;
 	const transition = Cfonts.text("A")
 		.gradient({ transition: ["red", { red: 0, green: 0, blue: 255 }, "gray"] })
 		.renderWith(CliEnv).text;
 	const global = Cfonts.text("A")
-		.globalGradient({ preset: GradientPreset.Transgender, independentGradient: true })
+		.globalGradient({ preset: GradientPreset.Transgender })
+		.independentGradient()
 		.renderWith(CliEnv).text;
 
 	for (const rendered of [preset, twoStop, transition, global]) {
@@ -758,6 +762,21 @@ test("a failed global gradient does not claim the slot", () => {
 
 	assert.throws(() => banner.globalGradient({ start: "reed", end: "blue" }), Error);
 	banner.globalGradient({ start: "red", end: "blue" }); // the slot is still available
+});
+
+test("independentGradient restarts every line and can only be set once", () => {
+	const context = { colorLevel: ColorLevel.TrueColor };
+	const banner = Cfonts.text("A|AB").font(Font.Tiny).lineHeight(0).gradient({ start: "red", end: "blue" });
+	const fixed = banner.renderWith(CliEnv, context).text;
+	const independent = banner.independentGradient().renderWith(CliEnv, context).text;
+
+	assert.notEqual(independent, fixed);
+	for (const row of independent.split("\n").filter((row) => row.length > 0)) {
+		const last = row.slice(row.lastIndexOf("\u001b[38;2;"));
+		assert.ok(last.startsWith("\u001b[38;2;0;0;255m"), row); // every line reaches the end stop
+	}
+
+	assert.throws(() => banner.independentGradient(), /`independentGradient\(\)` has already been set/);
 });
 
 test("renderWith paints with an explicit color level", () => {

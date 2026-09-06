@@ -19,7 +19,7 @@ use cfonts::{
 // `letter_space_size` = the column width of one letter_space glyph
 // `align` = horizontal placement of a font on a line
 // `valign` = vertical placement when two+ fonts of different heights share a line
-// `colors` / `gradient` / `independent-gradient` / `transition-gradient` / `background` = the paint layer
+// `colors` / `independent-gradient` / `background` = the paint layer
 // `letter-spacing` = a multiplier: how many `letter_space` glyphs go between glyphs
 // `line-height` = vertical gap between lines
 // `spaceless` = trim the top/bottom padding rows
@@ -88,7 +88,7 @@ fn main() -> ExitCode {
 	} else if show_version {
 		emit_stdout(VERSION)
 	} else if show_demo {
-		emit_stdout(cli_demo(options.global_colors))
+		emit_stdout(cli_demo(&options))
 	} else {
 		RustHost::default().with_raw_mode(raw_mode).say(&options)
 	};

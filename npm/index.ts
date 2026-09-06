@@ -130,9 +130,7 @@ export class Cfonts {
 	/**
 	 * Sets a gradient for the current text block, one ramp color per column
 	 *
-	 * Stops take the base colors, hex values, or channel values from `hexToRgb()`;
-	 * `independentGradient: true` gives each line its own gradient instead of
-	 * one ramp across the widest line
+	 * Stops take the base colors, hex values, or channel values from `hexToRgb()`
 	 *
 	 * @example
 	 * Cfonts.text("hello").gradient({ start: Color.Red, end: Color.Blue });
@@ -142,22 +140,19 @@ export class Cfonts {
 	 *
 	 * @example
 	 * Cfonts.text("hello").gradient(GradientPreset.Pride);
-	 *
-	 * @example
-	 * Cfonts.text("hello|world").gradient({ preset: GradientPreset.Pride, independentGradient: true });
 	 */
 	gradient(gradient: GradientInput): this {
 		const normalized = normalizeGradient(gradient, "gradient");
 
 		switch (normalized.kind) {
 			case "preset":
-				this.#inner.gradientPreset(normalized.preset, normalized.independentGradient);
+				this.#inner.gradientPreset(normalized.preset);
 				break;
 			case "twoStop":
-				this.#inner.gradient(normalized.start, normalized.end, normalized.independentGradient);
+				this.#inner.gradient(normalized.start, normalized.end);
 				break;
 			case "transition":
-				this.#inner.transition(normalized.stops, normalized.independentGradient);
+				this.#inner.transition(normalized.stops);
 				break;
 		}
 
@@ -216,9 +211,9 @@ export class Cfonts {
 	 *
 	 * Blocks with their own colors override it for their columns and the ramp resumes after;
 	 * shares the one global color slot with `globalColors`
-	 * Stops take the base colors, hex values, or channel values from `hexToRgb()`;
-	 * `independentGradient: true` gives each line its own gradient instead of
-	 * one ramp across the widest line
+	 *
+	 * Stops take the base colors, hex values, or channel values from `hexToRgb()`
+	 *
 	 *
 	 * @example
 	 * Cfonts.text("hello").globalGradient({ start: Color.Red, end: Color.Blue });
@@ -227,23 +222,34 @@ export class Cfonts {
 	 * Cfonts.text("hello").globalGradient({ transition: [Color.Red, hexToRgb("#ff8800"), Color.Yellow] });
 	 *
 	 * @example
-	 * Cfonts.text("hello|world").globalGradient({ preset: GradientPreset.Transgender, independentGradient: true });
+	 * Cfonts.text("hello").globalGradient({ preset: GradientPreset.Transgender });
 	 */
 	globalGradient(gradient: GradientInput): this {
 		const normalized = normalizeGradient(gradient, "globalGradient");
 
 		switch (normalized.kind) {
 			case "preset":
-				this.#inner.globalGradientPreset(normalized.preset, normalized.independentGradient);
+				this.#inner.globalGradientPreset(normalized.preset);
 				break;
 			case "twoStop":
-				this.#inner.globalGradient(normalized.start, normalized.end, normalized.independentGradient);
+				this.#inner.globalGradient(normalized.start, normalized.end);
 				break;
 			case "transition":
-				this.#inner.globalTransition(normalized.stops, normalized.independentGradient);
+				this.#inner.globalTransition(normalized.stops);
 				break;
 		}
 
+		return this;
+	}
+
+	/**
+	 * Restarts every gradient on each line instead of ramping once across every line
+	 *
+	 * @example
+	 * Cfonts.text("hello|world").globalGradient(GradientPreset.Pride).independentGradient();
+	 */
+	independentGradient(): this {
+		this.#inner.independentGradient();
 		return this;
 	}
 

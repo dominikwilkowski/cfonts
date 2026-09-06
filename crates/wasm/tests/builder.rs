@@ -110,11 +110,13 @@ fn each_global_setting_can_be_configured_once() {
 	assert!(banner.valign(Valign::Bottom).is_ok());
 	assert!(banner.spaceless().is_ok());
 	assert!(banner.max_length(10).is_ok());
+	assert!(banner.independent_gradient().is_ok());
 
 	assert!(banner.align(Align::Right).is_err());
 	assert!(banner.valign(Valign::Top).is_err());
 	assert!(banner.spaceless().is_err());
 	assert!(banner.max_length(20).is_err());
+	assert!(banner.independent_gradient().is_err());
 }
 
 #[wasm_bindgen_test]
@@ -182,9 +184,10 @@ fn color_configuration_without_a_color_level_paints_nothing() {
 	let mut colored = wrapping_banner();
 
 	colored.colors(vec!["red".to_owned(), "#f80".to_owned()]).expect("valid colors");
-	colored.gradient("red".to_owned(), "#0000ff".to_owned(), true).expect("valid stops");
-	colored.gradient_preset(GradientPreset::Pride, false);
-	colored.global_transition(vec!["cyan".to_owned(), "magenta".to_owned()], false).expect("valid stops");
+	colored.gradient("red".to_owned(), "#0000ff".to_owned()).expect("valid stops");
+	colored.gradient_preset(GradientPreset::Pride);
+	colored.global_transition(vec!["cyan".to_owned(), "magenta".to_owned()]).expect("valid stops");
+	colored.independent_gradient().expect("first independent_gradient call");
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
@@ -206,19 +209,19 @@ fn color_values_are_validated_at_the_boundary() {
 	assert!(banner.colors(vec![]).is_ok()); // an empty list is still a configured color
 	assert!(banner.colors(vec!["reed".to_owned()]).is_err());
 	assert!(banner.colors(vec!["#ff88".to_owned()]).is_err());
-	assert!(banner.gradient("system".to_owned(), "blue".to_owned(), false).is_err()); // system is not a gradient stop
-	assert!(banner.transition(vec!["red".to_owned()], false).is_err()); // one stop is not a transition
-	assert!(banner.transition(vec!["red".to_owned(), "blue".to_owned()], false).is_ok());
+	assert!(banner.gradient("system".to_owned(), "blue".to_owned()).is_err()); // system is not a gradient stop
+	assert!(banner.transition(vec!["red".to_owned()]).is_err()); // one stop is not a transition
+	assert!(banner.transition(vec!["red".to_owned(), "blue".to_owned()]).is_ok());
 }
 
 #[wasm_bindgen_test]
 fn the_global_color_can_be_configured_once_across_all_shapes() {
 	let mut banner = Cfonts::text("A".to_owned());
 
-	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_ok());
-	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_err());
-	assert!(banner.global_transition(vec!["red".to_owned(), "blue".to_owned()], false).is_err());
-	assert!(banner.global_gradient_preset(GradientPreset::Pride, false).is_err());
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned()).is_ok());
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned()).is_err());
+	assert!(banner.global_transition(vec!["red".to_owned(), "blue".to_owned()]).is_err());
+	assert!(banner.global_gradient_preset(GradientPreset::Pride).is_err());
 	assert!(banner.global_colors(vec!["red".to_owned()]).is_err());
 }
 
@@ -243,9 +246,9 @@ fn a_failed_global_color_does_not_claim_the_slot() {
 	let mut banner = Cfonts::text("A".to_owned());
 
 	assert!(banner.global_colors(vec!["reed".to_owned()]).is_err());
-	assert!(banner.global_gradient("reed".to_owned(), "blue".to_owned(), false).is_err());
+	assert!(banner.global_gradient("reed".to_owned(), "blue".to_owned()).is_err());
 	assert!(banner.global_colors(vec!["red".to_owned()]).is_ok());
-	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned(), false).is_err()); // the claimed slot blocks the gradient shapes too
+	assert!(banner.global_gradient("red".to_owned(), "blue".to_owned()).is_err()); // the claimed slot blocks the gradient shapes too
 }
 
 #[wasm_bindgen_test]
@@ -298,7 +301,7 @@ fn candy_seeds_are_deterministic_across_the_boundary() {
 fn gradients_paint_across_the_boundary() {
 	let mut banner = Cfonts::text("A".to_owned());
 	banner.font(Font::Tiny);
-	banner.gradient("red".to_owned(), "blue".to_owned(), false).expect("valid stops");
+	banner.gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
 
 	let plain = banner.render(EnvironmentKind::Cli, None, None, None);
 	assert!(!plain.text.contains("\u{1b}["));
@@ -308,6 +311,28 @@ fn gradients_paint_across_the_boundary() {
 
 	let console = banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None);
 	assert_eq!(console.text.matches("%c").count(), console.styles.len());
+}
+
+#[wasm_bindgen_test]
+fn the_independent_gradient_crosses_the_boundary() {
+	let mut banner = Cfonts::text("A|AB".to_owned());
+	banner.font(Font::Tiny);
+	banner.line_height(0);
+	banner.gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
+
+	let fixed = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None).text;
+	banner.independent_gradient().expect("first independent_gradient call");
+	let independent = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None).text;
+
+	let expected = CoreCfonts::text("A|AB")
+		.font(CoreFont::Tiny)
+		.line_height(0)
+		.colors(cfonts::GradientOption::TwoStop { start: cfonts::GradientStop::Red, end: cfonts::GradientStop::Blue })
+		.independent_gradient()
+		.render_with(&CliEnv::default(), RenderContext::colored(cfonts::ColorLevel::TrueColor));
+
+	assert_ne!(independent, fixed);
+	assert_eq!(independent, expected.text);
 }
 
 #[wasm_bindgen_test]

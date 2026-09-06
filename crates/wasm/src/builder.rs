@@ -15,6 +15,7 @@ const VALIGN_SET: u8 = 1 << 1;
 const SPACELESS_SET: u8 = 1 << 2;
 const MAX_LENGTH_SET: u8 = 1 << 3;
 const GLOBAL_COLOR_SET: u8 = 1 << 4;
+const INDEPENDENT_GRADIENT_SET: u8 = 1 << 5;
 
 /// The mutable WASM-facing builder
 ///
@@ -105,23 +106,23 @@ impl Cfonts {
 	}
 
 	/// Sets a two stop gradient for the current block
-	pub fn gradient(&mut self, start: String, end: String, independent_gradient: bool) -> Result<(), JsError> {
-		let gradient = two_stop(&start, &end, independent_gradient)?;
+	pub fn gradient(&mut self, start: String, end: String) -> Result<(), JsError> {
+		let gradient = two_stop(&start, &end)?;
 		self.current_block_mut().colors = Some(gradient.into());
 		Ok(())
 	}
 
 	/// Sets a transition gradient for the current block
-	pub fn transition(&mut self, stops: Vec<String>, independent_gradient: bool) -> Result<(), JsError> {
-		let gradient = transition(&stops, independent_gradient)?;
+	pub fn transition(&mut self, stops: Vec<String>) -> Result<(), JsError> {
+		let gradient = transition(&stops)?;
 		self.current_block_mut().colors = Some(gradient.into());
 		Ok(())
 	}
 
 	/// Sets a preset gradient for the current block
 	#[wasm_bindgen(js_name = gradientPreset)]
-	pub fn gradient_preset(&mut self, preset: GradientPreset, independent_gradient: bool) {
-		self.current_block_mut().colors = Some(CoreGradientPreset::from(preset).to_gradient(independent_gradient).into());
+	pub fn gradient_preset(&mut self, preset: GradientPreset) {
+		self.current_block_mut().colors = Some(CoreGradientPreset::from(preset).into());
 	}
 
 	/// Sets the global horizontal alignment
@@ -169,8 +170,8 @@ impl Cfonts {
 
 	/// Sets a two stop gradient across the whole composition
 	#[wasm_bindgen(js_name = globalGradient)]
-	pub fn global_gradient(&mut self, start: String, end: String, independent_gradient: bool) -> Result<(), JsError> {
-		let gradient = two_stop(&start, &end, independent_gradient)?;
+	pub fn global_gradient(&mut self, start: String, end: String) -> Result<(), JsError> {
+		let gradient = two_stop(&start, &end)?;
 		self.set_global_colors()?;
 		self.options.global_colors = Some(gradient.into());
 		Ok(())
@@ -178,8 +179,8 @@ impl Cfonts {
 
 	/// Sets a transition gradient across the whole composition
 	#[wasm_bindgen(js_name = globalTransition)]
-	pub fn global_transition(&mut self, stops: Vec<String>, independent_gradient: bool) -> Result<(), JsError> {
-		let gradient = transition(&stops, independent_gradient)?;
+	pub fn global_transition(&mut self, stops: Vec<String>) -> Result<(), JsError> {
+		let gradient = transition(&stops)?;
 		self.set_global_colors()?;
 		self.options.global_colors = Some(gradient.into());
 		Ok(())
@@ -187,9 +188,17 @@ impl Cfonts {
 
 	/// Sets a preset gradient across the whole composition
 	#[wasm_bindgen(js_name = globalGradientPreset)]
-	pub fn global_gradient_preset(&mut self, preset: GradientPreset, independent_gradient: bool) -> Result<(), JsError> {
+	pub fn global_gradient_preset(&mut self, preset: GradientPreset) -> Result<(), JsError> {
 		self.set_global_colors()?;
-		self.options.global_colors = Some(CoreGradientPreset::from(preset).to_gradient(independent_gradient).into());
+		self.options.global_colors = Some(CoreGradientPreset::from(preset).into());
+		Ok(())
+	}
+
+	/// Restarts every gradient on each line instead of ramping once across every line
+	#[wasm_bindgen(js_name = independentGradient)]
+	pub fn independent_gradient(&mut self) -> Result<(), JsError> {
+		self.set_global(INDEPENDENT_GRADIENT_SET, "independentGradient")?;
+		self.options.independent_gradient = true;
 		Ok(())
 	}
 
@@ -232,25 +241,23 @@ fn parse_stop(input: &str) -> Result<GradientStop, JsError> {
 	input.parse().map_err(|error| color_error(input, error))
 }
 
-/// The precise hex problems speak for themselves; an unknown color names the input
+/// The precise hex problems speak for themselves; an unknown color or a slot only stop names the input
 fn color_error(input: &str, error: ColorError) -> JsError {
 	match error {
 		ColorError::UnknownColor => JsError::new(&format!("Unsupported color `{input}`, use a color name or hex value")),
+		ColorError::NotAGradientStop => JsError::new(&format!("Unsupported gradient stop `{input}`: {error}")),
 		error => JsError::new(&error.to_string()),
 	}
 }
 
 /// Builds the two stop boundary gradient from its stop strings
-fn two_stop(start: &str, end: &str, independent_gradient: bool) -> Result<GradientOption, JsError> {
-	Ok(GradientOption::TwoStop { start: parse_stop(start)?, end: parse_stop(end)?, independent_gradient })
+fn two_stop(start: &str, end: &str) -> Result<GradientOption, JsError> {
+	Ok(GradientOption::TwoStop { start: parse_stop(start)?, end: parse_stop(end)? })
 }
 
 /// Builds the transition boundary gradient from its stop strings
-fn transition(stops: &[String], independent_gradient: bool) -> Result<GradientOption, JsError> {
+fn transition(stops: &[String]) -> Result<GradientOption, JsError> {
 	let stops = stops.iter().map(|stop| parse_stop(stop)).collect::<Result<Vec<GradientStop>, JsError>>()?;
 
-	Ok(GradientOption::Transition {
-		stops: TransitionStops::try_from(stops).map_err(|error| JsError::new(&error.to_string()))?,
-		independent_gradient,
-	})
+	Ok(GradientOption::Transition(TransitionStops::try_from(stops).map_err(|error| JsError::new(&error.to_string()))?))
 }

@@ -103,6 +103,16 @@ fn a_bad_option_value_names_the_option() {
 	assert!(text(&output.stderr).contains(" ERROR  The option \"font\" was given an invalid value \"nofont\""));
 }
 
+#[test]
+fn a_gradient_flag_teaches_the_colors_forms() {
+	let output = run(&["hi", "-g", "red,blue"], &[("NO_COLOR", "1")], None);
+
+	assert_eq!(output.status.code(), Some(64));
+	assert!(output.stdout.is_empty());
+	assert!(text(&output.stderr).contains(" ERROR  The flag \"-g\" does not exist"));
+	assert!(text(&output.stderr).contains("cfonts Hello --colors red-blue"));
+}
+
 // stdin through a real pipe
 
 #[test]

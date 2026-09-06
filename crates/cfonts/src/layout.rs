@@ -71,7 +71,7 @@ enum Break {
 ///
 /// Gradient ramps span these:
 /// - a block ramp over its own block's columns
-/// - the global ramp over the whole row
+/// - the global ramp over the columns of every block that paints from it
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockSpan {
 	/// The block these columns belong to

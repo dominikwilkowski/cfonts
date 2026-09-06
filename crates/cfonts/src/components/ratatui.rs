@@ -71,7 +71,7 @@ impl Widget for &CfontsWidget<'_> {
 		let rows = Layout::build(self.options, Some(area.width as usize)).into_rows();
 		let context = render_context(self.seed);
 		let mut plan = PaintPlan::build(self.options, &context, style_for);
-		let mut gradients = GradientPlans::build(self.options, &context, &rows);
+		let mut gradients = GradientPlans::build(&plan, self.options, &rows);
 
 		// The shared traversal visits every row; rows below the area paint nothing
 		let mut row_index = 0_usize;
@@ -99,13 +99,10 @@ impl Widget for &CfontsWidget<'_> {
 						x = next_x;
 					}
 				}
-				domain => {
+				PaintDomain::Block | PaintDomain::Global => {
 					// gradients paint one cell per column, each with its ramp color
 					for character in text.chars() {
-						let rgb = match domain {
-							PaintDomain::Global => gradients.global_window().first().copied(),
-							_ => gradients.block_window(block_index).first().copied(),
-						};
+						let rgb = gradients.window(block_index).first().copied();
 
 						if x < area.right() {
 							let style = rgb
@@ -117,24 +114,21 @@ impl Widget for &CfontsWidget<'_> {
 							x = next_x;
 						}
 
-						match domain {
-							PaintDomain::Global => gradients.advance_global(1),
-							_ => gradients.advance_block(1),
-						}
+						gradients.advance(1);
 					}
 				}
 			},
 			RowEvent::EntryEnd { width, block_index } if visible => {
-				// entries outside the global domain claim their global ramp columns whole
-				if plan.domain(block_index) != PaintDomain::Global {
-					gradients.advance_global(width);
+				// ramped segments advanced per column already; slot painted entries claim their columns whole
+				if plan.domain(block_index) == PaintDomain::Slots {
+					gradients.advance(width);
 				}
 			}
 			// Blank columns leave cells untouched so the widget stays transparent
 			// Background colors can paint these cells once background support lands
-			RowEvent::Blank { width, block_index } if visible => {
+			RowEvent::Blank { width, .. } if visible => {
 				x = (x as usize).saturating_add(width).min(area.right() as usize) as u16;
-				gradients.skip_blank(width, block_index);
+				gradients.advance(width);
 			}
 			_ => {}
 		});
@@ -263,7 +257,6 @@ mod tests {
 		options.blocks[0].colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
 			start: crate::GradientStop::Red,
 			end: crate::GradientStop::Blue,
-			independent_gradient: false,
 		}));
 		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
@@ -273,6 +266,49 @@ mod tests {
 		let buffer = terminal.backend().buffer();
 		assert_eq!(buffer.cell((0, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(255, 0, 0)));
 		assert_eq!(buffer.cell((2, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(0, 0, 255)));
+	}
+
+	#[test]
+	fn widget_starts_the_global_ramp_where_the_ramped_block_starts() {
+		// the red block claims its three columns whole, so the global ramp spans only
+		// the second block and starts on red at the fourth cell
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Tiny, false)]);
+		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Red]));
+		options.global_colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
+			start: crate::GradientStop::Red,
+			end: crate::GradientStop::Blue,
+		}));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		assert_eq!(buffer.cell((0, 0)).unwrap().style().fg, Some(TerminalColor::Red));
+		assert_eq!(buffer.cell((3, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(255, 0, 0)));
+		assert_eq!(buffer.cell((5, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(0, 0, 255)));
+	}
+
+	#[test]
+	fn widget_padding_rows_keep_the_ramp_columns() {
+		// the Tiny block pads with blanks under the Block font, and the tall block's
+		// cells keep their ramp colors on the padded rows
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Block, false)]);
+		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::System]));
+		options.global_colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
+			start: crate::GradientStop::Red,
+			end: crate::GradientStop::Blue,
+		}));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(11, 6)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		for y in 0..6 {
+			assert_eq!(buffer.cell((3, y)).unwrap().style().fg, Some(TerminalColor::Rgb(255, 0, 0)), "row {y}");
+			assert_eq!(buffer.cell((10, y)).unwrap().style().fg, Some(TerminalColor::Rgb(0, 0, 255)), "row {y}");
+		}
 	}
 
 	#[test]

@@ -13,7 +13,8 @@ const artifact = banner.renderWith(BrowserConsoleEnv, {
 const colorful = Cfonts.text("colors")
 	.colors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }])
 	.gradient(GradientPreset.Pride)
-	.globalGradient({ start: "red", end: "#0000ff", independentGradient: true });
+	.globalGradient({ start: "red", end: "#0000ff" })
+	.independentGradient();
 
 colorful.gradient({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff00"] });
 colorful.gradient({ start: Color.Red, end: hexToRgb("#0000ff") });
@@ -21,7 +22,7 @@ colorful.gradient({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
 
 const channels: { red: number; green: number; blue: number } = hexToRgb("#ff8800");
 console.log(channels.red);
-colorful.gradient({ preset: GradientPreset.Lesbian, independentGradient: true });
+colorful.gradient({ preset: GradientPreset.Lesbian });
 colorful.render(host);
 
 Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }]);
@@ -50,6 +51,9 @@ colorful.gradient({ transition: [Color.Red] });
 
 // @ts-expect-error a gradient takes exactly one shape
 colorful.gradient({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
+
+// @ts-expect-error the independent flag is a builder setting, not a gradient field
+colorful.gradient({ start: Color.Red, end: Color.Blue, independentGradient: true });
 
 // readonly color lists are accepted: the methods only read them
 const readonlyColors = [Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }] as const;

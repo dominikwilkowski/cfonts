@@ -169,9 +169,13 @@ pub struct Options {
 
 	/// Colors or a gradient across the whole composition
 	///
-	/// Blocks with their own [`colors`](BlockOptions::colors) override it for their columns
-	/// and a global gradient's ramp resumes after them
+	/// Blocks with their own [`colors`](BlockOptions::colors) override it for their columns:
+	/// a global gradient's ramp spans from the first block that paints from it to the last,
+	/// so a block in between consumes its columns and the ramp resumes after it
 	pub global_colors: Option<ColorOption>,
+
+	/// Whether every gradient restarts on each line instead of ramping once across every line
+	pub independent_gradient: bool,
 
 	/// Text blocks rendered as one composition
 	pub blocks: Vec<BlockOptions>,
@@ -185,6 +189,7 @@ impl Default for Options {
 			spaceless: false,
 			max_length: None,
 			global_colors: None,
+			independent_gradient: false,
 			blocks: Vec::new(),
 		}
 	}

@@ -1,5 +1,5 @@
 import { Color, GradientPreset, hexToRgb as wasmHexToRgb } from "../pkg/cfonts_wasm.js";
-import { expectBoolean, expectEnum, expectString, expectU8 } from "./validation.js";
+import { expectEnum, expectString, expectU8 } from "./validation.js";
 
 /**
  * An RGB color as channel values
@@ -50,23 +50,17 @@ export type GradientStops = readonly [GradientStopInput, GradientStopInput, ...G
  */
 export type GradientInput =
 	| GradientPreset
-	| { preset: GradientPreset; independentGradient?: boolean; start?: never; end?: never; transition?: never }
-	| {
-			start: GradientStopInput;
-			end: GradientStopInput;
-			independentGradient?: boolean;
-			preset?: never;
-			transition?: never;
-	  }
-	| { transition: GradientStops; independentGradient?: boolean; preset?: never; start?: never; end?: never };
+	| { preset: GradientPreset; start?: never; end?: never; transition?: never }
+	| { start: GradientStopInput; end: GradientStopInput; preset?: never; transition?: never }
+	| { transition: GradientStops; preset?: never; start?: never; end?: never };
 
 /**
  * The gradient shapes after validation, each mapping to one boundary call
  */
 export type NormalizedGradient =
-	| { kind: "preset"; preset: GradientPreset; independentGradient: boolean }
-	| { kind: "twoStop"; start: string; end: string; independentGradient: boolean }
-	| { kind: "transition"; stops: string[]; independentGradient: boolean };
+	| { kind: "preset"; preset: GradientPreset }
+	| { kind: "twoStop"; start: string; end: string }
+	| { kind: "transition"; stops: string[] };
 
 /**
  * Converts a hex value into RGB channel values
@@ -174,8 +168,7 @@ function gradientShapeError(method: string): TypeError {
 	return new TypeError(
 		`\`${method}()\` expects exactly one gradient shape: {start: Color.Red, end: Color.Blue}, ` +
 			`{transition: [Color.Red, "#8899dd", Color.Blue]}, {preset: GradientPreset.Pride}, ` +
-			`or the GradientPreset value itself; every object shape also takes independentGradient: true ` +
-			`to give each line its own gradient instead of one ramp across the widest line`,
+			`or the GradientPreset value itself`,
 	);
 }
 
@@ -184,11 +177,7 @@ function gradientShapeError(method: string): TypeError {
  */
 export function normalizeGradient(input: GradientInput, method: string): NormalizedGradient {
 	if (typeof input === "number") {
-		return {
-			kind: "preset",
-			preset: expectEnum<GradientPreset>(input, GradientPreset, method),
-			independentGradient: false,
-		};
+		return { kind: "preset", preset: expectEnum<GradientPreset>(input, GradientPreset, method) };
 	}
 
 	if (input === null || typeof input !== "object") {
@@ -201,15 +190,8 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 		throw gradientShapeError(method);
 	}
 
-	const independentGradient =
-		input.independentGradient === undefined ? false : expectBoolean(input.independentGradient, method);
-
 	if ("preset" in input) {
-		return {
-			kind: "preset",
-			preset: expectEnum<GradientPreset>(input.preset, GradientPreset, method),
-			independentGradient,
-		};
+		return { kind: "preset", preset: expectEnum<GradientPreset>(input.preset, GradientPreset, method) };
 	}
 
 	if ("transition" in input) {
@@ -220,11 +202,7 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 			);
 		}
 
-		return {
-			kind: "transition",
-			stops: input.transition.map((stop) => normalizeStop(stop, method)),
-			independentGradient,
-		};
+		return { kind: "transition", stops: input.transition.map((stop) => normalizeStop(stop, method)) };
 	}
 
 	if (!("start" in input) || !("end" in input)) {
@@ -233,10 +211,5 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 		);
 	}
 
-	return {
-		kind: "twoStop",
-		start: normalizeStop(input.start, method),
-		end: normalizeStop(input.end, method),
-		independentGradient,
-	};
+	return { kind: "twoStop", start: normalizeStop(input.start, method), end: normalizeStop(input.end, method) };
 }

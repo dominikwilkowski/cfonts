@@ -23,6 +23,9 @@ pub enum ColorError {
 
 	/// A color is either a color name or a hex value
 	UnknownColor,
+
+	/// A gradient stop is one of the base colors or a hex value, slot only colors do not blend
+	NotAGradientStop,
 }
 
 impl std::fmt::Display for ColorError {
@@ -36,6 +39,7 @@ impl std::fmt::Display for ColorError {
 				write!(f, "A transition gradient holds at least two stops, this one holds {count}")
 			}
 			Self::UnknownColor => write!(f, "A color is either a color name or a hex value like #ff8800"),
+			Self::NotAGradientStop => write!(f, "A gradient stop is one of the base colors or a hex value like #ff8800"),
 		}
 	}
 }
@@ -323,14 +327,18 @@ impl std::str::FromStr for Color {
 	}
 }
 
-/// A gradient stop parses from its name or a hex value; the leading `#` is optional
+/// A gradient stop parses from its name or a hex value, the leading `#` is optional
 ///
-/// Slot-only colors such as `system`, `candy` and the bright variants are not stops
+/// Slot-only colors such as `system`, `candy` and the bright variants are not stops and say so,
+/// so a valid color name in the wrong place teaches instead of puzzling
 impl std::str::FromStr for GradientStop {
 	type Err = ColorError;
 
 	fn from_str(input: &str) -> Result<Self, Self::Err> {
-		parse_name_or_hex(input, Self::from_name, Self::Rgb)
+		parse_name_or_hex(input, Self::from_name, Self::Rgb).map_err(|error| match error {
+			ColorError::UnknownColor if Color::from_name(input).is_some() => ColorError::NotAGradientStop,
+			error => error,
+		})
 	}
 }
 
@@ -430,17 +438,20 @@ impl TryFrom<Vec<GradientStop>> for TransitionStops {
 	}
 }
 
-/// The two gradient shapes as distinct types, so a two stop gradient with more stops cannot exist
+/// The gradient shapes as distinct types, so a two stop gradient with more stops cannot exist
+///
+/// Whether every gradient restarts on each line is decided once for the whole composition
+/// by [`independent_gradient`](crate::Options::independent_gradient)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GradientOption {
 	/// Two colors interpolated through hue space; every color in between gets visited
-	TwoStop { start: GradientStop, end: GradientStop, independent_gradient: bool },
+	TwoStop { start: GradientStop, end: GradientStop },
 
 	/// Two or more stops connected by straight lines through RGB space
-	Transition { stops: TransitionStops, independent_gradient: bool },
+	Transition(TransitionStops),
 
 	/// A bundled transition over a preset's stops
-	Preset { preset: GradientPreset, independent_gradient: bool },
+	Preset(GradientPreset),
 }
 
 /// One scope's color configuration: a block's own or the whole composition's
@@ -824,9 +835,17 @@ mod tests {
 
 	#[test]
 	fn slot_only_colors_do_not_parse_as_stops() {
+		// a real color name that is not a stop names its own problem, an unknown name stays unknown
 		for input in ["system", "candy", "redBright"] {
-			assert_eq!(input.parse::<GradientStop>(), Err(ColorError::UnknownColor), "{input}");
+			assert_eq!(input.parse::<GradientStop>(), Err(ColorError::NotAGradientStop), "{input}");
 		}
+		assert_eq!("reed".parse::<GradientStop>(), Err(ColorError::UnknownColor));
+	}
+
+	#[test]
+	fn hex_errors_in_stops_keep_their_own_cause() {
+		assert_eq!("#zz".parse::<GradientStop>(), Err(ColorError::HexCharacter));
+		assert_eq!("#12345".parse::<GradientStop>(), Err(ColorError::HexLength(5)));
 	}
 
 	// GradientStop::to_rgb
@@ -883,13 +902,12 @@ mod tests {
 	fn color_lists_gradients_and_presets_convert_into_the_option() {
 		assert_eq!(ColorOption::from(vec![Color::Red]), ColorOption::Colors(vec![Color::Red]));
 
-		let gradient =
-			GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: false };
+		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
 		assert_eq!(ColorOption::from(gradient.clone()), ColorOption::Gradient(gradient));
 
 		assert_eq!(
 			ColorOption::from(GradientPreset::Pride),
-			ColorOption::Gradient(GradientPreset::Pride.to_gradient(false))
+			ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride))
 		);
 	}
 

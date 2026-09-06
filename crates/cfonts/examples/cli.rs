@@ -24,21 +24,13 @@ fn main() -> std::io::Result<()> {
 	// gradients ramp one color per column, presets are transitions
 	Cfonts::text("pride").font(Font::Block).colors(GradientPreset::Pride).say(&RustHost::default())?;
 
-	// a block's own gradient overrides the global one for its columns, the global ramp resumes after
+	// each block ramps its own gradient over its own columns
 	Cfonts::text("say ")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Green,
-			end: GradientStop::Magenta,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Green, end: GradientStop::Magenta })
 		.new_text("fire")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop {
-			start: GradientStop::Red,
-			end: GradientStop::Yellow,
-			independent_gradient: false,
-		})
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Yellow })
 		.say(&RustHost::default())?;
 
 	// set a global color anywhere
@@ -48,25 +40,22 @@ fn main() -> std::io::Result<()> {
 		.font(Font::Tiny)
 		.new_text("block 3")
 		.font(Font::Tiny)
-		.global_colors(GradientOption::TwoStop {
-			start: GradientStop::Green,
-			end: GradientStop::Magenta,
-			independent_gradient: false,
-		})
+		.global_colors(GradientOption::TwoStop { start: GradientStop::Green, end: GradientStop::Magenta })
 		.say(&RustHost::default())?;
 
 	// transitions travel through every stop; hex values pin exact colors
-	Cfonts::text("ocean")
+	// an independent gradient restarts on every line instead of ramping once across every line
+	Cfonts::text("ocean|deep")
 		.font(Font::Tiny)
-		.global_colors(GradientOption::Transition {
-			stops: TransitionStops::try_from(vec![
+		.global_colors(GradientOption::Transition(
+			TransitionStops::try_from(vec![
 				GradientStop::Blue,
 				GradientStop::Cyan,
 				GradientStop::Rgb(Rgb::from_hex("#8899dd").expect("a valid hex value")),
 			])
 			.expect("two or more stops"),
-			independent_gradient: true,
-		})
+		))
+		.independent_gradient()
 		.say(&RustHost::default())?;
 
 	Ok(())

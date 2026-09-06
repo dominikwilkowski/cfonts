@@ -24,9 +24,11 @@ pub struct Cfonts<
 	SpacelessState = Unset,
 	MaxLengthState = Unset,
 	GlobalColorState = Unset,
+	IndependentGradientState = Unset,
 > {
 	options: Options,
-	_state: PhantomData<(AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState)>,
+	_state:
+		PhantomData<(AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState)>,
 }
 
 impl Cfonts {
@@ -52,8 +54,8 @@ impl Cfonts {
 	}
 }
 
-impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
-	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
+	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
 {
 	/// Returns the current block targeted by per-block setters
 	///
@@ -155,7 +157,6 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	/// let _ramped = Cfonts::text("hello").colors(GradientOption::TwoStop {
 	///     start: GradientStop::Red,
 	///     end: GradientStop::Blue,
-	///     independent_gradient: false,
 	/// });
 	///
 	/// let _preset = Cfonts::text("hello").colors(GradientPreset::Pride);
@@ -259,8 +260,8 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetAlign {}
-impl<ValignState, SpacelessState, MaxLengthState, GlobalColorState> CanSetAlign
-	for Cfonts<Unset, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
+impl<ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState> CanSetAlign
+	for Cfonts<Unset, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
 {
 }
 
@@ -273,8 +274,8 @@ impl<ValignState, SpacelessState, MaxLengthState, GlobalColorState> CanSetAlign
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetValign {}
-impl<AlignState, SpacelessState, MaxLengthState, GlobalColorState> CanSetValign
-	for Cfonts<AlignState, Unset, SpacelessState, MaxLengthState, GlobalColorState>
+impl<AlignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState> CanSetValign
+	for Cfonts<AlignState, Unset, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
 {
 }
 
@@ -287,8 +288,8 @@ impl<AlignState, SpacelessState, MaxLengthState, GlobalColorState> CanSetValign
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetSpaceless {}
-impl<AlignState, ValignState, MaxLengthState, GlobalColorState> CanSetSpaceless
-	for Cfonts<AlignState, ValignState, Unset, MaxLengthState, GlobalColorState>
+impl<AlignState, ValignState, MaxLengthState, GlobalColorState, IndependentGradientState> CanSetSpaceless
+	for Cfonts<AlignState, ValignState, Unset, MaxLengthState, GlobalColorState, IndependentGradientState>
 {
 }
 
@@ -301,8 +302,8 @@ impl<AlignState, ValignState, MaxLengthState, GlobalColorState> CanSetSpaceless
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetMaxLength {}
-impl<AlignState, ValignState, SpacelessState, GlobalColorState> CanSetMaxLength
-	for Cfonts<AlignState, ValignState, SpacelessState, Unset, GlobalColorState>
+impl<AlignState, ValignState, SpacelessState, GlobalColorState, IndependentGradientState> CanSetMaxLength
+	for Cfonts<AlignState, ValignState, SpacelessState, Unset, GlobalColorState, IndependentGradientState>
 {
 }
 
@@ -315,13 +316,27 @@ impl<AlignState, ValignState, SpacelessState, GlobalColorState> CanSetMaxLength
 	note = "Each global setting may be set once per render."
 )]
 pub trait CanSetGlobalColor {}
-impl<AlignState, ValignState, SpacelessState, MaxLengthState> CanSetGlobalColor
-	for Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Unset>
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, IndependentGradientState> CanSetGlobalColor
+	for Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Unset, IndependentGradientState>
 {
 }
 
-impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
-	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
+// INDEPENDENT_GRADIENT
+
+#[doc(hidden)]
+#[diagnostic::on_unimplemented(
+	message = "`independent_gradient()` has already been set",
+	label = "this global setting is already configured",
+	note = "Each global setting may be set once per render."
+)]
+pub trait CanSetIndependentGradient {}
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState> CanSetIndependentGradient
+	for Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, Unset>
+{
+}
+
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
+	Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
 {
 	/// Sets the horizontal alignment for the whole rendered composition
 	/// *This is a global setting and may only be configured once*
@@ -340,7 +355,10 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///     .align(Align::Left)
 	///     .align(Align::Right); // compiler error
 	/// ```
-	pub fn align(self, align: Align) -> Cfonts<Set, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
+	pub fn align(
+		self,
+		align: Align,
+	) -> Cfonts<Set, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
 	where
 		Self: CanSetAlign,
 	{
@@ -367,7 +385,10 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///     .valign(Valign::Top)
 	///     .valign(Valign::Middle); // compiler error
 	/// ```
-	pub fn valign(self, valign: Valign) -> Cfonts<AlignState, Set, SpacelessState, MaxLengthState, GlobalColorState>
+	pub fn valign(
+		self,
+		valign: Valign,
+	) -> Cfonts<AlignState, Set, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
 	where
 		Self: CanSetValign,
 	{
@@ -394,7 +415,9 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///     .spaceless()
 	///     .spaceless(); // compiler error
 	/// ```
-	pub fn spaceless(self) -> Cfonts<AlignState, ValignState, Set, MaxLengthState, GlobalColorState>
+	pub fn spaceless(
+		self,
+	) -> Cfonts<AlignState, ValignState, Set, MaxLengthState, GlobalColorState, IndependentGradientState>
 	where
 		Self: CanSetSpaceless,
 	{
@@ -422,7 +445,10 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///     .max_length(10)
 	///     .max_length(20); // compiler error
 	/// ```
-	pub fn max_length(self, max_length: usize) -> Cfonts<AlignState, ValignState, SpacelessState, Set, GlobalColorState>
+	pub fn max_length(
+		self,
+		max_length: usize,
+	) -> Cfonts<AlignState, ValignState, SpacelessState, Set, GlobalColorState, IndependentGradientState>
 	where
 		Self: CanSetMaxLength,
 	{
@@ -446,7 +472,6 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	///     .global_colors(GradientOption::TwoStop {
 	///         start: GradientStop::Red,
 	///         end: GradientStop::Blue,
-	///         independent_gradient: false,
 	///     });
 	///
 	/// let _preset = Cfonts::text("hello")
@@ -463,12 +488,42 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 	pub fn global_colors(
 		self,
 		color: impl Into<ColorOption>,
-	) -> Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Set>
+	) -> Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, Set, IndependentGradientState>
 	where
 		Self: CanSetGlobalColor,
 	{
 		let mut options = self.options;
 		options.global_colors = Some(color.into());
+
+		Cfonts { options, _state: PhantomData }
+	}
+
+	/// Restarts every gradient on each line instead of ramping once across every line
+	/// *This is a global setting and may only be configured once*
+	///
+	/// ```
+	/// use cfonts::{Cfonts, GradientPreset};
+	///
+	/// let _banner = Cfonts::text("hello|world")
+	///     .global_colors(GradientPreset::Pride)
+	///     .independent_gradient();
+	/// ```
+	///
+	/// ```compile_fail
+	/// use cfonts::Cfonts;
+	///
+	/// let _banner = Cfonts::text("hello")
+	///     .independent_gradient()
+	///     .independent_gradient(); // compiler error
+	/// ```
+	pub fn independent_gradient(
+		self,
+	) -> Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, Set>
+	where
+		Self: CanSetIndependentGradient,
+	{
+		let mut options = self.options;
+		options.independent_gradient = true;
 
 		Cfonts { options, _state: PhantomData }
 	}
@@ -495,10 +550,20 @@ impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
 /// assert_eq!(options.blocks[1].text(), "WORLD");
 /// assert_eq!(options.blocks[1].font, Font::Font3D);
 /// ```
-impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>
-	From<Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>> for Options
+impl<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>
+	From<Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGradientState>>
+	for Options
 {
-	fn from(builder: Cfonts<AlignState, ValignState, SpacelessState, MaxLengthState, GlobalColorState>) -> Self {
+	fn from(
+		builder: Cfonts<
+			AlignState,
+			ValignState,
+			SpacelessState,
+			MaxLengthState,
+			GlobalColorState,
+			IndependentGradientState,
+		>,
+	) -> Self {
 		builder.options
 	}
 }
@@ -521,6 +586,7 @@ mod tests {
 			.spaceless()
 			.max_length(20)
 			.global_colors(GradientPreset::Pride)
+			.independent_gradient()
 			.into();
 
 		assert_eq!(options.align, Align::Center);
@@ -528,6 +594,7 @@ mod tests {
 		assert!(options.spaceless);
 		assert_eq!(options.max_length, NonZeroUsize::new(20));
 		assert_eq!(options.global_colors, Some(ColorOption::from(GradientPreset::Pride)));
+		assert!(options.independent_gradient);
 	}
 
 	#[test]
@@ -535,8 +602,7 @@ mod tests {
 		let options: Options = Cfonts::text("hello").global_colors(vec![Color::Red, Color::System]).into();
 		assert_eq!(options.global_colors, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
 
-		let two_stop =
-			GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue, independent_gradient: true };
+		let two_stop = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
 		let options: Options = Cfonts::text("hello").global_colors(two_stop.clone()).into();
 		assert_eq!(options.global_colors, Some(ColorOption::Gradient(two_stop)));
 
@@ -599,7 +665,7 @@ mod tests {
 	fn color_is_repeatable_and_takes_gradients() {
 		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).colors(GradientPreset::Pride).into();
 
-		assert_eq!(options.blocks[0].colors, Some(ColorOption::Gradient(GradientPreset::Pride.to_gradient(false))));
+		assert_eq!(options.blocks[0].colors, Some(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride))));
 	}
 
 	// test hosts

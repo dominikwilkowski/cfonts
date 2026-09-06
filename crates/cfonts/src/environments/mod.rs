@@ -172,8 +172,8 @@ pub trait Environment {
 
 	/// Paint text one column per ramp color and return the columns consumed
 	///
-	/// The window is pre-sliced to this segment's first column; a drained window
-	/// paints bare so cursors stay honest even past the ramp
+	/// The window is pre-sliced to this segment's first column
+	/// a drained window paints bare so the cursor stays honest even past the ramp
 	/// The default ignores the ramp so monochrome environments stay untouched
 	fn gradient_paint(&self, text: &str, _colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
 		out.text.push_str(text);
@@ -231,7 +231,7 @@ pub trait Environment {
 		// against the rows; the scan stops at the first painted segment
 		let will_style = plan.will_style() && any_segment_paints(&plan, rows);
 		let no_paint = ColorTokens::default();
-		let mut gradients = GradientPlans::build(options, context, rows);
+		let mut gradients = GradientPlans::build(&plan, options, rows);
 
 		self.wrapper_start(options, &mut out);
 
@@ -245,28 +245,23 @@ pub trait Environment {
 				self.row_start(row, options, &mut out);
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
-				PaintDomain::Global => {
-					let consumed = self.gradient_paint(text, gradients.global_window(), context, &mut out);
-					gradients.advance_global(consumed);
-				}
-				PaintDomain::Block => {
-					let consumed = self.gradient_paint(text, gradients.block_window(block_index), context, &mut out);
-					gradients.advance_block(consumed);
-				}
 				PaintDomain::Slots => {
 					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
 					self.paint(text, tokens, will_style, context, &mut out);
 				}
+				PaintDomain::Block | PaintDomain::Global => {
+					let consumed = self.gradient_paint(text, gradients.window(block_index), context, &mut out);
+					gradients.advance(consumed);
+				}
 			},
-			RowEvent::Blank { width, block_index } => {
+			RowEvent::Blank { width, .. } => {
 				self.blank(width, &mut out);
-				gradients.skip_blank(width, block_index);
+				gradients.advance(width);
 			}
 			RowEvent::EntryEnd { width, block_index } => {
-				// Segments of the global domain advanced per column already;
-				// every other entry claims its columns of the global ramp here
-				if plan.domain(block_index) != PaintDomain::Global {
-					gradients.advance_global(width);
+				// Ramped segments advanced per column already; slot painted entries claim their columns whole
+				if plan.domain(block_index) == PaintDomain::Slots {
+					gradients.advance(width);
 				}
 			}
 			RowEvent::Break => {
