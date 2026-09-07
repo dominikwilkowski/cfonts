@@ -148,7 +148,8 @@ fn browser_alignment_pads_rows_within_the_widest_line() {
 fn browser_alignment_leaves_zero_width_lines_unpadded() {
 	// the `||` line has zero width: no alignment mode can pad nothing,
 	// and the unbounded frame must agree with an explicit canvas about that
-	let expected = "▄▀█<br>█▀█<br><br><br>█▄▄<br>█▄█";
+	let expected =
+		concat!("▄▀█<br>█▀█<br>", r#"<div style="min-height:1lh"></div><div style="min-height:1lh"></div>"#, "█▄▄<br>█▄█",);
 
 	for align in [Align::Left, Align::Center, Align::Right] {
 		let unbounded = Cfonts::text(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B"))
@@ -269,8 +270,10 @@ fn alignment_survives_full_builder_combinations() {
 		.spaceless()
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	// right alignment inside the widest-line frame pads every wrapped line flush
-	let lines: Vec<&str> = browser_content(&rendered).split("<br>").filter(|line| !line.is_empty()).collect();
+	// right alignment inside the widest-line frame pads every wrapped line flush,
+	// the line height gap rows are bare blocks and carry no padding
+	let content = browser_content(&rendered).replace(r#"<div style="min-height:1lh"></div>"#, "");
+	let lines: Vec<&str> = content.split("<br>").filter(|line| !line.is_empty()).collect();
 	let widest = lines.iter().map(|line| line.chars().count()).max().expect("wrapped lines exist");
 	assert!(lines.iter().all(|line| line.chars().count() == widest), "all lines pad to the shared right edge");
 }

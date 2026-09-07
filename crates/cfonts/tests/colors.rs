@@ -571,7 +571,7 @@ fn the_browser_and_console_paint_gradients_per_column() {
 
 	let console = render_with(&ramped, &BrowserConsoleEnv, RenderContext::colored(ColorLevel::TrueColor));
 	assert_eq!(console.text.matches("%c").count(), console.styles.len());
-	assert_eq!(console.styles.len(), 12); // two style values per painted column
+	assert_eq!(console.styles.len(), 8); // one style value per painted column and one reset per row
 	assert!(console.styles.contains(&String::from("color:#750787")));
 }
 
@@ -585,7 +585,7 @@ fn the_browser_paints_named_colors_as_their_rgb_spans() {
 	assert_eq!(
 		rendered,
 		concat!(
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">"#,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#,
 			r##"<span style="color:#ea3223">▄▀█</span><br><span style="color:#ea3223">█▀█</span>"##,
 			"</div>",
 		)
@@ -867,7 +867,7 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 
 	assert!(lines[0].starts_with("    "), "the short centered line pads left: {}", lines[0]);
 	assert!(
-		lines[0].contains(&format!("color:{}", padded_start.to_hex())),
+		lines[0].contains(&format!("color:{}", padded_start.to_css_hex())),
 		"the padded line samples its absolute column: {}",
 		lines[0]
 	);
@@ -1002,6 +1002,22 @@ fn a_hex_background_levels_down_the_chain() {
 	assert_eq!(first_row(ColorLevel::TrueColor).as_deref(), Some("\u{1b}[48;2;255;136;0m\u{1b}[K▄▀█\u{1b}[49m"));
 	assert_eq!(first_row(ColorLevel::Ansi256).as_deref(), Some("\u{1b}[48;5;208m\u{1b}[K▄▀█\u{1b}[49m"));
 	assert_eq!(first_row(ColorLevel::Basic).as_deref(), Some("\u{1b}[101m\u{1b}[K▄▀█\u{1b}[49m"));
+}
+
+#[test]
+fn the_browser_and_console_carry_the_band() {
+	let options = plated(Color::Blue);
+	let context = RenderContext::colored(ColorLevel::TrueColor);
+
+	// every one of the six output rows is a block on the band, inside the scroll wide block
+	let browser = render_with(&options, &BrowserEnv, context).text;
+	assert_eq!(browser.matches(r#"<div style="background:#0020f5;min-height:1lh">"#).count(), 6, "{browser}");
+	assert!(browser.contains(r#"<div style="min-width:max-content">"#), "{browser}");
+
+	// the console pads with empty lines and bands the text only, one switch and one reset per row
+	let console = render_with(&options, &BrowserConsoleEnv, context);
+	assert_eq!(console.text, "\n\n%c▄▀█%c\n%c█▀█%c\n\n");
+	assert_eq!(console.styles, ["background:#0020f5", "", "background:#0020f5", ""]);
 }
 
 #[test]

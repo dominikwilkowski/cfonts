@@ -240,7 +240,7 @@ test("renderWith selects each environment", () => {
 	assert.equal(banner.renderWith(BrowserConsoleEnv).text, "▄▀█ ▄▀█\n█▀█ █▀█");
 	assert.equal(
 		banner.renderWith(BrowserEnv).text,
-		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█ ▄▀█<br>█▀█ █▀█</div>',
+		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█ ▄▀█<br>█▀█ █▀█</div>',
 	);
 });
 
@@ -788,7 +788,7 @@ test("renderWith paints with an explicit color level", () => {
 	const browser = Cfonts.text("A").font(Font.Tiny).colors(["#ff8800"]).renderWith(BrowserEnv, {
 		colorLevel: ColorLevel.TrueColor,
 	}).text;
-	assert.ok(browser.includes('<span style="color:#ff8800">'));
+	assert.ok(browser.includes('<span style="color:#f80">'));
 });
 
 test("colors paint through the node host", () => {

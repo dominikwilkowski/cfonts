@@ -83,8 +83,20 @@ mod tests {
 
 		assert_eq!(
 			rendered.text,
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█</div>"#,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█<br>█▀█</div>"#,
 		);
+	}
+
+	#[test]
+	fn the_host_carries_a_background() {
+		let rendered = Cfonts::text("A")
+			.font(Font::Tiny)
+			.valign(Valign::Top)
+			.spaceless()
+			.background(Color::Blue)
+			.render(&LeptosHost::default());
+
+		assert!(rendered.text.contains(r#"<div style="background:#0020f5;min-height:1lh">▄▀█</div>"#));
 	}
 
 	#[test]

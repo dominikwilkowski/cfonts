@@ -64,8 +64,18 @@ mod dioxus_tests {
 
 		assert_eq!(
 			rendered.text,
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█</div>"#,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█<br>█▀█</div>"#,
 		);
+	}
+
+	#[test]
+	fn the_adapter_carries_a_background() {
+		let options: Options =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::Blue).into();
+
+		let rendered = render_browser(&options, 0);
+
+		assert!(rendered.text.contains(r#"<div style="background:#0020f5;min-height:1lh">▄▀█</div>"#));
 	}
 
 	#[test]

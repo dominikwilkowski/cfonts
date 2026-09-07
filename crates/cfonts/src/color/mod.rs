@@ -83,6 +83,17 @@ impl Rgb {
 		format!("#{:0>2x}{:0>2x}{:0>2x}", self.red, self.green, self.blue)
 	}
 
+	/// The shortest CSS form of this color: `#rgb` when every channel repeats its nibble, `#rrggbb` otherwise
+	pub fn to_css_hex(self) -> String {
+		let repeats = |channel: u8| (channel >> 4) == (channel & 0x0f);
+
+		if repeats(self.red) && repeats(self.green) && repeats(self.blue) {
+			format!("#{:x}{:x}{:x}", self.red & 0x0f, self.green & 0x0f, self.blue & 0x0f)
+		} else {
+			self.to_hex()
+		}
+	}
+
 	/// The nearest ANSI 256 palette index: the 6×6×6 cube with a grayscale ramp
 	///
 	/// The cube and the nearest gray entry compete by squared distance
@@ -641,6 +652,17 @@ mod tests {
 		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.to_hex(), "#ffffff");
 		assert_eq!(Rgb { red: 127, green: 127, blue: 127 }.to_hex(), "#7f7f7f");
 		assert_eq!(Rgb { red: 255, green: 136, blue: 0 }.to_hex(), "#ff8800");
+	}
+
+	#[test]
+	fn the_css_form_shortens_only_when_every_channel_repeats_its_nibble() {
+		assert_eq!(Rgb { red: 0, green: 0, blue: 0 }.to_css_hex(), "#000");
+		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.to_css_hex(), "#fff");
+		assert_eq!(Rgb { red: 255, green: 136, blue: 0 }.to_css_hex(), "#f80");
+		assert_eq!(Rgb { red: 255, green: 204, blue: 0 }.to_css_hex(), "#fc0");
+		assert_eq!(Rgb { red: 127, green: 127, blue: 127 }.to_css_hex(), "#7f7f7f");
+		assert_eq!(Rgb { red: 1, green: 2, blue: 3 }.to_css_hex(), "#010203");
+		assert_eq!(Rgb { red: 234, green: 50, blue: 35 }.to_css_hex(), "#ea3223");
 	}
 
 	// Rgb::ansi256_index

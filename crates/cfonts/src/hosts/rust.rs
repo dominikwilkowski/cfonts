@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-	CliEnv, ColorLevel, ColorOverride, Environment, Host, RenderContext, RenderOverrides, Rendered,
+	CliEnv, ColorLevel, ColorOverride, Host, RenderContext, RenderOverrides, Rendered,
 	hosts::{
 		terminal_canvas_width::TerminalCanvasWidth,
 		terminal_color_support::{Stream, TerminalColorSupport},
@@ -29,10 +29,7 @@ impl RustHost {
 
 	/// Writes the artifact and the closing line break the environment expects
 	fn write_into(&self, rendered: &Rendered, out: &mut impl Write) -> io::Result<()> {
-		let mut closing = Rendered::default();
-		self.environment.row_break(None, &mut closing);
-
-		write!(out, "{}{}", rendered.text, closing.text)
+		write!(out, "{}{}", rendered.text, self.environment.line_end())
 	}
 
 	/// Creates a native host with explicit overrides

@@ -56,6 +56,12 @@ impl CliEnv {
 	pub const fn new(raw_mode: bool) -> Self {
 		Self { line_end: if raw_mode { "\r\n" } else { "\n" } }
 	}
+
+	/// The line ending every row break writes
+	#[cfg(not(target_arch = "wasm32"))]
+	pub(crate) const fn line_end(&self) -> &'static str {
+		self.line_end
+	}
 }
 
 impl Default for CliEnv {
@@ -127,10 +133,10 @@ impl Environment for CliEnv {
 			out.text.push_str(ERASE_TO_LINE_END);
 		}
 
-		self.blank(row.align_offset, out);
+		self.blank(row.align_offset, band, out);
 	}
 
-	fn row_break(&self, _band: Option<&ColorTokens>, out: &mut Rendered) {
+	fn row_break(&self, _row: &LayoutRow, _band: Option<&ColorTokens>, out: &mut Rendered) {
 		out.text.push_str(self.line_end);
 	}
 

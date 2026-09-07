@@ -217,7 +217,7 @@ pub trait Environment {
 			out.text.push_str(&band.start);
 		}
 
-		self.blank(row.align_offset, out);
+		self.blank(row.align_offset, band, out);
 	}
 
 	/// Runs after painting one rendered row
@@ -238,15 +238,18 @@ pub trait Environment {
 	}
 
 	/// A run of empty columns (valign padding rows)
-	fn blank(&self, width: usize, out: &mut Rendered) {
+	///
+	/// `band` carries the row's background markers, see [`paint`](Self::paint)
+	/// The default writes bare spaces
+	fn blank(&self, width: usize, _band: Option<&ColorTokens>, out: &mut Rendered) {
 		out.text.extend(iter::repeat_n(' ', width));
 	}
 
 	/// The separation between two rows of output
 	///
-	/// `band` is the band of the row that ends, so an environment whose bands break lines
+	/// `row` and `band` are the row that ends and its band, so an environment whose rows break lines
 	/// themselves can leave its own break out
-	fn row_break(&self, _band: Option<&ColorTokens>, out: &mut Rendered) {
+	fn row_break(&self, _row: &LayoutRow, _band: Option<&ColorTokens>, out: &mut Rendered) {
 		out.text.push('\n');
 	}
 
@@ -257,10 +260,12 @@ pub trait Environment {
 	fn bottom_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], _out: &mut Rendered) {}
 
 	/// Adds the start of the wrapper around the render output
-	fn wrapper_start(&self, _options: &Options, _out: &mut Rendered) {}
+	///
+	/// `banded` says whether the rows of this render carry bands, for wrappers that make room for them
+	fn wrapper_start(&self, _options: &Options, _banded: bool, _out: &mut Rendered) {}
 
-	/// Adds the end of the wrapper around the render output
-	fn wrapper_end(&self, _options: &Options, _out: &mut Rendered) {}
+	/// Adds the end of the wrapper around the render output, `banded` as in [`wrapper_start`](Self::wrapper_start)
+	fn wrapper_end(&self, _options: &Options, _banded: bool, _out: &mut Rendered) {}
 
 	/// Renders precomputed layout rows in one paint-stream traversal
 	fn render_rows(&self, rows: &[LayoutRow], options: &Options, context: &RenderContext) -> Rendered {
@@ -279,17 +284,18 @@ pub trait Environment {
 			let tokens = self.background_tokens(color, context);
 			tokens.paints().then_some(tokens)
 		});
+		let banded = backdrop.is_some();
 		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
-		// A resolved slot may cover no segment at all, and escaping must match the
-		// styles that actually get emitted, so the plan's resolution is confirmed
-		// against the rows; the scan stops at the first painted segment
+		// A resolved slot may cover no segment at all, and escaping must match the styles that actually get emitted,
+		// so the plan's resolution is confirmed against the rows
+		// the scan stops at the first painted segment
 		// A backdrop exists only with a band that paints, so it counts on its own
-		let will_style = (plan.will_style() && any_segment_paints(&plan, rows)) || backdrop.is_some();
+		let will_style = (plan.will_style() && any_segment_paints(&plan, rows)) || banded;
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(&plan, options, rows);
 		let mut row_index = 0;
 
-		self.wrapper_start(options, &mut out);
+		self.wrapper_start(options, banded, &mut out);
 
 		if !options.spaceless {
 			self.top_padding(array::from_fn(band), &mut out);
@@ -312,7 +318,7 @@ pub trait Environment {
 				}
 			},
 			RowEvent::Blank { width, .. } => {
-				self.blank(width, &mut out);
+				self.blank(width, band(lead + row_index), &mut out);
 				gradients.advance(width);
 			}
 			RowEvent::EntryEnd { width, block_index } => {
@@ -323,7 +329,7 @@ pub trait Environment {
 			}
 			RowEvent::Break => {
 				self.row_end(band(lead + row_index), &mut out);
-				self.row_break(band(lead + row_index), &mut out);
+				self.row_break(&rows[row_index], band(lead + row_index), &mut out);
 				row_index += 1;
 			}
 		});
@@ -339,7 +345,7 @@ pub trait Environment {
 			self.bottom_padding(array::from_fn(|row| band(below + row)), &mut out);
 		}
 
-		self.wrapper_end(options, &mut out);
+		self.wrapper_end(options, banded, &mut out);
 
 		out
 	}
@@ -476,7 +482,7 @@ mod tests {
 
 		assert_eq!(
 			rendered.text,
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll;background:">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
+			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
 		);
 	}
 
@@ -554,5 +560,41 @@ mod tests {
 		assert!(rendered.ends_with("<0>"), "{rendered:?}");
 		assert_eq!(rendered.matches('|').count(), 2, "every layout row closes its band: {rendered:?}");
 		assert_eq!(rendered.matches('<').count(), 6, "six output rows, six bands: {rendered:?}");
+	}
+
+	#[test]
+	fn the_wrapper_hooks_learn_whether_the_render_is_banded() {
+		// a custom environment that writes the flag it is handed at both ends
+		struct FlagEnv;
+		impl Environment for FlagEnv {
+			fn background_tokens(&self, _color: Color, _context: &RenderContext) -> ColorTokens {
+				ColorTokens { start: Cow::Borrowed("["), end: Cow::Borrowed("]") }
+			}
+			fn wrapper_start(&self, _options: &Options, banded: bool, out: &mut Rendered) {
+				out.text.push_str(if banded { "banded:" } else { "plain:" });
+			}
+			fn wrapper_end(&self, _options: &Options, banded: bool, out: &mut Rendered) {
+				out.text.push_str(if banded { ":banded" } else { ":plain" });
+			}
+		}
+
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.spaceless = true;
+		let context = RenderContext::colored(ColorLevel::Basic);
+
+		let plain = {
+			let layout = Layout::build(&options, None);
+			FlagEnv.render_rows(&layout.output, &options, &context).text
+		};
+		assert!(plain.starts_with("plain:") && plain.ends_with(":plain"), "{plain:?}");
+
+		options.background = Some(BackgroundOption::Color(Color::Blue));
+		let layout = Layout::build(&options, None);
+		let banded = FlagEnv.render_rows(&layout.output, &options, &context).text;
+		assert!(banded.starts_with("banded:[") && banded.ends_with("]:banded"), "{banded:?}");
+
+		// a background that resolves to no band leaves the wrapper plain
+		let unleveled = FlagEnv.render_rows(&layout.output, &options, &RenderContext::unlimited()).text;
+		assert!(unleveled.starts_with("plain:") && unleveled.ends_with(":plain"), "{unleveled:?}");
 	}
 }
