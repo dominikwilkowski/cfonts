@@ -130,7 +130,7 @@ export class Cfonts {
 	/**
 	 * Sets a gradient for the current text block, one ramp color per column
 	 *
-	 * Stops take the base colors, hex values, or channel values from `hexToRgb()`
+	 * Stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
 	 *
 	 * @example
 	 * Cfonts.text("hello").gradient({ start: Color.Red, end: Color.Blue });
