@@ -8,6 +8,10 @@ use crate::Color;
 pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
 pub(crate) const PROMPT_PLAIN: &str = "  $";
 
+/// The line break and indent every continued line of the help starts with, and the deeper one its values start with
+pub(crate) const LINE_LEAD: &str = "\n  ";
+pub(crate) const VALUE_LEAD: &str = "\n    ";
+
 /// The colors every backticked input of the help renders in, and the codes that end them
 ///
 /// The closing codes reset the two colors and nothing else, so bold or italic text around a mark keeps its emphasis
@@ -18,9 +22,9 @@ pub(crate) const MARK_OPEN: &str = const_concat!(
 pub(crate) const MARK_CLOSE: &str = const_concat!(Color::ANSI_RESET, Color::ANSI_BACKGROUND_RESET);
 
 /// Names of a chunked list are set apart by a comma and a space, and after every fifth name
-/// by a comma and a line break into the indent of the possible arguments bracket
+/// by a comma and a line break into the value indent
 const SEPARATOR: &str = ", ";
-const CONTINUATION: &str = ",\n    ";
+const CONTINUATION: &str = const_concat!(",", VALUE_LEAD);
 
 /// How many names one line of a chunked list holds
 const NAMES_PER_LINE: usize = 5;

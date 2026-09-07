@@ -5,7 +5,10 @@ use crate::{
 	TransitionStops, Valign,
 	cli::{
 		CliBlockOptions, ParseError, ParseState,
-		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_chunk, const_concat, const_join, const_mark},
+		helper::{
+			LINE_LEAD, MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, VALUE_LEAD, const_chunk, const_concat,
+			const_join, const_mark,
+		},
 	},
 	color::GradientStop,
 };
@@ -16,8 +19,8 @@ pub(crate) struct ArgInfo {
 	pub(crate) long: &'static str,
 	pub(crate) short: &'static [&'static str],
 	pub(crate) title: &'static str,
-	pub(crate) scope: &'static str,
-	pub(crate) description: &'static str,
+	pub(crate) scope: &'static [&'static str],
+	pub(crate) description: &'static [&'static str],
 	pub(crate) examples: &'static [&'static str],
 	pub(crate) arguments: Option<&'static str>,
 }
@@ -72,18 +75,20 @@ macro_rules! help_line {
 		const EXAMPLES: &str = const_join!(INFO.examples, EXAMPLE_LEAD);
 		const SCOPE_LEAD: &str = match INFO.scope.len() {
 			0 => "",
-			_ => "\n  ",
+			_ => LINE_LEAD,
 		};
+		const SCOPE: &str = const_join!(INFO.scope, LINE_LEAD);
 		const SCOPE_RESET: &str = match INFO.scope.len() {
 			0 => "",
 			_ => RESET,
 		};
 		const DESCRIPTION_LEAD: &str = match INFO.description.len() {
 			0 => "",
-			_ => "\n  ",
+			_ => LINE_LEAD,
 		};
+		const DESCRIPTION: &str = const_join!(INFO.description, LINE_LEAD);
 		const ARGUMENTS_OPEN: &str = match INFO.arguments {
-			Some(_) => "\n  Possible arguments:\n    ",
+			Some(_) => const_concat!(LINE_LEAD, "Possible arguments:", VALUE_LEAD),
 			None => "",
 		};
 		const ARGUMENTS: &str = match INFO.arguments {
@@ -95,17 +100,18 @@ macro_rules! help_line {
 			BOLD,
 			INFO.title,
 			RESET,
-			"\n  `--",
+			LINE_LEAD,
+			"`--",
 			INFO.long,
 			SHORT_LEAD,
 			SHORT,
 			"`",
 			SCOPE_LEAD,
 			ITALIC,
-			INFO.scope,
+			SCOPE,
 			SCOPE_RESET,
 			DESCRIPTION_LEAD,
-			INFO.description,
+			DESCRIPTION,
 			EXAMPLE_LEAD,
 			EXAMPLES,
 			ARGUMENTS_OPEN,
@@ -370,8 +376,8 @@ impl Args {
 				long: "align",
 				short: &["a"],
 				title: "Align the output horizontally",
-				scope: "This will apply globally",
-				description: "The output aligns within the width of your terminal",
+				scope: &["This will apply globally"],
+				description: &["The output aligns within the width of your terminal"],
 				examples: &["cfonts hello --align center", "cfonts hello --align right --font tiny"],
 				arguments: Some(const_chunk!(Align::NAMES, "", "`")),
 			},
@@ -379,8 +385,11 @@ impl Args {
 				long: "valign",
 				short: &["y"],
 				title: "Align the output vertically against another text block",
-				scope: "This will apply globally",
-				description: "Blocks of different heights on one line meet at their top,\n  their middle or their bottom row",
+				scope: &["This will apply globally"],
+				description: &[
+					"Blocks of different heights on one line meet at their top,",
+					"their middle or their bottom row",
+				],
 				examples: &[
 					"cfonts Big --font block --next \" small\" --font tiny --valign bottom",
 					"cfonts --valign middle Big --next \" small\" --font console",
@@ -391,8 +400,8 @@ impl Args {
 				long: "spaceless",
 				short: &["s"],
 				title: "Remove the padding around the output",
-				scope: "This will apply globally",
-				description: "Without it two empty lines pad the output above and below",
+				scope: &["This will apply globally"],
+				description: &["Without it two empty lines pad the output above and below"],
 				examples: &["cfonts hello --spaceless", "cfonts hello --spaceless --font console"],
 				arguments: None,
 			},
@@ -400,8 +409,11 @@ impl Args {
 				long: "max-length",
 				short: &["m"],
 				title: "Limit the characters per line",
-				scope: "This will apply globally",
-				description: "Text wraps onto the next line after this many characters\n  `0` lifts this limit, your terminal width still wraps the output",
+				scope: &["This will apply globally"],
+				description: &[
+					"Text wraps onto the next line after this many characters",
+					"`0` lifts this limit, your terminal width still wraps the output",
+				],
 				examples: &[
 					"cfonts \"a long line of text\" --max-length 10",
 					"cfonts \"a long line of text\" --max-length 10 --word-wrap",
@@ -412,8 +424,8 @@ impl Args {
 				long: "stdin",
 				short: &[],
 				title: "Read the text from stdin instead of passing it as an argument",
-				scope: "This will apply only to the first block",
-				description: "A bare pipe into cfonts reads stdin without the flag",
+				scope: &["This will apply only to the first block"],
+				description: &["A bare pipe into cfonts reads stdin without the flag"],
 				examples: &["echo hello | cfonts --stdin", "echo \"Hello \" | cfonts --stdin --next World"],
 				arguments: None,
 			},
@@ -421,8 +433,8 @@ impl Args {
 				long: "raw-mode",
 				short: &["r"],
 				title: "End lines with \\r\\n instead of \\n",
-				scope: "This will apply globally",
-				description: "For raw terminal modes and tools that expect Windows line ends",
+				scope: &["This will apply globally"],
+				description: &["For raw terminal modes and tools that expect Windows line ends"],
 				examples: &["cfonts hello --raw-mode"],
 				arguments: None,
 			},
@@ -430,8 +442,8 @@ impl Args {
 				long: "independent-gradient",
 				short: &["i"],
 				title: "Restart every gradient fresh on every line",
-				scope: "This will apply globally",
-				description: "Without it a gradient ramps once across every line of the output",
+				scope: &["This will apply globally"],
+				description: &["Without it a gradient ramps once across every line of the output"],
 				examples: &[
 					"cfonts \"line one|line two\" --colors red-blue --independent-gradient",
 					"cfonts \"one|two\" --colors red:yellow:green --independent-gradient",
@@ -444,8 +456,11 @@ impl Args {
 				long: "next",
 				short: &["n"],
 				title: "Start a new text block",
-				scope: "",
-				description: "Font, colors, spacing and wrap options after it style the new block only,\n  blocks share one line and meet at the row `--valign` picks",
+				scope: &[],
+				description: &[
+					"Font, colors, spacing and wrap options after it style the new block only,",
+					"blocks share one line and meet at the row `--valign` picks",
+				],
 				examples: &[
 					"cfonts Hello --next world",
 					"cfonts Logo --font chrome --next \" v4\" --font console --valign bottom",
@@ -456,8 +471,8 @@ impl Args {
 				long: "next-stdin",
 				short: &[],
 				title: "Start a new text block, filled from stdin",
-				scope: "",
-				description: "Font, colors, spacing and wrap options after it style the new block only",
+				scope: &[],
+				description: &["Font, colors, spacing and wrap options after it style the new block only"],
 				examples: &[
 					"echo \" World\" | cfonts Hello --next-stdin",
 					"cat name.txt | cfonts \"Hi \" --next-stdin --font tiny",
@@ -468,8 +483,8 @@ impl Args {
 				long: "font",
 				short: &["f"],
 				title: "Set the font",
-				scope: "Applies to the current text block",
-				description: "Every block can use its own font",
+				scope: &["Applies to the current text block"],
+				description: &["Every block can use its own font"],
 				examples: &["cfonts hello --font chrome", "cfonts hello --font tiny --next \" world\" --font block"],
 				arguments: Some(const_chunk!(Font::NAMES, "", "`")),
 			},
@@ -477,15 +492,18 @@ impl Args {
 				long: "colors",
 				short: &["c"],
 				title: "Set the font colors or a gradient",
-				scope: "On the first text block this sets the colors for all blocks,\n  after `--next` it colors only that block",
-				description: const_concat!(
-					"Colors can be specified as names or hex values like `#ff8800` or `#f80`\n",
-					"  `red,blue`       = one color per font slot\n",
-					"  `red-blue`       = a gradient\n",
-					"  `red:blue:green` = a transition through every stop\n",
-					"  A block with its own colors keeps them, a gradient set for\n",
-					"  all blocks steps over its columns and carries on after it",
-				),
+				scope: &[
+					"On the first text block this sets the colors for all blocks,",
+					"after `--next` it colors only that block",
+				],
+				description: &[
+					"Colors can be specified as names or hex values like `#ff8800` or `#f80`",
+					"`red,blue`       = one color per font slot",
+					"`red-blue`       = a gradient",
+					"`red:blue:green` = a transition through every stop",
+					"A block with its own colors keeps them, a gradient set for",
+					"all blocks steps over its columns and carries on after it",
+				],
 				examples: &[
 					"cfonts hello --colors red,blue",
 					"cfonts hello --colors red-blue",
@@ -498,14 +516,14 @@ impl Args {
 				long: "background",
 				short: &["b"],
 				title: "Set the background color or a gradient",
-				scope: "This will apply globally",
-				description: const_concat!(
-					"Background colors can be specified as names\n",
-					"  or hex values like `#ff8800` or `#f80`, `system` paints nothing\n",
-					"  `red`            = one static background color\n",
-					"  `red-blue`       = a gradient background from the top downwards\n",
-					"  `red:blue:green` = a transition background through every stop",
-				),
+				scope: &["This will apply globally"],
+				description: &[
+					"Background colors can be specified as names",
+					"or hex values like `#ff8800` or `#f80`, `system` paints nothing",
+					"`red`            = one static background color",
+					"`red-blue`       = a gradient background from the top downwards",
+					"`red:blue:green` = a transition background through every stop",
+				],
 				examples: &[
 					"cfonts hello --background blue",
 					"cfonts hello --background \"#222222\"",
@@ -518,8 +536,8 @@ impl Args {
 				long: "letter-spacing",
 				short: &["l"],
 				title: "Set the space between letters",
-				scope: "Applies to the current text block",
-				description: "`0` removes the gap the font puts between letters",
+				scope: &["Applies to the current text block"],
+				description: &["`0` removes the gap the font puts between letters"],
 				examples: &["cfonts hello --letter-spacing 2", "cfonts hello --letter-spacing 0 --font tiny"],
 				arguments: Some("`0`, `1`, `2`, `5`, `20`..."),
 			},
@@ -527,8 +545,8 @@ impl Args {
 				long: "line-height",
 				short: &["z"],
 				title: "Set the space between lines",
-				scope: "Applies to the current text block",
-				description: "Text wraps automatically.\n  The `|` character in the text starts a new line",
+				scope: &["Applies to the current text block"],
+				description: &["Text wraps automatically.", "The `|` character in the text starts a new line"],
 				examples: &["cfonts \"one|two\" --line-height 3"],
 				arguments: Some("`0`, `2`, `5`, `10`..."),
 			},
@@ -536,8 +554,8 @@ impl Args {
 				long: "word-wrap",
 				short: &["w"],
 				title: "Wrap whole words at the end of lines",
-				scope: "Applies to the current text block",
-				description: "Without it a line breaks wherever the width runs out",
+				scope: &["Applies to the current text block"],
+				description: &["Without it a line breaks wherever the width runs out"],
 				examples: &["cfonts \"wrap whole words here\" --word-wrap --max-length 12"],
 				arguments: None,
 			},
@@ -547,8 +565,8 @@ impl Args {
 				long: "version",
 				short: &["v", "V"],
 				title: "Print the version and exit",
-				scope: "",
-				description: "",
+				scope: &[],
+				description: &[],
 				examples: &["cfonts --version"],
 				arguments: None,
 			},
@@ -556,8 +574,8 @@ impl Args {
 				long: "demo",
 				short: &["d"],
 				title: "Print a demo of all fonts and exit",
-				scope: "",
-				description: "Colors and gradients apply to every font of the demo",
+				scope: &[],
+				description: &["Colors and gradients apply to every font of the demo"],
 				examples: &[
 					"cfonts --demo",
 					"cfonts --demo --colors yellow",
@@ -569,8 +587,8 @@ impl Args {
 				long: "help",
 				short: &["h"],
 				title: "Print this help and exit",
-				scope: "",
-				description: "",
+				scope: &[],
+				description: &[],
 				examples: &["cfonts --help"],
 				arguments: None,
 			},
@@ -678,21 +696,21 @@ mod tests {
 			let info = argument.infos();
 			let mut expected = format!("  \x1B[1m{}\x1B[0m", info.title);
 
-			expected.push_str(&format!("\n  {open}--{}{close}", info.long));
+			expected.push_str(&format!("{LINE_LEAD}{open}--{}{close}", info.long));
 			for short in info.short {
 				expected.push_str(&format!(", {open}-{short}{close}"));
 			}
 			if !info.scope.is_empty() {
-				expected.push_str(&format!("\n  \x1B[3m{}\x1B[0m", marked(info.scope, open, close)));
+				expected.push_str(&format!("{LINE_LEAD}\x1B[3m{}\x1B[0m", marked(&info.scope.join(LINE_LEAD), open, close)));
 			}
 			if !info.description.is_empty() {
-				expected.push_str(&format!("\n  {}", marked(info.description, open, close)));
+				expected.push_str(&format!("{LINE_LEAD}{}", marked(&info.description.join(LINE_LEAD), open, close)));
 			}
 			for example in info.examples {
 				expected.push_str(&format!("\n{PROMPT_COLORED} {example}"));
 			}
 			if let Some(arguments) = info.arguments {
-				expected.push_str(&format!("\n  Possible arguments:\n    {}", marked(arguments, open, close)));
+				expected.push_str(&format!("{LINE_LEAD}Possible arguments:{VALUE_LEAD}{}", marked(arguments, open, close)));
 			}
 
 			assert_eq!(argument.help_colored(), expected, "{argument:?}");
@@ -719,7 +737,7 @@ mod tests {
 
 			assert!(!colored.contains('`') && !plain.contains('`'), "{argument:?} lets a backtick through");
 
-			for text in [info.scope, info.description, info.arguments.unwrap_or("")] {
+			for text in info.scope.iter().chain(info.description.iter()).chain(info.arguments.iter()) {
 				for span in text.split('`').skip(1).step_by(2) {
 					assert!(colored.contains(&format!("{MARK_OPEN}{span}{MARK_CLOSE}")), "{argument:?} {span:?}");
 					assert!(plain.contains(span), "{argument:?} {span:?}");
