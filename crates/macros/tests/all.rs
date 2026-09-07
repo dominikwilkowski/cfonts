@@ -136,7 +136,7 @@ fn rename_marked_variants_change_list_but_not_all() {
 }
 
 #[test]
-fn list_chunked_breaks_after_five_names() {
+fn a_wide_enum_lists_every_name_in_order() {
 	#[derive(All)]
 	enum Wide {
 		One,
@@ -149,7 +149,6 @@ fn list_chunked_breaks_after_five_names() {
 	}
 
 	assert_eq!(Wide::ALL.len(), 7);
-	assert_eq!(Wide::LIST_CHUNKED, "one, two, three, four, five,\n      six, seven");
 	assert_eq!(Wide::NAMES, ["one", "two", "three", "four", "five", "six", "seven"]);
 	assert_eq!(Wide::LIST, "one, two, three, four, five, six, seven");
 }

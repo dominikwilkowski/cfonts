@@ -2,86 +2,20 @@
 //!
 //! The macros expand at their call sites, so their bodies spell every helper with its full path
 
+use crate::Color;
+
 /// The shell prompt every example line starts with, styled and plain
 pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
 pub(crate) const PROMPT_PLAIN: &str = "  $";
 
-/// Concatenates `&'static str` parts into one `&'static str` at compile time
-macro_rules! const_concat {
-	($($part:expr),+ $(,)?) => {{
-		const PARTS: &[&str] = &[$($part),+];
-		crate::cli::helper::const_join!(PARTS, "")
-	}};
-}
-pub(crate) use const_concat;
+/// The color every backticked input of the help renders in, and the code that ends it
+pub(crate) const MARK_OPEN: &str = Color::Green.ansi16_sgr().expect("green carries a fixed code");
+pub(crate) const MARK_CLOSE: &str = Color::ANSI_RESET;
 
-/// The byte length of all parts joined with the separator, computed at compile time
-pub(crate) const fn joined_len(parts: &[&str], separator: &str) -> usize {
-	if parts.is_empty() {
-		return 0;
-	}
-
-	let mut length = separator.len() * (parts.len() - 1);
-	let mut index = 0;
-
-	while index < parts.len() {
-		length += parts[index].len();
-		index += 1;
-	}
-
-	length
-}
-
-/// Joins all parts with the separator into one fixed buffer, computed at compile time
-pub(crate) const fn join_into<const LENGTH: usize>(parts: &[&str], separator: &str) -> [u8; LENGTH] {
-	let mut buffer = [0u8; LENGTH];
-	let mut offset = 0;
-	let mut part_index = 0;
-
-	while part_index < parts.len() {
-		if part_index > 0 {
-			let separator_bytes = separator.as_bytes();
-			let mut byte_index = 0;
-
-			while byte_index < separator_bytes.len() {
-				buffer[offset] = separator_bytes[byte_index];
-				offset += 1;
-				byte_index += 1;
-			}
-		}
-
-		let bytes = parts[part_index].as_bytes();
-		let mut byte_index = 0;
-
-		while byte_index < bytes.len() {
-			buffer[offset] = bytes[byte_index];
-			offset += 1;
-			byte_index += 1;
-		}
-
-		part_index += 1;
-	}
-
-	buffer
-}
-
-/// Joins `&'static str` parts with a separator into one `&'static str` at compile time
-macro_rules! const_join {
-	($parts:expr, $separator:expr) => {{
-		const LENGTH: usize = crate::cli::helper::joined_len($parts, $separator);
-		const BUFFER: [u8; LENGTH] = crate::cli::helper::join_into($parts, $separator);
-		const TEXT: &str = match std::str::from_utf8(&BUFFER) {
-			Ok(text) => text,
-			Err(_) => panic!("joining valid utf8 always yields valid utf8"),
-		};
-		TEXT
-	}};
-}
-
-pub(crate) use const_join;
-
-/// The line break and indent that continue a list inside the possible arguments bracket of the help
-pub(crate) const CONTINUATION: &str = "\n      ";
+/// Names of a chunked list are set apart by a comma and a space, and after every fifth name
+/// by a comma and a line break into the indent of the possible arguments bracket
+const SEPARATOR: &str = ", ";
+const CONTINUATION: &str = ",\n      ";
 
 /// How many names one line of a chunked list holds
 const NAMES_PER_LINE: usize = 5;
@@ -105,26 +39,6 @@ const fn same(left: &str, right: &str) -> bool {
 	true
 }
 
-/// The byte length of `names` laid out five per line, every name equal to `skip` left out
-pub(crate) const fn chunked_len(names: &[&str], skip: &str) -> usize {
-	let mut length = 0;
-	let mut kept = 0;
-	let mut index = 0;
-
-	while index < names.len() {
-		if !same(names[index], skip) {
-			if kept > 0 {
-				length += 1 + if kept % NAMES_PER_LINE == 0 { CONTINUATION.len() } else { 1 };
-			}
-			length += names[index].len();
-			kept += 1;
-		}
-		index += 1;
-	}
-
-	length
-}
-
 /// Copies `bytes` into `buffer` at `offset` and returns the offset after them
 const fn copy_bytes(buffer: &mut [u8], offset: usize, bytes: &[u8]) -> usize {
 	let mut index = 0;
@@ -136,43 +50,174 @@ const fn copy_bytes(buffer: &mut [u8], offset: usize, bytes: &[u8]) -> usize {
 	offset + bytes.len()
 }
 
-/// Lays `names` out five per line into one fixed buffer, every name equal to `skip` left out
-pub(crate) const fn chunk_into<const LENGTH: usize>(names: &[&str], skip: &str) -> [u8; LENGTH] {
-	let mut buffer = [0u8; LENGTH];
-	let mut offset = 0;
-	let mut kept = 0;
+/// The byte length of all parts joined with the separator, computed at compile time
+pub(crate) const fn joined_len(parts: &[&str], separator: &str) -> usize {
+	if parts.is_empty() {
+		return 0;
+	}
+
+	let mut length = separator.len() * (parts.len() - 1);
 	let mut index = 0;
 
-	while index < names.len() {
-		if !same(names[index], skip) {
-			if kept > 0 {
-				offset = copy_bytes(&mut buffer, offset, b",");
-				let rest: &[u8] = if kept % NAMES_PER_LINE == 0 { CONTINUATION.as_bytes() } else { b" " };
-				offset = copy_bytes(&mut buffer, offset, rest);
-			}
-			offset = copy_bytes(&mut buffer, offset, names[index].as_bytes());
-			kept += 1;
+	while index < parts.len() {
+		length += parts[index].len();
+		index += 1;
+	}
+
+	length
+}
+
+/// Joins all parts with the separator into one fixed buffer, computed at compile time
+pub(crate) const fn join_into<const LENGTH: usize>(parts: &[&str], separator: &str) -> [u8; LENGTH] {
+	let mut buffer = [0u8; LENGTH];
+	let mut offset = 0;
+	let mut index = 0;
+
+	while index < parts.len() {
+		if index > 0 {
+			offset = copy_bytes(&mut buffer, offset, separator.as_bytes());
 		}
+		offset = copy_bytes(&mut buffer, offset, parts[index].as_bytes());
 		index += 1;
 	}
 
 	buffer
 }
 
-/// Lays a name array out five per line into one `&'static str` at compile time, one name left out
-macro_rules! const_chunk {
-	($names:expr, $skip:expr) => {{
-		const LENGTH: usize = crate::cli::helper::chunked_len(&$names, $skip);
-		const BUFFER: [u8; LENGTH] = crate::cli::helper::chunk_into(&$names, $skip);
+/// Joins `&'static str` parts with a separator into one `&'static str` at compile time
+macro_rules! const_join {
+	($parts:expr, $separator:expr) => {{
+		const LENGTH: usize = crate::cli::helper::joined_len($parts, $separator);
+		const BUFFER: [u8; LENGTH] = crate::cli::helper::join_into($parts, $separator);
 		const TEXT: &str = match std::str::from_utf8(&BUFFER) {
 			Ok(text) => text,
-			Err(_) => panic!("chunking valid utf8 always yields valid utf8"),
+			Err(_) => panic!("joining valid utf8 always yields valid utf8"),
 		};
 		TEXT
 	}};
 }
 
+pub(crate) use const_join;
+
+/// Concatenates `&'static str` parts into one `&'static str` at compile time
+macro_rules! const_concat {
+	($($part:expr),+ $(,)?) => {{
+		const PARTS: &[&str] = &[$($part),+];
+		crate::cli::helper::const_join!(PARTS, "")
+	}};
+}
+
+pub(crate) use const_concat;
+
+/// How many pieces a chunked list of `names` has, every name equal to `skip` left out:
+/// the kept names and a separator before every one but the first
+pub(crate) const fn chunk_count(names: &[&str], skip: &str) -> usize {
+	let mut kept = 0;
+	let mut index = 0;
+
+	while index < names.len() {
+		if !same(names[index], skip) {
+			kept += 1;
+		}
+		index += 1;
+	}
+
+	if kept == 0 { 0 } else { 2 * kept - 1 }
+}
+
+/// The pieces of a chunked list, names and separators in turn, five names per line,
+/// every name equal to `skip` left out
+pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(names: &[&'a str], skip: &str) -> [&'a str; COUNT] {
+	let mut pieces = [""; COUNT];
+	let mut piece = 0;
+	let mut kept = 0;
+	let mut index = 0;
+
+	while index < names.len() {
+		if !same(names[index], skip) {
+			if kept > 0 {
+				pieces[piece] = if kept % NAMES_PER_LINE == 0 { CONTINUATION } else { SEPARATOR };
+				piece += 1;
+			}
+			pieces[piece] = names[index];
+			piece += 1;
+			kept += 1;
+		}
+		index += 1;
+	}
+
+	pieces
+}
+
+/// Lays a name array out five per line into one `&'static str` at compile time, one name left out
+macro_rules! const_chunk {
+	($names:expr, $skip:expr) => {{
+		const COUNT: usize = crate::cli::helper::chunk_count(&$names, $skip);
+		const PIECES: [&str; COUNT] = crate::cli::helper::chunk_pieces(&$names, $skip);
+		crate::cli::helper::const_join!(&PIECES, "")
+	}};
+}
+
 pub(crate) use const_chunk;
+
+/// How many pieces a marked text has: the spans between its backticks and a code beside every backtick
+///
+/// Backticks come in pairs, an unclosed one stops the build
+pub(crate) const fn mark_count(text: &str) -> usize {
+	let bytes = text.as_bytes();
+	let mut backticks = 0;
+	let mut index = 0;
+
+	while index < bytes.len() {
+		if bytes[index] == b'`' {
+			backticks += 1;
+		}
+		index += 1;
+	}
+
+	assert!(backticks % 2 == 0, "an unclosed backtick in the help text");
+
+	2 * backticks + 1
+}
+
+/// The pieces of a marked text: every span between backticks, `open` before and `close` after each marked span
+pub(crate) const fn mark_pieces<'a, const COUNT: usize>(
+	text: &'a str,
+	open: &'a str,
+	close: &'a str,
+) -> [&'a str; COUNT] {
+	let bytes = text.as_bytes();
+	let mut pieces = [""; COUNT];
+	let mut piece = 0;
+	let mut start = 0;
+	let mut marked = false;
+	let mut index = 0;
+
+	while index < bytes.len() {
+		if bytes[index] == b'`' {
+			pieces[piece] = text.split_at(index).0.split_at(start).1;
+			pieces[piece + 1] = if marked { close } else { open };
+			piece += 2;
+			marked = !marked;
+			start = index + 1;
+		}
+		index += 1;
+	}
+	pieces[piece] = text.split_at(start).1;
+
+	pieces
+}
+
+/// Renders the backticked spans of a text between `open` and `close` into one `&'static str` at compile time
+macro_rules! const_mark {
+	($text:expr, $open:expr, $close:expr) => {{
+		const COUNT: usize = crate::cli::helper::mark_count($text);
+		const PIECES: [&str; COUNT] = crate::cli::helper::mark_pieces($text, $open, $close);
+		crate::cli::helper::const_join!(&PIECES, "")
+	}};
+}
+
+pub(crate) use const_mark;
 
 #[cfg(test)]
 mod tests {
@@ -343,5 +388,46 @@ mod tests {
 		const TEXT: &str = const_chunk!(NAMES, "a");
 
 		assert_eq!(TEXT, "");
+	}
+
+	#[test]
+	fn the_mark_ends_only_the_foreground() {
+		// a mark inside the italic scope line or the bold title must leave that emphasis standing
+		assert_eq!(MARK_OPEN, "\x1B[32m");
+		assert_eq!(MARK_CLOSE, "\x1B[39m");
+	}
+
+	#[test]
+	fn const_mark_wraps_every_span_in_the_codes() {
+		const TEXT: &str = const_mark!("a `b` c `d`", "<", ">");
+
+		assert_eq!(TEXT, "a <b> c <d>");
+	}
+
+	#[test]
+	fn const_mark_with_empty_codes_strips_the_backticks() {
+		const TEXT: &str = const_mark!("`a` b `c`", "", "");
+
+		assert_eq!(TEXT, "a b c");
+	}
+
+	#[test]
+	fn const_mark_keeps_a_text_without_backticks() {
+		const TEXT: &str = const_mark!("é\0🦀", "<", ">");
+
+		assert_eq!(TEXT, "é\0🦀");
+	}
+
+	#[test]
+	fn const_mark_keeps_multibyte_bytes_around_the_marks() {
+		const TEXT: &str = const_mark!("é`🦀`\0``", "<", ">");
+
+		assert_eq!(TEXT, "é<🦀>\0<>");
+	}
+
+	#[test]
+	#[should_panic(expected = "an unclosed backtick")]
+	fn mark_count_refuses_an_unclosed_backtick() {
+		mark_count(black_box("a `b"));
 	}
 }

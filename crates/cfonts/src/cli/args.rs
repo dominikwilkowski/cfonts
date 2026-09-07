@@ -5,7 +5,7 @@ use crate::{
 	TransitionStops, Valign,
 	cli::{
 		CliBlockOptions, ParseError, ParseState,
-		helper::{CONTINUATION, PROMPT_COLORED, PROMPT_PLAIN, const_chunk, const_concat, const_join},
+		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_chunk, const_concat, const_join, const_mark},
 	},
 	color::GradientStop,
 };
@@ -43,6 +43,9 @@ pub(crate) enum ColorShape<'a> {
 }
 
 /// One compile time help line from one arg's infos
+///
+/// Every backticked span of the infos is an input and renders in the mark color,
+/// the possible arguments are one such span
 macro_rules! help_line {
 	($arg:expr, $colored:literal) => {{
 		const INFO: ArgInfo = $arg.infos();
@@ -59,13 +62,13 @@ macro_rules! help_line {
 		};
 		const RESET: &str = if $colored { "\x1B[0m" } else { "" };
 		const PROMPT: &str = if $colored { PROMPT_COLORED } else { PROMPT_PLAIN };
-		const VALUE: &str = if $colored { Color::Green.ansi16_sgr().unwrap() } else { "" };
-		const VALUE_OFF: &str = if $colored { Color::ANSI_RESET } else { "" };
+		const OPEN: &str = if $colored { MARK_OPEN } else { "" };
+		const CLOSE: &str = if $colored { MARK_CLOSE } else { "" };
 		const SHORT_LEAD: &str = match INFO.short.len() {
 			0 => "",
-			_ => ", -",
+			_ => "`, `-",
 		};
-		const SHORT: &str = const_join!(INFO.short, ", -");
+		const SHORT: &str = const_join!(INFO.short, "`, `-");
 		const EXAMPLE_LEAD: &str = const_concat!("\n", PROMPT, " ");
 		const EXAMPLES: &str = const_join!(INFO.examples, EXAMPLE_LEAD);
 		const SCOPE_LEAD: &str = match INFO.scope.len() {
@@ -81,7 +84,7 @@ macro_rules! help_line {
 			_ => "\n  ",
 		};
 		const OPTIONS_OPEN: &str = match INFO.arguments {
-			Some(_) => const_concat!("\n  Possible arguments:\n    [ ", VALUE),
+			Some(_) => "\n  Possible arguments:\n    [ `",
 			None => "",
 		};
 		const OPTIONS: &str = match INFO.arguments {
@@ -89,10 +92,10 @@ macro_rules! help_line {
 			None => "",
 		};
 		const OPTIONS_CLOSE: &str = match INFO.arguments {
-			Some(_) => const_concat!(VALUE_OFF, " ]"),
+			Some(_) => "` ]",
 			None => "",
 		};
-		const_concat!(
+		const LINE: &str = const_concat!(
 			"  ",
 			BOLD,
 			INFO.title,
@@ -103,16 +106,18 @@ macro_rules! help_line {
 			SCOPE_RESET,
 			DESCRIPTION_LEAD,
 			INFO.description,
-			"\n  --",
+			"\n  `--",
 			INFO.long,
 			SHORT_LEAD,
 			SHORT,
+			"`",
 			EXAMPLE_LEAD,
 			EXAMPLES,
 			OPTIONS_OPEN,
 			OPTIONS,
 			OPTIONS_CLOSE
-		)
+		);
+		const_mark!(LINE, OPEN, CLOSE)
 	}};
 }
 
@@ -374,7 +379,7 @@ impl Args {
 				scope: "This will apply globally",
 				description: "The output aligns within the width of your terminal",
 				examples: &["cfonts hello --align center", "cfonts hello --align right --font tiny"],
-				arguments: Some(Align::LIST_CHUNKED),
+				arguments: Some(const_chunk!(Align::NAMES, "")),
 			},
 			Self::Valign => ArgInfo {
 				long: "valign",
@@ -386,7 +391,7 @@ impl Args {
 					"cfonts Big --font block --next \" small\" --font tiny --valign bottom",
 					"cfonts --valign middle Big --next \" small\" --font console",
 				],
-				arguments: Some(Valign::LIST_CHUNKED),
+				arguments: Some(const_chunk!(Valign::NAMES, "")),
 			},
 			Self::Spaceless => ArgInfo {
 				long: "spaceless",
@@ -402,7 +407,7 @@ impl Args {
 				short: &["m"],
 				title: "Limit the characters per line",
 				scope: "This will apply globally",
-				description: "Text wraps onto the next line after this many characters\n  0 lifts this limit, your terminal width still wraps the output",
+				description: "Text wraps onto the next line after this many characters\n  `0` lifts this limit, your terminal width still wraps the output",
 				examples: &[
 					"cfonts \"a long line of text\" --max-length 10",
 					"cfonts \"a long line of text\" --max-length 10 --word-wrap",
@@ -435,7 +440,7 @@ impl Args {
 				description: "Without it a gradient ramps once across every line of the output",
 				examples: &[
 					"cfonts \"line one|line two\" --colors red-blue --independent-gradient",
-					"cfonts \"one|two\" --colors pride --independent-gradient",
+					"cfonts \"one|two\" --colors red:yellow:green --independent-gradient",
 				],
 				arguments: None,
 			},
@@ -446,12 +451,12 @@ impl Args {
 				short: &["n"],
 				title: "Start a new text block",
 				scope: "",
-				description: "Font, colors, spacing and wrap options after it style the new block only,\n  blocks share one line and meet at the row --valign picks",
+				description: "Font, colors, spacing and wrap options after it style the new block only,\n  blocks share one line and meet at the row `--valign` picks",
 				examples: &[
 					"cfonts Hello --next world",
 					"cfonts Logo --font chrome --next \" v4\" --font console --valign bottom",
 				],
-				arguments: Some("any text you want to style with cfonts"),
+				arguments: Some("<text>"),
 			},
 			Self::NextStdin => ArgInfo {
 				long: "next-stdin",
@@ -472,67 +477,60 @@ impl Args {
 				scope: "Applies to the current text block",
 				description: "Every block can use its own font",
 				examples: &["cfonts hello --font chrome", "cfonts hello --font tiny --next \" world\" --font block"],
-				arguments: Some(Font::LIST_CHUNKED),
+				arguments: Some(const_chunk!(Font::NAMES, "")),
 			},
 			Self::Color => ArgInfo {
 				long: "colors",
 				short: &["c"],
 				title: "Set the font colors or a gradient",
-				scope: "On the first text block this sets the colors for all blocks,\n  after --next it colors only that block",
-				description: "Colors can be specified as a list of color names or hex values\n  red,blue = one color per font slot\n  red-blue = a gradient\n  red:blue:green = a transition through every stop, or a preset name\n  A block with its own colors keeps them, a gradient set for\n  all blocks steps over its columns and carries on after it",
+				scope: "On the first text block this sets the colors for all blocks,\n  after `--next` it colors only that block",
+				description: const_concat!(
+					"Colors can be specified as a list of color names or hex values\n",
+					"  `red,blue` = one color per font slot\n",
+					"  `red-blue` = a gradient\n",
+					"  `red:blue:green` = a transition through every stop\n",
+					"  gradient stops: `",
+					GradientStop::LIST,
+					"`\n",
+					"  or any hex value like `#ff8800` or `#f80`\n",
+					"  A block with its own colors keeps them, a gradient set for\n",
+					"  all blocks steps over its columns and carries on after it",
+				),
 				examples: &[
 					"cfonts hello --colors red,blue",
 					"cfonts hello --colors red-blue",
 					"cfonts hello --colors red:yellow:green",
-					"cfonts hello --colors pride",
 					"cfonts Hi --colors red-blue --next \" there\" --colors system",
 				],
-				arguments: Some(const_concat!(
-					Color::LIST_CHUNKED,
-					",",
-					CONTINUATION,
-					"or any hex color like #ff8800 or #f80,",
-					CONTINUATION,
-					"stops of a gradient: ",
-					GradientStop::LIST_CHUNKED,
-					" or any hex color,",
-					CONTINUATION,
-					"presets: ",
-					GradientPreset::LIST_CHUNKED
-				)),
+				arguments: Some(const_chunk!(Color::NAMES, "")),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
 				short: &["b"],
 				title: "Set the background color or a gradient",
 				scope: "This will apply globally",
-				description: "One color paints every line, red-blue ramps from the top line down,\n  red:blue:green transitions through every stop, system paints nothing",
+				description: const_concat!(
+					"One color paints every line, `red-blue` ramps from the top line down,\n",
+					"  `red:blue:green` transitions through every stop, `system` paints nothing\n",
+					"  gradient stops: `",
+					GradientStop::LIST,
+					"`\n",
+					"  or any hex value like `#ff8800` or `#f80`",
+				),
 				examples: &[
 					"cfonts hello --background blue",
 					"cfonts hello --background \"#222222\"",
 					"cfonts hello --background red-blue",
-					"cfonts hello --background pride --spaceless",
+					"cfonts hello --background red:yellow:green --spaceless",
 				],
-				arguments: Some(const_concat!(
-					const_chunk!(Color::NAMES, "candy"),
-					",",
-					CONTINUATION,
-					"or any hex color like #ff8800 or #f80,",
-					CONTINUATION,
-					"stops of a gradient: ",
-					GradientStop::LIST_CHUNKED,
-					" or any hex color,",
-					CONTINUATION,
-					"presets: ",
-					GradientPreset::LIST_CHUNKED
-				)),
+				arguments: Some(const_chunk!(Color::NAMES, "candy")),
 			},
 			Self::LetterSpacing => ArgInfo {
 				long: "letter-spacing",
 				short: &["l"],
 				title: "Set the space between letters",
 				scope: "Applies to the current text block",
-				description: "0 removes the gap the font puts between letters",
+				description: "`0` removes the gap the font puts between letters",
 				examples: &["cfonts hello --letter-spacing 2", "cfonts hello --letter-spacing 0 --font tiny"],
 				arguments: Some("0, 1, 2, 5, 20..."),
 			},
@@ -541,7 +539,7 @@ impl Args {
 				short: &["z"],
 				title: "Set the space between lines",
 				scope: "Applies to the current text block",
-				description: "Text wraps automatically.\n  The | character in the text starts a new line",
+				description: "Text wraps automatically.\n  The `|` character in the text starts a new line",
 				examples: &["cfonts \"one|two\" --line-height 3"],
 				arguments: Some("0, 2, 5, 10..."),
 			},
@@ -672,26 +670,35 @@ mod tests {
 		assert!(PLAIN.starts_with("  "));
 	}
 
+	/// Renders the backticked spans of a text between the codes, the runtime twin of the compile time mark
+	fn marked(text: &str, open: &str, close: &str) -> String {
+		text
+			.split('`')
+			.enumerate()
+			.map(|(index, span)| if index % 2 == 1 { format!("{open}{span}{close}") } else { span.to_string() })
+			.collect()
+	}
+
 	#[test]
 	fn help_lines_follow_one_layout() {
 		// title, scope, description, flags, examples and arguments, each in its place with its own styling
-		let open = Color::Green.ansi16_sgr().unwrap();
-		let close = Color::ANSI_RESET;
+		let open = MARK_OPEN;
+		let close = MARK_CLOSE;
 
 		for argument in Args::ALL {
 			let info = argument.infos();
 			let mut expected = format!("  \x1B[1m{}\x1B[0m", info.title);
 
 			if !info.scope.is_empty() {
-				expected.push_str(&format!("\n  \x1B[3m{}\x1B[0m", info.scope));
+				expected.push_str(&format!("\n  \x1B[3m{}\x1B[0m", marked(info.scope, open, close)));
 			}
 			if !info.description.is_empty() {
-				expected.push_str(&format!("\n  {}", info.description));
+				expected.push_str(&format!("\n  {}", marked(info.description, open, close)));
 			}
 
-			expected.push_str(&format!("\n  --{}", info.long));
+			expected.push_str(&format!("\n  {open}--{}{close}", info.long));
 			for short in info.short {
-				expected.push_str(&format!(", -{short}"));
+				expected.push_str(&format!(", {open}-{short}{close}"));
 			}
 			for example in info.examples {
 				expected.push_str(&format!("\n{PROMPT_COLORED} {example}"));
@@ -712,6 +719,28 @@ mod tests {
 
 			assert!(!plain.contains('\x1B'), "{argument:?} plain variant contains escape codes");
 			assert_eq!(strip_styling(colored), plain, "{argument:?} variants differ beyond styling");
+		}
+	}
+
+	#[test]
+	fn every_marked_span_renders_in_the_mark_color_and_bare_in_plain() {
+		for argument in Args::ALL {
+			let info = argument.infos();
+			let colored = argument.help_colored();
+			let plain = argument.help_plain();
+
+			assert!(!colored.contains('`') && !plain.contains('`'), "{argument:?} lets a backtick through");
+
+			for text in [info.scope, info.description] {
+				for span in text.split('`').skip(1).step_by(2) {
+					assert!(colored.contains(&format!("{MARK_OPEN}{span}{MARK_CLOSE}")), "{argument:?} {span:?}");
+					assert!(plain.contains(span), "{argument:?} {span:?}");
+				}
+			}
+			if let Some(arguments) = info.arguments {
+				assert!(!arguments.contains('`'), "{argument:?} lists only values");
+				assert!(colored.contains(&format!("[ {MARK_OPEN}{arguments}{MARK_CLOSE} ]")), "{argument:?}");
+			}
 		}
 	}
 
@@ -833,12 +862,6 @@ mod tests {
 		for name in Color::NAMES {
 			assert_eq!(arguments.contains(name), name != "candy", "{name}");
 		}
-	}
-
-	#[test]
-	fn the_compile_time_chunking_matches_the_derived_list() {
-		assert_eq!(const_chunk!(Color::NAMES, ""), Color::LIST_CHUNKED);
-		assert_eq!(const_chunk!(Font::NAMES, ""), Font::LIST_CHUNKED);
 	}
 
 	#[test]

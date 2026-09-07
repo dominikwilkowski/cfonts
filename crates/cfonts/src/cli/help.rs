@@ -2,7 +2,7 @@ use crate::{
 	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, RenderContext, RustHost, Valign,
 	cli::{
 		Args, VERSION,
-		helper::{PROMPT_COLORED, PROMPT_PLAIN},
+		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_mark},
 	},
 };
 
@@ -23,23 +23,26 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 		.colors(vec![Color::System])
 		.render_with(&CliEnv::default(), context);
 
+	// every backticked span of the usage is an input and renders in the mark color
 	const USAGE: &str = concat!(
 		"Usage: cfonts <text> [options] [--next <text> [options]]...\n",
 		"   or: cfonts --stdin [options] [--next-stdin [options]]...\n",
 		"   or: <command> | cfonts [options]\n",
 		"\n",
 		"Options apply to the text block before them,\n",
-		"add --next \"<text>\" to style multiple blocks in one line.\n",
-		"The | character in the text starts a new line.\n",
+		"add `--next \"<text>\"` to style multiple blocks in one line.\n",
+		"The `|` character in the text starts a new line.\n",
 		"\n",
 		"Options:\n",
 		"\n",
 	);
+	const USAGE_STYLED: &str = const_mark!(USAGE, MARK_OPEN, MARK_CLOSE);
+	const USAGE_PLAIN: &str = const_mark!(USAGE, "", "");
 
 	let prompt = if styled { PROMPT_COLORED } else { PROMPT_PLAIN };
 
 	output.push_str(&banner.text);
-	output.push_str(USAGE);
+	output.push_str(if styled { USAGE_STYLED } else { USAGE_PLAIN });
 	for arg in Args::ALL {
 		let line = arg.help(styled);
 		output.push_str(line);
@@ -55,7 +58,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 			"a gradient over the output, a transition through three colors",
 			&["cfonts hello -c red-blue", "cfonts hello -c red:yellow:green"],
 		),
-		("a preset gradient that restarts on every line", &["cfonts \"line one|end\" -c pride -ia center"]),
+		("a gradient that restarts on every line", &["cfonts \"line one|end\" -c red-blue -ia center"]),
 		("a background behind every line, flat or ramping down", &["cfonts hello -b blue", "cfonts hello -b red-blue"]),
 		(
 			"two blocks with their own fonts, meeting at the bottom",
@@ -164,6 +167,16 @@ pub(crate) mod tests {
 
 		assert!(!plain.contains('\x1B'));
 		assert_eq!(strip_styling(&styled), plain);
+	}
+
+	#[test]
+	fn the_usage_marks_its_inputs_and_lets_no_backtick_through() {
+		let styled = cli_help_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)));
+		let plain = cli_help_with(RenderContext::unlimited());
+
+		assert!(styled.contains(&format!("The {MARK_OPEN}|{MARK_CLOSE} character")));
+		assert!(plain.contains("The | character"));
+		assert!(!styled.contains('`') && !plain.contains('`'));
 	}
 
 	#[test]
