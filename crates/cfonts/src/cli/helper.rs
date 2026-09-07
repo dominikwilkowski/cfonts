@@ -8,9 +8,14 @@ use crate::Color;
 pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
 pub(crate) const PROMPT_PLAIN: &str = "  $";
 
-/// The color every backticked input of the help renders in, and the code that ends it
-pub(crate) const MARK_OPEN: &str = Color::Green.ansi16_sgr().expect("green carries a fixed code");
-pub(crate) const MARK_CLOSE: &str = Color::ANSI_RESET;
+/// The colors every backticked input of the help renders in, and the codes that end them
+///
+/// The closing codes reset the two colors and nothing else, so bold or italic text around a mark keeps its emphasis
+pub(crate) const MARK_OPEN: &str = const_concat!(
+	Color::Green.ansi16_sgr().expect("green carries a fixed code"),
+	Color::Black.ansi16_background_sgr().expect("black carries a fixed code"),
+);
+pub(crate) const MARK_CLOSE: &str = const_concat!(Color::ANSI_RESET, Color::ANSI_BACKGROUND_RESET);
 
 /// Names of a chunked list are set apart by a comma and a space, and after every fifth name
 /// by a comma and a line break into the indent of the possible arguments bracket
@@ -406,10 +411,10 @@ mod tests {
 	}
 
 	#[test]
-	fn the_mark_ends_only_the_foreground() {
+	fn the_mark_ends_only_its_own_colors() {
 		// a mark inside the italic scope line or the bold title must leave that emphasis standing
-		assert_eq!(MARK_OPEN, "\x1B[32m");
-		assert_eq!(MARK_CLOSE, "\x1B[39m");
+		assert_eq!(MARK_OPEN, "\x1B[32m\x1B[40m");
+		assert_eq!(MARK_CLOSE, "\x1B[39m\x1B[49m");
 	}
 
 	#[test]
