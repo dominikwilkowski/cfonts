@@ -662,22 +662,28 @@ test("gradient stops accept the base Color values", () => {
 	assert.ok(global.text.includes("\u001b[38;2;"));
 });
 
-test("gradient stops outside the base palette are rejected in Rust", () => {
+test("gradient stops outside the blendable palette are rejected in Rust", () => {
 	// valid enum members travel as their names; which colors may blend is Rust's decision
-	for (const color of [Color.System, Color.Candy, Color.RedBright]) {
+	for (const color of [Color.System, Color.Candy]) {
 		assert.throws(() => Cfonts.text("A").gradient({ start: color, end: Color.Blue }), /Unsupported gradient stop/);
 	}
 
-	assert.throws(
-		() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.WhiteBright] }),
-		/Unsupported gradient stop/,
-	);
+	assert.throws(() => Cfonts.text("A").gradient({ transition: [Color.Red, Color.Candy] }), /Unsupported gradient stop/);
 
 	// an unknown number is still a shape error, caught at the boundary
 	assert.throws(() => Cfonts.text("A").gradient({ start: 99, end: Color.Blue }), {
 		name: "TypeError",
 		message: /supported enum value/,
 	});
+});
+
+test("a bright color is a gradient stop with the value of its slot color", () => {
+	const context = { colorLevel: ColorLevel.TrueColor };
+	const bright = Cfonts.text("A").font(Font.Tiny).gradient({ start: Color.RedBright, end: Color.Blue });
+	const spelled = Cfonts.text("A").font(Font.Tiny).gradient({ start: "#ee776d", end: Color.Blue });
+
+	assert.ok(bright.renderWith(CliEnv, context).text.includes("\u001b[38;2;"));
+	assert.equal(bright.renderWith(CliEnv, context).text, spelled.renderWith(CliEnv, context).text);
 });
 
 test("gradient shape errors teach the shapes", () => {

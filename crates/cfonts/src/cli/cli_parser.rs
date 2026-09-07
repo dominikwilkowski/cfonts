@@ -840,6 +840,10 @@ mod color_values {
 			global(&["hi", "-c", "RED - #888"]),
 			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Rgb(gray) })
 		);
+		assert_eq!(
+			global(&["hi", "-c", "redBright-blue"]),
+			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::RedBright, end: GradientStop::Blue })
+		);
 	}
 
 	#[test]
@@ -897,7 +901,7 @@ mod color_values {
 
 	#[test]
 	fn slot_only_colors_are_not_stops() {
-		for value in ["candy-red", "red:system", "redBright-blue"] {
+		for value in ["candy-red", "red:system"] {
 			let input = args(&["hi", "-c", value]);
 			assert_eq!(
 				parse_args(&input, tty()).unwrap_err().error,
@@ -953,6 +957,13 @@ mod color_values {
 		assert_eq!(
 			run(&["hi", "-b", "red-blue"]).options.background,
 			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+		assert_eq!(
+			run(&["hi", "-b", "whiteBright-blue"]).options.background,
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop {
+				start: GradientStop::WhiteBright,
+				end: GradientStop::Blue
+			}))
 		);
 		assert_eq!(
 			run(&["hi", "-b", "trans"]).options.background,

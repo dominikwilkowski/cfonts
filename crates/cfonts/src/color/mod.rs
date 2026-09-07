@@ -26,7 +26,7 @@ pub enum ColorError {
 	/// A color is either a color name or a hex value
 	UnknownColor,
 
-	/// A gradient stop is one of the base colors or a hex value, slot only colors do not blend
+	/// A gradient stop is any color name or a hex value except `system` and `candy`, those two do not blend
 	NotAGradientStop,
 }
 
@@ -41,7 +41,9 @@ impl std::fmt::Display for ColorError {
 				write!(f, "A transition gradient holds at least two stops, this one holds {count}")
 			}
 			Self::UnknownColor => write!(f, "A color is either a color name or a hex value like #ff8800"),
-			Self::NotAGradientStop => write!(f, "A gradient stop is one of the base colors or a hex value like #ff8800"),
+			Self::NotAGradientStop => {
+				write!(f, "A gradient stop is any color name or a hex value like #ff8800 except system and candy")
+			}
 		}
 	}
 }
@@ -384,8 +386,8 @@ impl FromStr for Color {
 
 /// A gradient stop parses from its name or a hex value, the leading `#` is optional
 ///
-/// Slot-only colors such as `system`, `candy` and the bright variants are not stops and say so,
-/// so a valid color name in the wrong place teaches instead of puzzling
+/// The slot only accepts colors, `system` and `candy` are not stops and say so,
+/// so a valid color name in the wrong place teaches instead of confuses
 impl FromStr for GradientStop {
 	type Err = ColorError;
 
@@ -401,6 +403,7 @@ impl FromStr for GradientStop {
 ///
 /// Gradient names map to canonical values (red is `#ff0000`), unlike the slot color table (where red is `#ea3223`):
 /// both mappings are behavior from older versions, kept apart by the two types
+/// The bright names have no canonical value and carry the slot color table's value
 /// `System` and `Candy` cannot be gradient stops, and every stop has an RGB value
 #[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum GradientStop {
@@ -413,6 +416,13 @@ pub enum GradientStop {
 	Cyan,
 	White,
 	Gray,
+	RedBright,
+	GreenBright,
+	YellowBright,
+	BlueBright,
+	MagentaBright,
+	CyanBright,
+	WhiteBright,
 	#[all(skip)]
 	Rgb(Rgb),
 }
@@ -432,11 +442,19 @@ impl GradientStop {
 			"cyan" => Some(Self::Cyan),
 			"white" => Some(Self::White),
 			"gray" | "grey" => Some(Self::Gray),
+			"redbright" => Some(Self::RedBright),
+			"greenbright" => Some(Self::GreenBright),
+			"yellowbright" => Some(Self::YellowBright),
+			"bluebright" => Some(Self::BlueBright),
+			"magentabright" => Some(Self::MagentaBright),
+			"cyanbright" => Some(Self::CyanBright),
+			"whitebright" => Some(Self::WhiteBright),
 			_ => None,
 		}
 	}
 
-	/// The RGB value of this stop, from the gradient parser's canonical table
+	/// The RGB value of this stop, from the gradient parser's canonical table,
+	/// the bright stops carry the slot color table's value
 	pub fn to_rgb(self) -> Rgb {
 		match self {
 			Self::Black => Rgb { red: 0, green: 0, blue: 0 },
@@ -448,6 +466,13 @@ impl GradientStop {
 			Self::Cyan => Rgb { red: 0, green: 255, blue: 255 },
 			Self::White => Rgb { red: 255, green: 255, blue: 255 },
 			Self::Gray => Rgb { red: 128, green: 128, blue: 128 },
+			Self::RedBright => Color::RedBright.to_rgb().expect("a bright color carries an RGB value"),
+			Self::GreenBright => Color::GreenBright.to_rgb().expect("a bright color carries an RGB value"),
+			Self::YellowBright => Color::YellowBright.to_rgb().expect("a bright color carries an RGB value"),
+			Self::BlueBright => Color::BlueBright.to_rgb().expect("a bright color carries an RGB value"),
+			Self::MagentaBright => Color::MagentaBright.to_rgb().expect("a bright color carries an RGB value"),
+			Self::CyanBright => Color::CyanBright.to_rgb().expect("a bright color carries an RGB value"),
+			Self::WhiteBright => Color::WhiteBright.to_rgb().expect("a bright color carries an RGB value"),
 			Self::Rgb(rgb) => rgb,
 		}
 	}
@@ -928,7 +953,6 @@ mod tests {
 	fn gradient_stop_names_reject_slot_only_colors() {
 		assert_eq!(GradientStop::from_name("system"), None);
 		assert_eq!(GradientStop::from_name("candy"), None);
-		assert_eq!(GradientStop::from_name("redBright"), None);
 		assert_eq!(GradientStop::from_name("#ff0000"), None);
 	}
 
@@ -943,10 +967,33 @@ mod tests {
 	#[test]
 	fn slot_only_colors_do_not_parse_as_stops() {
 		// a real color name that is not a stop names its own problem, an unknown name stays unknown
-		for input in ["system", "candy", "redBright"] {
+		for input in ["system", "candy"] {
 			assert_eq!(input.parse::<GradientStop>(), Err(ColorError::NotAGradientStop), "{input}");
 		}
 		assert_eq!("reed".parse::<GradientStop>(), Err(ColorError::UnknownColor));
+	}
+
+	#[test]
+	fn every_color_but_system_and_candy_is_a_stop() {
+		// every name parses to the stop of the same name, and the bright names carry the slot color table's value
+		for (color, name) in Color::ALL.into_iter().zip(Color::NAMES) {
+			let stop = name.parse::<GradientStop>();
+
+			match color {
+				Color::System | Color::Candy => assert_eq!(stop, Err(ColorError::NotAGradientStop), "{name}"),
+				Color::Rgb(_) => unreachable!("ALL holds the named colors only"),
+				_ => {
+					let stop = stop.unwrap_or_else(|error| panic!("{name} is a stop, not {error}"));
+					assert_eq!(format!("{stop:?}"), format!("{color:?}"), "{name}");
+
+					if name.ends_with("bright") {
+						assert_eq!(stop.to_rgb(), color.to_rgb().unwrap(), "{name}");
+					}
+				}
+			}
+		}
+
+		assert_eq!("REDBRIGHT".parse::<GradientStop>(), Ok(GradientStop::RedBright));
 	}
 
 	#[test]

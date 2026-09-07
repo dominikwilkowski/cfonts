@@ -83,15 +83,15 @@ macro_rules! help_line {
 			0 => "",
 			_ => "\n  ",
 		};
-		const OPTIONS_OPEN: &str = match INFO.arguments {
+		const ARGUMENTS_OPEN: &str = match INFO.arguments {
 			Some(_) => "\n  Possible arguments:\n    [ `",
 			None => "",
 		};
-		const OPTIONS: &str = match INFO.arguments {
-			Some(options) => options,
+		const ARGUMENTS: &str = match INFO.arguments {
+			Some(arguments) => arguments,
 			None => "",
 		};
-		const OPTIONS_CLOSE: &str = match INFO.arguments {
+		const ARGUMENTS_CLOSE: &str = match INFO.arguments {
 			Some(_) => "` ]",
 			None => "",
 		};
@@ -100,22 +100,22 @@ macro_rules! help_line {
 			BOLD,
 			INFO.title,
 			RESET,
+			"\n  `--",
+			INFO.long,
+			SHORT_LEAD,
+			SHORT,
+			"`",
 			SCOPE_LEAD,
 			ITALIC,
 			INFO.scope,
 			SCOPE_RESET,
 			DESCRIPTION_LEAD,
 			INFO.description,
-			"\n  `--",
-			INFO.long,
-			SHORT_LEAD,
-			SHORT,
-			"`",
 			EXAMPLE_LEAD,
 			EXAMPLES,
-			OPTIONS_OPEN,
-			OPTIONS,
-			OPTIONS_CLOSE
+			ARGUMENTS_OPEN,
+			ARGUMENTS,
+			ARGUMENTS_CLOSE
 		);
 		const_mark!(LINE, OPEN, CLOSE)
 	}};
@@ -485,14 +485,10 @@ impl Args {
 				title: "Set the font colors or a gradient",
 				scope: "On the first text block this sets the colors for all blocks,\n  after `--next` it colors only that block",
 				description: const_concat!(
-					"Colors can be specified as a list of color names or hex values\n",
-					"  `red,blue` = one color per font slot\n",
-					"  `red-blue` = a gradient\n",
+					"Colors can be specified as names or hex values like `#ff8800` or `#f80`\n",
+					"  `red,blue`       = one color per font slot\n",
+					"  `red-blue`       = a gradient\n",
 					"  `red:blue:green` = a transition through every stop\n",
-					"  gradient stops: `",
-					GradientStop::LIST,
-					"`\n",
-					"  or any hex value like `#ff8800` or `#f80`\n",
 					"  A block with its own colors keeps them, a gradient set for\n",
 					"  all blocks steps over its columns and carries on after it",
 				),
@@ -510,12 +506,11 @@ impl Args {
 				title: "Set the background color or a gradient",
 				scope: "This will apply globally",
 				description: const_concat!(
-					"One color paints every line, `red-blue` ramps from the top line down,\n",
-					"  `red:blue:green` transitions through every stop, `system` paints nothing\n",
-					"  gradient stops: `",
-					GradientStop::LIST,
-					"`\n",
-					"  or any hex value like `#ff8800` or `#f80`",
+					"Background colors can be specified as names\n",
+					"  or hex values like `#ff8800` or `#f80`, `system` paints nothing\n",
+					"  `red`            = one static background color\n",
+					"  `red-blue`       = a gradient background from the top downwards\n",
+					"  `red:blue:green` = a transition background through every stop",
 				),
 				examples: &[
 					"cfonts hello --background blue",
@@ -681,7 +676,7 @@ mod tests {
 
 	#[test]
 	fn help_lines_follow_one_layout() {
-		// title, scope, description, flags, examples and arguments, each in its place with its own styling
+		// title, flags, scope, description, examples and arguments, each in its place with its own styling
 		let open = MARK_OPEN;
 		let close = MARK_CLOSE;
 
@@ -689,16 +684,15 @@ mod tests {
 			let info = argument.infos();
 			let mut expected = format!("  \x1B[1m{}\x1B[0m", info.title);
 
+			expected.push_str(&format!("\n  {open}--{}{close}", info.long));
+			for short in info.short {
+				expected.push_str(&format!(", {open}-{short}{close}"));
+			}
 			if !info.scope.is_empty() {
 				expected.push_str(&format!("\n  \x1B[3m{}\x1B[0m", marked(info.scope, open, close)));
 			}
 			if !info.description.is_empty() {
 				expected.push_str(&format!("\n  {}", marked(info.description, open, close)));
-			}
-
-			expected.push_str(&format!("\n  {open}--{}{close}", info.long));
-			for short in info.short {
-				expected.push_str(&format!(", {open}-{short}{close}"));
 			}
 			for example in info.examples {
 				expected.push_str(&format!("\n{PROMPT_COLORED} {example}"));

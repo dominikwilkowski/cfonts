@@ -16,24 +16,15 @@ export interface RgbInput {
 export type ColorInput = Color | string | RgbInput;
 
 /**
- * The base colors a gradient stop accepts
+ * The named colors a gradient stop accepts
  *
- * System has no color to blend, Candy rolls per segment, and the bright variants
- * have no gradient names; hex values and channel values cover any other color
+ * System has no color to blend and Candy rolls per segment,
+ * hex values and channel values cover any other color
  */
-export type GradientColor =
-	| Color.Black
-	| Color.Red
-	| Color.Green
-	| Color.Blue
-	| Color.Yellow
-	| Color.Magenta
-	| Color.Cyan
-	| Color.White
-	| Color.Gray;
+export type GradientColor = Exclude<Color, Color.System | Color.Candy>;
 
 /**
- * One gradient stop: a base color, a stop name such as `"red"`, a hex value, or channel values
+ * One gradient stop: a named color, a stop name such as `"red"`, a hex value, or channel values
  */
 export type GradientStopInput = GradientColor | string | RgbInput;
 
@@ -158,8 +149,7 @@ function hexByte(value: number): string {
 
 function stopColorError(method: string): TypeError {
 	return new TypeError(
-		`\`${method}()\` gradient stops take the base colors Color.Black, Color.Red, Color.Green, Color.Blue, ` +
-			`Color.Yellow, Color.Magenta, Color.Cyan, Color.White and Color.Gray, a stop name such as "red", ` +
+		`\`${method}()\` gradient stops take any Color but Color.System and Color.Candy, a stop name such as "red", ` +
 			`a hex value such as "#ff8800", or {red, green, blue} channels from hexToRgb()`,
 	);
 }

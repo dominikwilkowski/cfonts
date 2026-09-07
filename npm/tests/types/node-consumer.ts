@@ -43,7 +43,10 @@ document;
 // @ts-expect-error System has no color to blend into a gradient
 colorful.gradient({ start: Color.System, end: Color.Blue });
 
-// @ts-expect-error bright colors have no gradient stop names
+// @ts-expect-error Candy rolls per segment and has no color to blend into a gradient
+colorful.gradient({ transition: [Color.Red, Color.Candy] });
+
+// bright colors are stops like any other named color
 colorful.gradient({ transition: [Color.Red, Color.WhiteBright] });
 
 // @ts-expect-error a transition holds at least two stops

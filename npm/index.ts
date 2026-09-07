@@ -212,7 +212,7 @@ export class Cfonts {
 	 * Blocks with their own colors override it for their columns and the ramp resumes after;
 	 * shares the one global color slot with `globalColors`
 	 *
-	 * Stops take the base colors, hex values, or channel values from `hexToRgb()`
+	 * Stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
 	 *
 	 *
 	 * @example
