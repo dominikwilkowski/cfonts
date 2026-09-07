@@ -111,12 +111,14 @@ fn each_global_setting_can_be_configured_once() {
 	assert!(banner.spaceless().is_ok());
 	assert!(banner.max_length(10).is_ok());
 	assert!(banner.independent_gradient().is_ok());
+	assert!(banner.background("blue".to_owned()).is_ok());
 
 	assert!(banner.align(Align::Right).is_err());
 	assert!(banner.valign(Valign::Top).is_err());
 	assert!(banner.spaceless().is_err());
 	assert!(banner.max_length(20).is_err());
 	assert!(banner.independent_gradient().is_err());
+	assert!(banner.background("red".to_owned()).is_err());
 }
 
 #[wasm_bindgen_test]
@@ -333,6 +335,113 @@ fn the_independent_gradient_crosses_the_boundary() {
 
 	assert_ne!(independent, fixed);
 	assert_eq!(independent, expected.text);
+}
+
+#[wasm_bindgen_test]
+fn the_background_can_be_configured_once_across_all_shapes() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	// the background has a slot of its own beside the global color
+	assert!(banner.global_colors(vec!["red".to_owned()]).is_ok());
+	assert!(banner.background("blue".to_owned()).is_ok());
+	assert!(banner.background("red".to_owned()).is_err());
+	assert!(banner.background_gradient("red".to_owned(), "blue".to_owned()).is_err());
+	assert!(banner.background_transition(vec!["red".to_owned(), "blue".to_owned()]).is_err());
+	assert!(banner.background_gradient_preset(GradientPreset::Pride).is_err());
+}
+
+#[wasm_bindgen_test]
+fn a_failed_background_does_not_claim_the_slot() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	assert!(banner.background("reed".to_owned()).is_err());
+	assert!(banner.background("candy".to_owned()).is_err()); // candy rolls per segment and cannot fill a row
+	assert!(banner.background_gradient("red".to_owned(), "system".to_owned()).is_err()); // system is not a stop
+	assert!(banner.background_transition(vec!["red".to_owned()]).is_err()); // one stop is not a transition
+	assert!(banner.background_gradient_preset(GradientPreset::Pride).is_ok());
+}
+
+#[wasm_bindgen_test]
+fn a_background_crosses_the_boundary_into_every_environment() {
+	let mut banner = Cfonts::text("A".to_owned());
+	banner.font(Font::Tiny);
+	banner.spaceless().expect("first spaceless call");
+	banner.background("blue".to_owned()).expect("a valid background");
+
+	let plain = banner.render(EnvironmentKind::Cli, None, None, None);
+	assert!(!plain.text.contains("\u{1b}["));
+
+	let expected = CoreCfonts::text("A")
+		.font(CoreFont::Tiny)
+		.spaceless()
+		.background(cfonts::Color::Blue)
+		.render_with(&CliEnv::default(), RenderContext::colored(cfonts::ColorLevel::Basic));
+	assert_eq!(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::Basic), None).text, expected.text);
+
+	let html = banner.render(EnvironmentKind::Browser, None, Some(ColorLevel::TrueColor), None).text;
+	assert!(html.contains("<div style=\"background:#0020f5;min-height:1lh\">"));
+
+	let console = banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None);
+	assert!(console.styles.contains(&"background:#0020f5".to_owned()));
+}
+
+#[wasm_bindgen_test]
+fn a_system_background_is_accepted_and_paints_nothing() {
+	let plain = wrapping_banner();
+	let mut system = wrapping_banner();
+	system.background("system".to_owned()).expect("system leaves the environment's own background");
+
+	for environment in EnvironmentKind::ALL {
+		assert_eq!(
+			system.render(environment, None, Some(ColorLevel::TrueColor), None).text,
+			plain.render(environment, None, Some(ColorLevel::TrueColor), None).text,
+			"{environment:?}",
+		);
+	}
+}
+
+#[wasm_bindgen_test]
+fn every_background_gradient_shape_matches_the_core_builder() {
+	let context = RenderContext::colored(cfonts::ColorLevel::TrueColor);
+	// the core twin of wrapping_banner with the background applied
+	let core = |background: cfonts::BackgroundOption| {
+		CoreCfonts::text("AA")
+			.font(CoreFont::Tiny)
+			.line_height(0)
+			.spaceless()
+			.background(background)
+			.render_with(&CliEnv::default(), context)
+			.text
+	};
+	let boundary = |banner: &Cfonts| banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None).text;
+
+	let mut two_stop = wrapping_banner();
+	two_stop.background_gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
+	let mut transition = wrapping_banner();
+	transition
+		.background_transition(vec!["red".to_owned(), "#8899dd".to_owned(), "blue".to_owned()])
+		.expect("valid stops");
+	let mut preset = wrapping_banner();
+	preset.background_gradient_preset(GradientPreset::Pride).expect("a fresh slot");
+
+	let stops = |names: &[cfonts::GradientStop]| {
+		cfonts::TransitionStops::try_from(names.to_vec()).expect("three stops make a transition")
+	};
+	let gray = cfonts::GradientStop::Rgb(cfonts::Rgb { red: 136, green: 153, blue: 221 });
+
+	assert!(boundary(&two_stop).starts_with("\u{1b}[48;2;255;0;0m"));
+	assert_eq!(
+		boundary(&two_stop),
+		core(cfonts::GradientOption::TwoStop { start: cfonts::GradientStop::Red, end: cfonts::GradientStop::Blue }.into())
+	);
+	assert_eq!(
+		boundary(&transition),
+		core(
+			cfonts::GradientOption::Transition(stops(&[cfonts::GradientStop::Red, gray, cfonts::GradientStop::Blue])).into()
+		)
+	);
+	assert_eq!(boundary(&preset), core(cfonts::GradientPreset::Pride.into()));
+	assert_ne!(boundary(&preset), boundary(&two_stop));
 }
 
 #[wasm_bindgen_test]

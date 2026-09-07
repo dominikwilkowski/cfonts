@@ -6,7 +6,10 @@ const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
 const html = banner.render(host);
 banner.say(host);
 
-banner.colors([Color.RedBright, "#f80"]).globalGradient(GradientPreset.Bisexual);
+banner
+	.colors([Color.RedBright, "#f80"])
+	.globalGradient(GradientPreset.Bisexual)
+	.background({ start: Color.Red, end: Color.Blue });
 
 const consoleArtifact = banner.renderWith(BrowserConsoleEnv);
 

@@ -3,9 +3,9 @@ use std::num::NonZeroUsize;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor, ColorError, ColorOption,
-	GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options, RenderContext, TransitionStops,
-	options::BlockOptions,
+	BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor, ColorError,
+	ColorOption, GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options, RenderContext,
+	TransitionStops, options::BlockOptions,
 };
 
 use crate::{Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign};
@@ -16,6 +16,7 @@ const SPACELESS_SET: u8 = 1 << 2;
 const MAX_LENGTH_SET: u8 = 1 << 3;
 const GLOBAL_COLOR_SET: u8 = 1 << 4;
 const INDEPENDENT_GRADIENT_SET: u8 = 1 << 5;
+const BACKGROUND_SET: u8 = 1 << 6;
 
 /// The mutable WASM-facing builder
 ///
@@ -202,6 +203,43 @@ impl Cfonts {
 		Ok(())
 	}
 
+	/// Paints one color behind every row of the composition, the padding rows included
+	///
+	/// The four background shapes share one slot behind the one JavaScript method,
+	/// parsing happens before the slot is claimed, so a failed call leaves the builder unchanged
+	pub fn background(&mut self, color: String) -> Result<(), JsError> {
+		let color = parse_background(&color)?;
+		self.set_global(BACKGROUND_SET, "background")?;
+		self.options.background = Some(BackgroundOption::Color(color));
+		Ok(())
+	}
+
+	/// Ramps a two stop gradient behind the rows, from the top row down
+	#[wasm_bindgen(js_name = backgroundGradient)]
+	pub fn background_gradient(&mut self, start: String, end: String) -> Result<(), JsError> {
+		let gradient = two_stop(&start, &end)?;
+		self.set_global(BACKGROUND_SET, "background")?;
+		self.options.background = Some(gradient.into());
+		Ok(())
+	}
+
+	/// Ramps a transition gradient behind the rows, from the top row down
+	#[wasm_bindgen(js_name = backgroundTransition)]
+	pub fn background_transition(&mut self, stops: Vec<String>) -> Result<(), JsError> {
+		let gradient = transition(&stops)?;
+		self.set_global(BACKGROUND_SET, "background")?;
+		self.options.background = Some(gradient.into());
+		Ok(())
+	}
+
+	/// Ramps a preset gradient behind the rows, from the top row down
+	#[wasm_bindgen(js_name = backgroundGradientPreset)]
+	pub fn background_gradient_preset(&mut self, preset: GradientPreset) -> Result<(), JsError> {
+		self.set_global(BACKGROUND_SET, "background")?;
+		self.options.background = Some(CoreGradientPreset::from(preset).into());
+		Ok(())
+	}
+
 	/// Renders one artifact through the core Rust library
 	///
 	/// The JavaScript host passes the environment it selected and the capabilities
@@ -234,6 +272,15 @@ impl Cfonts {
 /// Parses a boundary color through the core name-or-hex parser
 fn parse_color(input: &str) -> Result<CoreColor, JsError> {
 	input.parse().map_err(|error| color_error(input, error))
+}
+
+/// Parses a boundary background color, candy rolls per segment and cannot fill a row,
+/// so it is refused like an unknown name
+fn parse_background(input: &str) -> Result<CoreColor, JsError> {
+	match parse_color(input)? {
+		CoreColor::Candy => Err(JsError::new(&format!("Unsupported background `{input}`, use a color name or hex value"))),
+		color => Ok(color),
+	}
 }
 
 /// Parses a boundary gradient stop through the core name-or-hex parser

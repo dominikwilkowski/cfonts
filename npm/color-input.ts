@@ -54,6 +54,30 @@ export type NormalizedGradient =
 	| { kind: "transition"; stops: string[] };
 
 /**
+ * The named colors a background accepts
+ *
+ * Candy rolls per segment and cannot fill a row, System paints nothing
+ */
+export type BackgroundColor = Exclude<Color, Color.Candy>;
+
+/**
+ * A background: one color behind every row, or a gradient from the top row down
+ *
+ * A preset goes in its object form, `{ preset: GradientPreset.Pride }`,
+ * a bare preset value would read as a Color
+ */
+export type BackgroundInput =
+	| BackgroundColor
+	| string
+	| (RgbInput & { preset?: never; start?: never; end?: never; transition?: never })
+	| Exclude<GradientInput, GradientPreset>;
+
+/**
+ * The background shapes after validation, one color or one gradient shape
+ */
+export type NormalizedBackground = { kind: "color"; color: string } | NormalizedGradient;
+
+/**
  * Converts a hex value into RGB channel values
  *
  * Accepts three or six hex digits with an optional leading `#`;
@@ -154,6 +178,13 @@ function stopColorError(method: string): TypeError {
 	);
 }
 
+function backgroundShapeError(method: string): TypeError {
+	return new TypeError(
+		`\`${method}()\` expects a background as a Color value, a name, a hex value, {red, green, blue} channels, ` +
+			`or a gradient shape such as {start: Color.Red, end: Color.Blue} or {preset: GradientPreset.Pride}`,
+	);
+}
+
 function gradientShapeError(method: string): TypeError {
 	return new TypeError(
 		`\`${method}()\` expects exactly one gradient shape: {start: Color.Red, end: Color.Blue}, ` +
@@ -164,20 +195,26 @@ function gradientShapeError(method: string): TypeError {
 
 /**
  * Validates a gradient's shape and picks the boundary call it maps to
+ *
+ * The shape error names the shapes the calling method accepts
  */
-export function normalizeGradient(input: GradientInput, method: string): NormalizedGradient {
+export function normalizeGradient(
+	input: GradientInput,
+	method: string,
+	shapeError: (method: string) => TypeError = gradientShapeError,
+): NormalizedGradient {
 	if (typeof input === "number") {
 		return { kind: "preset", preset: expectEnum<GradientPreset>(input, GradientPreset, method) };
 	}
 
 	if (input === null || typeof input !== "object") {
-		throw gradientShapeError(method);
+		throw shapeError(method);
 	}
 
 	const shapes = ["preset" in input, "start" in input || "end" in input, "transition" in input].filter(Boolean).length;
 
 	if (shapes !== 1) {
-		throw gradientShapeError(method);
+		throw shapeError(method);
 	}
 
 	if ("preset" in input) {
@@ -202,4 +239,33 @@ export function normalizeGradient(input: GradientInput, method: string): Normali
 	}
 
 	return { kind: "twoStop", start: normalizeStop(input.start, method), end: normalizeStop(input.end, method) };
+}
+
+/**
+ * Validates a background's shape and picks the boundary call it maps to
+ *
+ * A number or a string is one color, channels are one color, any gradient shape is a gradient,
+ * which colors may fill a row is decided once, in Rust
+ */
+export function normalizeBackground(input: BackgroundInput, method: string): NormalizedBackground {
+	if (typeof input === "number" || typeof input === "string") {
+		return { kind: "color", color: normalizeColorLike(input, method, backgroundShapeError) };
+	}
+
+	if (input === null || typeof input !== "object") {
+		throw backgroundShapeError(method);
+	}
+
+	const channels = "red" in input;
+	const gradient = "preset" in input || "start" in input || "end" in input || "transition" in input;
+
+	if (channels === gradient) {
+		throw backgroundShapeError(method);
+	}
+
+	if (channels) {
+		return { kind: "color", color: encodeRgb(input, method) };
+	}
+
+	return normalizeGradient(input, method, backgroundShapeError);
 }

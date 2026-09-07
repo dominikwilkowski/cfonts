@@ -9,12 +9,15 @@ import {
 	Cfonts as WasmCfonts,
 } from "../pkg/cfonts_wasm.js";
 import {
+	type BackgroundColor,
+	type BackgroundInput,
 	type ColorInput,
 	type GradientColor,
 	type GradientInput,
 	type GradientStopInput,
 	type GradientStops,
 	hexToRgb,
+	normalizeBackground,
 	normalizeColorList,
 	normalizeGradient,
 	type RgbInput,
@@ -25,6 +28,8 @@ import { normalizeRenderContext, type RenderContext, type RenderOverrides } from
 import { expectEnum, expectString, expectU32 } from "./validation.js";
 
 export type {
+	BackgroundColor,
+	BackgroundInput,
 	ColorInput,
 	Environment,
 	GradientColor,
@@ -250,6 +255,44 @@ export class Cfonts {
 	 */
 	independentGradient(): this {
 		this.#inner.independentGradient();
+		return this;
+	}
+
+	/**
+	 * Paints a background behind every row of the composition, the padding rows included
+	 *
+	 * One color fills every row, a gradient ramps from the top row down,
+	 * `Color.System` paints nothing and `Color.Candy` is refused, it rolls per segment and cannot fill a row
+	 *
+	 * A preset goes in its object form, a bare `GradientPreset` value would read as a `Color`
+	 *
+	 * @example
+	 * Cfonts.text("hello").background(Color.Blue);
+	 *
+	 * @example
+	 * Cfonts.text("hello").background({ start: Color.Red, end: "#0000ff" });
+	 *
+	 * @example
+	 * Cfonts.text("hello").background({ preset: GradientPreset.Pride });
+	 */
+	background(background: BackgroundInput): this {
+		const normalized = normalizeBackground(background, "background");
+
+		switch (normalized.kind) {
+			case "color":
+				this.#inner.background(normalized.color);
+				break;
+			case "preset":
+				this.#inner.backgroundGradientPreset(normalized.preset);
+				break;
+			case "twoStop":
+				this.#inner.backgroundGradient(normalized.start, normalized.end);
+				break;
+			case "transition":
+				this.#inner.backgroundTransition(normalized.stops);
+				break;
+		}
+
 		return this;
 	}
 

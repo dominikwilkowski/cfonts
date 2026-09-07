@@ -27,6 +27,23 @@ colorful.render(host);
 
 Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }]);
 
+Cfonts.text("banded").background(Color.Blue);
+Cfonts.text("banded").background(Color.System);
+Cfonts.text("banded").background("#222");
+Cfonts.text("banded").background(hexToRgb("#222222"));
+Cfonts.text("banded").background({ start: Color.Red, end: "#0000ff" });
+Cfonts.text("banded").background({ transition: [Color.Red, Color.WhiteBright] });
+Cfonts.text("banded").background({ preset: GradientPreset.Pride });
+
+// @ts-expect-error Candy rolls per segment and cannot fill a row
+Cfonts.text("banded").background(Color.Candy);
+
+// @ts-expect-error a bare preset would read as a Color, presets go in their object form
+Cfonts.text("banded").background(GradientPreset.Pride);
+
+// @ts-expect-error channels and a gradient are two backgrounds
+Cfonts.text("banded").background({ red: 1, green: 2, blue: 3, start: Color.Red, end: Color.Blue });
+
 // @ts-expect-error an empty object is not a gradient
 banner.gradient({});
 

@@ -770,6 +770,90 @@ test("a failed global gradient does not claim the slot", () => {
 	banner.globalGradient({ start: "red", end: "blue" }); // the slot is still available
 });
 
+test("background accepts every shape and paints nothing without a color level", () => {
+	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+	const shapes = [
+		Color.Blue,
+		Color.System,
+		"blue",
+		"system",
+		"#222",
+		{ red: 1, green: 2, blue: 3 },
+		{ start: "red", end: "blue" },
+		{ transition: [Color.Red, "#8899dd", Color.Blue] },
+		{ preset: GradientPreset.Pride },
+	];
+
+	for (const background of shapes) {
+		assert.equal(Cfonts.text("A").background(background).renderWith(CliEnv).text, plain);
+	}
+});
+
+test("a background bands every row in every environment", () => {
+	const context = { colorLevel: ColorLevel.TrueColor };
+	const banner = Cfonts.text("A").font(Font.Tiny).spaceless().background(Color.Blue);
+
+	assert.equal(
+		banner.renderWith(CliEnv, context).text,
+		"\u001b[44m\u001b[K▄▀█\u001b[49m\n\u001b[44m\u001b[K█▀█\u001b[49m",
+	);
+	assert.ok(
+		banner.renderWith(BrowserEnv, context).text.includes('<div style="background:#0020f5;min-height:1lh">▄▀█</div>'),
+	);
+	assert.deepEqual(banner.renderWith(BrowserConsoleEnv, context).styles, [
+		"background:#0020f5",
+		"",
+		"background:#0020f5",
+		"",
+	]);
+});
+
+test("a background gradient ramps from the top row down", () => {
+	const context = { colorLevel: ColorLevel.TrueColor };
+	const render = (background) =>
+		Cfonts.text("A").font(Font.Tiny).spaceless().background(background).renderWith(CliEnv, context).text;
+
+	const rows = render({ start: "red", end: "blue" }).split("\n");
+	assert.ok(rows[0].startsWith("\u001b[48;2;255;0;0m"));
+	assert.ok(rows[1].startsWith("\u001b[48;2;0;0;255m"));
+
+	// a transition over the same two stops walks the same ramp, a preset walks its own
+	assert.equal(render({ transition: ["red", "blue"] }), render({ start: "red", end: "blue" }));
+	const preset = render({ preset: GradientPreset.Pride }).split("\n");
+	assert.ok(preset.every((row) => row.startsWith("\u001b[48;2;")));
+	assert.notEqual(preset.join("\n"), rows.join("\n"));
+});
+
+test("background validates its input", () => {
+	assert.throws(() => Cfonts.text("A").background(true), TypeError);
+	assert.throws(() => Cfonts.text("A").background({}), TypeError); // no shape
+	assert.throws(() => Cfonts.text("A").background({ red: 256, green: 0, blue: 0 }), TypeError); // not a channel value
+	assert.throws(() => Cfonts.text("A").background({ start: "red" }), TypeError); // missing end
+	assert.throws(() => Cfonts.text("A").background({ red: 1, green: 2, blue: 3, start: "red", end: "blue" }), TypeError); // two shapes
+	assert.throws(
+		() => Cfonts.text("A").background({ preset: GradientPreset.Pride, start: "red", end: "blue" }),
+		/expects a background/,
+	); // two gradient shapes teach the background shapes
+	assert.throws(() => Cfonts.text("A").background("reed"), /Unsupported color/); // unknown name, rejected in Rust
+	assert.throws(() => Cfonts.text("A").background(Color.Candy), /Unsupported background/); // candy cannot fill a row
+	assert.throws(() => Cfonts.text("A").background({ start: "system", end: "blue" }), /Unsupported gradient stop/);
+});
+
+test("the background can only be set once", () => {
+	const banner = Cfonts.text("A").background(Color.Blue);
+	assert.throws(() => banner.background(Color.Red), /`background\(\)` has already been set/);
+	assert.throws(() => banner.background({ preset: GradientPreset.Pride }), /has already been set/);
+
+	const failed = Cfonts.text("A");
+	assert.throws(() => failed.background("reed"), Error);
+	failed.background(Color.Blue); // a failed call leaves the slot available
+});
+
+test("the background has a slot of its own beside the global colors", () => {
+	Cfonts.text("A").globalGradient(GradientPreset.Pride).background(Color.Blue).independentGradient();
+	Cfonts.text("A").background(Color.Blue).globalColors([Color.Red]);
+});
+
 test("independentGradient restarts every line and can only be set once", () => {
 	const context = { colorLevel: ColorLevel.TrueColor };
 	const banner = Cfonts.text("A|AB").font(Font.Tiny).lineHeight(0).gradient({ start: "red", end: "blue" });
