@@ -15,7 +15,7 @@ pub(crate) const MARK_CLOSE: &str = Color::ANSI_RESET;
 /// Names of a chunked list are set apart by a comma and a space, and after every fifth name
 /// by a comma and a line break into the indent of the possible arguments bracket
 const SEPARATOR: &str = ", ";
-const CONTINUATION: &str = ",\n      ";
+const CONTINUATION: &str = ",\n    ";
 
 /// How many names one line of a chunked list holds
 const NAMES_PER_LINE: usize = 5;
@@ -110,7 +110,7 @@ macro_rules! const_concat {
 pub(crate) use const_concat;
 
 /// How many pieces a chunked list of `names` has, every name equal to `skip` left out:
-/// the kept names and a separator before every one but the first
+/// every kept name between two copies of its wrap, and a separator before every one but the first
 pub(crate) const fn chunk_count(names: &[&str], skip: &str) -> usize {
 	let mut kept = 0;
 	let mut index = 0;
@@ -122,12 +122,16 @@ pub(crate) const fn chunk_count(names: &[&str], skip: &str) -> usize {
 		index += 1;
 	}
 
-	if kept == 0 { 0 } else { 2 * kept - 1 }
+	if kept == 0 { 0 } else { 4 * kept - 1 }
 }
 
-/// The pieces of a chunked list, names and separators in turn, five names per line,
-/// every name equal to `skip` left out
-pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(names: &[&'a str], skip: &str) -> [&'a str; COUNT] {
+/// The pieces of a chunked list, every name between two copies of `wrap` and separators in between,
+/// five names per line, every name equal to `skip` left out
+pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(
+	names: &[&'a str],
+	skip: &str,
+	wrap: &'a str,
+) -> [&'a str; COUNT] {
 	let mut pieces = [""; COUNT];
 	let mut piece = 0;
 	let mut kept = 0;
@@ -139,8 +143,10 @@ pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(names: &[&'a str], skip
 				pieces[piece] = if kept % NAMES_PER_LINE == 0 { CONTINUATION } else { SEPARATOR };
 				piece += 1;
 			}
-			pieces[piece] = names[index];
-			piece += 1;
+			pieces[piece] = wrap;
+			pieces[piece + 1] = names[index];
+			pieces[piece + 2] = wrap;
+			piece += 3;
 			kept += 1;
 		}
 		index += 1;
@@ -149,11 +155,12 @@ pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(names: &[&'a str], skip
 	pieces
 }
 
-/// Lays a name array out five per line into one `&'static str` at compile time, one name left out
+/// Lays a name array out five per line into one `&'static str` at compile time,
+/// one name left out and every name wrapped in `wrap`
 macro_rules! const_chunk {
-	($names:expr, $skip:expr) => {{
+	($names:expr, $skip:expr, $wrap:expr) => {{
 		const COUNT: usize = crate::cli::helper::chunk_count(&$names, $skip);
-		const PIECES: [&str; COUNT] = crate::cli::helper::chunk_pieces(&$names, $skip);
+		const PIECES: [&str; COUNT] = crate::cli::helper::chunk_pieces(&$names, $skip, $wrap);
 		crate::cli::helper::const_join!(&PIECES, "")
 	}};
 }
@@ -369,23 +376,31 @@ mod tests {
 	#[test]
 	fn const_chunk_lays_five_names_per_line_and_leaves_one_out() {
 		const NAMES: [&str; 7] = ["a", "b", "c", "d", "e", "f", "g"];
-		const TEXT: &str = const_chunk!(NAMES, "c");
+		const TEXT: &str = const_chunk!(NAMES, "c", "");
 
-		assert_eq!(TEXT, "a, b, d, e, f,\n      g");
+		assert_eq!(TEXT, "a, b, d, e, f,\n    g");
 	}
 
 	#[test]
 	fn const_chunk_breaks_exactly_after_the_fifth_kept_name() {
 		const NAMES: [&str; 6] = ["é", "b", "c", "d", "e", "f"];
-		const TEXT: &str = const_chunk!(NAMES, "");
+		const TEXT: &str = const_chunk!(NAMES, "", "");
 
-		assert_eq!(TEXT, "é, b, c, d, e,\n      f");
+		assert_eq!(TEXT, "é, b, c, d, e,\n    f");
+	}
+
+	#[test]
+	fn const_chunk_wraps_every_name_and_leaves_the_separators_bare() {
+		const NAMES: [&str; 6] = ["a", "b", "c", "d", "e", "f"];
+		const TEXT: &str = const_chunk!(NAMES, "", "`");
+
+		assert_eq!(TEXT, "`a`, `b`, `c`, `d`, `e`,\n    `f`");
 	}
 
 	#[test]
 	fn const_chunk_of_no_kept_names_is_empty() {
 		const NAMES: [&str; 1] = ["a"];
-		const TEXT: &str = const_chunk!(NAMES, "a");
+		const TEXT: &str = const_chunk!(NAMES, "a", "`");
 
 		assert_eq!(TEXT, "");
 	}

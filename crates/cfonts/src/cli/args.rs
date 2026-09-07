@@ -44,8 +44,7 @@ pub(crate) enum ColorShape<'a> {
 
 /// One compile time help line from one arg's infos
 ///
-/// Every backticked span of the infos is an input and renders in the mark color,
-/// the possible arguments are one such span
+/// Every backticked span of the infos is an input and renders in the mark color
 macro_rules! help_line {
 	($arg:expr, $colored:literal) => {{
 		const INFO: ArgInfo = $arg.infos();
@@ -84,15 +83,11 @@ macro_rules! help_line {
 			_ => "\n  ",
 		};
 		const ARGUMENTS_OPEN: &str = match INFO.arguments {
-			Some(_) => "\n  Possible arguments:\n    [ `",
+			Some(_) => "\n  Possible arguments:\n    ",
 			None => "",
 		};
 		const ARGUMENTS: &str = match INFO.arguments {
 			Some(arguments) => arguments,
-			None => "",
-		};
-		const ARGUMENTS_CLOSE: &str = match INFO.arguments {
-			Some(_) => "` ]",
 			None => "",
 		};
 		const LINE: &str = const_concat!(
@@ -115,7 +110,6 @@ macro_rules! help_line {
 			EXAMPLES,
 			ARGUMENTS_OPEN,
 			ARGUMENTS,
-			ARGUMENTS_CLOSE
 		);
 		const_mark!(LINE, OPEN, CLOSE)
 	}};
@@ -379,7 +373,7 @@ impl Args {
 				scope: "This will apply globally",
 				description: "The output aligns within the width of your terminal",
 				examples: &["cfonts hello --align center", "cfonts hello --align right --font tiny"],
-				arguments: Some(const_chunk!(Align::NAMES, "")),
+				arguments: Some(const_chunk!(Align::NAMES, "", "`")),
 			},
 			Self::Valign => ArgInfo {
 				long: "valign",
@@ -391,7 +385,7 @@ impl Args {
 					"cfonts Big --font block --next \" small\" --font tiny --valign bottom",
 					"cfonts --valign middle Big --next \" small\" --font console",
 				],
-				arguments: Some(const_chunk!(Valign::NAMES, "")),
+				arguments: Some(const_chunk!(Valign::NAMES, "", "`")),
 			},
 			Self::Spaceless => ArgInfo {
 				long: "spaceless",
@@ -412,7 +406,7 @@ impl Args {
 					"cfonts \"a long line of text\" --max-length 10",
 					"cfonts \"a long line of text\" --max-length 10 --word-wrap",
 				],
-				arguments: Some("0, 10, 20, 42..."),
+				arguments: Some("`0`, `10`, `20`, `42`..."),
 			},
 			Self::Stdin => ArgInfo {
 				long: "stdin",
@@ -456,7 +450,7 @@ impl Args {
 					"cfonts Hello --next world",
 					"cfonts Logo --font chrome --next \" v4\" --font console --valign bottom",
 				],
-				arguments: Some("<text>"),
+				arguments: Some("`<text>`"),
 			},
 			Self::NextStdin => ArgInfo {
 				long: "next-stdin",
@@ -477,7 +471,7 @@ impl Args {
 				scope: "Applies to the current text block",
 				description: "Every block can use its own font",
 				examples: &["cfonts hello --font chrome", "cfonts hello --font tiny --next \" world\" --font block"],
-				arguments: Some(const_chunk!(Font::NAMES, "")),
+				arguments: Some(const_chunk!(Font::NAMES, "", "`")),
 			},
 			Self::Color => ArgInfo {
 				long: "colors",
@@ -498,7 +492,7 @@ impl Args {
 					"cfonts hello --colors red:yellow:green",
 					"cfonts Hi --colors red-blue --next \" there\" --colors system",
 				],
-				arguments: Some(const_chunk!(Color::NAMES, "")),
+				arguments: Some(const_chunk!(Color::NAMES, "", "`")),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
@@ -518,7 +512,7 @@ impl Args {
 					"cfonts hello --background red-blue",
 					"cfonts hello --background red:yellow:green --spaceless",
 				],
-				arguments: Some(const_chunk!(Color::NAMES, "candy")),
+				arguments: Some(const_chunk!(Color::NAMES, "candy", "`")),
 			},
 			Self::LetterSpacing => ArgInfo {
 				long: "letter-spacing",
@@ -527,7 +521,7 @@ impl Args {
 				scope: "Applies to the current text block",
 				description: "`0` removes the gap the font puts between letters",
 				examples: &["cfonts hello --letter-spacing 2", "cfonts hello --letter-spacing 0 --font tiny"],
-				arguments: Some("0, 1, 2, 5, 20..."),
+				arguments: Some("`0`, `1`, `2`, `5`, `20`..."),
 			},
 			Self::LineHeight => ArgInfo {
 				long: "line-height",
@@ -536,7 +530,7 @@ impl Args {
 				scope: "Applies to the current text block",
 				description: "Text wraps automatically.\n  The `|` character in the text starts a new line",
 				examples: &["cfonts \"one|two\" --line-height 3"],
-				arguments: Some("0, 2, 5, 10..."),
+				arguments: Some("`0`, `2`, `5`, `10`..."),
 			},
 			Self::WordWrap => ArgInfo {
 				long: "word-wrap",
@@ -698,7 +692,7 @@ mod tests {
 				expected.push_str(&format!("\n{PROMPT_COLORED} {example}"));
 			}
 			if let Some(arguments) = info.arguments {
-				expected.push_str(&format!("\n  Possible arguments:\n    [ {open}{arguments}{close} ]"));
+				expected.push_str(&format!("\n  Possible arguments:\n    {}", marked(arguments, open, close)));
 			}
 
 			assert_eq!(argument.help_colored(), expected, "{argument:?}");
@@ -725,15 +719,17 @@ mod tests {
 
 			assert!(!colored.contains('`') && !plain.contains('`'), "{argument:?} lets a backtick through");
 
-			for text in [info.scope, info.description] {
+			for text in [info.scope, info.description, info.arguments.unwrap_or("")] {
 				for span in text.split('`').skip(1).step_by(2) {
 					assert!(colored.contains(&format!("{MARK_OPEN}{span}{MARK_CLOSE}")), "{argument:?} {span:?}");
 					assert!(plain.contains(span), "{argument:?} {span:?}");
 				}
 			}
 			if let Some(arguments) = info.arguments {
-				assert!(!arguments.contains('`'), "{argument:?} lists only values");
-				assert!(colored.contains(&format!("[ {MARK_OPEN}{arguments}{MARK_CLOSE} ]")), "{argument:?}");
+				// a list marks its values one by one, so no mark spans a separator
+				for span in arguments.split('`').skip(1).step_by(2) {
+					assert!(!span.contains(','), "{argument:?} marks a separator in {span:?}");
+				}
 			}
 		}
 	}
