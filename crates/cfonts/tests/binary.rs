@@ -5,6 +5,13 @@
 //! shell or CI runner; parser semantics and the color cascade stay pinned by
 //! their own in-process suites — these rows prove the process boundary
 
+#[cfg(unix)]
+use std::{
+	fs::File,
+	io::Read,
+	os::fd::{FromRawFd, OwnedFd},
+	ptr,
+};
 use std::{
 	io::Write,
 	process::{Output, Stdio},
@@ -151,6 +158,15 @@ fn force_color_paints_a_piped_stdout() {
 }
 
 #[test]
+fn a_background_fills_every_row_to_the_edge() {
+	let output = run(&["hi", "-f", "console", "-b", "blue"], &[("FORCE_COLOR", "1")], None);
+
+	assert_eq!(output.status.code(), Some(0));
+	let band = "\u{1b}[44m\u{1b}[K\u{1b}[49m";
+	assert_eq!(text(&output.stdout), format!("{band}\n{band}\n\u{1b}[44m\u{1b}[Khi\u{1b}[49m\n{band}\n{band}\n"));
+}
+
+#[test]
 fn no_color_beats_a_capable_terminal() {
 	let output = run(&["hi", "-f", "console", "-c", "red"], &[("NO_COLOR", "1"), ("COLORTERM", "truecolor")], None);
 
@@ -175,11 +191,6 @@ fn a_piped_process_falls_back_to_eighty_columns() {
 #[cfg(unix)]
 #[test]
 fn a_terminal_width_wraps_through_the_process_boundary() {
-	use std::{
-		io::Read,
-		os::fd::{FromRawFd, OwnedFd},
-	};
-
 	// a real six-column terminal: the same expectation as the FORCE_SIZE row,
 	// reached through measurement instead of the environment
 	let mut controller = 0;
@@ -187,9 +198,8 @@ fn a_terminal_width_wraps_through_the_process_boundary() {
 	let mut size = libc::winsize { ws_row: 24, ws_col: 6, ws_xpixel: 0, ws_ypixel: 0 };
 
 	// SAFETY: openpty writes the two file descriptors and reads the size
-	let result = unsafe {
-		libc::openpty(&raw mut controller, &raw mut follower, std::ptr::null_mut(), std::ptr::null_mut(), &raw mut size)
-	};
+	let result =
+		unsafe { libc::openpty(&raw mut controller, &raw mut follower, ptr::null_mut(), ptr::null_mut(), &raw mut size) };
 	assert_eq!(result, 0, "openpty must succeed");
 
 	// SAFETY: both descriptors were just opened and are owned here
@@ -204,7 +214,7 @@ fn a_terminal_width_wraps_through_the_process_boundary() {
 		.expect("the binary must spawn");
 
 	// drain until the binary exits and its terminal closes
-	let mut reader = std::fs::File::from(controller);
+	let mut reader = File::from(controller);
 	let mut rendered = Vec::new();
 	let mut chunk = [0u8; 1024];
 	loop {
@@ -251,7 +261,7 @@ fn force_size_wraps_through_the_process_boundary() {
 fn a_full_device_reports_the_write_error() {
 	let output = hermetic_binary(&["hi", "-f", "console"], &[("NO_COLOR", "1")])
 		.stdin(Stdio::null())
-		.stdout(std::fs::File::create("/dev/full").expect("linux offers /dev/full"))
+		.stdout(File::create("/dev/full").expect("linux offers /dev/full"))
 		.stderr(Stdio::piped())
 		.spawn()
 		.expect("the binary must spawn")

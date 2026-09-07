@@ -1,12 +1,13 @@
 use std::{
 	error::Error,
-	fmt::{Display, Formatter},
-	io,
+	fmt::{self, Display, Formatter},
+	io, iter, mem,
 	num::NonZeroUsize,
+	slice,
 };
 
 use crate::{
-	Align, BlockOptions, Color, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
+	Align, BackgroundOption, BlockOptions, Color, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
 	cli::{
 		Args,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -209,6 +210,17 @@ pub enum ParseError<'a> {
 	/// ```
 	PresetNotAlone { argument: Args, value: &'a str, preset: &'a str },
 
+	/// A background value that lists colors where one color, a gradient or a preset goes, carries the value as typed
+	///
+	/// ```
+	/// # use cfonts::cli::{ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--background", "red,blue"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(failure.error, ParseError::BackgroundList("red,blue"));
+	/// ```
+	BackgroundList(&'a str),
+
 	/// The independent gradient flag without a gradient to modify, ignored with a warning
 	///
 	/// ```
@@ -280,6 +292,7 @@ impl ParseError<'_> {
 			Self::MixedColorDelimiters { .. } => ErrorType::Error,
 			Self::TwoStopCount { .. } => ErrorType::Error,
 			Self::PresetNotAlone { .. } => ErrorType::Error,
+			Self::BackgroundList(_) => ErrorType::Error,
 			Self::IndependentGradientIgnored => ErrorType::Warning,
 			Self::GradientFlagMoved(_) => ErrorType::Error,
 			Self::EmptyStdin => ErrorType::Error,
@@ -288,7 +301,7 @@ impl ParseError<'_> {
 		}
 	}
 
-	fn write_message(&self, f: &mut impl std::fmt::Write, color_enabled: bool) -> std::fmt::Result {
+	fn write_message(&self, f: &mut impl fmt::Write, color_enabled: bool) -> fmt::Result {
 		let open = if color_enabled { Color::Yellow.ansi16_sgr().unwrap_or("") } else { "" };
 		let close = if color_enabled { Color::ANSI_RESET } else { "" };
 		let prompt = if color_enabled { PROMPT_COLORED } else { PROMPT_PLAIN };
@@ -386,6 +399,13 @@ impl ParseError<'_> {
 					args.help(color_enabled)
 				)
 			}
+			Self::BackgroundList(value) => {
+				write!(
+					f,
+					"{flag} A background takes one color, a gradient or a preset, not \"{open}{value}{close}\"\n\n{}",
+					Args::Background.help(color_enabled)
+				)
+			}
 			Self::IndependentGradientIgnored => {
 				write!(
 					f,
@@ -429,7 +449,7 @@ impl ParseError<'_> {
 }
 
 impl Display for ParseError<'_> {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		self.write_message(f, Args::stderr_color_enabled())
 	}
 }
@@ -452,6 +472,7 @@ pub(crate) struct CliOptions {
 	pub(crate) max_length: Option<NonZeroUsize>,
 	pub(crate) global_colors: Option<ColorOption>,
 	pub(crate) independent_gradient: bool,
+	pub(crate) background: Option<BackgroundOption>,
 	pub(crate) blocks: Vec<CliBlockOptions>,
 }
 
@@ -489,7 +510,7 @@ impl ParseState {
 	/// Whether the independent gradient flag is set with no gradient anywhere to modify
 	fn independent_gradient_is_orphaned(&self) -> bool {
 		let mut colors =
-			std::iter::once(&self.options.global_colors).chain(self.options.blocks.iter().map(|block| &block.block.colors));
+			iter::once(&self.options.global_colors).chain(self.options.blocks.iter().map(|block| &block.block.colors));
 
 		self.options.independent_gradient && !colors.any(|colors| matches!(colors, Some(ColorOption::Gradient(_))))
 	}
@@ -536,6 +557,7 @@ impl TryFrom<ParseState> for Options {
 			max_length: options.max_length,
 			global_colors: options.global_colors,
 			independent_gradient: options.independent_gradient,
+			background: options.background,
 			blocks,
 		})
 	}
@@ -574,7 +596,7 @@ pub struct ParseFailure<'a> {
 }
 
 impl Display for ParseFailure<'_> {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		for warning in &self.warnings {
 			writeln!(f, "{warning}")?;
 		}
@@ -611,7 +633,7 @@ fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
 /// Pulls the value one argument demands from the argument stream, then applies it
 fn apply_with_value<'a>(
 	arg: Args,
-	args_iter: &mut std::slice::Iter<'a, String>,
+	args_iter: &mut slice::Iter<'a, String>,
 	state: &mut ParseState,
 ) -> Result<(), ParseError<'a>> {
 	let value = if arg.infos().arguments.is_some() { args_iter.next().map(String::as_str) } else { None };
@@ -732,12 +754,13 @@ fn parse_args_with<'a>(
 		let mut options = Options::default();
 		options.global_colors = state.options.global_colors;
 		options.independent_gradient = state.options.independent_gradient;
+		options.background = state.options.background;
 		options
 	} else {
 		state.try_into()?
 	};
 
-	Ok(ParsedArgs { warnings: std::mem::take(warnings), options, raw_mode, show_help, show_demo, show_version })
+	Ok(ParsedArgs { warnings: mem::take(warnings), options, raw_mode, show_help, show_demo, show_version })
 }
 
 #[cfg(test)]
@@ -912,6 +935,47 @@ mod color_values {
 				"{value:?}"
 			);
 		}
+	}
+
+	#[test]
+	fn a_background_is_global_wherever_it_appears() {
+		for list in [&["one", "-b", "blue", "--next", "two"][..], &["one", "--next", "two", "-b", "blue"]] {
+			let parsed = run(list);
+
+			assert_eq!(parsed.options.background, Some(BackgroundOption::Color(Color::Blue)), "{list:?}");
+			assert!(parsed.options.blocks.iter().all(|block| block.colors.is_none()), "{list:?}");
+		}
+	}
+
+	#[test]
+	fn a_background_takes_every_gradient_shape_and_system() {
+		assert_eq!(run(&["hi", "-b", "system"]).options.background, Some(BackgroundOption::Color(Color::System)));
+		assert_eq!(
+			run(&["hi", "-b", "red-blue"]).options.background,
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+		assert_eq!(
+			run(&["hi", "-b", "trans"]).options.background,
+			Some(BackgroundOption::Gradient(GradientOption::Preset(GradientPreset::Transgender)))
+		);
+	}
+
+	#[test]
+	fn a_candy_background_fails_like_any_unknown_word() {
+		for value in ["candy", "nope"] {
+			let input = args(&["hi", "-b", value]);
+			assert_eq!(
+				parse_args(&input, tty()).unwrap_err().error,
+				ParseError::InvalidValue { argument: Args::Background, value, source: Some(ColorError::UnknownColor) },
+				"{value:?}"
+			);
+		}
+	}
+
+	#[test]
+	fn a_background_list_teaches_the_single_color() {
+		let input = args(&["hi", "-b", "red,blue"]);
+		assert_eq!(parse_args(&input, tty()).unwrap_err().error, ParseError::BackgroundList("red,blue"));
 	}
 
 	#[test]
@@ -1256,7 +1320,7 @@ mod argument_parsing {
 
 	#[test]
 	fn the_demo_keeps_the_composition_wide_paint_settings() {
-		let parsed = run(&["--demo", "-c", "red-blue", "-i"]);
+		let parsed = run(&["--demo", "-c", "red-blue", "-i", "-b", "blue"]);
 
 		assert!(parsed.show_demo);
 		assert_eq!(
@@ -1264,6 +1328,7 @@ mod argument_parsing {
 			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
 		);
 		assert!(parsed.options.independent_gradient);
+		assert_eq!(parsed.options.background, Some(BackgroundOption::Color(Color::Blue)));
 	}
 }
 
@@ -1339,7 +1404,7 @@ mod preset_tests {
 mod block_composition {
 	use super::helpers::*;
 	use super::*;
-	use crate::{Color, ColorOption, Font};
+	use crate::{CliEnv, Color, ColorOption, Font, RenderContext, render_with};
 
 	#[test]
 	fn next_starts_additional_text_blocks() {
@@ -1433,9 +1498,6 @@ mod block_composition {
 
 	#[test]
 	fn an_empty_block_renders_as_nothing() {
-		use crate::render::RenderContext;
-		use crate::{CliEnv, render_with};
-
 		let hatch = args(&["", "--next", "hello"]);
 		let plain = args(&["hello"]);
 		let with_empty = parse_args(&hatch, tty()).unwrap();
@@ -1696,6 +1758,7 @@ mod error_messages {
 			ParseError::MixedColorDelimiters { argument: Args::Color, value: "red,blue-green" },
 			ParseError::TwoStopCount { argument: Args::Color, value: "red-blue-green", count: 3 },
 			ParseError::PresetNotAlone { argument: Args::Color, value: "pride,red", preset: "pride" },
+			ParseError::BackgroundList("red,blue"),
 			ParseError::IndependentGradientIgnored,
 			ParseError::GradientFlagMoved("g"),
 			ParseError::GradientFlagMoved("transition-gradient"),
@@ -1721,6 +1784,7 @@ mod error_messages {
 				| ParseError::MixedColorDelimiters { .. }
 				| ParseError::TwoStopCount { .. }
 				| ParseError::PresetNotAlone { .. }
+				| ParseError::BackgroundList(_)
 				| ParseError::IndependentGradientIgnored
 				| ParseError::GradientFlagMoved(_)
 				| ParseError::EmptyStdin

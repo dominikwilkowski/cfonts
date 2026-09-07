@@ -1,11 +1,11 @@
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, str::FromStr};
 
 use crate::{
-	Align, Color, /*Background,*/ ColorError, ColorOption, Font, GradientOption, GradientPreset, TransitionStops,
-	Valign,
+	Align, BackgroundOption, Color, ColorError, ColorOption, Font, GradientOption, GradientPreset, RustHost,
+	TransitionStops, Valign,
 	cli::{
 		CliBlockOptions, ParseError, ParseState,
-		helper::{PROMPT_COLORED, PROMPT_PLAIN, const_concat, const_join},
+		helper::{CONTINUATION, PROMPT_COLORED, PROMPT_PLAIN, const_chunk, const_concat, const_join},
 	},
 	color::GradientStop,
 };
@@ -235,8 +235,8 @@ impl Args {
 				}
 			}
 			Self::Background => {
-				let _value = value.ok_or(ParseError::MissingValue(self))?;
-				// TODO: add background parsing
+				let value = value.ok_or(ParseError::MissingValue(self))?;
+				state.options.background = Some(self.parse_background(value)?);
 			}
 			Self::LetterSpacing => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
@@ -266,7 +266,7 @@ impl Args {
 	}
 
 	/// Parses one numeric value, or reports it against this argument
-	fn parse_number<'a, T: std::str::FromStr>(self, value: &'a str) -> Result<T, ParseError<'a>> {
+	fn parse_number<'a, T: FromStr>(self, value: &'a str) -> Result<T, ParseError<'a>> {
 		value.parse().map_err(|_| ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
@@ -301,7 +301,7 @@ impl Args {
 	/// Parses one segment of a color value through the core name-or-hex parser
 	///
 	/// A preset name is refused here: a preset stands alone as the whole value
-	fn parse_segment<'a, T: std::str::FromStr<Err = ColorError>>(
+	fn parse_segment<'a, T: FromStr<Err = ColorError>>(
 		self,
 		value: &'a str,
 		segment: &'a str,
@@ -311,6 +311,19 @@ impl Args {
 		}
 
 		segment.parse().map_err(|error| ParseError::InvalidValue { argument: self, value, source: Some(error) })
+	}
+
+	/// The two stop gradient a dash pair spells
+	fn parse_pair<'a>(self, value: &'a str, start: &'a str, end: &'a str) -> Result<GradientOption, ParseError<'a>> {
+		Ok(GradientOption::TwoStop { start: self.parse_segment(value, start)?, end: self.parse_segment(value, end)? })
+	}
+
+	/// The transition a colon list spells
+	fn parse_transition<'a>(self, value: &'a str, segments: Vec<&'a str>) -> Result<GradientOption, ParseError<'a>> {
+		let stops: Vec<GradientStop> =
+			segments.into_iter().map(|segment| self.parse_segment(value, segment)).collect::<Result<_, _>>()?;
+
+		Ok(GradientOption::Transition(TransitionStops::try_from(stops).expect("the colon shape holds two or more stops")))
 	}
 
 	/// Parses one colors value: its delimiter picks the shape and the shape picks the vocabulary
@@ -326,18 +339,28 @@ impl Args {
 			ColorShape::List(segments) => ColorOption::Colors(
 				segments.into_iter().map(|segment| self.parse_segment(value, segment)).collect::<Result<_, _>>()?,
 			),
-			ColorShape::Pair(start, end) => ColorOption::Gradient(GradientOption::TwoStop {
-				start: self.parse_segment(value, start)?,
-				end: self.parse_segment(value, end)?,
-			}),
-			ColorShape::Stops(segments) => {
-				let stops: Vec<GradientStop> =
-					segments.into_iter().map(|segment| self.parse_segment(value, segment)).collect::<Result<_, _>>()?;
+			ColorShape::Pair(start, end) => ColorOption::Gradient(self.parse_pair(value, start, end)?),
+			ColorShape::Stops(segments) => ColorOption::Gradient(self.parse_transition(value, segments)?),
+		})
+	}
 
-				ColorOption::Gradient(GradientOption::Transition(
-					TransitionStops::try_from(stops).expect("the colon shape holds two or more stops"),
-				))
-			}
+	/// Parses one background value: one color behind every row, or a gradient down the rows
+	///
+	/// A list has no rows to fill and candy has no rows to roll on, so both fail as no background at all
+	fn parse_background<'a>(self, value: &'a str) -> Result<BackgroundOption, ParseError<'a>> {
+		Ok(match self.color_shape(value)? {
+			ColorShape::Single(token) => match GradientPreset::from_name(token) {
+				Some(preset) => BackgroundOption::Gradient(GradientOption::Preset(preset)),
+				None => match self.parse_segment(value, token)? {
+					Color::Candy => {
+						return Err(ParseError::InvalidValue { argument: self, value, source: Some(ColorError::UnknownColor) });
+					}
+					color => BackgroundOption::Color(color),
+				},
+			},
+			ColorShape::List(_) => return Err(ParseError::BackgroundList(value)),
+			ColorShape::Pair(start, end) => BackgroundOption::Gradient(self.parse_pair(value, start, end)?),
+			ColorShape::Stops(segments) => BackgroundOption::Gradient(self.parse_transition(value, segments)?),
 		})
 	}
 
@@ -466,22 +489,43 @@ impl Args {
 				],
 				arguments: Some(const_concat!(
 					Color::LIST_CHUNKED,
-					",\n      or any hex color like #ff8800 or #f80,\n      stops of a gradient: ",
+					",",
+					CONTINUATION,
+					"or any hex color like #ff8800 or #f80,",
+					CONTINUATION,
+					"stops of a gradient: ",
 					GradientStop::LIST_CHUNKED,
-					" or any hex color,\n      presets: ",
+					" or any hex color,",
+					CONTINUATION,
+					"presets: ",
 					GradientPreset::LIST_CHUNKED
 				)),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
 				short: &["b"],
-				title: "Set the background color",
-				scope: "",
-				description: "",
-				examples: &["cfonts hello --background blue"],
-				arguments: Some("TODO"),
-				// arguments: Some(const_concat!(Background::LIST_CHUNKED, ",\n      or any hex color like #ff8800 or #f80")),
-				// TODO: add background
+				title: "Set the background color or a gradient",
+				scope: "This will apply globally",
+				description: "One color paints every line, red-blue ramps from the top line down,\n  red:blue:green transitions through every stop, system paints nothing",
+				examples: &[
+					"cfonts hello --background blue",
+					"cfonts hello --background \"#222222\"",
+					"cfonts hello --background red-blue",
+					"cfonts hello --background pride --spaceless",
+				],
+				arguments: Some(const_concat!(
+					const_chunk!(Color::NAMES, "candy"),
+					",",
+					CONTINUATION,
+					"or any hex color like #ff8800 or #f80,",
+					CONTINUATION,
+					"stops of a gradient: ",
+					GradientStop::LIST_CHUNKED,
+					" or any hex color,",
+					CONTINUATION,
+					"presets: ",
+					GradientPreset::LIST_CHUNKED
+				)),
 			},
 			Self::LetterSpacing => ArgInfo {
 				long: "letter-spacing",
@@ -548,7 +592,7 @@ impl Args {
 
 	/// Whether errors and warnings may color, following the stream they write to
 	pub(crate) fn stderr_color_enabled() -> bool {
-		crate::RustHost::stderr_color_level().is_some()
+		RustHost::stderr_color_level().is_some()
 	}
 
 	/// The colored and plain help lines, built at compile time from one variant list
@@ -600,14 +644,19 @@ impl Args {
 
 #[cfg(test)]
 mod tests {
+	use std::iter;
+
 	use super::*;
-	use crate::cli::{ParseState, cli_parser::helpers::strip_styling};
+	use crate::{
+		Rgb,
+		cli::{ParseState, cli_parser::helpers::strip_styling},
+	};
 
 	#[test]
 	fn parse_test() {
 		for argument in Args::ALL {
 			let ArgInfo { long, short, .. } = argument.infos();
-			for spelling in std::iter::once(long).chain(short.iter().copied()) {
+			for spelling in iter::once(long).chain(short.iter().copied()) {
 				assert_eq!(Args::parse(spelling), Some(argument), "\"{spelling}\" does not parse back to {argument:?}");
 			}
 		}
@@ -735,6 +784,61 @@ mod tests {
 			Args::Color.parse_colors("red:pride"),
 			Err(ParseError::PresetNotAlone { argument: Args::Color, value: "red:pride", preset: "pride" })
 		);
+	}
+
+	// Args::parse_background
+
+	#[test]
+	fn a_background_is_one_color_a_gradient_or_a_preset() {
+		assert_eq!(Args::Background.parse_background("blue"), Ok(BackgroundOption::Color(Color::Blue)));
+		assert_eq!(Args::Background.parse_background("system"), Ok(BackgroundOption::Color(Color::System)));
+		assert_eq!(
+			Args::Background.parse_background("#222"),
+			Ok(BackgroundOption::Color(Color::Rgb(Rgb { red: 34, green: 34, blue: 34 })))
+		);
+		assert_eq!(
+			Args::Background.parse_background("red-blue"),
+			Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+		assert!(matches!(
+			Args::Background.parse_background("red:blue:green"),
+			Ok(BackgroundOption::Gradient(GradientOption::Transition(_)))
+		));
+		assert_eq!(
+			Args::Background.parse_background("pride"),
+			Ok(BackgroundOption::Gradient(GradientOption::Preset(GradientPreset::Pride)))
+		);
+	}
+
+	#[test]
+	fn candy_and_lists_are_no_background() {
+		// candy fails like any unknown word, a list gets the teaching error
+		assert_eq!(
+			Args::Background.parse_background("candy"),
+			Err(ParseError::InvalidValue {
+				argument: Args::Background,
+				value: "candy",
+				source: Some(ColorError::UnknownColor)
+			})
+		);
+		assert_eq!(Args::Background.parse_background("red,blue"), Err(ParseError::BackgroundList("red,blue")));
+	}
+
+	// Args::infos
+
+	#[test]
+	fn the_background_help_lists_every_color_but_candy() {
+		let arguments = Args::Background.infos().arguments.expect("backgrounds list their colors");
+
+		for name in Color::NAMES {
+			assert_eq!(arguments.contains(name), name != "candy", "{name}");
+		}
+	}
+
+	#[test]
+	fn the_compile_time_chunking_matches_the_derived_list() {
+		assert_eq!(const_chunk!(Color::NAMES, ""), Color::LIST_CHUNKED);
+		assert_eq!(const_chunk!(Font::NAMES, ""), Font::LIST_CHUNKED);
 	}
 
 	#[test]

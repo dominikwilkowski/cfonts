@@ -150,5 +150,6 @@ fn list_chunked_breaks_after_five_names() {
 
 	assert_eq!(Wide::ALL.len(), 7);
 	assert_eq!(Wide::LIST_CHUNKED, "one, two, three, four, five,\n      six, seven");
+	assert_eq!(Wide::NAMES, ["one", "two", "three", "four", "five", "six", "seven"]);
 	assert_eq!(Wide::LIST, "one, two, three, four, five, six, seven");
 }

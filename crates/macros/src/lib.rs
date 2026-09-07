@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 mod all;
 mod glyph;
 
-/// Derives `ALL`, a `pub const` array holding every variant of a fieldless enum
+/// Derives `ALL`, a `pub const` array holding every variant of a fieldless enum, and its names
 ///
 /// ```
 /// use cfonts_macros::All;
@@ -16,6 +16,7 @@ mod glyph;
 /// }
 ///
 /// assert!(matches!(Align::ALL, [Align::Left, Align::Center, Align::Right]));
+/// assert_eq!(Align::NAMES, ["left", "center", "right"]);
 /// assert_eq!(Align::LIST, "left, center, right");
 /// ```
 ///
@@ -24,17 +25,19 @@ mod glyph;
 /// ```ignore
 /// impl Align {
 ///     pub const ALL: [Align; 3] = [Align::Left, Align::Center, Align::Right];
+///     pub const NAMES: [&str; 3] = ["left", "center", "right"];
 ///     pub const LIST: &str = "left, center, right";
 ///     pub const LIST_CHUNKED: &str = "left, center, right";
 /// }
 /// ```
 ///
-/// LIST holds every name on one line; LIST_CHUNKED holds the same names broken
-/// after every fifth, with a six space continuation indent for terminal display
+/// NAMES holds every name as its own `&str` in the order of ALL, LIST holds every name on one line,
+/// LIST_CHUNKED holds the same names broken after every fifth, with a six space continuation
+/// indent for terminal display
 ///
 /// Variants appear in declaration order
 /// Attributes, doc comments, and explicit discriminants on variants are allowed and skipped
-/// Variants marked `#[all(skip)]` are left out of ALL and LIST
+/// Variants marked `#[all(skip)]` are left out of ALL, NAMES and LIST
 /// Unmarked data-carrying variants and generic enums are rejected
 /// Invalid input turns into a `compile_error!` at the call site
 #[proc_macro_derive(All, attributes(all))]

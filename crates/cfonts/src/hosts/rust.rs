@@ -1,4 +1,8 @@
-use std::io::{self, Write};
+use std::{
+	collections::hash_map::RandomState,
+	hash::{BuildHasher, Hasher},
+	io::{self, Write},
+};
 
 use crate::{
 	CliEnv, ColorLevel, ColorOverride, Environment, Host, RenderContext, RenderOverrides, Rendered,
@@ -26,7 +30,7 @@ impl RustHost {
 	/// Writes the artifact and the closing line break the environment expects
 	fn write_into(&self, rendered: &Rendered, out: &mut impl Write) -> io::Result<()> {
 		let mut closing = Rendered::default();
-		self.environment.row_break(&mut closing);
+		self.environment.row_break(None, &mut closing);
 
 		write!(out, "{}{}", rendered.text, closing.text)
 	}
@@ -78,15 +82,17 @@ impl RustHost {
 
 	/// Fresh per-process entropy for candy colors, without a dependency
 	fn entropy() -> u64 {
-		use std::hash::{BuildHasher, Hasher};
-
-		std::collections::hash_map::RandomState::new().build_hasher().finish()
+		RandomState::new().build_hasher().finish()
 	}
 }
 
 #[cfg(test)]
 mod tests {
+	#[cfg(unix)]
+	use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+
 	use super::*;
+	use crate::{Cfonts, Font, Options};
 
 	#[test]
 	fn forced_junk_resolves_through_the_real_environment_without_detection() {
@@ -113,18 +119,12 @@ mod tests {
 	#[cfg(unix)]
 	#[test]
 	fn a_non_unicode_force_color_still_forces_basic() {
-		use std::os::unix::ffi::OsStringExt;
-
 		// a present value that is not valid UTF-8 must keep its presence:
 		// it classifies as unrecognized instead of letting detection run
-		let garbage = std::ffi::OsString::from_vec(vec![b'j', b'u', b'n', b'k', 0xFF]);
+		let garbage = OsString::from_vec(vec![b'j', b'u', b'n', b'k', 0xFF]);
 
 		temp_env::with_vars(
-			[
-				("FORCE_SIZE", None::<std::ffi::OsString>),
-				("FORCE_COLOR", Some(garbage)),
-				("NO_COLOR", Some(std::ffi::OsString::new())),
-			],
+			[("FORCE_SIZE", None::<OsString>), ("FORCE_COLOR", Some(garbage)), ("NO_COLOR", Some(OsString::new()))],
 			|| {
 				assert_eq!(RustHost::default().resolve_context().color_level(), Some(ColorLevel::Basic));
 			},
@@ -194,7 +194,7 @@ mod tests {
 	fn with_raw_mode_reaches_the_rendered_output() {
 		// the host builds its environment before options exist, so the raw flag arrives through the builder method
 		temp_env::with_vars([("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", Some("0")), ("NO_COLOR", None)], || {
-			let options = crate::Options::from(crate::Cfonts::text("A").font(crate::Font::Tiny));
+			let options = Options::from(Cfonts::text("A").font(Font::Tiny));
 			let raw = RustHost::default().with_raw_mode(true).render(&options);
 			let neutral = RustHost::default().with_raw_mode(false).render(&options);
 

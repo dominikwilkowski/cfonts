@@ -1,4 +1,6 @@
 //! Compile time string tools for the cli help and error output
+//!
+//! The macros expand at their call sites, so their bodies spell every helper with its full path
 
 /// The shell prompt every example line starts with, styled and plain
 pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
@@ -77,6 +79,100 @@ macro_rules! const_join {
 }
 
 pub(crate) use const_join;
+
+/// The line break and indent that continue a list inside the possible arguments bracket of the help
+pub(crate) const CONTINUATION: &str = "\n      ";
+
+/// How many names one line of a chunked list holds
+const NAMES_PER_LINE: usize = 5;
+
+/// Whether two strings hold the same bytes, at compile time
+const fn same(left: &str, right: &str) -> bool {
+	let (left, right) = (left.as_bytes(), right.as_bytes());
+
+	if left.len() != right.len() {
+		return false;
+	}
+
+	let mut index = 0;
+	while index < left.len() {
+		if left[index] != right[index] {
+			return false;
+		}
+		index += 1;
+	}
+
+	true
+}
+
+/// The byte length of `names` laid out five per line, every name equal to `skip` left out
+pub(crate) const fn chunked_len(names: &[&str], skip: &str) -> usize {
+	let mut length = 0;
+	let mut kept = 0;
+	let mut index = 0;
+
+	while index < names.len() {
+		if !same(names[index], skip) {
+			if kept > 0 {
+				length += 1 + if kept % NAMES_PER_LINE == 0 { CONTINUATION.len() } else { 1 };
+			}
+			length += names[index].len();
+			kept += 1;
+		}
+		index += 1;
+	}
+
+	length
+}
+
+/// Copies `bytes` into `buffer` at `offset` and returns the offset after them
+const fn copy_bytes(buffer: &mut [u8], offset: usize, bytes: &[u8]) -> usize {
+	let mut index = 0;
+	while index < bytes.len() {
+		buffer[offset + index] = bytes[index];
+		index += 1;
+	}
+
+	offset + bytes.len()
+}
+
+/// Lays `names` out five per line into one fixed buffer, every name equal to `skip` left out
+pub(crate) const fn chunk_into<const LENGTH: usize>(names: &[&str], skip: &str) -> [u8; LENGTH] {
+	let mut buffer = [0u8; LENGTH];
+	let mut offset = 0;
+	let mut kept = 0;
+	let mut index = 0;
+
+	while index < names.len() {
+		if !same(names[index], skip) {
+			if kept > 0 {
+				offset = copy_bytes(&mut buffer, offset, b",");
+				let rest: &[u8] = if kept % NAMES_PER_LINE == 0 { CONTINUATION.as_bytes() } else { b" " };
+				offset = copy_bytes(&mut buffer, offset, rest);
+			}
+			offset = copy_bytes(&mut buffer, offset, names[index].as_bytes());
+			kept += 1;
+		}
+		index += 1;
+	}
+
+	buffer
+}
+
+/// Lays a name array out five per line into one `&'static str` at compile time, one name left out
+macro_rules! const_chunk {
+	($names:expr, $skip:expr) => {{
+		const LENGTH: usize = crate::cli::helper::chunked_len(&$names, $skip);
+		const BUFFER: [u8; LENGTH] = crate::cli::helper::chunk_into(&$names, $skip);
+		const TEXT: &str = match std::str::from_utf8(&BUFFER) {
+			Ok(text) => text,
+			Err(_) => panic!("chunking valid utf8 always yields valid utf8"),
+		};
+		TEXT
+	}};
+}
+
+pub(crate) use const_chunk;
 
 #[cfg(test)]
 mod tests {
@@ -223,5 +319,29 @@ mod tests {
 		const TEXT: &str = const_join!(PARTS, "🦀>");
 
 		assert_eq!(TEXT, "🦀>é🦀>🦀>A\0🦀>");
+	}
+
+	#[test]
+	fn const_chunk_lays_five_names_per_line_and_leaves_one_out() {
+		const NAMES: [&str; 7] = ["a", "b", "c", "d", "e", "f", "g"];
+		const TEXT: &str = const_chunk!(NAMES, "c");
+
+		assert_eq!(TEXT, "a, b, d, e, f,\n      g");
+	}
+
+	#[test]
+	fn const_chunk_breaks_exactly_after_the_fifth_kept_name() {
+		const NAMES: [&str; 6] = ["é", "b", "c", "d", "e", "f"];
+		const TEXT: &str = const_chunk!(NAMES, "");
+
+		assert_eq!(TEXT, "é, b, c, d, e,\n      f");
+	}
+
+	#[test]
+	fn const_chunk_of_no_kept_names_is_empty() {
+		const NAMES: [&str; 1] = ["a"];
+		const TEXT: &str = const_chunk!(NAMES, "a");
+
+		assert_eq!(TEXT, "");
 	}
 }

@@ -1,7 +1,7 @@
 use std::{num::NonZeroUsize, ops::Range};
 
 use crate::{
-	color::{CANDY, CandyRng, Color, ColorOption, GradientColors, GradientOption, GradientStop, Rgb},
+	color::{BackgroundOption, CANDY, CandyRng, Color, ColorOption, GradientColors, GradientOption, GradientStop, Rgb},
 	environments::{Environment, Rendered},
 	layout::{Layout, LayoutRow},
 	options::{Align, Options},
@@ -507,6 +507,54 @@ impl GradientPlans {
 	}
 }
 
+/// The background bands of one render: one paint per output row, padding rows included
+///
+/// A fixed color resolves once and repeats on every row, a gradient fills its ramp once over
+/// the row count, so the bands run from the top row to the bottom row
+#[derive(Debug)]
+pub(crate) enum Backdrop<T> {
+	Fixed(T),
+	Ramp(Vec<Option<T>>),
+}
+
+impl<T> Backdrop<T> {
+	/// Resolves the background of a render with `rows` output rows through `resolve`
+	///
+	/// Without a background, a color level or rows, or with a color that resolves to no paint,
+	/// there is no backdrop and every row paints as if none was set
+	pub(crate) fn build(
+		options: &Options,
+		context: &RenderContext,
+		rows: usize,
+		mut resolve: impl FnMut(Color) -> Option<T>,
+	) -> Option<Self> {
+		if context.color_level().is_none() || rows == 0 {
+			return None;
+		}
+
+		match options.background.as_ref()? {
+			BackgroundOption::Color(color) => resolve(*color).map(Self::Fixed),
+			BackgroundOption::Gradient(gradient) => {
+				let mut ramp = GradientState::new(gradient);
+				ramp.fill(Some(0..rows));
+
+				let paints: Vec<Option<T>> =
+					(0..rows).map(|row| ramp.window(row).first().and_then(|rgb| resolve(Color::Rgb(*rgb)))).collect();
+
+				paints.iter().any(Option::is_some).then_some(Self::Ramp(paints))
+			}
+		}
+	}
+
+	/// The paint of one output row, counted from the first padding row
+	pub(crate) fn band(&self, row: usize) -> Option<&T> {
+		match self {
+			Self::Fixed(paint) => Some(paint),
+			Self::Ramp(paints) => paints.get(row).and_then(Option::as_ref),
+		}
+	}
+}
+
 /// Builds layout once and renders it through a pure environment
 pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, context: RenderContext) -> Rendered {
 	let mut rows = Layout::build(options, context.canvas_width()).into_rows();
@@ -529,7 +577,7 @@ pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{Cfonts, Font, GradientPreset};
+	use crate::{Cfonts, Font, GradientPreset, layout::BlockSpan};
 
 	/// A plan whose resolver marks every resolved color with its debug name
 	fn plan_for(options: &Options, context: &RenderContext) -> (PaintPlan<String>, usize) {
@@ -637,7 +685,7 @@ mod tests {
 
 		let rolls: Vec<String> =
 			(0..32).map(|_| plan.paint_for(0, None, true).expect("candy always paints").clone()).collect();
-		let assortment: Vec<String> = crate::color::CANDY.iter().map(|color| format!("{color:?}")).collect();
+		let assortment: Vec<String> = CANDY.iter().map(|color| format!("{color:?}")).collect();
 
 		// every roll comes from the assortment and the rolls vary
 		assert!(rolls.iter().all(|roll| assortment.contains(roll)));
@@ -716,8 +764,6 @@ mod tests {
 
 	#[test]
 	fn extents_cover_the_participating_spans_only() {
-		use crate::layout::BlockSpan;
-
 		// extents read only the alignment offset and the spans, so the rows carry no entries
 		let row = |align_offset: usize, spans: &[(usize, usize)]| LayoutRow {
 			entries: Vec::new(),
@@ -741,5 +787,66 @@ mod tests {
 		let with_empty_line = [row(4, &[(0, 3)]), row(0, &[(0, 0)])];
 		assert_eq!(GradientPlans::row_extent(&with_empty_line[1], |_| true), None);
 		assert_eq!(GradientPlans::extent(&with_empty_line, |_| true), Some(4..7));
+	}
+
+	// Backdrop
+
+	/// Resolves every color but the terminal's own to itself, the way an environment with a palette would
+	fn resolve(color: Color) -> Option<Color> {
+		(!matches!(color, Color::System | Color::Candy)).then_some(color)
+	}
+
+	#[test]
+	fn a_fixed_background_repeats_on_every_row() {
+		let options = Options { background: Some(BackgroundOption::Color(Color::Blue)), ..Default::default() };
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::Basic), 3, resolve).unwrap();
+
+		for row in 0..3 {
+			assert_eq!(backdrop.band(row), Some(&Color::Blue), "row {row}");
+		}
+	}
+
+	#[test]
+	fn a_background_gradient_runs_from_the_top_row_to_the_bottom_row() {
+		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 5, resolve).unwrap();
+
+		assert_eq!(backdrop.band(0), Some(&Color::Rgb(Rgb { red: 255, green: 0, blue: 0 })));
+		assert_eq!(backdrop.band(4), Some(&Color::Rgb(Rgb { red: 0, green: 0, blue: 255 })));
+		assert!(backdrop.band(2).is_some_and(|band| !matches!(band, Color::Rgb(Rgb { red: 255, green: 0, blue: 0 }))));
+		assert_eq!(backdrop.band(5), None, "no band past the rows");
+	}
+
+	#[test]
+	fn a_single_row_gradient_still_paints_a_band() {
+		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 1, resolve).unwrap();
+
+		assert!(backdrop.band(0).is_some());
+	}
+
+	#[test]
+	fn nothing_to_paint_means_no_backdrop() {
+		let level = RenderContext::colored(ColorLevel::Basic);
+
+		let unset = Options::default();
+		assert!(Backdrop::build(&unset, &level, 3, resolve).is_none());
+
+		let system = Options { background: Some(BackgroundOption::Color(Color::System)), ..Default::default() };
+		assert!(Backdrop::build(&system, &level, 3, resolve).is_none());
+
+		let candy = Options { background: Some(BackgroundOption::Color(Color::Candy)), ..Default::default() };
+		assert!(Backdrop::build(&candy, &level, 3, resolve).is_none());
+
+		let blue = Options { background: Some(BackgroundOption::Color(Color::Blue)), ..Default::default() };
+		assert!(Backdrop::build(&blue, &RenderContext::unlimited(), 3, resolve).is_none(), "no color level");
+		assert!(Backdrop::build(&blue, &level, 0, resolve).is_none(), "no rows");
+
+		// an environment that paints no RGB values turns a gradient into no backdrop as well
+		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let ramped = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
+		assert!(Backdrop::build(&ramped, &level, 3, |_| None::<Color>).is_none(), "no paint");
 	}
 }

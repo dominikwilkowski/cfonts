@@ -6,6 +6,17 @@
 //! the native host binds real streams, the npm host ships its facts across
 //! the wasm boundary
 
+use std::{
+	env,
+	io::{self, IsTerminal},
+};
+
+#[cfg(windows)]
+use windows_sys::Win32::System::Console::{
+	CONSOLE_MODE, ENABLE_VIRTUAL_TERMINAL_PROCESSING, GetConsoleMode, GetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
+	SetConsoleMode,
+};
+
 use crate::{ColorLevel, ColorOverride};
 
 /// What the Windows console reports, resolved before classifying
@@ -91,12 +102,10 @@ impl TerminalColorSupport<'_> {
 	/// the level an undetectable terminal still paints
 	#[must_use]
 	pub fn detect(stream: Stream, override_color: ColorOverride, fallback: Option<ColorLevel>) -> Option<ColorLevel> {
-		use std::io::IsTerminal;
-
 		TerminalColorSupport {
 			attached: match stream {
-				Stream::Stdout => std::io::stdout().is_terminal(),
-				Stream::Stderr => std::io::stderr().is_terminal(),
+				Stream::Stdout => io::stdout().is_terminal(),
+				Stream::Stderr => io::stderr().is_terminal(),
 			},
 			environment: &Self::process_environment,
 			windows_console: Self::windows_console(stream),
@@ -269,7 +278,7 @@ impl TerminalColorSupport<'_> {
 	/// });
 	/// ```
 	pub fn process_environment(name: &str) -> Option<String> {
-		std::env::var_os(name).map(|value| value.to_string_lossy().into_owned())
+		env::var_os(name).map(|value| value.to_string_lossy().into_owned())
 	}
 
 	/// TeamCity displays color from version 9.1
@@ -310,11 +319,6 @@ impl TerminalColorSupport<'_> {
 	/// startup: a console that refuses would print escape codes as garbage
 	#[cfg(windows)]
 	fn windows_console(stream: Stream) -> Option<WindowsConsole> {
-		use windows_sys::Win32::System::Console::{
-			CONSOLE_MODE, ENABLE_VIRTUAL_TERMINAL_PROCESSING, GetConsoleMode, GetStdHandle, STD_ERROR_HANDLE,
-			STD_OUTPUT_HANDLE, SetConsoleMode,
-		};
-
 		let ansi_enabled = unsafe {
 			let handle = GetStdHandle(match stream {
 				Stream::Stdout => STD_OUTPUT_HANDLE,

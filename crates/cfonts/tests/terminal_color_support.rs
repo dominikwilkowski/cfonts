@@ -4,6 +4,9 @@
 //! Every variable the resolution reads is pinned per test via temp-env, so
 //! the rows hold in any shell or CI runner
 
+#[cfg(unix)]
+use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+
 mod common;
 use common::DETECTION_VARS;
 
@@ -143,16 +146,11 @@ fn the_one_shot_resolves_the_chain_before_the_terminal_gate() {
 #[cfg(unix)]
 #[test]
 fn a_non_unicode_force_color_keeps_its_presence() {
-	use std::os::unix::ffi::OsStringExt;
-
 	// a present value that is not valid UTF-8 classifies as unrecognized
 	// instead of letting the cascade run
-	let garbage = std::ffi::OsString::from_vec(vec![b'j', b'u', b'n', b'k', 0xFF]);
+	let garbage = OsString::from_vec(vec![b'j', b'u', b'n', b'k', 0xFF]);
 
-	temp_env::with_vars(
-		[("FORCE_COLOR", Some(garbage)), ("TERM", Some(std::ffi::OsString::from("xterm-256color")))],
-		|| {
-			assert_eq!(attached(ColorOverride::Auto, None), Some(ColorLevel::Basic));
-		},
-	);
+	temp_env::with_vars([("FORCE_COLOR", Some(garbage)), ("TERM", Some(OsString::from("xterm-256color")))], || {
+		assert_eq!(attached(ColorOverride::Auto, None), Some(ColorLevel::Basic));
+	});
 }

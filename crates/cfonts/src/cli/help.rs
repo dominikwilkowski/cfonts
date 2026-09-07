@@ -1,5 +1,5 @@
 use crate::{
-	CliEnv, Color, Font, GradientOption, GradientStop, Host, RenderContext, RustHost, Valign,
+	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, RenderContext, RustHost, Valign,
 	cli::{
 		Args, VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -15,7 +15,7 @@ pub fn cli_help() -> String {
 pub(crate) fn cli_help_with(context: RenderContext) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
-	let banner = crate::Cfonts::text("cfonts")
+	let banner = Cfonts::text("cfonts")
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
 		.new_text(format!(" {VERSION}"))
 		.font(Font::Console)
@@ -56,6 +56,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 			&["cfonts hello -c red-blue", "cfonts hello -c red:yellow:green"],
 		),
 		("a preset gradient that restarts on every line", &["cfonts \"line one|end\" -c pride -ia center"]),
+		("a background behind every line, flat or ramping down", &["cfonts hello -b blue", "cfonts hello -b red-blue"]),
 		(
 			"two blocks with their own fonts, meeting at the bottom",
 			&[
@@ -100,6 +101,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
+	use crate::{ColorLevel, cli::cli_parser::helpers::strip_styling};
 
 	#[test]
 	fn the_help_screen_documents_every_argument() {
@@ -126,8 +128,6 @@ pub(crate) mod tests {
 
 	#[test]
 	fn the_banner_paints_at_the_given_level() {
-		use crate::ColorLevel;
-
 		let basic = cli_help_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)));
 		assert!(!basic.contains("\u{1b}[38;"), "basic quantizes to palette codes");
 		assert!(basic.contains("\u{1b}[9") || basic.contains("\u{1b}[3"));
@@ -156,8 +156,6 @@ pub(crate) mod tests {
 
 	#[test]
 	fn the_styled_screen_differs_from_the_plain_one_only_by_styling() {
-		use crate::{ColorLevel, cli::cli_parser::helpers::strip_styling};
-
 		// the banner paints every cell in its own colors, so the comparison starts at the usage line
 		let after_banner =
 			|screen: &str| screen[screen.find("Usage:").expect("the usage line follows the banner")..].to_string();

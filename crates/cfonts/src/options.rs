@@ -2,7 +2,10 @@
 
 use std::num::NonZeroUsize;
 
-use crate::{color::ColorOption, fonts::Font};
+use crate::{
+	color::{BackgroundOption, ColorOption},
+	fonts::Font,
+};
 use cfonts_macros::All;
 
 /// The supported vertical alignment modes for mixed-height font blocks
@@ -177,6 +180,11 @@ pub struct Options {
 	/// Whether every gradient restarts on each line instead of ramping once across every line
 	pub independent_gradient: bool,
 
+	/// The background behind every row of the composition, padding rows included
+	///
+	/// `None` leaves the terminal's own background, as does a `System` color
+	pub background: Option<BackgroundOption>,
+
 	/// Text blocks rendered as one composition
 	pub blocks: Vec<BlockOptions>,
 }
@@ -190,6 +198,7 @@ impl Default for Options {
 			max_length: None,
 			global_colors: None,
 			independent_gradient: false,
+			background: None,
 			blocks: Vec::new(),
 		}
 	}

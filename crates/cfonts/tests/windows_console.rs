@@ -6,19 +6,21 @@
 
 #![cfg(windows)]
 
-use std::num::NonZeroUsize;
+use std::{env, num::NonZeroUsize, ptr};
+
+use windows_sys::Win32::{
+	Foundation::{GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE},
+	Storage::FileSystem::{CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING},
+	System::Console::{
+		AllocConsole, CONSOLE_SCREEN_BUFFER_INFO, COORD, FreeConsole, GetConsoleScreenBufferInfo, GetStdHandle, SMALL_RECT,
+		STD_ERROR_HANDLE, STD_OUTPUT_HANDLE, SetConsoleWindowInfo, SetStdHandle,
+	},
+};
 
 use cfonts::{CanvasWidth, hosts::terminal_canvas_width::TerminalCanvasWidth};
 
 #[test]
 fn a_console_reports_its_window_width() {
-	use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE};
-	use windows_sys::Win32::Storage::FileSystem::{CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING};
-	use windows_sys::Win32::System::Console::{
-		AllocConsole, CONSOLE_SCREEN_BUFFER_INFO, COORD, FreeConsole, GetConsoleScreenBufferInfo, GetStdHandle, SMALL_RECT,
-		STD_ERROR_HANDLE, STD_OUTPUT_HANDLE, SetConsoleWindowInfo, SetStdHandle,
-	};
-
 	// SAFETY: every call touches only this process' console state, and this
 	// file holds one test, so no parallel test shares that state
 	let expected = unsafe {
@@ -37,10 +39,10 @@ fn a_console_reports_its_window_width() {
 			name.as_ptr(),
 			GENERIC_READ | GENERIC_WRITE,
 			FILE_SHARE_READ | FILE_SHARE_WRITE,
-			std::ptr::null(),
+			ptr::null(),
 			OPEN_EXISTING,
 			0,
-			std::ptr::null_mut(),
+			ptr::null_mut(),
 		);
 		assert_ne!(console, INVALID_HANDLE_VALUE, "the fresh console must open");
 
@@ -65,7 +67,7 @@ fn a_console_reports_its_window_width() {
 		assert_ne!(GetConsoleScreenBufferInfo(console, &raw mut info), 0, "the fresh console must answer");
 
 		// the environment must not decide before the measurement can
-		std::env::remove_var("FORCE_SIZE");
+		env::remove_var("FORCE_SIZE");
 
 		usize::try_from(i32::from(info.srWindow.Right) - i32::from(info.srWindow.Left) + 1).expect("a window has width")
 	};

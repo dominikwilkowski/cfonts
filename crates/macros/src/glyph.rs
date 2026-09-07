@@ -1,5 +1,5 @@
 use proc_macro::{TokenStream, TokenTree};
-use std::str::FromStr;
+use std::{mem, str::FromStr};
 
 /// Does the work for `glyph!`
 pub(crate) fn expand(input: TokenStream) -> TokenStream {
@@ -251,8 +251,8 @@ fn push_segment(segments: &mut Vec<GlyphSegment>, text: &mut String, slot: Optio
 	}
 
 	let segment: GlyphSegment = match slot {
-		Some(slot) => GlyphSegment::Colored { slot, text: std::mem::take(text) },
-		None => GlyphSegment::Plain(std::mem::take(text)),
+		Some(slot) => GlyphSegment::Colored { slot, text: mem::take(text) },
+		None => GlyphSegment::Plain(mem::take(text)),
 	};
 
 	segments.push(segment);

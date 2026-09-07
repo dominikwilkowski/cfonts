@@ -10,13 +10,13 @@ pub use browser_console::BrowserConsoleEnv;
 mod cli;
 pub use cli::CliEnv;
 
-use std::borrow::Cow;
+use std::{array, borrow::Cow, iter};
 
 use crate::{
 	color::{Color, Rgb},
 	layout::{LayoutRow, RowEntry},
 	options::Options,
-	render::{GradientPlans, PaintDomain, PaintPlan, RenderContext},
+	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext},
 };
 
 /// The output of a render: one complete artifact in the selected environment's format
@@ -146,6 +146,9 @@ impl RowEvent<'_> {
 	}
 }
 
+/// How many padding rows sit above and below the composition unless it is spaceless
+pub const PADDING_ROWS: usize = 2;
+
 /// Formats layout rows into one environment-specific artifact
 ///
 /// Environments own formatting such as wrappers, escaping, row separators, alignment syntax and color syntax
@@ -160,11 +163,28 @@ pub trait Environment {
 		ColorTokens::default()
 	}
 
+	/// One color as this environment's start and end markers behind a whole row
+	///
+	/// Resolved once per band per render through the backdrop, never per row
+	/// The default paints nothing so environments without backgrounds need no code
+	fn background_tokens(&self, _color: Color, _context: &RenderContext) -> ColorTokens {
+		ColorTokens::default()
+	}
+
 	/// Paint one [`Segment`](crate::fonts::Segment) of text, wrapped in the env-interpreted color tokens
 	///
+	/// `band` carries the row's background markers for environments whose styles name both layers at once
 	/// `will_style` says whether this render emits any style at all,
 	/// for environments whose escaping depends on the whole artifact
-	fn paint(&self, text: &str, tokens: &ColorTokens, _will_style: bool, _context: &RenderContext, out: &mut Rendered) {
+	fn paint(
+		&self,
+		text: &str,
+		tokens: &ColorTokens,
+		_band: Option<&ColorTokens>,
+		_will_style: bool,
+		_context: &RenderContext,
+		out: &mut Rendered,
+	) {
 		out.text.push_str(&tokens.start);
 		out.text.push_str(text);
 		out.text.push_str(&tokens.end);
@@ -174,17 +194,39 @@ pub trait Environment {
 	///
 	/// The window is pre-sliced to this segment's first column
 	/// a drained window paints bare so the cursor stays honest even past the ramp
+	/// `band` carries the row's background markers, see [`paint`](Self::paint)
 	/// The default ignores the ramp so monochrome environments stay untouched
-	fn gradient_paint(&self, text: &str, _colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+	fn gradient_paint(
+		&self,
+		text: &str,
+		_colors: &[Rgb],
+		_band: Option<&ColorTokens>,
+		_context: &RenderContext,
+		out: &mut Rendered,
+	) -> usize {
 		out.text.push_str(text);
 		text.chars().count()
 	}
 
 	/// Runs before painting one rendered row
 	///
-	/// The default expresses the row's alignment as physical padding
-	fn row_start(&self, row: &LayoutRow, _options: &Options, out: &mut Rendered) {
+	/// The default opens the row's band, when there is one, and expresses the row's alignment
+	/// as physical padding inside it
+	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, _options: &Options, out: &mut Rendered) {
+		if let Some(band) = band {
+			out.text.push_str(&band.start);
+		}
+
 		self.blank(row.align_offset, out);
+	}
+
+	/// Runs after painting one rendered row
+	///
+	/// The default closes the row's band, when there is one
+	fn row_end(&self, band: Option<&ColorTokens>, out: &mut Rendered) {
+		if let Some(band) = band {
+			out.text.push_str(&band.end);
+		}
 	}
 
 	/// Whether rows align within the widest line when no canvas exists
@@ -197,19 +239,22 @@ pub trait Environment {
 
 	/// A run of empty columns (valign padding rows)
 	fn blank(&self, width: usize, out: &mut Rendered) {
-		out.text.extend(std::iter::repeat_n(' ', width));
+		out.text.extend(iter::repeat_n(' ', width));
 	}
 
 	/// The separation between two rows of output
-	fn row_break(&self, out: &mut Rendered) {
+	///
+	/// `band` is the band of the row that ends, so an environment whose bands break lines
+	/// themselves can leave its own break out
+	fn row_break(&self, _band: Option<&ColorTokens>, out: &mut Rendered) {
 		out.text.push('\n');
 	}
 
-	/// Output that precedes all rows; don't call when `options.spaceless` is set
-	fn top_padding(&self, _out: &mut Rendered) {}
+	/// The padding rows above the composition with their bands, skipped when `options.spaceless` is set
+	fn top_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], _out: &mut Rendered) {}
 
-	/// Output that follows all rows; don't call when `options.spaceless` is set
-	fn bottom_padding(&self, _out: &mut Rendered) {}
+	/// The padding rows below the composition with their bands, skipped when `options.spaceless` is set
+	fn bottom_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], _out: &mut Rendered) {}
 
 	/// Adds the start of the wrapper around the render output
 	fn wrapper_start(&self, _options: &Options, _out: &mut Rendered) {}
@@ -226,31 +271,43 @@ pub trait Environment {
 			let tokens = self.color_tokens(color, context);
 			tokens.paints().then_some(tokens)
 		});
+		// Output rows count from the first padding row, so the bands of the padding rows come first,
+		// and a composition without rows still prints one bare row between the paddings
+		let lead = if options.spaceless { 0 } else { PADDING_ROWS };
+		let printed_rows = rows.len().max(1);
+		let backdrop = Backdrop::build(options, context, printed_rows + 2 * lead, |color| {
+			let tokens = self.background_tokens(color, context);
+			tokens.paints().then_some(tokens)
+		});
+		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
 		// A resolved slot may cover no segment at all, and escaping must match the
 		// styles that actually get emitted, so the plan's resolution is confirmed
 		// against the rows; the scan stops at the first painted segment
-		let will_style = plan.will_style() && any_segment_paints(&plan, rows);
+		// A backdrop exists only with a band that paints, so it counts on its own
+		let will_style = (plan.will_style() && any_segment_paints(&plan, rows)) || backdrop.is_some();
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(&plan, options, rows);
+		let mut row_index = 0;
 
 		self.wrapper_start(options, &mut out);
 
 		if !options.spaceless {
-			self.top_padding(&mut out);
+			self.top_padding(array::from_fn(band), &mut out);
 		}
 
 		RowEvent::each(rows, |event| match event {
 			RowEvent::RowStart { row } => {
 				gradients.start_row(row);
-				self.row_start(row, options, &mut out);
+				self.row_start(row, band(lead + row_index), options, &mut out);
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
 					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-					self.paint(text, tokens, will_style, context, &mut out);
+					self.paint(text, tokens, band(lead + row_index), will_style, context, &mut out);
 				}
 				PaintDomain::Block | PaintDomain::Global => {
-					let consumed = self.gradient_paint(text, gradients.window(block_index), context, &mut out);
+					let window = gradients.window(block_index);
+					let consumed = self.gradient_paint(text, window, band(lead + row_index), context, &mut out);
 					gradients.advance(consumed);
 				}
 			},
@@ -265,12 +322,21 @@ pub trait Environment {
 				}
 			}
 			RowEvent::Break => {
-				self.row_break(&mut out);
+				self.row_end(band(lead + row_index), &mut out);
+				self.row_break(band(lead + row_index), &mut out);
+				row_index += 1;
 			}
 		});
 
+		if rows.is_empty() {
+			let bare = LayoutRow { entries: Vec::new(), width: 0, align_offset: 0, block_spans: Vec::new() };
+			self.row_start(&bare, band(lead), options, &mut out);
+		}
+		self.row_end(band(lead + row_index), &mut out);
+
 		if !options.spaceless {
-			self.bottom_padding(&mut out);
+			let below = lead + printed_rows;
+			self.bottom_padding(array::from_fn(|row| band(below + row)), &mut out);
 		}
 
 		self.wrapper_end(options, &mut out);
@@ -300,7 +366,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 mod tests {
 	use super::*;
 	use crate::{
-		Cfonts,
+		BackgroundOption, Cfonts, ColorLevel, GradientOption, GradientStop,
 		fonts::Font,
 		layout::Layout,
 		options::Valign,
@@ -382,7 +448,7 @@ mod tests {
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
 		let tokens = ColorTokens { start: Cow::Borrowed("<start>"), end: Cow::Borrowed("<end>") };
-		CliEnv::default().paint("TEXT", &tokens, true, &RenderContext::unlimited(), &mut out);
+		CliEnv::default().paint("TEXT", &tokens, None, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 
@@ -392,7 +458,7 @@ mod tests {
 	fn the_default_row_start_paints_the_alignment_offset() {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 4, block_spans: Vec::new() };
 		let mut out = Rendered::default();
-		CliEnv::default().row_start(&row, &Options::default(), &mut out);
+		CliEnv::default().row_start(&row, None, &Options::default(), &mut out);
 
 		assert_eq!(out.text, "    ");
 	}
@@ -429,10 +495,10 @@ mod tests {
 		// a custom environment whose padding hooks emit markers
 		struct PaddedEnv;
 		impl Environment for PaddedEnv {
-			fn top_padding(&self, out: &mut Rendered) {
+			fn top_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
 				out.text.push_str("TOP\n");
 			}
-			fn bottom_padding(&self, out: &mut Rendered) {
+			fn bottom_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
 				out.text.push_str("\nBOTTOM");
 			}
 		}
@@ -450,5 +516,43 @@ mod tests {
 		let spaceless = PaddedEnv.render_rows(&layout.output, &options, &RenderContext::unlimited());
 		assert!(!spaceless.text.contains("TOP"));
 		assert!(!spaceless.text.contains("BOTTOM"));
+	}
+
+	#[test]
+	fn every_output_row_gets_its_band_in_order() {
+		// a custom environment that writes each band it is handed, padding rows first
+		struct BandEnv;
+		impl Environment for BandEnv {
+			fn background_tokens(&self, color: Color, _context: &RenderContext) -> ColorTokens {
+				match color {
+					Color::Rgb(rgb) => ColorTokens { start: Cow::Owned(format!("<{}>", rgb.red)), end: Cow::Borrowed("|") },
+					_ => ColorTokens::default(),
+				}
+			}
+			fn top_padding(&self, bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
+				for band in bands.into_iter().flatten() {
+					out.text.push_str(&band.start);
+				}
+			}
+			fn bottom_padding(&self, bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
+				for band in bands.into_iter().flatten() {
+					out.text.push_str(&band.start);
+				}
+			}
+		}
+
+		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.background = Some(BackgroundOption::Gradient(gradient));
+		let layout = Layout::build(&options, None);
+		let context = RenderContext::colored(ColorLevel::TrueColor);
+
+		let rendered = BandEnv.render_rows(&layout.output, &options, &context).text;
+
+		// two padding bands, two rows each opened and closed, two padding bands: red first, blue last
+		assert!(rendered.starts_with("<255>"), "{rendered:?}");
+		assert!(rendered.ends_with("<0>"), "{rendered:?}");
+		assert_eq!(rendered.matches('|').count(), 2, "every layout row closes its band: {rendered:?}");
+		assert_eq!(rendered.matches('<').count(), 6, "six output rows, six bands: {rendered:?}");
 	}
 }

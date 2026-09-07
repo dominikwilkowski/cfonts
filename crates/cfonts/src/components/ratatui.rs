@@ -141,6 +141,7 @@ mod tests {
 	use ::ratatui::{Terminal, backend::TestBackend};
 
 	use crate::{
+		ColorOption, GradientOption, GradientStop,
 		fonts::Font,
 		options::{Align, Valign},
 		tests::{block, options},
@@ -223,16 +224,16 @@ mod tests {
 	#[test]
 	fn the_distinctive_semantic_mappings_hold() {
 		// the terminal's palette names shift against the cfonts names exactly here
-		assert_eq!(style_for(crate::Color::White).unwrap().fg, Some(TerminalColor::Gray));
-		assert_eq!(style_for(crate::Color::Gray).unwrap().fg, Some(TerminalColor::DarkGray));
-		assert_eq!(style_for(crate::Color::RedBright).unwrap().fg, Some(TerminalColor::LightRed));
-		assert_eq!(style_for(crate::Color::WhiteBright).unwrap().fg, Some(TerminalColor::White));
+		assert_eq!(style_for(Color::White).unwrap().fg, Some(TerminalColor::Gray));
+		assert_eq!(style_for(Color::Gray).unwrap().fg, Some(TerminalColor::DarkGray));
+		assert_eq!(style_for(Color::RedBright).unwrap().fg, Some(TerminalColor::LightRed));
+		assert_eq!(style_for(Color::WhiteBright).unwrap().fg, Some(TerminalColor::White));
 	}
 
 	#[test]
 	fn widget_paints_named_colors_as_the_terminals_own() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Block, false)]);
-		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Red, crate::Color::Blue]));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red, Color::Blue]));
 		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(12, 6)).unwrap();
 
@@ -254,10 +255,8 @@ mod tests {
 	#[test]
 	fn widget_ramps_gradients_per_cell() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
-			start: crate::GradientStop::Red,
-			end: crate::GradientStop::Blue,
-		}));
+		options.blocks[0].colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
 		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
@@ -273,11 +272,9 @@ mod tests {
 		// the red block claims its three columns whole, so the global ramp spans only
 		// the second block and starts on red at the fourth cell
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Red]));
-		options.global_colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
-			start: crate::GradientStop::Red,
-			end: crate::GradientStop::Blue,
-		}));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red]));
+		options.global_colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
 		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
 
@@ -294,11 +291,9 @@ mod tests {
 		// the Tiny block pads with blanks under the Block font, and the tall block's
 		// cells keep their ramp colors on the padded rows
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Block, false)]);
-		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::System]));
-		options.global_colors = Some(crate::ColorOption::Gradient(crate::GradientOption::TwoStop {
-			start: crate::GradientStop::Red,
-			end: crate::GradientStop::Blue,
-		}));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::System]));
+		options.global_colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
 		let widget = CfontsWidget { options: &options, seed: 0 };
 		let mut terminal = Terminal::new(TestBackend::new(11, 6)).unwrap();
 
@@ -314,7 +309,7 @@ mod tests {
 	#[test]
 	fn widget_candy_is_deterministic_for_a_seed() {
 		let mut options = options(Valign::Top, None, vec![block("AB", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(crate::ColorOption::Colors(vec![crate::Color::Candy]));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Candy]));
 
 		let draw = |seed: u64| {
 			let widget = CfontsWidget { options: &options, seed };

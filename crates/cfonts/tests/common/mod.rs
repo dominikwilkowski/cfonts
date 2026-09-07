@@ -2,6 +2,8 @@
 #![allow(dead_code)]
 //! Common utilities for tests
 
+use std::process::Command;
+
 use cfonts::Rendered;
 
 /// Runs a test with the `FORCE_SIZE` environment variable set to `size`
@@ -36,8 +38,8 @@ pub const DETECTION_VARS: &[&str] = &[
 
 /// A command for the real binary with a hermetic environment: every detection
 /// variable stripped, the given ones applied
-pub fn hermetic_binary(arguments: &[&str], variables: &[(&str, &str)]) -> std::process::Command {
-	let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_cfonts"));
+pub fn hermetic_binary(arguments: &[&str], variables: &[(&str, &str)]) -> Command {
+	let mut command = Command::new(env!("CARGO_BIN_EXE_cfonts"));
 	command.args(arguments);
 
 	for name in DETECTION_VARS {

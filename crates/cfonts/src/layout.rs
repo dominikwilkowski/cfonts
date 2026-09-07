@@ -1,5 +1,7 @@
 //! Positioning: text and fonts become rows of glyph entries at a canvas width
 
+use std::mem;
+
 use crate::{
 	NEW_LINE_CHAR,
 	fonts::{GlyphRef, GlyphRow},
@@ -385,7 +387,7 @@ impl<'a> Layout<'a> {
 				self.word.len() == self.word_glyph_count + (self.word_glyph_count - 1) * letter_spacing,
 				"Error: `word` is not shaped as printables interleaved with `letter_spacing` letter spaces",
 			);
-			let word = std::mem::take(&mut self.word);
+			let word = mem::take(&mut self.word);
 			for entry in word.iter().step_by(letter_spacing + 1) {
 				let letter_spacing_count = if self.space_pending { letter_spacing } else { 0 };
 				let next_glyph_width = letter_spacing_count * letter_space_glyph.width() + entry.width();
@@ -540,7 +542,7 @@ mod tests {
 		for row in output {
 			if row.entries.is_empty() {
 				if !current.is_empty() {
-					lines.push(std::mem::take(&mut current));
+					lines.push(mem::take(&mut current));
 				}
 			} else {
 				current.push(row.width);

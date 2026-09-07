@@ -7,6 +7,8 @@ pub mod gradient;
 pub(crate) use gradient::GradientColors;
 pub use gradient::GradientPreset;
 
+use std::str::FromStr;
+
 use cfonts_macros::All;
 
 /// The error for color values that cannot be parsed
@@ -135,12 +137,12 @@ impl Rgb {
 		difference * difference
 	}
 
-	/// The closest ANSI 16 foreground sequence, hand curated
-	pub fn ansi16_sgr(self) -> &'static str {
+	/// The closest of the sixteen named colors, hand curated, the one table both color layers read
+	pub(crate) fn nearest_named(self) -> Color {
 		match self.ansi256_index() {
-			16 => "\x1b[30m",
-			17..=19 => "\x1b[34m",
-			20..=21 | 25..=27 => "\x1b[94m",
+			16 => Color::Black,
+			17..=19 => Color::Blue,
+			20..=21 | 25..=27 => Color::BlueBright,
 			22..=24
 			| 58..=60
 			| 64..=66
@@ -153,8 +155,8 @@ impl Rgb {
 			| 148..=151
 			| 172..=174
 			| 178..=181
-			| 184..=189 => "\x1b[33m",
-			28..=30 | 34..=36 | 70..=72 | 76..=79 | 112..=114 => "\x1b[32m",
+			| 184..=189 => Color::Yellow,
+			28..=30 | 34..=36 | 70..=72 | 76..=79 | 112..=114 => Color::Green,
 			31..=33
 			| 37..=39
 			| 44..=45
@@ -165,21 +167,33 @@ impl Rgb {
 			| 103..=105
 			| 109..=111
 			| 115..=117
-			| 152..=153 => "\x1b[36m",
-			40..=43 | 46..=49 | 82..=85 | 118..=120 | 154..=157 => "\x1b[92m",
-			50..=51 | 86..=87 | 121..=123 | 158..=159 => "\x1b[96m",
-			52..=54 | 88..=90 | 124..=126 | 166..=168 => "\x1b[31m",
-			55..=57 | 91..=93 | 96..=99 | 127..=129 | 132..=135 | 139..=141 | 145..=147 | 169..=171 | 175..=177 => "\x1b[35m",
-			160..=163 | 196..=199 | 202..=205 | 208..=211 => "\x1b[91m",
-			164..=165 | 182..=183 | 200..=201 | 206..=207 | 212..=213 | 218..=219 => "\x1b[95m",
-			190..=193 | 214..=217 | 220..=228 => "\x1b[93m",
-			194..=195 | 229..=231 | 253..=255 => "\x1b[97m",
-			232..=239 => "\x1b[30m",
-			240..=246 => "\x1b[90m",
-			247..=252 => "\x1b[37m",
+			| 152..=153 => Color::Cyan,
+			40..=43 | 46..=49 | 82..=85 | 118..=120 | 154..=157 => Color::GreenBright,
+			50..=51 | 86..=87 | 121..=123 | 158..=159 => Color::CyanBright,
+			52..=54 | 88..=90 | 124..=126 | 166..=168 => Color::Red,
+			55..=57 | 91..=93 | 96..=99 | 127..=129 | 132..=135 | 139..=141 | 145..=147 | 169..=171 | 175..=177 => {
+				Color::Magenta
+			}
+			160..=163 | 196..=199 | 202..=205 | 208..=211 => Color::RedBright,
+			164..=165 | 182..=183 | 200..=201 | 206..=207 | 212..=213 | 218..=219 => Color::MagentaBright,
+			190..=193 | 214..=217 | 220..=228 => Color::YellowBright,
+			194..=195 | 229..=231 | 253..=255 => Color::WhiteBright,
+			232..=239 => Color::Black,
+			240..=246 => Color::Gray,
+			247..=252 => Color::White,
 			// ansi256_index never yields the 16 base palette entries
 			0..=15 => unreachable!("The 6×6×6 cube and grayscale ramp start at index 16"),
 		}
+	}
+
+	/// The closest ANSI 16 foreground sequence
+	pub fn ansi16_sgr(self) -> &'static str {
+		self.nearest_named().ansi16_sgr().expect("the nearest named color always carries a code")
+	}
+
+	/// The closest ANSI 16 background sequence
+	pub fn ansi16_background_sgr(self) -> &'static str {
+		self.nearest_named().ansi16_background_sgr().expect("the nearest named color always carries a code")
 	}
 }
 
@@ -217,6 +231,10 @@ impl Color {
 	/// The ANSI foreground reset that closes every painted run,
 	/// returning the terminal to the default foreground that [`Color::System`] stands for
 	pub(crate) const ANSI_RESET: &str = "\x1b[39m";
+
+	/// The ANSI background reset that closes every band,
+	/// returning the terminal to the default background that [`Color::System`] stands for
+	pub(crate) const ANSI_BACKGROUND_RESET: &str = "\x1b[49m";
 
 	/// Looks up a color by its name, case insensitively
 	///
@@ -296,6 +314,32 @@ impl Color {
 			Self::Candy | Self::Rgb(_) => None,
 		}
 	}
+
+	/// The fixed ANSI 16 background sequence of a named color, the foreground code moved up by ten
+	///
+	/// `System` leaves the terminal's own background, `Candy` and `Rgb` resolve elsewhere, all three yield None
+	pub(crate) const fn ansi16_background_sgr(self) -> Option<&'static str> {
+		match self {
+			Self::System => None,
+			Self::Black => Some("\x1b[40m"),
+			Self::Red => Some("\x1b[41m"),
+			Self::Green => Some("\x1b[42m"),
+			Self::Yellow => Some("\x1b[43m"),
+			Self::Blue => Some("\x1b[44m"),
+			Self::Magenta => Some("\x1b[45m"),
+			Self::Cyan => Some("\x1b[46m"),
+			Self::White => Some("\x1b[47m"),
+			Self::Gray => Some("\x1b[100m"),
+			Self::RedBright => Some("\x1b[101m"),
+			Self::GreenBright => Some("\x1b[102m"),
+			Self::YellowBright => Some("\x1b[103m"),
+			Self::BlueBright => Some("\x1b[104m"),
+			Self::MagentaBright => Some("\x1b[105m"),
+			Self::CyanBright => Some("\x1b[106m"),
+			Self::WhiteBright => Some("\x1b[107m"),
+			Self::Candy | Self::Rgb(_) => None,
+		}
+	}
 }
 
 /// The name-or-hex rule every color boundary parses with
@@ -319,7 +363,7 @@ fn parse_name_or_hex<T>(
 }
 
 /// A color parses from its name or a hex value; the leading `#` is optional
-impl std::str::FromStr for Color {
+impl FromStr for Color {
 	type Err = ColorError;
 
 	fn from_str(input: &str) -> Result<Self, Self::Err> {
@@ -331,7 +375,7 @@ impl std::str::FromStr for Color {
 ///
 /// Slot-only colors such as `system`, `candy` and the bright variants are not stops and say so,
 /// so a valid color name in the wrong place teaches instead of puzzling
-impl std::str::FromStr for GradientStop {
+impl FromStr for GradientStop {
 	type Err = ColorError;
 
 	fn from_str(input: &str) -> Result<Self, Self::Err> {
@@ -477,6 +521,36 @@ impl From<GradientOption> for ColorOption {
 }
 
 impl From<GradientPreset> for ColorOption {
+	fn from(preset: GradientPreset) -> Self {
+		Self::Gradient(preset.into())
+	}
+}
+
+/// The background of the whole composition: one color behind every row, or a gradient down the rows
+///
+/// Every row paints its band, the padding rows above and below included
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BackgroundOption {
+	/// One color behind every row, `System` and `Candy` paint nothing
+	Color(Color),
+
+	/// A gradient from the top row to the bottom row, one color per row
+	Gradient(GradientOption),
+}
+
+impl From<Color> for BackgroundOption {
+	fn from(color: Color) -> Self {
+		Self::Color(color)
+	}
+}
+
+impl From<GradientOption> for BackgroundOption {
+	fn from(gradient: GradientOption) -> Self {
+		Self::Gradient(gradient)
+	}
+}
+
+impl From<GradientPreset> for BackgroundOption {
 	fn from(preset: GradientPreset) -> Self {
 		Self::Gradient(preset.into())
 	}
@@ -674,6 +748,17 @@ mod tests {
 		let named = Color::MagentaBright.ansi16_sgr().expect("MagentaBright has a fixed code");
 
 		assert_eq!(hex.ansi16_sgr(), named);
+	}
+
+	// Rgb::nearest_named
+
+	#[test]
+	fn rgb_values_level_down_to_the_same_named_color_on_both_layers() {
+		let orange = Rgb { red: 255, green: 136, blue: 0 };
+
+		assert_eq!(orange.nearest_named(), Color::RedBright);
+		assert_eq!(orange.ansi16_sgr(), "\x1b[91m");
+		assert_eq!(orange.ansi16_background_sgr(), "\x1b[101m");
 	}
 
 	// Color::from_name

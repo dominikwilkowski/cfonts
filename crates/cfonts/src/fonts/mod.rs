@@ -255,7 +255,10 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+	use std::iter;
+
 	use super::*;
+
 	use crate::SUPPORTED_CHARS;
 	use cfonts_macros::glyph;
 
@@ -281,7 +284,7 @@ pub(crate) mod tests {
 	/// Row-striped fonts color by line, so a tag on the wrong line paints one
 	/// row in another row's stripe
 	pub(crate) fn assert_rows_stripe_their_slot<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
 			let Some(glyph) = glyph else {
 				continue;
 			};
@@ -321,7 +324,7 @@ pub(crate) mod tests {
 	/// Assert no glyph, nor the letter space, carries a space: the font fills
 	/// every cell with ink or with its own ground character, so a space is a hole
 	pub(crate) fn assert_no_space_cells<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
 			let Some(glyph) = glyph else {
 				continue;
 			};
@@ -379,7 +382,7 @@ pub(crate) mod tests {
 	pub(crate) fn assert_plain_segments_are_spaces<const ROWS: usize>(font: &FontFile<ROWS>) {
 		assert!(font.colors > 1, "font \"{}\" paints wholesale with one color; plain segments are its ink", font.name);
 
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate() {
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
 			let Some(glyph) = glyph else {
 				continue;
 			};
@@ -414,9 +417,7 @@ pub(crate) mod tests {
 				// Single-color fonts are wrapped wholesale at render time, so no `<c*>`
 				// tags belong in the data — a tag here is almost always a leftover from
 				// converting a multi-color font
-				for (code_point, glyph) in
-					font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
-				{
+				for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
 					let Some(glyph) = glyph else {
 						continue;
 					};
@@ -439,9 +440,7 @@ pub(crate) mod tests {
 				let mut used = vec![false; font.colors];
 				let mut out_of_range: Vec<(usize, String)> = Vec::new();
 
-				for (code_point, glyph) in
-					font.glyphs.iter().copied().chain(std::iter::once(Some(font.letter_space))).enumerate()
-				{
+				for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
 					let Some(glyph) = glyph else {
 						continue;
 					};

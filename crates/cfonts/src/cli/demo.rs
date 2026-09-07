@@ -18,7 +18,7 @@ pub fn cli_demo(options: &Options) -> String {
 pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
-	let banner = crate::Cfonts::text("Demo")
+	let banner = Cfonts::text("Demo")
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
 		.new_text(format!(" {VERSION}"))
 		.font(Font::Console)
@@ -36,6 +36,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		let mut example: Options = Cfonts::text(format!(" {name} ")).font(font).spaceless().into();
 		example.global_colors = options.global_colors.clone();
 		example.independent_gradient = options.independent_gradient;
+		example.background = options.background.clone();
 		let rendered = render::render_with(&example, &CliEnv::default(), context);
 		output.push_str(&format!("{prompt} cfonts \" {name} \" --font {name}\n\n{}\n\n\n\n", rendered.text));
 	}
@@ -46,6 +47,16 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::{BackgroundOption, ColorLevel, ColorOption};
+
+	#[test]
+	fn the_background_reaches_every_font_example() {
+		let options = Options { background: Some(BackgroundOption::Color(Color::Blue)), ..Default::default() };
+		let screen = cli_demo_with(RenderContext::colored(ColorLevel::Basic), &options);
+
+		// every example is its own render, so every one opens the band on its rows
+		assert!(screen.matches("\u{1b}[44m").count() >= Font::ALL.len(), "{}", screen.matches("\u{1b}[44m").count());
+	}
 
 	#[test]
 	fn the_demo_shows_every_font_with_a_runnable_command() {
@@ -76,8 +87,6 @@ mod tests {
 
 	#[test]
 	fn the_demo_paints_at_the_given_level() {
-		use crate::ColorLevel;
-
 		let basic =
 			cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)), &Options::default());
 		assert!(basic.contains(PROMPT_COLORED));
@@ -110,8 +119,6 @@ mod tests {
 
 	#[test]
 	fn the_colors_reach_every_font_example() {
-		use crate::{ColorLevel, ColorOption};
-
 		let options = Options { global_colors: Some(ColorOption::Colors(vec![Color::Red])), ..Default::default() };
 		let screen = cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)), &options);
 
@@ -123,8 +130,6 @@ mod tests {
 
 	#[test]
 	fn the_independent_flag_reaches_every_font_example() {
-		use crate::{ColorLevel, ColorOption, GradientOption, GradientStop};
-
 		// a narrow canvas wraps the examples, so the flag has lines to restart the ramp on
 		let context = RenderContext::with_canvas_width(40).with_color_level(Some(ColorLevel::TrueColor));
 		let ramp =

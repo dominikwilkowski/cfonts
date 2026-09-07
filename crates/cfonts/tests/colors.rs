@@ -2,8 +2,8 @@ mod common;
 use common::browser_content;
 
 use cfonts::{
-	Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientOption, GradientPreset,
-	GradientStop, NEW_LINE_CHAR, Options, RenderContext, Rgb, Valign, render_with,
+	Align, BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, Font, GradientOption,
+	GradientPreset, GradientStop, NEW_LINE_CHAR, Options, RenderContext, Rgb, Valign, render_with,
 };
 
 /// The expected terminal bytes of one row painted column by column from a ramp
@@ -872,4 +872,145 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 		lines[0]
 	);
 	assert!(!lines[0].contains("color:#ff0000"), "the padded line never shows the ramp start");
+}
+
+// backgrounds
+
+/// A one block Tiny composition with a background and the padding rows kept
+fn plated(background: impl Into<BackgroundOption>) -> Options {
+	Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).background(background).into()
+}
+
+#[test]
+fn a_fixed_background_bands_every_row_padding_rows_included() {
+	let rendered = render_with(&plated(Color::Blue), &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
+
+	// every row opens the band, fills to the edge of the terminal at once and closes before its line end
+	let band = "\u{1b}[44m\u{1b}[K\u{1b}[49m";
+	assert_eq!(
+		rendered,
+		format!("{band}\n{band}\n\u{1b}[44m\u{1b}[K▄▀█\u{1b}[49m\n\u{1b}[44m\u{1b}[K█▀█\u{1b}[49m\n{band}\n{band}")
+	);
+}
+
+#[test]
+fn an_empty_composition_still_bands_its_bare_row() {
+	// empty text prints one bare row between the paddings, and that row is banded like the rest
+	let options: Options = Cfonts::text("").background(Color::Blue).into();
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
+
+	let band = "\u{1b}[44m\u{1b}[K\u{1b}[49m";
+	assert_eq!(rendered, format!("{band}\n{band}\n{band}\n{band}\n{band}"));
+}
+
+#[test]
+fn spaceless_drops_the_padding_bands() {
+	let options: Options =
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::Blue).into();
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
+
+	assert_eq!(rendered, "\u{1b}[44m\u{1b}[K▄▀█\u{1b}[49m\n\u{1b}[44m\u{1b}[K█▀█\u{1b}[49m");
+}
+
+#[test]
+fn a_background_gradient_ramps_from_the_top_row_to_the_bottom_row() {
+	let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let options: Options =
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(gradient.clone()).into();
+	let context = RenderContext::colored(ColorLevel::TrueColor);
+
+	// two rows walk the whole ramp: the start color on top, the end color at the bottom
+	assert_eq!(
+		render_with(&options, &CliEnv::default(), context).text,
+		"\u{1b}[48;2;255;0;0m\u{1b}[K▄▀█\u{1b}[49m\n\u{1b}[48;2;0;0;255m\u{1b}[K█▀█\u{1b}[49m"
+	);
+
+	// the padding rows take part in the ramp: the top padding row is red, the bottom one blue,
+	// and the two glyph rows sit on the ramp between them, so every one of the six rows has its own color
+	let padded = render_with(&plated(gradient), &CliEnv::default(), context).text;
+	let ramp = ["255;0;0", "255;204;0", "101;255;0", "0;255;101", "0;203;255", "0;0;255"];
+	let glyphs = ["", "", "▄▀█", "█▀█", "", ""];
+	let expected: Vec<String> =
+		ramp.iter().zip(glyphs).map(|(rgb, glyph)| format!("\u{1b}[48;2;{rgb}m\u{1b}[K{glyph}\u{1b}[49m")).collect();
+	assert_eq!(padded, expected.join("\n"));
+}
+
+#[test]
+fn the_independent_flag_leaves_the_background_ramp_alone() {
+	// the flag restarts foreground gradients per line, a background ramps once over every row
+	let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let options: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}A"))
+		.font(Font::Tiny)
+		.line_height(0)
+		.valign(Valign::Top)
+		.spaceless()
+		.background(gradient)
+		.independent_gradient()
+		.into();
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor)).text;
+	let bands: Vec<&str> = rendered.lines().map(|row| row.split('m').next().expect("every row opens a band")).collect();
+
+	assert_eq!(bands.len(), 4);
+	assert_eq!(bands[0], "\u{1b}[48;2;255;0;0");
+	assert_ne!(bands[2], "\u{1b}[48;2;255;0;0", "the second line continues the ramp instead of restarting it");
+	assert_eq!(bands[3], "\u{1b}[48;2;0;0;255");
+}
+
+#[test]
+fn alignment_padding_sits_inside_the_band() {
+	let options: Options = Cfonts::text("A")
+		.font(Font::Tiny)
+		.valign(Valign::Top)
+		.spaceless()
+		.align(Align::Right)
+		.background(Color::Blue)
+		.into();
+	let context = RenderContext::with_canvas_width(7).with_color_level(Some(ColorLevel::Basic));
+
+	assert_eq!(
+		render_with(&options, &CliEnv::default(), context).text,
+		"\u{1b}[44m\u{1b}[K    ▄▀█\u{1b}[49m\n\u{1b}[44m\u{1b}[K    █▀█\u{1b}[49m"
+	);
+}
+
+#[test]
+fn a_background_and_font_colors_are_separate_layers() {
+	let options: Options = Cfonts::text("A")
+		.font(Font::Tiny)
+		.valign(Valign::Top)
+		.spaceless()
+		.colors(vec![Color::Red])
+		.background(Color::Blue)
+		.into();
+	let rendered = render_with(&options, &CliEnv::default(), RenderContext::colored(ColorLevel::Basic)).text;
+
+	// the foreground reset closes only the foreground, the band stays open until the row ends
+	assert_eq!(
+		rendered,
+		"\u{1b}[44m\u{1b}[K\u{1b}[31m▄▀█\u{1b}[39m\u{1b}[49m\n\u{1b}[44m\u{1b}[K\u{1b}[31m█▀█\u{1b}[39m\u{1b}[49m"
+	);
+}
+
+#[test]
+fn a_hex_background_levels_down_the_chain() {
+	let orange = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+	let options: Options = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(orange).into();
+	let first_row = |level: ColorLevel| {
+		render_with(&options, &CliEnv::default(), RenderContext::colored(level)).text.lines().next().map(String::from)
+	};
+
+	assert_eq!(first_row(ColorLevel::TrueColor).as_deref(), Some("\u{1b}[48;2;255;136;0m\u{1b}[K▄▀█\u{1b}[49m"));
+	assert_eq!(first_row(ColorLevel::Ansi256).as_deref(), Some("\u{1b}[48;5;208m\u{1b}[K▄▀█\u{1b}[49m"));
+	assert_eq!(first_row(ColorLevel::Basic).as_deref(), Some("\u{1b}[101m\u{1b}[K▄▀█\u{1b}[49m"));
+}
+
+#[test]
+fn system_candy_and_no_color_level_paint_no_band() {
+	let plain = render_with(&plated(Color::System), &CliEnv::default(), RenderContext::unlimited()).text;
+	assert_eq!(plain, "\n\n▄▀█\n█▀█\n\n");
+
+	let level = RenderContext::colored(ColorLevel::Basic);
+	assert_eq!(render_with(&plated(Color::System), &CliEnv::default(), level).text, plain);
+	assert_eq!(render_with(&plated(Color::Candy), &CliEnv::default(), level).text, plain);
+	assert_eq!(render_with(&plated(Color::Blue), &CliEnv::default(), RenderContext::unlimited()).text, plain);
 }

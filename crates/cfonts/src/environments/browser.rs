@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, Rendered, each_ramp_column, push_escaped},
+	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, push_escaped},
 	options::Options,
 	render::RenderContext,
 };
@@ -57,7 +57,14 @@ impl Environment for BrowserEnv {
 	}
 
 	/// Every column gets its own span so each character carries its ramp color
-	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+	fn gradient_paint(
+		&self,
+		text: &str,
+		colors: &[Rgb],
+		_band: Option<&ColorTokens>,
+		_context: &RenderContext,
+		out: &mut Rendered,
+	) -> usize {
 		each_ramp_column(text, colors, |character, rgb| match rgb {
 			Some(rgb) => Self::push_span(&rgb.to_hex(), |out| Self::push_escaped_char(character, out), &mut out.text),
 			None => Self::push_escaped_char(character, &mut out.text),
@@ -65,7 +72,15 @@ impl Environment for BrowserEnv {
 	}
 
 	/// The start token is the CSS color value; the span markup is the paint
-	fn paint(&self, text: &str, tokens: &ColorTokens, _will_style: bool, _context: &RenderContext, out: &mut Rendered) {
+	fn paint(
+		&self,
+		text: &str,
+		tokens: &ColorTokens,
+		_band: Option<&ColorTokens>,
+		_will_style: bool,
+		_context: &RenderContext,
+		out: &mut Rendered,
+	) {
 		if tokens.start.is_empty() {
 			push_escaped(text, Self::push_escaped_char, &mut out.text);
 			return;
@@ -74,15 +89,15 @@ impl Environment for BrowserEnv {
 		Self::push_span(&tokens.start, |out| push_escaped(text, Self::push_escaped_char, out), &mut out.text);
 	}
 
-	fn row_break(&self, out: &mut Rendered) {
+	fn row_break(&self, _band: Option<&ColorTokens>, out: &mut Rendered) {
 		out.text.push_str("<br>");
 	}
 
-	fn top_padding(&self, out: &mut Rendered) {
+	fn top_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
 		out.text.push_str("<br><br>");
 	}
 
-	fn bottom_padding(&self, out: &mut Rendered) {
+	fn bottom_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
 		out.text.push_str("<br><br>");
 	}
 
@@ -124,7 +139,7 @@ mod tests {
 		// the console font's `&` glyph and simple3d's `</` art must not parse as HTML
 		let mut out = Rendered::default();
 		let tokens = ColorTokens { start: Cow::Borrowed("red"), end: Cow::Borrowed("") };
-		BrowserEnv.paint("</&>", &tokens, true, &RenderContext::unlimited(), &mut out);
+		BrowserEnv.paint("</&>", &tokens, None, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
 	}
 
@@ -143,7 +158,7 @@ mod tests {
 	#[test]
 	fn row_break_emits_br_without_a_raw_newline() {
 		let mut out = Rendered::default();
-		BrowserEnv.row_break(&mut out);
+		BrowserEnv.row_break(None, &mut out);
 		assert_eq!(out.text, "<br>");
 	}
 

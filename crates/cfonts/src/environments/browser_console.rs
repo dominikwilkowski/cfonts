@@ -54,7 +54,14 @@ impl Environment for BrowserConsoleEnv {
 	/// Every column becomes its own `%c` pair with the ramp color's declaration
 	///
 	/// Gradient domains always style, so the percent escaping always applies here
-	fn gradient_paint(&self, text: &str, colors: &[Rgb], _context: &RenderContext, out: &mut Rendered) -> usize {
+	fn gradient_paint(
+		&self,
+		text: &str,
+		colors: &[Rgb],
+		_band: Option<&ColorTokens>,
+		_context: &RenderContext,
+		out: &mut Rendered,
+	) -> usize {
 		each_ramp_column(text, colors, |character, rgb| match rgb {
 			Some(rgb) => {
 				Self::push_pair(format!("color:{}", rgb.to_hex()), |out| Self::push_escaped_char(character, out), out);
@@ -66,7 +73,15 @@ impl Environment for BrowserConsoleEnv {
 	/// Painted text becomes a `%c` pair: the style value, the escaped text, the reset
 	///
 	/// Unstyled renders pass text through untouched so they stay byte identical
-	fn paint(&self, text: &str, tokens: &ColorTokens, will_style: bool, _context: &RenderContext, out: &mut Rendered) {
+	fn paint(
+		&self,
+		text: &str,
+		tokens: &ColorTokens,
+		_band: Option<&ColorTokens>,
+		will_style: bool,
+		_context: &RenderContext,
+		out: &mut Rendered,
+	) {
 		if !will_style {
 			out.text.push_str(text);
 			return;
@@ -111,7 +126,7 @@ mod tests {
 		let mut out = Rendered::default();
 		let tokens = BrowserConsoleEnv.color_tokens(Color::Red, &leveled());
 
-		BrowserConsoleEnv.paint("▄▀█", &tokens, true, &leveled(), &mut out);
+		BrowserConsoleEnv.paint("▄▀█", &tokens, None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█%c");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223"), String::new()]);
@@ -122,7 +137,7 @@ mod tests {
 		// once any style argument exists the console interprets every percent in the log
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("50%", &ColorTokens::default(), true, &leveled(), &mut out);
+		BrowserConsoleEnv.paint("50%", &ColorTokens::default(), None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "50%%");
 		assert!(out.styles.is_empty());
@@ -132,7 +147,7 @@ mod tests {
 	fn unstyled_renders_pass_text_through_untouched() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("50%", &ColorTokens::default(), false, &RenderContext::unlimited(), &mut out);
+		BrowserConsoleEnv.paint("50%", &ColorTokens::default(), None, false, &RenderContext::unlimited(), &mut out);
 
 		assert_eq!(out.text, "50%");
 		assert!(out.styles.is_empty());
