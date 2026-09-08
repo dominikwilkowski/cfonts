@@ -345,6 +345,17 @@ mod tests {
 	}
 
 	#[test]
+	fn same_agrees_with_string_equality_on_every_pair() {
+		let texts = ["", "a", "ab", "ba", "é", "e\u{301}", "\0"];
+
+		for left in texts {
+			for right in texts {
+				assert_eq!(same(black_box(left), black_box(right)), left == right, "{left:?} {right:?}");
+			}
+		}
+	}
+
+	#[test]
 	fn const_concat_accepts_one_empty_part() {
 		const TEXT: &str = const_concat!("");
 
@@ -415,6 +426,50 @@ mod tests {
 	}
 
 	#[test]
+	fn chunk_count_is_four_pieces_per_kept_name_less_one() {
+		let names: &[&str] = &["a", "b", "c", "d", "e", "f", "g"];
+
+		// a wrap, the name and a wrap for every kept name, and a separator before every one but the first
+		assert_eq!(chunk_count(black_box(names), black_box("c")), 4 * 6 - 1);
+		assert_eq!(chunk_count(black_box(names), black_box("z")), 4 * 7 - 1);
+	}
+
+	#[test]
+	fn chunk_count_of_no_kept_names_is_zero() {
+		let names: &[&str] = &["a", "a"];
+		let none: &[&str] = &[];
+
+		assert_eq!(chunk_count(black_box(names), black_box("a")), 0);
+		assert_eq!(chunk_count(black_box(none), black_box("a")), 0);
+	}
+
+	#[test]
+	fn chunk_pieces_put_every_kept_name_between_its_wraps_in_order() {
+		let names: &[&str] = &["a", "b", "skip", "c", "d"];
+		let kept = ["a", "b", "c", "d"];
+
+		let pieces: [&str; 15] = chunk_pieces(black_box(names), black_box("skip"), black_box("`"));
+
+		for (index, name) in kept.iter().enumerate() {
+			assert_eq!(&pieces[4 * index..4 * index + 3], ["`", *name, "`"], "kept name {index}");
+		}
+		assert!(!pieces.contains(&"skip"));
+	}
+
+	#[test]
+	fn chunk_pieces_break_the_line_after_every_fifth_kept_name() {
+		// the skipped name sits inside the first five, so it must not count toward the line
+		let names: &[&str] = &["a", "b", "skip", "c", "d", "e", "f", "g", "h", "i", "j", "k"];
+
+		let pieces: [&str; 43] = chunk_pieces(black_box(names), black_box("skip"), black_box(""));
+
+		for kept in 1..11 {
+			let expected = if kept % 5 == 0 { CONTINUATION } else { SEPARATOR };
+			assert_eq!(pieces[4 * kept - 1], expected, "before kept name {kept}");
+		}
+	}
+
+	#[test]
 	fn the_mark_ends_only_its_own_colors() {
 		// a mark inside the italic scope line or the bold title must leave that emphasis standing
 		assert_eq!(MARK_OPEN, "\x1B[32m\x1B[40m");
@@ -453,5 +508,36 @@ mod tests {
 	#[should_panic(expected = "an unclosed backtick")]
 	fn mark_count_refuses_an_unclosed_backtick() {
 		mark_count(black_box("a `b"));
+	}
+
+	#[test]
+	fn mark_count_is_two_pieces_per_backtick_plus_one() {
+		assert_eq!(mark_count(black_box("é\0🦀")), 1);
+		assert_eq!(mark_count(black_box("a `b` c")), 5);
+		assert_eq!(mark_count(black_box("``")), 5);
+		assert_eq!(mark_count(black_box("`a` and `b`")), 9);
+	}
+
+	#[test]
+	fn mark_pieces_alternate_spans_and_codes() {
+		let pieces: [&str; 9] = mark_pieces(black_box("é `🦀` and `\0` end"), black_box("<"), black_box(">"));
+
+		assert_eq!(pieces, ["é ", "<", "🦀", ">", " and ", "<", "\0", ">", " end"]);
+	}
+
+	#[test]
+	fn mark_pieces_of_a_text_without_backticks_are_the_text() {
+		let pieces: [&str; 1] = mark_pieces(black_box("é\0🦀"), black_box("<"), black_box(">"));
+
+		assert_eq!(pieces, ["é\0🦀"]);
+	}
+
+	#[test]
+	fn mark_pieces_keep_empty_spans_at_the_edges_and_between_adjacent_backticks() {
+		let edges: [&str; 5] = mark_pieces(black_box("`a`"), black_box("<"), black_box(">"));
+		let adjacent: [&str; 5] = mark_pieces(black_box("x``"), black_box("<"), black_box(">"));
+
+		assert_eq!(edges, ["", "<", "a", ">", ""]);
+		assert_eq!(adjacent, ["x", "<", "", ">", ""]);
 	}
 }
