@@ -17,21 +17,21 @@ const html = composition.renderWith(BrowserEnv);
 console.log(html.text);
 
 // Colors paint through the host's resolved support level, one per font color slot
-Cfonts.text("colors").font(Font.Block).colors([Color.Red, Color.Yellow]).say(host);
+Cfonts.text("colors").colors([Color.Red, Color.Yellow]).say(host);
 
 // A gradient ramps between two colors the long way around the color wheel, one color per column
-Cfonts.text("rainbow").font(Font.Block).gradient({ start: Color.Red, end: Color.Blue }).say(host);
+Cfonts.text("rainbow").colors({ start: Color.Red, end: Color.Blue }).say(host);
 
 // A transition travels straight to each color
 Cfonts.text("sunset")
-	.font(Font.Block)
-	.gradient({ transition: [Color.Yellow, "#ff8800", Color.Magenta] })
+
+	.colors({ transition: [Color.Yellow, "#ff8800", Color.Magenta] })
 	.say(host);
 
 // Blocks share one line, each with its own font and colors
 Cfonts.text("say ")
 	.font(Font.Tiny)
-	.gradient({ start: Color.Green, end: Color.Magenta })
+	.colors({ start: Color.Green, end: Color.Magenta })
 	.newText("fire")
 	.font(Font.Tiny)
 	.colors([Color.YellowBright])
@@ -45,7 +45,7 @@ Cfonts.text("one ")
 	.newText("two ")
 	.font(Font.Tiny)
 	.colors(["#fff"])
-	.globalColors([Color.Yellow])
+	.globalColors([Color.Yellow]) // this could also be a gradient just like any `.colors()` setter
 	.newText("three")
 	.font(Font.Tiny)
 	// no color set in this block
@@ -53,73 +53,76 @@ Cfonts.text("one ")
 
 // Setting the independentGradient means each line will use its real length,
 // without it a gradient uses the longest line to calculate the gradient colors
-Cfonts.text("A top long line|End")
+Cfonts.text("All you need is|Love")
 	.font(Font.Braille)
 	.align(Align.Center)
-	.gradient({ start: Color.Red, end: Color.Blue })
+	.colors({ start: Color.Red, end: Color.Blue })
 	.say(host);
-Cfonts.text("A top long line|End")
+Cfonts.text("All you need is|Love")
 	.font(Font.Braille)
 	.align(Align.Center)
-	.gradient({ start: Color.Red, end: Color.Blue })
+	.colors({ start: Color.Red, end: Color.Blue })
 	.independentGradient()
 	.say(host);
 
 // You can set a static background for your output which will include the padding (which can be disabled with `.spaceless()`)
-Cfonts.text("banner").font(Font.Block).colors([Color.White, Color.Yellow]).background(Color.Blue).say(host);
+Cfonts.text(" Banner ").colors([Color.White, Color.Yellow]).background(Color.Blue).say(host);
 
 console.log(""); // Adding some space between outputs
 
 // A background gradient ramps from the top row down, the long way around the color wheel like font gradients do
-Cfonts.text("bands")
-	.font(Font.Block)
+Cfonts.text(" Right ")
 	.align(Align.Right)
 	.colors([Color.Black, Color.Black])
 	.background({ start: Color.Blue, end: Color.Magenta })
+	.font(Font.Huge)
 	.say(host);
 
 console.log(""); // Adding some space between outputs
 
 // A background transition travels straight through every stop, top to bottom
 Cfonts.text("neon")
-	.font(Font.Block)
-	.colors([Color.Black, Color.Black])
+	.align(Align.Center)
+	.font(Font.Chrome)
+	.colors(["#f08", "#f08", "#f08"])
 	.background({ transition: [Color.Magenta, Color.Cyan, Color.Magenta] })
 	.say(host);
 
 console.log(""); // Adding some space between outputs
 
 // A background is global and spans every block, blocks of different heights meet at the row valign picks
+// Align within the width of the terminal is global and effects all blocks
 Cfonts.text("cfonts")
-	.font(Font.Block)
-	.align(Align.Center)
-	.colors([Color.White, Color.Yellow])
+	.font(Font.Dense)
+	.colors(["f08", "f08", "f08"])
 	.newText(" v4")
 	.font(Font.Console)
-	.colors([Color.Yellow])
+	.colors(["#fff"])
 	.valign(Valign.Bottom)
-	.background(Color.Blue)
+	.background(Color.Gray)
+	.align(Align.Center)
 	.say(host);
 
-// Align within the width of the terminal is global and effects all blocks
-Cfonts.text("center").font(Font.Tiny).align(Align.Center).say(host);
+console.log(""); // Adding some space between outputs
 
 // Spaceless drops the padding (two empty lines above and below) for tight stacks
-Cfonts.text("slick").font(Font.Slick).spaceless().background("ff0088").say(host);
+Cfonts.text("Neat").font(Font.Neat).colors(["#fff"]).spaceless().background("f00").say(host);
 
-// Max length breaks a line after this many glyphs, word wrap moves whole words to the next line instead
-Cfonts.text("wrap whole words").font(Font.Edge).maxLength(8).say(host);
-Cfonts.text("wrap whole words").font(Font.Edge).maxLength(8).wordWrap().say(host);
+// Max length breaks a line after this many glyphs (it means max characters)
+// word wrap moves whole words to the next line instead of breaking them mid way
+Cfonts.text("wrap whole words").font(Font.Retro).maxLength(8).colors({ start: "f08", end: "f08" }).say(host);
+Cfonts.text("wrap whole words").font(Font.Retro).maxLength(8).colors({ start: "f08", end: "f08" }).wordWrap().say(host);
 
 // Letter spacing widens the gap between letters, line height sets the rows between lines
-Cfonts.text("wide").font(Font.Block).letterSpacing(3).say(host);
-Cfonts.text("tight|rows").font(Font.Block).lineHeight(0).say(host);
+Cfonts.text("wide|normal").font(Font.Thin).letterSpacing(3).say(host);
+Cfonts.text("tight|close").font(Font.Thin).lineHeight(0).say(host);
 
 // Put together: a startup banner with a logo and a status line
-Cfonts.text("Bronzies").font(Font.Block).colors([Color.Red, Color.Yellow]).say(host);
-Cfonts.text("Bronzies-RESTful-API listening at http://0.0.0.0:5555")
+Cfonts.text("Bronzies")
+	.colors([Color.Red, "#ff0"])
+	.newText("|Bronzies-RESTful-API listening at http://0.0.0.0:5555")
 	.font(Font.Console)
 	.colors([Color.White])
-	.background(Color.Blue)
 	.spaceless()
+	.align(Align.Center)
 	.say(host);
