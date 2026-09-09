@@ -1,4 +1,4 @@
-import { Align, BrowserEnv, Cfonts, Color, Font, NodeHost, Valign } from "cfonts";
+import { Align, BrowserEnv, Cfonts, CliEnv, Color, Font, NodeHost, Valign } from "cfonts";
 
 const host = new NodeHost();
 
@@ -15,6 +15,17 @@ console.log(terminal.text);
 // Use the same instance to render to another env manually
 const html = composition.renderWith(BrowserEnv);
 console.log(html.text);
+
+// The host resolves the terminal width but this can be overwritten
+const fixedHost = NodeHost.fromOverrides({ canvasWidth: 40 });
+Cfonts.text("hello fixed world").font(Font.Edge).align(Align.Center).say(fixedHost);
+
+// Or you can use the renderWith method
+const fixedRendered = Cfonts.text("hello small world")
+	.font(Font.Edge)
+	.align(Align.Right)
+	.renderWith(CliEnv, { canvasWidth: 44 });
+console.log(fixedRendered.text);
 
 // Colors paint through the host's resolved support level, one per font color slot
 Cfonts.text("colors").colors([Color.Red, Color.Yellow]).say(host);

@@ -4,8 +4,8 @@ use cfonts::{
 };
 
 fn main() -> std::io::Result<()> {
-	// say delegates width detection and stdout output to the host
-	// FORCE_SIZE takes precedence over API overrides and detection
+	// `say` delegates width detection and stdout output to the host
+	// FORCE_SIZE and NO_COLOR env vars take precedence over API overrides and detection
 	Cfonts::text("hello").font(Font::Block).next("world").font(Font::Tiny).say(&RustHost::default())?;
 
 	// render returns the artifact while the host still resolves capabilities
