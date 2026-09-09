@@ -12,17 +12,17 @@ const artifact = banner.renderWith(BrowserConsoleEnv, {
 
 const colorful = Cfonts.text("colors")
 	.colors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }])
-	.gradient(GradientPreset.Pride)
-	.globalGradient({ start: "red", end: "#0000ff" })
+	.colors({ preset: GradientPreset.Pride })
+	.globalColors({ start: "red", end: "#0000ff" })
 	.independentGradient();
 
-colorful.gradient({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff00"] });
-colorful.gradient({ start: Color.Red, end: hexToRgb("#0000ff") });
-colorful.gradient({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
+colorful.colors({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff00"] });
+colorful.colors({ start: Color.Red, end: hexToRgb("#0000ff") });
+colorful.colors({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
 
 const channels: { red: number; green: number; blue: number } = hexToRgb("#ff8800");
 console.log(channels.red);
-colorful.gradient({ preset: GradientPreset.Lesbian });
+colorful.colors({ preset: GradientPreset.Lesbian });
 colorful.render(host);
 
 Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }]);
@@ -45,7 +45,13 @@ Cfonts.text("banded").background(GradientPreset.Pride);
 Cfonts.text("banded").background({ red: 1, green: 2, blue: 3, start: Color.Red, end: Color.Blue });
 
 // @ts-expect-error an empty object is not a gradient
-banner.gradient({});
+banner.colors({});
+
+// @ts-expect-error a bare preset is a number, presets go in their object form
+banner.colors(GradientPreset.Pride);
+
+// @ts-expect-error one color is still a list
+banner.globalColors(Color.Red);
 
 const text: string = rendered.text;
 const styles: string[] = artifact.styles;
@@ -58,22 +64,22 @@ import { BrowserHost } from "cfonts";
 document;
 
 // @ts-expect-error System has no color to blend into a gradient
-colorful.gradient({ start: Color.System, end: Color.Blue });
+colorful.colors({ start: Color.System, end: Color.Blue });
 
 // @ts-expect-error Candy rolls per segment and has no color to blend into a gradient
-colorful.gradient({ transition: [Color.Red, Color.Candy] });
+colorful.colors({ transition: [Color.Red, Color.Candy] });
 
 // bright colors are stops like any other named color
-colorful.gradient({ transition: [Color.Red, Color.WhiteBright] });
+colorful.colors({ transition: [Color.Red, Color.WhiteBright] });
 
 // @ts-expect-error a transition holds at least two stops
-colorful.gradient({ transition: [Color.Red] });
+colorful.colors({ transition: [Color.Red] });
 
 // @ts-expect-error a gradient takes exactly one shape
-colorful.gradient({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
+colorful.colors({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
 
 // @ts-expect-error the independent flag is a builder setting, not a gradient field
-colorful.gradient({ start: Color.Red, end: Color.Blue, independentGradient: true });
+colorful.colors({ start: Color.Red, end: Color.Blue, independentGradient: true });
 
 // readonly color lists are accepted: the methods only read them
 const readonlyColors = [Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }] as const;

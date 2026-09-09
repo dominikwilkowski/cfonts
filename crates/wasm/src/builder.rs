@@ -45,12 +45,12 @@ impl Cfonts {
 
 	/// Records the shared global color slot or returns a JavaScript error when repeated
 	///
-	/// `globalColors` and the three `globalGradient` shapes all claim this one slot,
-	/// so the error names the slot instead of whichever method was called
+	/// The color list and the three gradient shapes of `globalColors` all claim this one slot,
+	/// so the error names the slot instead of the shape that was passed
 	fn set_global_colors(&mut self) -> Result<(), JsError> {
 		if self.configured_globals & GLOBAL_COLOR_SET != 0 {
 			return Err(JsError::new(
-				"The global color has already been set, `globalColors()` and `globalGradient()` share one slot",
+				"The global color has already been set, `globalColors()` takes one list or gradient per composition",
 			));
 		}
 

@@ -11,9 +11,9 @@ export interface RgbInput {
 }
 
 /**
- * One block color: a named `Color`, a hex value, or channel values
+ * The color of one font color slot: a named `Color`, a hex value, or channel values
  */
-export type ColorInput = Color | string | RgbInput;
+export type ColorSlotInput = Color | string | RgbInput;
 
 /**
  * The named colors a gradient stop accepts
@@ -36,14 +36,26 @@ export type GradientStops = readonly [GradientStopInput, GradientStopInput, ...G
 /**
  * A gradient: a preset, two stops, or a transition across two or more stops
  *
+ * A preset goes in its object form, `{ preset: GradientPreset.Pride }`,
+ * a bare enum value is a number and would read as a Color
+ *
  * The `never` members make the shapes mutually exclusive at the type level;
  * the runtime shape check covers plain JavaScript
  */
 export type GradientInput =
-	| GradientPreset
 	| { preset: GradientPreset; start?: never; end?: never; transition?: never }
 	| { start: GradientStopInput; end: GradientStopInput; preset?: never; transition?: never }
 	| { transition: GradientStops; preset?: never; start?: never; end?: never };
+
+/**
+ * The colors of a text block or of the whole composition: one color per font color slot, or a gradient
+ */
+export type ColorInput = readonly ColorSlotInput[] | GradientInput;
+
+/**
+ * The colors shapes after validation, one color list or one gradient shape
+ */
+export type NormalizedColors = { kind: "list"; colors: string[] } | NormalizedGradient;
 
 /**
  * The gradient shapes after validation, each mapping to one boundary call
@@ -62,15 +74,12 @@ export type BackgroundColor = Exclude<Color, Color.Candy>;
 
 /**
  * A background: one color behind every row, or a gradient from the top row down
- *
- * A preset goes in its object form, `{ preset: GradientPreset.Pride }`,
- * a bare preset value would read as a Color
  */
 export type BackgroundInput =
 	| BackgroundColor
 	| string
 	| (RgbInput & { preset?: never; start?: never; end?: never; transition?: never })
-	| Exclude<GradientInput, GradientPreset>;
+	| GradientInput;
 
 /**
  * The background shapes after validation, one color or one gradient shape
@@ -88,7 +97,7 @@ export type NormalizedBackground = { kind: "color"; color: string } | Normalized
  * hexToRgb("#ff8800"); // { red: 255, green: 136, blue: 0 }
  *
  * @example
- * Cfonts.text("hello").gradient({ start: hexToRgb("#ff8800"), end: Color.Blue });
+ * Cfonts.text("hello").colors({ start: hexToRgb("#ff8800"), end: Color.Blue });
  */
 export function hexToRgb(hex: string): RgbInput {
 	const [red, green, blue] = wasmHexToRgb(expectString(hex, "hexToRgb"));
@@ -100,7 +109,7 @@ export function hexToRgb(hex: string): RgbInput {
  * Routes one color-like input by shape and encodes it for the boundary
  */
 function normalizeColorLike(
-	input: ColorInput | GradientStopInput,
+	input: ColorSlotInput | GradientStopInput,
 	method: string,
 	shapeError: (method: string) => TypeError,
 ): string {
@@ -131,19 +140,22 @@ function colorShapeError(method: string): TypeError {
 /**
  * Validates one color's shape and encodes it for the boundary
  */
-export function normalizeColor(input: ColorInput, method: string): string {
+export function normalizeColor(input: ColorSlotInput, method: string): string {
 	return normalizeColorLike(input, method, colorShapeError);
 }
 
 /**
- * Validates a color list's shape and encodes each entry for the boundary
+ * Validates a colors input's shape and picks the boundary call it maps to
+ *
+ * An array is one color per slot, any gradient shape is a gradient
  */
-export function normalizeColorList(colors: readonly ColorInput[], method: string): string[] {
-	if (!Array.isArray(colors)) {
-		throw new TypeError(`\`${method}()\` expects an array of colors`);
+export function normalizeColors(input: ColorInput, method: string): NormalizedColors {
+	if (Array.isArray(input)) {
+		return { kind: "list", colors: input.map((color: ColorSlotInput) => normalizeColor(color, method)) };
 	}
 
-	return colors.map((color) => normalizeColor(color, method));
+	// Array.isArray narrows mutable arrays only, so the readonly list has to be stated out of the union here
+	return normalizeGradient(input as GradientInput, method, colorsShapeError);
 }
 
 /**
@@ -185,11 +197,11 @@ function backgroundShapeError(method: string): TypeError {
 	);
 }
 
-function gradientShapeError(method: string): TypeError {
+function colorsShapeError(method: string): TypeError {
 	return new TypeError(
-		`\`${method}()\` expects exactly one gradient shape: {start: Color.Red, end: Color.Blue}, ` +
-			`{transition: [Color.Red, "#8899dd", Color.Blue]}, {preset: GradientPreset.Pride}, ` +
-			`or the GradientPreset value itself`,
+		`\`${method}()\` expects an array of colors such as [Color.Red, "#8899dd"], ` +
+			`or exactly one gradient shape such as {start: Color.Red, end: Color.Blue}, ` +
+			`{transition: [Color.Red, "#8899dd", Color.Blue]} or {preset: GradientPreset.Pride}`,
 	);
 }
 
@@ -201,27 +213,28 @@ function gradientShapeError(method: string): TypeError {
 export function normalizeGradient(
 	input: GradientInput,
 	method: string,
-	shapeError: (method: string) => TypeError = gradientShapeError,
+	shapeError: (method: string) => TypeError,
 ): NormalizedGradient {
-	if (typeof input === "number") {
-		return { kind: "preset", preset: expectEnum<GradientPreset>(input, GradientPreset, method) };
-	}
-
 	if (input === null || typeof input !== "object") {
 		throw shapeError(method);
 	}
 
-	const shapes = ["preset" in input, "start" in input || "end" in input, "transition" in input].filter(Boolean).length;
+	// a member left undefined is no shape, as the types say
+	const shapes = [
+		input.preset !== undefined,
+		input.start !== undefined || input.end !== undefined,
+		input.transition !== undefined,
+	].filter(Boolean).length;
 
 	if (shapes !== 1) {
 		throw shapeError(method);
 	}
 
-	if ("preset" in input) {
+	if (input.preset !== undefined) {
 		return { kind: "preset", preset: expectEnum<GradientPreset>(input.preset, GradientPreset, method) };
 	}
 
-	if ("transition" in input) {
+	if (input.transition !== undefined) {
 		if (!Array.isArray(input.transition)) {
 			throw new TypeError(
 				`\`${method}()\` expects transition stops as an array of two or more colors, ` +
@@ -232,7 +245,7 @@ export function normalizeGradient(
 		return { kind: "transition", stops: input.transition.map((stop) => normalizeStop(stop, method)) };
 	}
 
-	if (!("start" in input) || !("end" in input)) {
+	if (input.start === undefined || input.end === undefined) {
 		throw new TypeError(
 			`\`${method}()\` expects a gradient with both start and end, such as {start: Color.Red, end: "#8899dd"}`,
 		);
@@ -257,7 +270,11 @@ export function normalizeBackground(input: BackgroundInput, method: string): Nor
 	}
 
 	const channels = "red" in input;
-	const gradient = "preset" in input || "start" in input || "end" in input || "transition" in input;
+	const gradient =
+		input.preset !== undefined ||
+		input.start !== undefined ||
+		input.end !== undefined ||
+		input.transition !== undefined;
 
 	if (channels === gradient) {
 		throw backgroundShapeError(method);

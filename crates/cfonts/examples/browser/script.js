@@ -8,7 +8,7 @@ banner.innerHTML = Cfonts.text("hello")
 	.font(Font.Block)
 	.align(Align.Center)
 	.spaceless()
-	.globalGradient({ start: Color.Red, end: hexToRgb("#0000ff") })
+	.globalColors({ start: Color.Red, end: hexToRgb("#0000ff") })
 	.independentGradient()
 	.newText(" world")
 	.font(Font.Chrome)
@@ -33,5 +33,5 @@ const input = document.getElementById("input");
 consoleForm.addEventListener("submit", (event) => {
 	event.preventDefault();
 
-	Cfonts.text(input.value).font(Font.Chrome).gradient({ start: Color.Blue, end: Color.Green }).say(host);
+	Cfonts.text(input.value).font(Font.Chrome).colors({ start: Color.Blue, end: Color.Green }).say(host);
 });

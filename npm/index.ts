@@ -12,14 +12,14 @@ import {
 	type BackgroundColor,
 	type BackgroundInput,
 	type ColorInput,
+	type ColorSlotInput,
 	type GradientColor,
 	type GradientInput,
 	type GradientStopInput,
 	type GradientStops,
 	hexToRgb,
 	normalizeBackground,
-	normalizeColorList,
-	normalizeGradient,
+	normalizeColors,
 	type RgbInput,
 } from "./color-input.js";
 import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, renderEnvironment } from "./environments/index.js";
@@ -31,6 +31,7 @@ export type {
 	BackgroundColor,
 	BackgroundInput,
 	ColorInput,
+	ColorSlotInput,
 	Environment,
 	GradientColor,
 	GradientInput,
@@ -114,9 +115,12 @@ export class Cfonts {
 	}
 
 	/**
-	 * Sets the colors for the current text block, one per font color slot
+	 * Sets the colors for the current text block: one color per font color slot, or a gradient
 	 *
-	 * Any configured value overrides the global color for this block
+	 * A gradient ramps one color per column, its stops take any color but system and candy,
+	 * hex values, or channel values from `hexToRgb()`
+	 *
+	 * Any configured value overrides the global colors for this block
 	 *
 	 * @example
 	 * Cfonts.text("hello").font(Font.Block).colors([Color.Red, Color.Blue]);
@@ -126,30 +130,23 @@ export class Cfonts {
 	 *
 	 * @example
 	 * Cfonts.text("party").colors([Color.Candy]); // a fresh pick per painted segment
+	 *
+	 * @example
+	 * Cfonts.text("hello").colors({ start: Color.Red, end: Color.Blue });
+	 *
+	 * @example
+	 * Cfonts.text("hello").colors({ transition: [Color.Red, "#8899dd", hexToRgb("#00ff00")] });
+	 *
+	 * @example
+	 * Cfonts.text("hello").colors({ preset: GradientPreset.Pride });
 	 */
-	colors(colors: readonly ColorInput[]): this {
-		this.#inner.colors(normalizeColorList(colors, "colors"));
-		return this;
-	}
-
-	/**
-	 * Sets a gradient for the current text block, one ramp color per column
-	 *
-	 * Stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
-	 *
-	 * @example
-	 * Cfonts.text("hello").gradient({ start: Color.Red, end: Color.Blue });
-	 *
-	 * @example
-	 * Cfonts.text("hello").gradient({ transition: [Color.Red, "#8899dd", hexToRgb("#00ff00")] });
-	 *
-	 * @example
-	 * Cfonts.text("hello").gradient(GradientPreset.Pride);
-	 */
-	gradient(gradient: GradientInput): this {
-		const normalized = normalizeGradient(gradient, "gradient");
+	colors(colors: ColorInput): this {
+		const normalized = normalizeColors(colors, "colors");
 
 		switch (normalized.kind) {
+			case "list":
+				this.#inner.colors(normalized.colors);
+				break;
 			case "preset":
 				this.#inner.gradientPreset(normalized.preset);
 				break;
@@ -198,41 +195,32 @@ export class Cfonts {
 	}
 
 	/**
-	 * Sets the colors across the whole composition, one per font color slot
+	 * Sets the colors across the whole composition: one color per font color slot, or a gradient
 	 *
-	 * Blocks with their own colors override it for their columns;
-	 * shares the one global color slot with `globalGradient`
+	 * Blocks with their own colors override it for their columns, a gradient ramps over every
+	 * other column and resumes after such a block
+	 *
+	 * A gradient's stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
 	 *
 	 * @example
 	 * Cfonts.text("hello ").newText("world").globalColors([Color.Red, "#8899dd"]);
+	 *
+	 * @example
+	 * Cfonts.text("hello").globalColors({ start: Color.Red, end: Color.Blue });
+	 *
+	 * @example
+	 * Cfonts.text("hello").globalColors({ transition: [Color.Red, hexToRgb("#ff8800"), Color.Yellow] });
+	 *
+	 * @example
+	 * Cfonts.text("hello").globalColors({ preset: GradientPreset.Transgender });
 	 */
-	globalColors(colors: readonly ColorInput[]): this {
-		this.#inner.globalColors(normalizeColorList(colors, "globalColors"));
-		return this;
-	}
-
-	/**
-	 * Sets a gradient across the whole composition, one ramp color per column
-	 *
-	 * Blocks with their own colors override it for their columns and the ramp resumes after;
-	 * shares the one global color slot with `globalColors`
-	 *
-	 * Stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
-	 *
-	 *
-	 * @example
-	 * Cfonts.text("hello").globalGradient({ start: Color.Red, end: Color.Blue });
-	 *
-	 * @example
-	 * Cfonts.text("hello").globalGradient({ transition: [Color.Red, hexToRgb("#ff8800"), Color.Yellow] });
-	 *
-	 * @example
-	 * Cfonts.text("hello").globalGradient({ preset: GradientPreset.Transgender });
-	 */
-	globalGradient(gradient: GradientInput): this {
-		const normalized = normalizeGradient(gradient, "globalGradient");
+	globalColors(colors: ColorInput): this {
+		const normalized = normalizeColors(colors, "globalColors");
 
 		switch (normalized.kind) {
+			case "list":
+				this.#inner.globalColors(normalized.colors);
+				break;
 			case "preset":
 				this.#inner.globalGradientPreset(normalized.preset);
 				break;
@@ -251,7 +239,7 @@ export class Cfonts {
 	 * Restarts every gradient on each line instead of ramping once across every line
 	 *
 	 * @example
-	 * Cfonts.text("hello|world").globalGradient(GradientPreset.Pride).independentGradient();
+	 * Cfonts.text("hello|world").globalColors({ preset: GradientPreset.Pride }).independentGradient();
 	 */
 	independentGradient(): this {
 		this.#inner.independentGradient();

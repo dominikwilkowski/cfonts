@@ -8,7 +8,7 @@ banner.say(host);
 
 banner
 	.colors([Color.RedBright, "#f80"])
-	.globalGradient(GradientPreset.Bisexual)
+	.globalColors({ preset: GradientPreset.Bisexual })
 	.background({ start: Color.Red, end: Color.Blue });
 
 const consoleArtifact = banner.renderWith(BrowserConsoleEnv);
