@@ -172,7 +172,7 @@ function reference(colorLevel) {
 
 for (const [method, invoke] of [
 	["text", (value) => Cfonts.text(value)],
-	["newText", (value) => Cfonts.text("A").newText(value)],
+	["next", (value) => Cfonts.text("A").next(value)],
 ]) {
 	test(`${method} rejects non-string values`, () => {
 		assertTypeErrors(INVALID_STRINGS, invoke, `\`${method}()\` expects a string`);
@@ -180,7 +180,7 @@ for (const [method, invoke] of [
 }
 
 test("text inputs accept strings including empty strings", () => {
-	Cfonts.text("").newText("");
+	Cfonts.text("").next("");
 });
 
 const u32Setters = [

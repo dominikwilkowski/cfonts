@@ -71,13 +71,13 @@ export class Cfonts {
 	}
 
 	/**
-	 * Starts a new text block; block settings such as font and colors apply per block
+	 * Starts the next text block, block settings such as font and colors apply per block
 	 *
 	 * @example
-	 * Cfonts.text("hello ").font(Font.Block).newText("world").font(Font.Tiny);
+	 * Cfonts.text("hello ").font(Font.Block).next("world").font(Font.Tiny);
 	 */
-	newText(input: string): this {
-		this.#inner.newText(expectString(input, "newText"));
+	next(input: string): this {
+		this.#inner.next(expectString(input, "next"));
 		return this;
 	}
 
@@ -176,7 +176,7 @@ export class Cfonts {
 	 * Sets the vertical alignment of fonts with different heights on one line
 	 *
 	 * @example
-	 * Cfonts.text("hello ").font(Font.Block).newText("world").font(Font.Tiny).valign(Valign.Bottom);
+	 * Cfonts.text("hello ").font(Font.Block).next("world").font(Font.Tiny).valign(Valign.Bottom);
 	 */
 	valign(valign: Valign): this {
 		this.#inner.valign(expectEnum<Valign>(valign, Valign, "valign"));
@@ -203,7 +203,7 @@ export class Cfonts {
 	 * A gradient's stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
 	 *
 	 * @example
-	 * Cfonts.text("hello ").newText("world").globalColors([Color.Red, "#8899dd"]);
+	 * Cfonts.text("hello ").next("world").globalColors([Color.Red, "#8899dd"]);
 	 *
 	 * @example
 	 * Cfonts.text("hello").globalColors({ start: Color.Red, end: Color.Blue });

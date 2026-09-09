@@ -40,7 +40,7 @@ fn main() -> std::io::Result<()> {
 		.word_wrap()
 		.align(Align::Center)
 		.colors(vec![Color::Yellow, Color::Blue])
-		.new_text(" there")
+		.next(" there")
 		.font(Font::Tiny)
 		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
 		.into();

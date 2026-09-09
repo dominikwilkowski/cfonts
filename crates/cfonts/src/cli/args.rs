@@ -455,10 +455,10 @@ impl Args {
 			Self::Next => ArgInfo {
 				long: "next",
 				short: &["n"],
-				title: "Start a new text block",
+				title: "Start the next text block",
 				scope: &[],
 				description: &[
-					"Font, colors, spacing and wrap options after it style the new block only,",
+					"Font, colors, spacing and wrap options after it style that block only,",
 					"blocks share one line and meet at the row `--valign` picks",
 				],
 				examples: &[
@@ -470,9 +470,9 @@ impl Args {
 			Self::NextStdin => ArgInfo {
 				long: "next-stdin",
 				short: &[],
-				title: "Start a new text block, filled from stdin",
+				title: "Start the next text block, filled from stdin",
 				scope: &[],
-				description: &["Font, colors, spacing and wrap options after it style the new block only"],
+				description: &["Font, colors, spacing and wrap options after it style that block only"],
 				examples: &[
 					"echo \" World\" | cfonts Hello --next-stdin",
 					"cat name.txt | cfonts \"Hi \" --next-stdin --font tiny",

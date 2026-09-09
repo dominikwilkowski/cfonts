@@ -17,7 +17,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 	let mut output = String::new();
 	let banner = Cfonts::text("cfonts")
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
-		.new_text(format!(" {VERSION}"))
+		.next(format!(" {VERSION}"))
 		.font(Font::Console)
 		.valign(Valign::Bottom)
 		.colors(vec![Color::System])

@@ -88,17 +88,17 @@ impl<
 		self.options.blocks.last_mut().expect("Cfonts::text always creates one block")
 	}
 
-	/// Starts a new text block in the same composition
+	/// Starts the next text block of the composition
 	///
 	/// Subsequent per-block setters, such as [`font`](Self::font) and
-	/// [`letter_spacing`](Self::letter_spacing), apply to this new block
+	/// [`letter_spacing`](Self::letter_spacing), apply to this block
 	///
 	/// ```
 	/// use cfonts::{Cfonts, Font, Options};
 	///
 	/// let options: Options = Cfonts::text("hello")
 	///     .font(Font::Block)
-	///     .new_text("world")
+	///     .next("world")
 	///     .font(Font::Font3D)
 	///     .into();
 	///
@@ -106,7 +106,7 @@ impl<
 	/// assert_eq!(options.blocks[0].font, Font::Block);
 	/// assert_eq!(options.blocks[1].font, Font::Font3D);
 	/// ```
-	pub fn new_text(mut self, input: impl Into<String>) -> Self {
+	pub fn next(mut self, input: impl Into<String>) -> Self {
 		self.options.blocks.push(BlockOptions::new(input));
 		self
 	}
@@ -674,7 +674,7 @@ impl<
 ///
 /// let options: Options = Cfonts::text("hello")
 ///     .font(Font::Block)
-///     .new_text("world")
+///     .next("world")
 ///     .font(Font::Font3D)
 ///     .into();
 ///
@@ -799,8 +799,7 @@ mod tests {
 
 	#[test]
 	fn per_block_setters_target_the_current_block() {
-		let options: Options =
-			Cfonts::text("one").font(Font::Tiny).letter_spacing(2).new_text("two").font(Font::Block).into();
+		let options: Options = Cfonts::text("one").font(Font::Tiny).letter_spacing(2).next("two").font(Font::Block).into();
 
 		assert_eq!(options.blocks[0].font, Font::Tiny);
 		assert_eq!(options.blocks[0].letter_spacing, 2);
@@ -817,7 +816,7 @@ mod tests {
 
 	#[test]
 	fn color_targets_the_current_block() {
-		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).new_text("two").into();
+		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).next("two").into();
 
 		assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::Red])));
 		assert_eq!(options.blocks[1].colors, None);

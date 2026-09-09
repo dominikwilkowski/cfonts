@@ -68,9 +68,8 @@ impl Cfonts {
 		Self { options, configured_globals: 0 }
 	}
 
-	/// Starts a new text block
-	#[wasm_bindgen(js_name = newText)]
-	pub fn new_text(&mut self, input: String) {
+	/// Starts the next text block
+	pub fn next(&mut self, input: String) {
 		self.options.blocks.push(BlockOptions::new(input));
 	}
 

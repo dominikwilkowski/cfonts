@@ -338,7 +338,7 @@ mod tests {
 		let rendered = Cfonts::text("A")
 			.font(Font::Block)
 			.valign(Valign::Top)
-			.new_text("B")
+			.next("B")
 			.font(Font::Tiny)
 			.render_with(&BrowserEnv, RenderContext::unlimited());
 		assert_eq!(rendered.text.matches("<br>").count(), 5);

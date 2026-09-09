@@ -436,7 +436,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.new_text("B")
+			.next("B")
 			.font(Font::Block)
 			.background(Color::Blue)
 			.render_with(&BrowserConsoleEnv, leveled());

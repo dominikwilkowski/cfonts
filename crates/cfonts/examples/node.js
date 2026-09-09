@@ -32,7 +32,7 @@ Cfonts.text("sunset")
 Cfonts.text("say ")
 	.font(Font.Tiny)
 	.colors({ start: Color.Green, end: Color.Magenta })
-	.newText("fire")
+	.next("fire")
 	.font(Font.Tiny)
 	.colors([Color.YellowBright])
 	.say(host);
@@ -42,11 +42,11 @@ Cfonts.text("say ")
 // but blocks not having set a color inherit the global color
 Cfonts.text("one ")
 	.font(Font.Tiny)
-	.newText("two ")
+	.next("two ")
 	.font(Font.Tiny)
 	.colors(["#fff"])
 	.globalColors([Color.Yellow]) // this could also be a gradient just like any `.colors()` setter
-	.newText("three")
+	.next("three")
 	.font(Font.Tiny)
 	// no color set in this block
 	.say(host);
@@ -95,7 +95,7 @@ console.log(""); // Adding some space between outputs
 Cfonts.text("cfonts")
 	.font(Font.Dense)
 	.colors(["f08", "f08", "f08"])
-	.newText(" v4")
+	.next(" v4")
 	.font(Font.Console)
 	.colors(["#fff"])
 	.valign(Valign.Bottom)
@@ -120,7 +120,7 @@ Cfonts.text("tight|close").font(Font.Thin).lineHeight(0).say(host);
 // Put together: a startup banner with a logo and a status line
 Cfonts.text("Bronzies")
 	.colors([Color.Red, "#ff0"])
-	.newText("|Bronzies-RESTful-API listening at http://0.0.0.0:5555")
+	.next("|Bronzies-RESTful-API listening at http://0.0.0.0:5555")
 	.font(Font.Console)
 	.colors([Color.White])
 	.spaceless()

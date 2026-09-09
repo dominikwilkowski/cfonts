@@ -6,7 +6,7 @@ use cfonts::{
 fn main() -> std::io::Result<()> {
 	// say delegates width detection and stdout output to the host
 	// FORCE_SIZE takes precedence over API overrides and detection
-	Cfonts::text("hello").font(Font::Block).new_text("world").font(Font::Tiny).say(&RustHost::default())?;
+	Cfonts::text("hello").font(Font::Block).next("world").font(Font::Tiny).say(&RustHost::default())?;
 
 	// render returns the artifact while the host still resolves capabilities
 	let host = RustHost::from_overrides(RenderOverrides::default().with_canvas_width(40));
@@ -28,7 +28,7 @@ fn main() -> std::io::Result<()> {
 	Cfonts::text("say ")
 		.font(Font::Tiny)
 		.colors(GradientOption::TwoStop { start: GradientStop::Green, end: GradientStop::Magenta })
-		.new_text("fire")
+		.next("fire")
 		.font(Font::Tiny)
 		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Yellow })
 		.say(&RustHost::default())?;
@@ -36,9 +36,9 @@ fn main() -> std::io::Result<()> {
 	// set a global color anywhere
 	Cfonts::text("block 1 ")
 		.font(Font::Tiny)
-		.new_text("block 2 ")
+		.next("block 2 ")
 		.font(Font::Tiny)
-		.new_text("block 3")
+		.next("block 3")
 		.font(Font::Tiny)
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Green, end: GradientStop::Magenta })
 		.say(&RustHost::default())?;

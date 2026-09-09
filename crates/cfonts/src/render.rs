@@ -597,7 +597,7 @@ mod tests {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Block)
 			.colors(vec![Color::Red, Color::Blue])
-			.new_text("two")
+			.next("two")
 			.font(Font::Block)
 			.colors(vec![Color::Green])
 			.into();
@@ -653,7 +653,7 @@ mod tests {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Tiny)
 			.colors(vec![Color::Red])
-			.new_text("two")
+			.next("two")
 			.font(Font::Tiny)
 			.global_colors(vec![Color::Blue])
 			.into();
@@ -670,7 +670,7 @@ mod tests {
 		let options: Options = Cfonts::text("hello")
 			.font(Font::Tiny)
 			.colors(vec![Color::Candy])
-			.new_text("world")
+			.next("world")
 			.font(Font::Tiny)
 			.colors(vec![Color::Candy])
 			.into();
@@ -749,7 +749,7 @@ mod tests {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Tiny)
 			.colors(vec![Color::Red])
-			.new_text("two")
+			.next("two")
 			.font(Font::Tiny)
 			.global_colors(GradientPreset::Pride)
 			.into();

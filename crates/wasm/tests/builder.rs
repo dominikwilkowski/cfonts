@@ -79,7 +79,7 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 	actual.letter_spacing(2);
 	actual.word_wrap();
 	actual.line_height(2);
-	actual.new_text("D".to_owned());
+	actual.next("D".to_owned());
 	actual.font(Font::Block);
 	actual.align(Align::Center).expect("first align call");
 	actual.valign(Valign::Bottom).expect("first valign call");
@@ -91,7 +91,7 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 		.letter_spacing(2)
 		.word_wrap()
 		.line_height(2)
-		.new_text("D")
+		.next("D")
 		.font(CoreFont::Block)
 		.align(CoreAlign::Center)
 		.valign(CoreValign::Bottom)
@@ -133,8 +133,8 @@ fn local_settings_can_be_configured_repeatedly() {
 	actual.word_wrap();
 	actual.line_height(1);
 	actual.line_height(0);
-	actual.new_text("B".to_owned());
-	actual.new_text("C".to_owned());
+	actual.next("B".to_owned());
+	actual.next("C".to_owned());
 	actual.font(Font::Tiny);
 
 	let expected = CoreCfonts::text("A")
@@ -146,8 +146,8 @@ fn local_settings_can_be_configured_repeatedly() {
 		.word_wrap()
 		.line_height(1)
 		.line_height(0)
-		.new_text("B")
-		.new_text("C")
+		.next("B")
+		.next("C")
 		.font(CoreFont::Tiny)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 

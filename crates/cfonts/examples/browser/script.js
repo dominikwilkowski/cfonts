@@ -10,10 +10,10 @@ banner.innerHTML = Cfonts.text("hello")
 	.spaceless()
 	.globalColors({ start: Color.Red, end: hexToRgb("#0000ff") })
 	.independentGradient()
-	.newText(" world")
+	.next(" world")
 	.font(Font.Chrome)
 	.colors([Color.Red, Color.Blue, Color.Candy])
-	.newText("|How are you?")
+	.next("|How are you?")
 	.font(Font.Huge)
 	.render(host).text;
 

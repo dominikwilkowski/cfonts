@@ -52,7 +52,7 @@ fn cli_aligns_multi_font_lines_as_one_unit() {
 	with_force_size(17, || {
 		let rendered = Cfonts::text("A")
 			.font(Font::Block)
-			.new_text(" B")
+			.next(" B")
 			.font(Font::Tiny)
 			.align(Align::Center)
 			.spaceless()
@@ -73,7 +73,7 @@ fn cli_aligns_multi_font_lines_as_one_unit() {
 
 		let rendered = Cfonts::text("A ")
 			.font(Font::Tiny)
-			.new_text("B")
+			.next("B")
 			.font(Font::Block)
 			.align(Align::Center)
 			.spaceless()
@@ -227,26 +227,26 @@ fn align_is_global_ignores_setter_position() {
 	// When the alignment setting is called has not impact on the output
 	let rendered1 = Cfonts::text("A")
 		.font(Font::Tiny)
-		.new_text("B")
+		.next("B")
 		.font(Font::Block)
 		.align(Align::Right)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 	let rendered2 = Cfonts::text("A")
 		.font(Font::Tiny)
-		.new_text("B")
+		.next("B")
 		.align(Align::Right)
 		.font(Font::Block)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 	let rendered3 = Cfonts::text("A")
 		.font(Font::Tiny)
 		.align(Align::Right)
-		.new_text("B")
+		.next("B")
 		.font(Font::Block)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 	let rendered4 = Cfonts::text("A")
 		.align(Align::Right)
 		.font(Font::Tiny)
-		.new_text("B")
+		.next("B")
 		.font(Font::Block)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 
