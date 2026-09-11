@@ -30,6 +30,7 @@ const html = composition.renderWith(BrowserEnv);
 console.log(html.text);
 
 // A file is not a terminal: width zero lifts the wrap and false paints no escape codes
+// FORCE_SIZE and NO_COLOR env vars take precedence over API overrides and detection
 const fileHost = NodeHost.fromOverrides({ canvasWidth: 0, color: false });
 const notes = Cfonts.text("release notes").font(Font.Simple).render(fileHost);
 console.log(notes.text); // ready for writeFileSync("NOTES.txt", notes.text)
