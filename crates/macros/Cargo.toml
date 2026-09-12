@@ -1,0 +1,13 @@
+[package]
+name = "cfonts-macros"
+description = "Internal procedural macros for cfonts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lib]
+proc-macro = true

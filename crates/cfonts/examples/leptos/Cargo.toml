@@ -1,0 +1,16 @@
+[package]
+name = "cfonts-example-leptos"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# standalone on purpose: normal workspace builds stay leptos-free
+[workspace]
+
+[dependencies]
+cfonts = {
+	path = "../..",
+	default-features = false,
+	features = ["leptos"],
+}
+leptos = { version = "0.8", features = ["csr"] }
