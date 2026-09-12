@@ -54,7 +54,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2",
 		"@playwright/test": "^1",
-		"@types/node": "^20",
+		"@types/node": "^22",
 		"typescript": "^7",
 		"vite": "8",
 		"wasm-pack": "^0.15"

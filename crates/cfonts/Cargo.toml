@@ -35,7 +35,7 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console"] }
-windows-version = "0.1"
+windows-version = "0.100"
 
 [dev-dependencies]
 ratatui = { version = "0.30", features = ["crossterm"] }

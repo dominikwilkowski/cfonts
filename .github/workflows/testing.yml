@@ -37,7 +37,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
-          toolchain: 1.96.1
+          toolchain: stable
           components: rustfmt, clippy
           cache: true
           cache-targets: true
@@ -67,31 +67,6 @@ jobs:
           cargo check --locked -p cfonts --features leptos
           cargo check --locked -p cfonts --features dioxus
 
-  msrv:
-    name: MSRV
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout files
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
-        with:
-          toolchain: 1.88.0
-          cache: true
-          cache-targets: true
-          cache-bin: false
-          cache-on-failure: false
-          cache-all-crates: false
-          cache-workspace-crates: false
-          cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
-
-      - name: Check the MSRV toolchain
-        run: cargo check --locked --workspace --all-targets --all-features
-
   test:
     name: Test
     strategy:
@@ -101,6 +76,9 @@ jobs:
           - ubuntu-24.04
           - macos-15
           - windows-2025
+        toolchain:
+          - msrv
+          - stable
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
 
@@ -110,10 +88,21 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Resolve the toolchain
+        id: toolchain
+        env:
+          TOOLCHAIN: ${{ matrix.toolchain }}
+        run: |
+          if [ "$TOOLCHAIN" = "msrv" ]; then
+            TOOLCHAIN=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "cfonts") | .rust_version')
+          fi
+          echo "version=$TOOLCHAIN" >> "$GITHUB_OUTPUT"
+
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
-          toolchain: 1.96.1
+          toolchain: ${{ steps.toolchain.outputs.version }}
+          target: wasm32-unknown-unknown
           cache: true
           cache-targets: true
           cache-bin: false
@@ -128,8 +117,20 @@ jobs:
       - name: Run cargo doc tests
         run: cargo test --doc --workspace --all-features --locked --no-fail-fast
 
+      - name: Check the core WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
+
+      - name: Check the ratatui feature on the WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
+
   package:
     name: Package
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 22
+          - 24
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -142,7 +143,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
-          toolchain: 1.96.1
+          toolchain: stable
           target: wasm32-unknown-unknown
           cache: true
           cache-targets: true
@@ -160,7 +161,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - name: Install dependencies
@@ -171,9 +172,6 @@ jobs:
 
       - name: Check biome
         run: pnpm run test:biome
-
-      - name: Check the core WASM target
-        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
 
       - name: Check the packages carry license and readme
         run: |
@@ -198,9 +196,6 @@ jobs:
           pin=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name=="cfonts") | .dependencies[] | select(.name=="cfonts-macros") | .req')
           test "$cargo_v" = "$npm_v" || { echo "crate $cargo_v != npm $npm_v"; exit 1; }
           test "$pin" = "=$cargo_v" || { echo "macros pin $pin != =$cargo_v"; exit 1; }
-
-      - name: Check the ratatui feature on the WASM target
-        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
 
       - name: Check framework examples
         run: pnpm run test:frameworks
@@ -228,7 +223,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
-          toolchain: 1.96.1
+          toolchain: stable
           components: llvm-tools-preview
           cache: true
           cache-targets: false
