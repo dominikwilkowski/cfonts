@@ -105,6 +105,7 @@ bridge_enum!(Font => CoreFont {
 	Block,
 	Board,
 	Braille,
+	Bridge,
 	Bubble,
 	Chrome,
 	Dense,

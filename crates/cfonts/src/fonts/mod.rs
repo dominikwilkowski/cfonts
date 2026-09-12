@@ -6,6 +6,8 @@ mod board;
 pub use board::FONT_BOARD;
 mod braille;
 pub use braille::FONT_BRAILLE;
+mod bridge;
+pub use bridge::FONT_BRIDGE;
 mod bubble;
 pub use bubble::FONT_BUBBLE;
 mod chrome;
@@ -126,6 +128,7 @@ pub enum Font {
 	Block,
 	Board,
 	Braille,
+	Bridge,
 	Bubble,
 	Chrome,
 	Dense,
@@ -154,6 +157,7 @@ impl Font {
 			Self::Block => &FONT_BLOCK,
 			Self::Board => &FONT_BOARD,
 			Self::Braille => &FONT_BRAILLE,
+			Self::Bridge => &FONT_BRIDGE,
 			Self::Bubble => &FONT_BUBBLE,
 			Self::Chrome => &FONT_CHROME,
 			Self::Dense => &FONT_DENSE,
@@ -181,6 +185,7 @@ impl Font {
 			"block" => Some(Font::Block),
 			"board" => Some(Font::Board),
 			"braille" => Some(Font::Braille),
+			"bridge" => Some(Font::Bridge),
 			"bubble" => Some(Font::Bubble),
 			"chrome" => Some(Font::Chrome),
 			"dense" => Some(Font::Dense),
