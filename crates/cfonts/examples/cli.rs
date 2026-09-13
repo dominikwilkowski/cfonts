@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use cfonts::{
 	Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, GradientOption,
 	GradientPreset, GradientStop, Host, Options, RenderContext, RenderOverrides, Rendered, Rgb, RustHost,
-	TransitionStops, Valign,
+	TransitionStops, Valign, render_with,
 };
 
 fn main() -> io::Result<()> {
@@ -77,6 +77,11 @@ fn main() -> io::Result<()> {
 		.align(Align::Right)
 		.render_with(&CliEnv::default(), RenderContext::with_canvas_width(44));
 	println!("{}", fixed_rendered.text);
+
+	// The environment carries the raw mode for manual renders, a terminal emulator in a page wants these endings too
+	let emulator =
+		Cfonts::text("xterm").font(Font::Tiny).render_with(&CliEnv::new(true), RenderContext::with_canvas_width(44));
+	println!("{}", emulator.text);
 
 	// Colors paint through the host's resolved support level, one per font color slot
 	Cfonts::text("colors").colors(vec![Color::Red, Color::Yellow]).say(&host)?;
@@ -182,7 +187,7 @@ fn main() -> io::Result<()> {
 	println!(); // Adding some space between examples
 
 	// A preset paints a background too, top to bottom through the flag's stops
-	Cfonts::text(" flag ").colors(vec![Color::Black, Color::Black]).background(GradientPreset::Pride).say(&host)?;
+	Cfonts::text(" pride ").background(GradientPreset::Pride).say(&host)?;
 
 	println!(); // Adding some space between examples
 
@@ -224,7 +229,7 @@ fn main() -> io::Result<()> {
 
 	// Put together: a startup banner with a logo and a status line
 	Cfonts::text("Bronzies")
-		.colors(vec![Color::Red, Color::Yellow])
+		.colors(vec![Color::Red, Color::Rgb(Rgb::from_hex("#ff0").expect("a valid hex color"))])
 		.next("|Bronzies-RESTful-API listening at http://0.0.0.0:5555")
 		.font(Font::Console)
 		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::White })
@@ -249,9 +254,12 @@ fn main() -> io::Result<()> {
 	println!(); // Adding some space between examples
 
 	// The builder is plain data underneath, Options renders through any environment without a host
-	let options: Options = Cfonts::text("data").font(Font::Tiny).into();
-	let rendered: Rendered = cfonts::render_with(&options, &CliEnv::default(), RenderContext::with_canvas_width(60));
-	println!("{}", rendered.text);
+	// and comes out the same as the builder's own render_with, so nothing is printed twice here
+	let banner = Cfonts::text("data").font(Font::Tiny);
+	let context = RenderContext::with_canvas_width(60);
+	let rendered = banner.render_with(&CliEnv::default(), context);
+	let options: Options = banner.into();
+	assert_eq!(render_with(&options, &CliEnv::default(), context), rendered);
 
 	Ok(())
 }

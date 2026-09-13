@@ -1,7 +1,7 @@
 import { release } from "node:os";
 
 import { type ColorLevel, detectCanvasWidth, detectColorSupport } from "../../pkg/cfonts_wasm.js";
-import { CliEnv } from "../environments/index.js";
+import { CliEnv, type Environment, lineEnd } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
 import type { Host } from "./types.js";
@@ -56,6 +56,7 @@ function measuredColumns(): number | undefined {
  */
 export class NodeHost implements Host {
 	#overrides: RenderOverrides = Object.freeze({});
+	#environment: Environment = CliEnv;
 
 	/**
 	 * Creates a Node host with explicit capability overrides
@@ -74,14 +75,28 @@ export class NodeHost implements Host {
 		return host;
 	}
 
+	/**
+	 * Renders with `\r\n` line endings for terminals in raw mode, the way TUIs set them
+	 *
+	 * @example
+	 * new NodeHost().withRawMode(true);
+	 *
+	 * @example
+	 * NodeHost.fromOverrides({ canvasWidth: 40 }).withRawMode(true);
+	 */
+	withRawMode(rawMode: boolean): this {
+		this.#environment = CliEnv.withRawMode(rawMode);
+		return this;
+	}
+
 	render(composition: Cfonts): Rendered {
-		return composition.renderWith(CliEnv, this.#resolveContext());
+		return composition.renderWith(this.#environment, this.#resolveContext());
 	}
 
 	say(composition: Cfonts): void {
-		const rendered = composition.renderWith(CliEnv, this.#resolveContext());
+		const rendered = composition.renderWith(this.#environment, this.#resolveContext());
 
-		process.stdout.write(`${rendered.text}\n`);
+		process.stdout.write(`${rendered.text}${lineEnd(this.#environment)}`);
 	}
 
 	#resolveContext(): RenderContext {

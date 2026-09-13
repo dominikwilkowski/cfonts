@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 //! Common utilities for tests
 
-use std::process::Command;
+use std::{ffi::OsStr, process::Command};
 
 use cfonts::Rendered;
 
@@ -36,10 +36,10 @@ pub const DETECTION_VARS: &[&str] = &[
 	"TEAMCITY_VERSION",
 ];
 
-/// A command for the real binary with a hermetic environment: every detection
+/// A command for any program with a hermetic environment: every detection
 /// variable stripped, the given ones applied
-pub fn hermetic_binary(arguments: &[&str], variables: &[(&str, &str)]) -> Command {
-	let mut command = Command::new(env!("CARGO_BIN_EXE_cfonts"));
+pub fn hermetic_command(program: impl AsRef<OsStr>, arguments: &[&str], variables: &[(&str, &str)]) -> Command {
+	let mut command = Command::new(program);
 	command.args(arguments);
 
 	for name in DETECTION_VARS {
@@ -50,4 +50,9 @@ pub fn hermetic_binary(arguments: &[&str], variables: &[(&str, &str)]) -> Comman
 	}
 
 	command
+}
+
+/// A command for the real binary with a hermetic environment
+pub fn hermetic_binary(arguments: &[&str], variables: &[(&str, &str)]) -> Command {
+	hermetic_command(env!("CARGO_BIN_EXE_cfonts"), arguments, variables)
 }

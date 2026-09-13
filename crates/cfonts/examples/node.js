@@ -21,9 +21,11 @@ Cfonts.text("hello cfonts").say(host);
 // Get the instance and do something with it later
 const composition = Cfonts.text("hello world").font(Font.Tiny);
 
-// Render manually with your own pipe to stdout
+// Render manually and write the artifact wherever a stream goes, say adds the line end for you, here you add it
 const terminal = composition.render(host);
-console.log(terminal.text);
+process.stderr.write(`stderr: ${terminal.text}\n`); // stderr keeps stdout clean for piping
+const buffer = Buffer.from(`buffer: ${terminal.text}\n`); // or collect the bytes for a file, a socket or a log sink
+process.stdout.write(buffer);
 
 // Use the same instance to render to another env manually
 const html = composition.renderWith(BrowserEnv);
@@ -44,6 +46,9 @@ const seededHost = NodeHost.fromOverrides({ seed: 42 });
 Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost);
 Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost); // the same picks again
 
+// A terminal in raw mode, the way TUIs set it, needs a carriage return before every line feed
+Cfonts.text("raw").font(Font.Tiny).say(new NodeHost().withRawMode(true));
+
 // renderWith detects nothing, so colors need a level in the context
 // A static HTML report embeds the banner in true color, a preset is a transition through the flag's stops
 const report = Cfonts.text("report")
@@ -57,7 +62,8 @@ const devtools = Cfonts.text("devtools")
 	.font(Font.Tiny)
 	.colors({ start: Color.Cyan, end: Color.Blue })
 	.renderWith(BrowserConsoleEnv, { colorLevel: ColorLevel.TrueColor });
-console.log(devtools.text, ...devtools.styles); // node skips the styles, a browser console paints them
+process.stdout.write(`${devtools.text}\n`); // console.log would consume the markers here
+console.log(`${devtools.styles.length} styles pair with the markers above, a browser console paints them`);
 
 // The host resolves the terminal width but this can be overwritten
 const fixedHost = NodeHost.fromOverrides({ canvasWidth: 40 });
@@ -69,6 +75,10 @@ const fixedRendered = Cfonts.text("hello small world")
 	.align(Align.Right)
 	.renderWith(CliEnv, { canvasWidth: 44 });
 console.log(fixedRendered.text);
+
+// The environment carries the raw mode for manual renders, a terminal emulator in a page wants these endings too
+const emulator = Cfonts.text("xterm").font(Font.Tiny).renderWith(CliEnv.withRawMode(true), { canvasWidth: 44 });
+console.log(emulator.text);
 
 // Colors paint through the host's resolved support level, one per font color slot
 Cfonts.text("colors").colors([Color.Red, Color.Yellow]).say(host);
@@ -107,7 +117,7 @@ Cfonts.text("one ")
 	.font(Font.Tiny)
 	.next("two ")
 	.font(Font.Tiny)
-	.colors(["#fff"])
+	.colors([Color.White])
 	.globalColors([Color.Yellow]) // this could also be a gradient just like any `.colors()` setter
 	.next("three")
 	.font(Font.Tiny)
@@ -161,14 +171,19 @@ Cfonts.text("neon")
 
 console.log(""); // Adding some space between examples
 
+// A preset paints a background too, top to bottom through the flag's stops
+Cfonts.text(" pride ").background({ preset: GradientPreset.Pride }).say(host);
+
+console.log(""); // Adding some space between examples
+
 // A background is global and spans every block, blocks of different heights meet at the row valign picks
-// Align within the width of the terminal is global and effects all blocks
+// Align within the width of the terminal is global and affects all blocks
 Cfonts.text("cfonts")
 	.font(Font.Dense)
 	.colors(["f08", "f08", "f08"])
 	.next(" v4")
 	.font(Font.Console)
-	.colors(["#fff"])
+	.colors([Color.White])
 	.valign(Valign.Bottom)
 	.background(Color.Gray)
 	.align(Align.Center)
@@ -177,7 +192,7 @@ Cfonts.text("cfonts")
 console.log(""); // Adding some space between examples
 
 // Spaceless drops the padding (two empty lines above and below) for tight stacks
-Cfonts.text("Neat").font(Font.Neat).colors(["#fff"]).spaceless().background("f00").say(host);
+Cfonts.text("Neat").font(Font.Neat).colors([Color.White]).spaceless().background(Color.Red).say(host);
 
 // Max length breaks a line after this many glyphs (it means max characters)
 // word wrap moves whole words to the next line instead of breaking them mid way

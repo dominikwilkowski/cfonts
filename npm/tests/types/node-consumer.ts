@@ -1,10 +1,21 @@
-import { BrowserConsoleEnv, Cfonts, Color, Font, GradientPreset, hexToRgb, NodeHost } from "cfonts";
+import { BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, Font, GradientPreset, hexToRgb, NodeHost } from "cfonts";
 
 const banner = Cfonts.text("hello").font(Font.Block);
 const host = NodeHost.fromOverrides({ canvasWidth: 80 });
 
 const rendered = banner.render(host);
 banner.say(host);
+
+banner.say(new NodeHost().withRawMode(true));
+banner.say(NodeHost.fromOverrides({ canvasWidth: 80 }).withRawMode(false));
+const raw = banner.renderWith(CliEnv.withRawMode(true), { canvasWidth: 80 });
+console.log(raw.text);
+
+// @ts-expect-error raw mode is a boolean
+new NodeHost().withRawMode("yes");
+
+// @ts-expect-error the browser environments have no raw mode
+BrowserEnv.withRawMode(true);
 
 const artifact = banner.renderWith(BrowserConsoleEnv, {
 	canvasWidth: 80,

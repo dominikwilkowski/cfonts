@@ -283,7 +283,8 @@ test("renderWith rejects unsupported environments", () => {
 	}
 
 	// even the private symbol with a forged kind stays outside the closed set
-	const forged = Object.freeze({ [Object.getOwnPropertySymbols(CliEnv)[0]]: 99 });
+	const kind = Object.getOwnPropertySymbols(CliEnv).find((symbol) => symbol.description === "cfonts.environment");
+	const forged = Object.freeze({ [kind]: 99 });
 	assert.throws(() => wrappingBanner().renderWith(forged), {
 		name: "TypeError",
 		message: "`renderWith()` expects a cfonts environment",
@@ -571,6 +572,61 @@ test("NodeHost say writes exactly once", () => {
 
 		assert.deepEqual(writes, [`${expected}\n`]);
 	});
+});
+
+test("raw mode changes nothing but the line endings", () => {
+	withTerminal(120, undefined, () => {
+		// blank rows from lineHeight and the paddings travel through the same endings as the glyph rows,
+		// and the host keeps its overrides, here a width the banner wraps at
+		const banner = Cfonts.text("AAAA").font(Font.Tiny).lineHeight(2);
+		const host = NodeHost.fromOverrides({ canvasWidth: 13 });
+		const plain = banner.render(host).text;
+
+		assert.equal(host.withRawMode(true), host); // the setter configures the host it is called on
+		const raw = banner.render(host).text;
+		assert.ok(raw.includes("\r\n"));
+		assert.deepEqual(raw.split("\r\n"), plain.split("\n"));
+		assert.notEqual(plain, banner.render(new NodeHost()).text); // the override survived the setter
+
+		assert.equal(banner.render(host.withRawMode(false)).text, plain);
+	});
+});
+
+test("raw mode reaches a manual render through the terminal environment", () => {
+	const banner = Cfonts.text("AB").font(Font.Tiny);
+	const raw = banner.renderWith(CliEnv.withRawMode(true)).text;
+	const plain = banner.renderWith(CliEnv).text;
+
+	assert.deepEqual(raw.split("\r\n"), plain.split("\n"));
+	assert.equal(CliEnv.withRawMode(false), CliEnv); // the plain terminal is the value itself
+	assert.equal(CliEnv.withRawMode(true), CliEnv.withRawMode(true)); // and the raw one is a single value too
+	for (const environment of [CliEnv, CliEnv.withRawMode(true), BrowserEnv, BrowserConsoleEnv]) {
+		assert.ok(Object.isFrozen(environment)); // shared values that nobody can reshape
+	}
+});
+
+test("say ends raw output with a carriage return line feed", () => {
+	withTerminal(80, undefined, () => {
+		const banner = Cfonts.text("A");
+		const host = new NodeHost().withRawMode(true);
+		const expected = banner.render(host).text;
+
+		const writes = captureStdout(() => {
+			banner.say(host);
+		});
+
+		assert.deepEqual(writes, [`${expected}\r\n`]);
+	});
+});
+
+test("withRawMode validates its input", () => {
+	for (const value of [undefined, null, 1, "true"]) {
+		assert.throws(() => new NodeHost().withRawMode(value), {
+			name: "TypeError",
+			message: "`withRawMode()` expects a boolean",
+		});
+		assert.throws(() => CliEnv.withRawMode(value), TypeError);
+	}
 });
 
 test("FORCE_SIZE zero means unlimited", () => {

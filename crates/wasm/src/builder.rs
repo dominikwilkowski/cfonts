@@ -243,18 +243,20 @@ impl Cfonts {
 	///
 	/// The JavaScript host passes the environment it selected and the capabilities
 	/// it has already resolved; `None` and zero width mean unlimited, no color
-	/// level paints nothing
+	/// level paints nothing, raw mode ends terminal rows with `\r\n` and means
+	/// nothing to the browser environments
 	pub fn render(
 		&self,
 		environment: EnvironmentKind,
 		canvas_width: Option<usize>,
 		color_level: Option<ColorLevel>,
 		seed: Option<u32>,
+		raw_mode: bool,
 	) -> Rendered {
 		let context = Self::context(canvas_width, color_level, seed);
 
 		match environment {
-			EnvironmentKind::Cli => cfonts::render_with(&self.options, &CliEnv::default(), context).into(),
+			EnvironmentKind::Cli => cfonts::render_with(&self.options, &CliEnv::new(raw_mode), context).into(),
 			EnvironmentKind::Browser => cfonts::render_with(&self.options, &BrowserEnv, context).into(),
 			EnvironmentKind::BrowserConsole => cfonts::render_with(&self.options, &BrowserConsoleEnv, context).into(),
 		}
