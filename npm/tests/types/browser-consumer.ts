@@ -1,7 +1,7 @@
 import { BrowserConsoleEnv, BrowserHost, Cfonts, CliEnv, Color, Font, GradientPreset } from "cfonts";
 
 const banner = Cfonts.text("hello").font(Font.Block);
-const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
+const host = BrowserHost.fromOverrides({ canvasWidth: 80, seed: BrowserHost.entropy() });
 
 const html = banner.render(host);
 banner.say(host);

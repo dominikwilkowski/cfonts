@@ -1111,6 +1111,21 @@ test("console styles pair with their markers through renderWith", () => {
 	assert.ok(styled.styles.includes(""));
 });
 
+test("the host rolls a fresh seed that keeps candy repeatable while it is kept", () => {
+	const seed = NodeHost.entropy();
+
+	assert.ok(Number.isInteger(seed) && seed >= 0 && seed <= 0xffff_ffff); // the boundary's seed type
+	assert.notEqual(seed, NodeHost.entropy()); // a roll per call
+
+	const rolled = NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed });
+	const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
+	assert.equal(party.render(rolled).text, party.render(rolled).text);
+	assert.notEqual(
+		party.render(rolled).text,
+		party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor })).text,
+	);
+});
+
 test("candy seeds are deterministic through renderWith", () => {
 	const seeded = { colorLevel: ColorLevel.TrueColor, seed: 42 };
 

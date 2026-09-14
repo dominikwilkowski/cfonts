@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+
 import {
 	Align,
 	BrowserConsoleEnv,
@@ -45,6 +47,11 @@ Cfonts.text("serial").colors({ start: "#f80", end: "#80f" }).say(serialHost);
 const seededHost = NodeHost.fromOverrides({ seed: 42 });
 Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost);
 Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost); // the same picks again
+
+// A seed rolled by the host does the same and stays repeatable for as long as it is kept
+const rolled = NodeHost.fromOverrides({ seed: NodeHost.entropy() });
+const party = Cfonts.text("party").font(Font.Chrome).colors([Color.Candy, Color.Candy]);
+assert.equal(party.render(rolled).text, party.render(rolled).text); // nothing printed, the picks differ per run
 
 // A terminal in raw mode, the way TUIs set it, needs a carriage return before every line feed
 Cfonts.text("raw").font(Font.Tiny).say(new NodeHost().withRawMode(true));

@@ -59,6 +59,20 @@ export class NodeHost implements Host {
 	#environment: Environment = CliEnv;
 
 	/**
+	 * A fresh seed for candy colors, the one a render rolls when no seed override is given
+	 *
+	 * Hosts and callers that hold a seed of their own take it from here, so the
+	 * candy picks differ between runs and hold for as long as the seed is kept
+	 *
+	 * @example
+	 * const seed = NodeHost.entropy();
+	 * const host = NodeHost.fromOverrides({ seed });
+	 */
+	static entropy(): number {
+		return randomSeed();
+	}
+
+	/**
 	 * Creates a Node host with explicit capability overrides
 	 *
 	 * FORCE_SIZE, FORCE_COLOR and NO_COLOR still take precedence over these values

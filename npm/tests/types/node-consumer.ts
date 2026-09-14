@@ -6,6 +6,8 @@ const host = NodeHost.fromOverrides({ canvasWidth: 80 });
 const rendered = banner.render(host);
 banner.say(host);
 
+banner.say(NodeHost.fromOverrides({ seed: NodeHost.entropy() }));
+
 banner.say(new NodeHost().withRawMode(true));
 banner.say(NodeHost.fromOverrides({ canvasWidth: 80 }).withRawMode(false));
 const raw = banner.renderWith(CliEnv.withRawMode(true), { canvasWidth: 80 });

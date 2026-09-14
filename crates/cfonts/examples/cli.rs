@@ -48,6 +48,11 @@ fn main() -> io::Result<()> {
 	Cfonts::text("same").font(Font::Chrome).colors(vec![Color::Candy, Color::Candy]).spaceless().say(&seeded_host)?;
 	Cfonts::text("same").font(Font::Chrome).colors(vec![Color::Candy, Color::Candy]).spaceless().say(&seeded_host)?; // the same picks again
 
+	// A seed rolled by the host does the same and stays repeatable for as long as it is kept
+	let rolled = RustHost::from_overrides(RenderOverrides::default().with_seed(RustHost::entropy()));
+	let party = Cfonts::text("party").font(Font::Chrome).colors(vec![Color::Candy, Color::Candy]);
+	assert_eq!(party.render(&rolled), party.render(&rolled)); // nothing printed, the picks differ per run
+
 	// A terminal in raw mode, the way TUIs set it, needs a carriage return before every line feed
 	Cfonts::text("raw").font(Font::Tiny).say(&RustHost::default().with_raw_mode(true))?;
 
