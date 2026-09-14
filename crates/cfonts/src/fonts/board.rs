@@ -544,13 +544,13 @@ pub static FONT_BOARD: FontFile<7> = FontFile {
 			r"          ",
 		));
 		table[' ' as usize] = Some(glyph!(
-			r"  ",
-			r"<c3>══</c3>",
-			r"<c4>░░</c4>",
-			r"<c4>▒▒</c4>",
-			r"<c4>▓▓</c4>",
-			r"<c3>══</c3>",
-			r"  ",
+			r"   ",
+			r"<c3>═══</c3>",
+			r"<c4>░░░</c4>",
+			r"<c4>▒▒▒</c4>",
+			r"<c4>▓▓▓</c4>",
+			r"<c3>═══</c3>",
+			r"   ",
 		));
 
 		table

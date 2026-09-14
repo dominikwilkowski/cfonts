@@ -77,8 +77,21 @@ impl RustHost {
 		TerminalColorSupport::detect(Stream::Stderr, ColorOverride::Auto, None)
 	}
 
-	/// Fresh per-process entropy for candy colors, without a dependency
-	fn entropy() -> u64 {
+	/// A fresh seed for candy colors, the one a render rolls when no seed override is given
+	///
+	/// Widgets and hosts that hold a seed of their own take it from here, so the
+	/// candy picks differ between runs and hold for as long as the seed is kept
+	///
+	/// ```
+	/// use cfonts::{RenderOverrides, RustHost};
+	///
+	/// let seed = RustHost::entropy();
+	/// let host = RustHost::from_overrides(RenderOverrides::default().with_seed(seed));
+	///
+	/// assert_ne!(seed, RustHost::entropy());
+	/// ```
+	#[must_use]
+	pub fn entropy() -> u64 {
 		RandomState::new().build_hasher().finish()
 	}
 }
