@@ -4,48 +4,71 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>cfonts browser example</title>
-		<style>
-			:root {
-				color-scheme: light dark;
-				font-family: system-ui, sans-serif;
-			}
-
-			body {
-				display: grid;
-				min-height: 100vh;
-				margin: 0;
-				place-items: center;
-			}
-
-			form {
-				margin-top: 3rem;
-				padding-top: 3rem;
-				border-top: 2px dashed #ccc;
-			}
-
-			#banner {
-				width: 100%;
-				display: grid;
-
-				> div {
-					justify-self: center;
-				}
-			}
-		</style>
+		<link media="all" rel="stylesheet" href="styles.css" />
 	</head>
 	<body>
 		<main>
-			<div id="banner"></div>
-			<form id="console_form">
-				<p>Open the devtools console to see the banner</p>
+			<section>
+				<form id="browser_form">
+					<label for="browser_input">Text: </label>
+					<input type="text" id="browser_input" value="How are you?">
 
-				<label for="input">Text: </label>
-				<input type="text" id="input" value="Hello">
+					<label for="browser_colors">Colors: </label>
+					<select id="browser_colors">
+						<option value="blue">Blue</option>
+						<option value="candy">Candy</option>
+						<option value="cyanmagenta">Cyan, Magenta</option>
+						<option value="redblue">Red-Blue</option>
+						<option value="agender">Agender</option>
+					</select>
 
-				<button type="submit">
-					Show in devtool console
-				</button>
-			</form>
+					<label for="browser_background">Background: </label>
+					<select id="browser_background">
+						<option value="system">System</option>
+						<option value="red">Red</option>
+						<option value="redblue">Red-Blue</option>
+						<option value="pride">Pride</option>
+					</select>
+
+					<select id="browser_font"></select>
+
+					<button type="submit">
+						Show
+					</button>
+				</form>
+				<div id="canvas"></div>
+			</section>
+			<section>
+				<form id="console_form">
+					<p>Open the devtools console to see the banner</p>
+
+					<label for="console_input">Text: </label>
+					<input type="text" id="console_input" value="Hello">
+
+					<label for="console_colors">Colors: </label>
+					<select id="console_colors">
+						<option value="blue">Blue</option>
+						<option value="candy">Candy</option>
+						<option value="cyanmagenta">Cyan, Magenta</option>
+						<option value="redblue">Red-Blue</option>
+						<option value="agender">Agender</option>
+					</select>
+
+					<label for="console_background">Background: </label>
+					<select id="console_background">
+						<option value="system">System</option>
+						<option value="red">Red</option>
+						<option value="redblue">Red-Blue</option>
+						<option value="pride">Pride</option>
+					</select>
+
+					<select id="console_font"></select>
+
+					<button type="submit">
+						Show in devtool console
+					</button>
+				</form>
+			</section>
 		</main>
 		<script type="module" src="./script.js"></script>
 	</body>

@@ -1,0 +1,21 @@
+:root {
+	color-scheme: light dark;
+	font-family: system-ui, sans-serif;
+}
+
+section + section {
+	margin-top: 2rem;
+	padding-top: 2rem;
+	border-top: 2px dashed #ccc;
+}
+
+#canvas {
+	background: #000;
+	margin: 1rem 0;
+	width: 100%;
+	display: grid;
+
+	> div {
+		justify-self: center;
+	}
+}
