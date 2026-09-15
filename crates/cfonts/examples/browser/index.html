@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="color-scheme" content="dark">
+		<title>cfonts, sexy ANSI fonts for the console</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap">
+		<link media="all" rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="page">
+			<header class="hero">
+				<h1 class="visually-hidden">cfonts</h1>
+				<div id="logo" role="img" aria-label="cfonts, drawn in the block font with a red to blue gradient"></div>
+				<p class="tagline">Sexy ANSI fonts for the console<span class="cursor" aria-hidden="true">█</span></p>
+				<p class="lede">
+					A few ASCII fonts with colors, gradients and backgrounds, rendered by one Rust core
+					for your terminal, node, the browser, the browser console and any Rust apps.
+				</p>
+				<pre class="shell"><span class="prompt">$ </span>cfonts "cfonts" -f block -c red-blue</pre>
+				<ul class="tree">
+					<li><span class="key">macos</span><code><span class="prompt">$ </span>brew install cfonts</code></li>
+					<li><span class="key">arch</span><code><span class="prompt">$ </span>yay -S cfonts</code></li>
+					<li><span class="key">fedora</span><code><span class="prompt">$ </span>sudo dnf install cfonts</code></li>
+					<li><span class="key">nixos</span><code><span class="prompt">$ </span>nix-env -iA nixos.cfonts</code></li>
+					<li><span class="key">macports</span><code><span class="prompt">$ </span>sudo port install cfonts</code></li>
+					<li><span class="key">rust</span><code><span class="prompt">$ </span>cargo install cfonts</code></li>
+					<li><span class="key">node</span><code><span class="prompt">$ </span>npm install cfonts</code></li>
+				</ul>
+			</header>
+			<main>
+				<section class="box" aria-labelledby="playground_title">
+					<h2 class="box-title" id="playground_title">Browser</h2>
+					<p class="intro">
+						Pick a font, colors and a background, the page renders the block with the same API node uses.
+						The canvas is an eighty column terminal, so long text wraps the way it would there.
+					</p>
+					<form id="browser_form">
+						<div class="fields">
+							<div class="field">
+								<label for="browser_input">Text</label>
+								<input type="text" id="browser_input" value="How are you?">
+							</div>
+							<div class="field select">
+								<label for="browser_font">Font</label>
+								<select id="browser_font"></select>
+							</div>
+							<div class="field select">
+								<label for="browser_colors">Colors</label>
+								<select id="browser_colors">
+									<option value="redblue">Red-Blue</option>
+									<option value="cyan">Cyan</option>
+									<option value="candy">Candy</option>
+									<option value="magentacyan">Magenta, Cyan</option>
+									<option value="agender">Agender</option>
+								</select>
+							</div>
+							<div class="field select">
+								<label for="browser_background">Background</label>
+								<select id="browser_background">
+									<option value="system">System</option>
+									<option value="red">Red</option>
+									<option value="redblue">Red-Blue</option>
+									<option value="pride">Pride</option>
+								</select>
+							</div>
+						</div>
+					</form>
+					<div class="terminal">
+						<div class="titlebar" aria-hidden="true"><span></span><span></span><span></span></div>
+						<pre class="code"><code><span class="prompt">$ </span><span id="browser_code"></span></code></pre>
+						<div id="canvas" role="img" aria-label="hello world How are you?"></div>
+					</div>
+					<p class="box-hint">eighty columns</p>
+				</section>
+				<section class="box" aria-labelledby="console_title">
+					<h2 class="box-title" id="console_title">Devtools</h2>
+					<p class="intro">
+						The same call logs a styled banner into the devtools console, open it and pick.
+						Every pick prints a banner, a typed text prints on enter.
+					</p>
+					<form id="console_form">
+						<div class="fields">
+							<div class="field">
+								<label for="console_input">Text</label>
+								<input type="text" id="console_input" value="Hello">
+							</div>
+							<div class="field select">
+								<label for="console_font">Font</label>
+								<select id="console_font"></select>
+							</div>
+							<div class="field select">
+								<label for="console_colors">Colors</label>
+								<select id="console_colors">
+									<option value="redblue">Red-Blue</option>
+									<option value="cyan">Cyan</option>
+									<option value="candy">Candy</option>
+									<option value="magentacyan">Magenta, Cyan</option>
+									<option value="agender">Agender</option>
+								</select>
+							</div>
+							<div class="field select">
+								<label for="console_background">Background</label>
+								<select id="console_background">
+									<option value="system">System</option>
+									<option value="red">Red</option>
+									<option value="redblue">Red-Blue</option>
+									<option value="pride">Pride</option>
+								</select>
+							</div>
+						</div>
+					</form>
+					<pre class="code"><code><span class="prompt">$ </span><span id="console_code"></span></code></pre>
+					<p class="box-hint">prints to the devtools console</p>
+				</section>
+			</main>
+			<footer class="statusline">
+				<span class="name">cfonts</span>
+				<span>GPL-3.0-or-later</span>
+				<span class="spacer"></span>
+				<a href="https://github.com/dominikwilkowski/cfonts" target="_blank">github</a>
+			</footer>
+		</div>
+		<script type="module" src="./script.js"></script>
+	</body>
+</html>
