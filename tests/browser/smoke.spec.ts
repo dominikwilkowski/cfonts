@@ -69,16 +69,16 @@ test("the page renders a styled banner and fills the font pickers from the enum"
 
 	for (const picker of ["#browser_font", "#console_font"]) {
 		await expect(page.locator(`${picker} option`)).toHaveText(FONT_NAMES);
-		await expect(page.locator(picker)).toHaveValue("Huge");
+		expect(FONT_NAMES).toContain(await page.locator(picker).inputValue()); // the pickers open on a real font
 	}
 
 	expect(errors.map((error) => error.message)).toEqual([]);
 });
 
-test("BrowserConsoleEnv produces a reusable console artifact", async ({ page }) => {
-	const messages = captureMessages(page, "info");
+test("the page prints the devtools banner once on load", async ({ page }) => {
+	const messages = captureMessages(page, "log");
 	const errors = capturePageErrors(page);
-	const messagePromise = page.waitForEvent("console", (message) => message.type() === "info");
+	const messagePromise = page.waitForEvent("console", (message) => message.type() === "log");
 
 	await page.goto("/");
 
@@ -89,7 +89,7 @@ test("BrowserConsoleEnv produces a reusable console artifact", async ({ page }) 
 	expect(errors.map((error) => error.message)).toEqual([]);
 });
 
-test("the browser form re-renders the canvas with the picked font, colors and background", async ({ page }) => {
+test("the browser form re-renders the canvas on every pick with the font, colors and background", async ({ page }) => {
 	const errors = capturePageErrors(page);
 
 	await page.goto("/");
@@ -98,61 +98,69 @@ test("the browser form re-renders the canvas with the picked font, colors and ba
 	const form = page.locator("#browser_form");
 	expect(await bands(canvas)).toEqual([]); // the first render carries no background
 
-	/** Submits the form with one choice per picker and waits for the banded re-render */
-	async function submit(colors: string, background: string, font: string): Promise<string[]> {
+	/** Fills one choice per picker, every pick re-renders, and waits for the banded render */
+	async function pick(colors: string, background: string, font: string): Promise<string[]> {
 		await form.getByLabel("Text").fill("Playwright");
 		await form.getByLabel("Colors").selectOption(colors);
 		await form.getByLabel("Background").selectOption(background);
 		await form.locator("#browser_font").selectOption(font);
-		await form.getByRole("button", { name: "Show" }).click();
 		await expect(canvas.locator("div[style*='background:']").first()).toBeAttached();
 
 		return bands(canvas);
 	}
 
 	// one static background paints every row the same
-	const tiny = await submit("blue", "red", "Tiny");
+	const tiny = await pick("cyan", "red", "Tiny");
 	expect(tiny.length).toBeGreaterThan(1);
 	expect(new Set(tiny).size).toBe(1);
 
 	// a taller font adds rows, so the picked font reaches the render
-	const huge = await submit("blue", "red", "Huge");
+	const huge = await pick("cyan", "red", "Huge");
 	expect(huge.length).toBeGreaterThan(tiny.length);
 
 	// the agender preset paints a pale green no other block on the page uses, so the picked colors reach it too
 	await expect(canvas.locator("span[style*='#b8f483']")).toHaveCount(0);
-	await submit("agender", "red", "Tiny");
+	await pick("agender", "red", "Tiny");
 	await expect(canvas.locator("span[style*='#b8f483']").first()).toBeAttached();
 
 	expect(errors.map((error) => error.message)).toEqual([]);
 });
 
-test("the console form logs one styled call per submit with the picked background", async ({ page }) => {
+test("the console form prints one styled banner per pick and one more on enter", async ({ page }) => {
 	const messages = captureMessages(page, "log");
 	const errors = capturePageErrors(page);
+	const loadPromise = page.waitForEvent("console", (message) => message.type() === "log");
 
 	await page.goto("/");
+	await loadPromise; // the banner the page prints on load, every pick and every enter adds one
 
 	const form = page.locator("#console_form");
+
+	/** Runs one action, waits for the banner it prints and returns the styles of that banner */
+	async function printed(action: () => Promise<void>): Promise<string[]> {
+		const messagePromise = page.waitForEvent("console", (message) => message.type() === "log");
+		await action();
+		const [, styles] = await expectStyledConsoleMessage(await messagePromise);
+
+		return styles;
+	}
+
+	// a typed text waits for enter, so the fill alone prints nothing
 	await form.getByLabel("Text").fill("Playwright");
-	await form.getByLabel("Background").selectOption("red");
-	await form.locator("#console_font").selectOption("Tiny");
-
-	const messagePromise = page.waitForEvent("console", (message) => message.type() === "log");
-	await form.getByRole("button", { name: "Show in devtool console" }).click();
-	const [, styles] = await expectStyledConsoleMessage(await messagePromise);
-
 	expect(messages).toHaveLength(1);
+
+	await printed(() => form.locator("#console_font").selectOption("Tiny"));
+	const styles = await printed(() => form.getByLabel("Background").selectOption("red"));
 	expect(styles.some((style) => style.includes("background:"))).toBe(true);
 
-	// the default background is the terminal's own, the next submit paints none
-	await form.getByLabel("Background").selectOption("system");
-	const plainPromise = page.waitForEvent("console", (message) => message.type() === "log");
-	await form.getByRole("button", { name: "Show in devtool console" }).click();
-	const [, plainStyles] = await expectStyledConsoleMessage(await plainPromise);
+	// enter prints the same picks again
+	const again = await printed(() => form.getByLabel("Text").press("Enter"));
+	expect(again).toEqual(styles);
 
-	expect(messages).toHaveLength(2);
+	// the default background is the terminal's own, so the next pick paints none
+	const plainStyles = await printed(() => form.getByLabel("Background").selectOption("system"));
 	expect(plainStyles.some((style) => style.includes("background:"))).toBe(false);
 
+	expect(messages).toHaveLength(5);
 	expect(errors.map((error) => error.message)).toEqual([]);
 });

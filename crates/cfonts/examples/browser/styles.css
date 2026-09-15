@@ -1,21 +1,352 @@
 :root {
-	color-scheme: light dark;
-	font-family: system-ui, sans-serif;
+	color-scheme: dark;
+	--mono: "Geist Mono", ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+	--bg: #111318;
+	--screen: #08090c;
+	--fg: #fff;
+	--muted: #838b98;
+	--line: #d8dce3;
+	--line-strong: #d8dce3;
+	--grid: #1a1d23;
 }
 
-section + section {
-	margin-top: 2rem;
-	padding-top: 2rem;
-	border-top: 2px dashed #ccc;
+* {
+	box-sizing: border-box;
 }
 
+html {
+	background: var(--bg);
+}
+
+body {
+	margin: 0;
+	color: var(--fg);
+	font-family: var(--mono);
+	font-size: 15px;
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+	/* The page is a character grid, one faint dot per cell */
+	background-image: radial-gradient(circle at 0.5px 0.5px, var(--grid) 0.5px, transparent 0.75px);
+	background-size: 1ch 1lh;
+}
+
+a {
+	color: var(--fg);
+	text-decoration: underline dotted;
+	text-underline-offset: 0.2em;
+}
+
+code {
+	font: inherit;
+}
+
+:focus-visible {
+	outline: 1px dashed var(--fg);
+	outline-offset: 2px;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.page {
+	max-width: 88ch;
+	margin: 0 auto;
+	padding: 2lh 2ch 1lh;
+}
+
+/* The art keeps its rows touching and takes the page font over the package default */
+#logo,
 #canvas {
-	background: #000;
-	margin: 1rem 0;
-	width: 100%;
+	> div {
+		font-family: var(--mono) !important;
+		line-height: 1.2;
+	}
+}
+
+.hero {
+	container-type: inline-size;
+	padding: 2lh 0 1lh;
+	text-align: center;
+}
+
+#logo {
+	display: grid;
+	justify-content: center;
+	/*
+	 * The logo is 57 columns of 0.6em each in Geist Mono, so it scales down until it fits
+	 * Whole pixels per column keep the blocks seamless, which every fifth pixel of font size gives
+	 */
+	font-size: round(down, min(20px, calc(100cqw / 57 / 0.6)), 5px);
+
+	div {
+		overflow: visible !important;
+	}
+}
+
+.tagline {
+	margin: 1lh 0 0;
+	font-size: 1.2rem;
+	font-weight: 500;
+}
+
+.cursor {
+	color: var(--muted);
+	animation: blink 1.2s step-end infinite;
+}
+
+@keyframes blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+.lede {
+	max-width: 64ch;
+	margin: 0.5lh auto 0;
+	color: var(--muted);
+}
+
+.shell {
+	margin: 1lh 0 0;
+	white-space: pre-wrap;
+}
+
+.prompt,
+.comment {
+	color: var(--muted);
+}
+
+.prompt {
+	user-select: none;
+}
+
+.tree {
+	display: inline-block;
+	margin: 1lh 0 0;
+	padding: 0;
+	list-style: none;
+	text-align: left;
+
+	li {
+		display: flex;
+		gap: 1ch;
+		white-space: nowrap;
+
+		&::before {
+			content: "├─";
+			color: var(--line-strong);
+		}
+
+		&:last-child::before {
+			content: "└─";
+		}
+	}
+
+	.key {
+		width: 8ch;
+		color: var(--muted);
+	}
+}
+
+.box {
+	position: relative;
+	margin-top: 2lh;
+	padding: 1.5lh 2ch;
+	border: 1px solid var(--line-strong);
+}
+
+.box-title {
+	position: absolute;
+	top: calc(-0.5lh - 0.5px);
+	left: 2ch;
+	margin: 0;
+	padding: 0 1ch;
+	background: var(--bg);
+	font-size: inherit;
+	font-weight: 600;
+	line-height: 1lh;
+}
+
+.box-hint {
+	position: absolute;
+	bottom: calc(-0.5lh - 0.5px);
+	left: 50%;
+	transform: translateX(-50%);
+	margin: 0;
+	padding: 0 1ch;
+	background: var(--bg);
+	white-space: nowrap;
+}
+
+.intro {
+	margin: 0 0 1lh;
+}
+
+.fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(16ch, 1fr));
+	gap: 0.5lh 2ch;
+	align-items: end;
+}
+
+.field {
+	position: relative;
 	display: grid;
 
-	> div {
-		justify-self: center;
+	& > label {
+		color: var(--muted);
+	}
+
+	&.select::after {
+		content: "▾";
+		position: absolute;
+		right: 1ch;
+		bottom: 0.25lh;
+		color: var(--muted);
+		pointer-events: none;
+	}
+}
+
+input,
+select {
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	padding: 0.25lh 1ch;
+	font: inherit;
+	color: var(--fg);
+	background: var(--screen);
+	border: 1px solid var(--line-strong);
+	border-radius: 0;
+
+	&:focus {
+		border: 1px dashed var(--line-strong);
+	}
+
+	&:focus-visible {
+		outline: none;
+	}
+}
+
+select {
+	appearance: none;
+	padding-right: 3ch;
+}
+
+/* A terminal window: the controls, the prompt that draws the banner, and the banner below it */
+.terminal {
+	margin-top: 1lh;
+	background: var(--screen);
+	border: 1px solid var(--line);
+
+	.titlebar {
+		display: flex;
+		gap: 1ch;
+		padding: 0.25lh 1ch;
+		border-bottom: 1px solid var(--line);
+
+		/* The three controls in gray, each at the lightness of its real color */
+		span {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #959595;
+		}
+
+		span:nth-child(2) {
+			background: #c7c7c7;
+		}
+
+		span:nth-child(3) {
+			background: #aeaeae;
+		}
+	}
+
+	/* A long command wraps at the window edge the way a shell wraps it */
+	.code {
+		margin: 0;
+		border: 0;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+}
+
+/* The canvas shares the page grid, 15px gives nine pixel columns so its blocks stay seamless too */
+#canvas {
+	display: grid;
+	justify-content: start;
+	padding: 0 1ch 1lh;
+	overflow-x: auto;
+}
+
+.code {
+	margin: 1lh 0 0;
+	padding: 0.5lh 1ch;
+	background: var(--screen);
+	border: 1px solid var(--line);
+	overflow-x: auto;
+	white-space: pre;
+	tab-size: 2;
+}
+
+.statusline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 1ch;
+	margin-top: 3lh;
+	padding-top: 0.5lh;
+	border-top: 1px solid var(--line-strong);
+	color: var(--muted);
+
+	.name {
+		font-weight: 600;
+		color: var(--fg);
+	}
+
+	.spacer {
+		flex: 1;
+	}
+
+	a {
+		color: inherit;
+		text-decoration: none;
+
+		&:hover {
+			color: var(--fg);
+		}
+	}
+
+	 > :not(.spacer) + :not(.spacer)::before {
+		content: "│";
+		margin-right: 1ch;
+		color: var(--line-strong);
+	}
+}
+
+@media (max-width: 600px) {
+	.page,
+	.box {
+		padding-inline: 1ch;
+	}
+
+	.box-title {
+		left: 1ch;
+	}
+
+	/* Six pixel columns give a phone the width of a small terminal */
+	#canvas {
+		font-size: 10px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cursor {
+		animation: none;
 	}
 }
