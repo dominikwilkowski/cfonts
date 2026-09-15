@@ -176,14 +176,14 @@ fn no_color_beats_a_capable_terminal() {
 
 #[test]
 fn a_piped_process_falls_back_to_eighty_columns() {
-	// eighteen four-glyph words: sixteen fill exactly eighty columns with
-	// their separators, the remaining two wrap onto a second row
+	// eighteen four-glyph words: sixteen fill eighty columns with their separators,
+	// the break swallows the space after the sixteenth and the remaining two wrap onto a second row
 	let words = ["AAAA"; 18].join(" ");
 	let output = run(&[&words, "-f", "console"], &[("NO_COLOR", "1")], None);
 
 	assert_eq!(output.status.code(), Some(0));
 	let rendered = text(&output.stdout);
-	let full_line = "aaaa ".repeat(16);
+	let full_line = ["aaaa"; 16].join(" ");
 	assert!(rendered.contains(&format!("{full_line}\n")));
 	assert!(rendered.contains("aaaa aaaa\n"));
 }
