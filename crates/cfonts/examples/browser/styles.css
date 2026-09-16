@@ -126,12 +126,23 @@ code {
 	user-select: none;
 }
 
+.tree-heading {
+	text-transform: lowercase;
+	text-align: left;
+	width: 21.875rem;
+	margin: 1lh auto 0 auto;
+	font-size: 1rem;
+	color: var(--muted);
+	font-weight: normal;
+}
+
 .tree {
 	display: inline-block;
-	margin: 1lh 0 0;
+	margin: 0;
 	padding: 0;
 	list-style: none;
 	text-align: left;
+	width: 21.875rem;
 
 	li {
 		display: flex;
