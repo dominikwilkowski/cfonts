@@ -33,90 +33,120 @@
 				</ul>
 			</header>
 			<main>
-				<section class="box" aria-labelledby="playground_title">
-					<h2 class="box-title" id="playground_title">Browser</h2>
+				<form id="configurator" class="frame" aria-labelledby="configurator_title">
+					<h2 class="frame-title" id="configurator_title">Configure</h2>
 					<p class="intro">
-						Pick a font, colors and a background, the page renders the block with the same API node uses.
-						The canvas is an eighty column terminal, so long text wraps the way it would there.
+						Every option of the command line. The terminal below runs the command as you pick.
 					</p>
-					<form id="browser_form">
-						<div class="fields">
-							<div class="field">
-								<label for="browser_input">Text</label>
-								<input type="text" id="browser_input" value="How are you?">
-							</div>
-							<div class="field select">
-								<label for="browser_font">Font</label>
-								<select id="browser_font"></select>
-							</div>
-							<div class="field select">
-								<label for="browser_colors">Colors</label>
-								<select id="browser_colors">
-									<option value="redblue">Red-Blue</option>
-									<option value="cyan">Cyan</option>
-									<option value="candy">Candy</option>
-									<option value="magentacyan">Magenta, Cyan</option>
-									<option value="agender">Agender</option>
-								</select>
-							</div>
-							<div class="field select">
-								<label for="browser_background">Background</label>
-								<select id="browser_background">
-									<option value="system">System</option>
-									<option value="red">Red</option>
-									<option value="redblue">Red-Blue</option>
-									<option value="pride">Pride</option>
-								</select>
-							</div>
-						</div>
-					</form>
-					<div class="terminal">
-						<div class="titlebar" aria-hidden="true"><span></span><span></span><span></span></div>
-						<pre class="code"><code><span class="prompt">$ </span><span id="browser_code"></span></code></pre>
-						<div id="canvas" role="img" aria-label="hello world How are you?"></div>
-					</div>
-					<p class="box-hint">eighty columns</p>
-				</section>
-				<section class="box" aria-labelledby="console_title">
-					<h2 class="box-title" id="console_title">Devtools</h2>
-					<p class="intro">
-						The same call logs a styled banner into the devtools console, open it and pick.
-						Every pick prints a banner, a typed text prints on enter.
+					<fieldset class="group">
+						<legend class="visually-hidden">output</legend>
+						<label class="radio"><input type="radio" name="env" value="browser" checked>browser</label>
+						<label class="radio"><input type="radio" name="env" value="console">browser console</label>
+						<button type="submit" class="run">run</button>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">text</legend>
+						<label class="field">text<input type="text" name="text" value="How are you?" enterkeyhint="go" autocomplete="off" spellcheck="false" placeholder="hello world"></label>
+						<label class="field select">font<select name="font"></select></label>
+						<label class="field">letter spacing<input type="number" name="letter-spacing" value="1" min="0" max="20" placeholder="1"></label>
+						<label class="field">line height<input type="number" name="line-height" min="0" max="20" placeholder="1"></label>
+						<label class="check"><input type="checkbox" name="word-wrap" checked>word wrap</label>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">colors</legend>
+						<label class="field">colors<input type="text" name="colors" value="red-blue" list="color_grammar" autocomplete="off" spellcheck="false" placeholder="red-blue"></label>
+						<label class="field">background<input type="text" name="background" value="system" list="background_grammar" autocomplete="off" spellcheck="false" placeholder="blue"></label>
+						<label class="check"><input type="checkbox" name="independent-gradient">independent gradient</label>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">layout</legend>
+						<fieldset class="choice">
+							<legend>align</legend>
+							<label class="radio"><input type="radio" name="align" value="left" checked>left</label>
+							<label class="radio"><input type="radio" name="align" value="center">center</label>
+							<label class="radio"><input type="radio" name="align" value="right">right</label>
+						</fieldset>
+						<label class="field">max length<input type="number" name="max-length" value="0" min="0"></label>
+						<label class="check"><input type="checkbox" name="spaceless">spaceless</label>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">next text block</legend>
+						<label class="field">next<input type="text" name="next" placeholder="next text block" enterkeyhint="go" autocomplete="off" spellcheck="false"></label>
+						<label class="field select">font<select name="next-font"></select></label>
+					</fieldset>
+					<fieldset class="choice">
+						<legend>valign</legend>
+						<label class="radio"><input type="radio" name="valign" value="top">top</label>
+						<label class="radio"><input type="radio" name="valign" value="middle" checked>middle</label>
+						<label class="radio"><input type="radio" name="valign" value="bottom">bottom</label>
+					</fieldset>
+				</form>
+				<datalist id="color_grammar">
+					<option value="red-blue">a gradient</option>
+					<option value="red:yellow:green">a transition</option>
+					<option value="red,blue">one color per font slot</option>
+					<option value="#ff8800">a hex value</option>
+					<option value="candy"></option>
+					<option value="system"></option>
+					<option value="black"></option>
+					<option value="red"></option>
+					<option value="green"></option>
+					<option value="yellow"></option>
+					<option value="blue"></option>
+					<option value="magenta"></option>
+					<option value="cyan"></option>
+					<option value="white"></option>
+					<option value="gray"></option>
+					<option value="redbright"></option>
+					<option value="greenbright"></option>
+					<option value="yellowbright"></option>
+					<option value="bluebright"></option>
+					<option value="magentabright"></option>
+					<option value="cyanbright"></option>
+					<option value="whitebright"></option>
+					<option value="pride"></option>
+					<option value="agender"></option>
+					<option value="aromantic"></option>
+					<option value="asexual"></option>
+					<option value="bisexual"></option>
+					<option value="genderfluid"></option>
+					<option value="genderqueer"></option>
+					<option value="intersex"></option>
+					<option value="lesbian"></option>
+					<option value="nonbinary"></option>
+					<option value="pansexual"></option>
+					<option value="polysexual"></option>
+					<option value="transgender"></option>
+				</datalist>
+				<datalist id="background_grammar">
+					<option value="system">paints nothing</option>
+					<option value="red-blue">a gradient from the top down</option>
+					<option value="red:yellow:green">a transition</option>
+					<option value="#222222">a hex value</option>
+					<option value="black"></option>
+					<option value="red"></option>
+					<option value="green"></option>
+					<option value="yellow"></option>
+					<option value="blue"></option>
+					<option value="magenta"></option>
+					<option value="cyan"></option>
+					<option value="white"></option>
+					<option value="gray"></option>
+					<option value="pride"></option>
+					<option value="transgender"></option>
+				</datalist>
+				<section class="terminal frame" aria-labelledby="terminal_title">
+					<h3 class="visually-hidden" id="terminal_title">Terminal</h3>
+					<p class="titlebar" aria-hidden="true">
+						<span class="dot"></span><span class="dot"></span><span class="dot"></span>
+						<span class="title">80 columns</span>
 					</p>
-					<form id="console_form">
-						<div class="fields">
-							<div class="field">
-								<label for="console_input">Text</label>
-								<input type="text" id="console_input" value="Hello">
-							</div>
-							<div class="field select">
-								<label for="console_font">Font</label>
-								<select id="console_font"></select>
-							</div>
-							<div class="field select">
-								<label for="console_colors">Colors</label>
-								<select id="console_colors">
-									<option value="redblue">Red-Blue</option>
-									<option value="cyan">Cyan</option>
-									<option value="candy">Candy</option>
-									<option value="magentacyan">Magenta, Cyan</option>
-									<option value="agender">Agender</option>
-								</select>
-							</div>
-							<div class="field select">
-								<label for="console_background">Background</label>
-								<select id="console_background">
-									<option value="system">System</option>
-									<option value="red">Red</option>
-									<option value="redblue">Red-Blue</option>
-									<option value="pride">Pride</option>
-								</select>
-							</div>
-						</div>
-					</form>
-					<pre class="code"><code><span class="prompt">$ </span><span id="console_code"></span></code></pre>
-					<p class="box-hint">prints to the devtools console</p>
+					<pre><span class="prompt" aria-hidden="true">$ </span><kbd id="command"></kbd></pre>
+					<samp id="canvas" role="img"></samp>
 				</section>
+				<p class="note">
+					Open the devtools console, every pick prints the banner there and a typed text prints on enter.
+				</p>
 			</main>
 			<footer class="statusline">
 				<span class="name">cfonts</span>

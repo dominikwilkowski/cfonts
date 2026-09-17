@@ -1,4 +1,4 @@
-import { BrowserHost, Cfonts, Font, GradientPreset } from "cfonts";
+import { Align, BrowserHost, Cfonts, Font, GradientPreset, Valign } from "cfonts";
 
 // The page is an eighty column terminal, so long text wraps the way it would there
 const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
@@ -82,103 +82,205 @@ if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
 	}, 100);
 }
 
-// Render to HTML
+// The configurator, one form whose fields are the options of the command line
+const form = document.getElementById("configurator");
+const command = document.getElementById("command");
 const canvas = document.getElementById("canvas");
-const browserCode = document.getElementById("browser_code");
-const browserFont = document.getElementById("browser_font");
-const consoleFont = document.getElementById("console_font");
 
-for (const select of [browserFont, consoleFont]) {
-	for (const name of Object.keys(Font).filter((key) => Number.isNaN(Number(key)))) {
+// The fonts by their command line names, 3d is the one name the enum spells differently
+const fonts = new Map(
+	Object.keys(Font)
+		.filter((key) => Number.isNaN(Number(key)))
+		.map((name) => [name === "Font3D" ? "3d" : name.toLowerCase(), Font[name]]),
+);
+
+for (const [select, chosen] of [
+	[form.elements.font, "neat"],
+	[form.elements["next-font"], "block"],
+]) {
+	for (const name of fonts.keys()) {
 		select.add(new Option(name, name));
 	}
-	select.value = "Neat";
+	select.value = chosen;
 }
 
-const colorChoices = {
-	redblue: { start: "red", end: "blue" },
-	cyan: ["cyan"],
-	candy: ["candy"],
-	magentacyan: ["magenta", "cyan"],
-	agender: { preset: GradientPreset.Agender },
-};
+const presets = new Map(
+	Object.keys(GradientPreset)
+		.filter((key) => Number.isNaN(Number(key)))
+		.map((name) => [name.toLowerCase(), GradientPreset[name]]),
+);
 
-const bgChoices = {
-	system: "System",
-	red: "red",
-	redblue: { start: "red", end: "blue" },
-	pride: { preset: GradientPreset.Pride },
-};
-
-// The cli spelling of a choice, for the code shown under each form
-function source(value) {
-	if (Array.isArray(value)) {
-		return value.join(",");
+// The colors the command line spells: `red,blue` one per slot, `red-blue` a gradient, `red:blue:green` a transition, or a preset
+function colorsOf(value) {
+	if (presets.has(value)) {
+		return { preset: presets.get(value) };
 	}
 
-	if (typeof value === "object") {
-		if (value.preset) {
-			return GradientPreset[value.preset];
-		} else {
-			return [value.start, value.end].join("-");
+	if (value.includes(":")) {
+		return { transition: value.split(":") };
+	}
+
+	if (value.includes("-")) {
+		const stops = value.split("-");
+
+		if (stops.length !== 2) {
+			throw new Error(`A gradient holds exactly two colors, "${value}" holds ${stops.length}`);
+		}
+
+		return { start: stops[0], end: stops[1] };
+	}
+
+	return value.split(",");
+}
+
+// A background is one color, a gradient or a preset
+function backgroundOf(value) {
+	if (value.includes(",")) {
+		throw new Error(`A background takes one color, a gradient or a preset, not "${value}"`);
+	}
+
+	const colors = colorsOf(value);
+
+	return Array.isArray(colors) ? colors[0] : colors;
+}
+
+// A word of the command line in quotes, the way a text is passed
+function quoted(value) {
+	return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+}
+
+// A word of the command line, quoted when the shell would need it
+function shellWord(value) {
+	return /^[\w,:-]+$/.test(value) ? value : quoted(value);
+}
+
+/*
+ * The options in the order the command line takes them, each with the flag it prints, the value
+ * the command line assumes when it is left out, and the builder call it makes
+ * The colors of the first block color every block, as they do on the command line
+ * A flag option prints its flag alone, a next-font applies only once a next block exists
+ */
+const options = [
+	{ name: "font", flag: "--font", unset: "block", apply: (cfonts, value) => cfonts.font(fonts.get(value)) },
+	{
+		name: "letter-spacing",
+		flag: "--letter-spacing",
+		unset: "1",
+		apply: (cfonts, value) => cfonts.letterSpacing(Number(value)),
+	},
+	{ name: "line-height", flag: "--line-height", unset: "", apply: (cfonts, value) => cfonts.lineHeight(Number(value)) },
+	{ name: "word-wrap", flag: "--word-wrap", unset: "", apply: (cfonts) => cfonts.wordWrap() },
+	{ name: "colors", flag: "--colors", unset: "system", apply: (cfonts, value) => cfonts.globalColors(colorsOf(value)) },
+	{
+		name: "background",
+		flag: "--background",
+		unset: "system",
+		apply: (cfonts, value) => cfonts.background(backgroundOf(value)),
+	},
+	{
+		name: "independent-gradient",
+		flag: "--independent-gradient",
+		unset: "",
+		apply: (cfonts) => cfonts.independentGradient(),
+	},
+	{
+		name: "align",
+		flag: "--align",
+		unset: "left",
+		apply: (cfonts, value) => cfonts.align(Align[value[0].toUpperCase() + value.slice(1)]),
+	},
+	{
+		name: "valign",
+		flag: "--valign",
+		unset: "middle",
+		apply: (cfonts, value) => cfonts.valign(Valign[value[0].toUpperCase() + value.slice(1)]),
+	},
+	{ name: "max-length", flag: "--max-length", unset: "0", apply: (cfonts, value) => cfonts.maxLength(Number(value)) },
+	{ name: "spaceless", flag: "--spaceless", unset: "", apply: (cfonts) => cfonts.spaceless() },
+	{ name: "next", flag: "--next", unset: "", quoted: true, apply: (cfonts, value) => cfonts.next(value) },
+	{ name: "next-font", flag: "--font", unset: "block", apply: (cfonts, value) => cfonts.font(fonts.get(value)) },
+];
+
+// The composition the form describes and the command line that describes it, or the option the command line would refuse
+function compose(data) {
+	const text = data.get("text");
+	const cfonts = Cfonts.text(text);
+	const words = ["cfonts", quoted(text)];
+
+	for (const option of options) {
+		const value = data.get(option.name) ?? "";
+		const skipped = value === option.unset || (option.name === "next-font" && data.get("next") === "");
+
+		if (skipped) {
+			continue;
+		}
+
+		try {
+			option.apply(cfonts, value);
+		} catch (error) {
+			return { command: words.join(" "), error: { name: option.name, message: error.message } };
+		}
+
+		words.push(option.flag);
+		if (value !== "on") {
+			words.push(option.quoted ? quoted(value) : shellWord(value));
 		}
 	}
 
-	return value;
+	return { cfonts, command: words.join(" ") };
 }
 
-// The builder chain one form describes, and the same chain spelled out for the reader
-function pick(input, font, colors, background) {
-	const builder = Cfonts.text(input.value)
-		.font(Font[font.value])
-		.colors(colorChoices[colors.value])
-		.background(bgChoices[background.value])
-		.wordWrap();
-	const code = `cfonts "${source(input.value)}" --font ${font.value} --colors ${source(colorChoices[colors.value])} --background ${source(bgChoices[background.value])} --word-wrap`;
+// Runs the command line the form spells: in the page or in the devtools console, an error where the output would go
+function run() {
+	const data = new FormData(form);
+	const { cfonts, command: line, error } = compose(data);
 
-	return { builder, code };
+	for (const control of form.querySelectorAll("input, select")) {
+		control.setCustomValidity("");
+	}
+	command.textContent = line;
+
+	if (error) {
+		form.elements[error.name].setCustomValidity(error.message);
+	}
+
+	if (data.get("env") === "console") {
+		if (error) {
+			console.error(`ERROR ${error.message}`);
+		} else {
+			cfonts.say(host);
+		}
+		return;
+	}
+
+	if (error) {
+		const output = document.createElement("span");
+		const badge = document.createElement("span");
+		badge.className = "error";
+		badge.textContent = "ERROR";
+		output.append(badge, ` ${error.message}`);
+		canvas.replaceChildren(output);
+		canvas.setAttribute("aria-label", error.message);
+	} else {
+		canvas.innerHTML = cfonts.render(host).text;
+		canvas.setAttribute("aria-label", data.get("text"));
+	}
 }
 
-// The browser form
-const browserForm = document.getElementById("browser_form");
-const browserInput = document.getElementById("browser_input");
-const browserColors = document.getElementById("browser_colors");
-const browserBackground = document.getElementById("browser_background");
+run();
 
-function paintBrowser() {
-	const { builder, code } = pick(browserInput, browserFont, browserColors, browserBackground);
-	canvas.innerHTML = builder.render(host).text;
-	canvas.setAttribute("aria-label", browserInput.value);
-	browserCode.textContent = code;
-}
-paintBrowser();
-
-// The canvas follows every keystroke and every pick, enter renders it again instead of reloading the page
-browserForm.addEventListener("input", paintBrowser);
-browserForm.addEventListener("submit", (event) => {
-	event.preventDefault();
-	paintBrowser();
+// The page follows every keystroke and pick, the console prints on every pick and a typed value prints on enter
+form.addEventListener("input", () => {
+	if (form.elements.env.value === "browser") {
+		run();
+	}
 });
-
-// The console form
-const consoleForm = document.getElementById("console_form");
-const consoleInput = document.getElementById("console_input");
-const consoleColors = document.getElementById("console_colors");
-const consoleBackground = document.getElementById("console_background");
-const consoleCode = document.getElementById("console_code");
-
-function paintConsole() {
-	const { builder, code } = pick(consoleInput, consoleFont, consoleColors, consoleBackground);
-	builder.say(host);
-	consoleCode.textContent = code;
-}
-paintConsole();
-
-// Every pick prints a banner and enter prints it again, a typed text waits for enter so it prints once
-for (const select of [consoleFont, consoleColors, consoleBackground]) {
-	select.addEventListener("change", paintConsole);
-}
-consoleForm.addEventListener("submit", (event) => {
+form.addEventListener("change", (event) => {
+	if (form.elements.env.value === "console" && !event.target.matches("input:is([type='text'], [type='number'])")) {
+		run();
+	}
+});
+form.addEventListener("submit", (event) => {
 	event.preventDefault();
-	paintConsole();
+	run();
 });

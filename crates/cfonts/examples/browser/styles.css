@@ -110,6 +110,7 @@ code {
 	max-width: 64ch;
 	margin: 0.5lh auto 0;
 	color: var(--muted);
+	text-wrap: balance;
 }
 
 .shell {
@@ -150,12 +151,12 @@ code {
 		white-space: nowrap;
 
 		&::before {
-			content: "├─";
+			content: "├─" / "";
 			color: var(--line-strong);
 		}
 
 		&:last-child::before {
-			content: "└─";
+			content: "└─" / "";
 		}
 	}
 
@@ -165,68 +166,160 @@ code {
 	}
 }
 
-.box {
+.frame {
 	position: relative;
-	margin-top: 2lh;
-	padding: 1.5lh 2ch;
-	border: 1px solid var(--line-strong);
+	margin-block-start: 2lh;
+	padding: 1lh 2ch;
+	border: 1px solid var(--line);
 }
 
-.box-title {
+/* The title sits on the top rule, its side borders draw the junctions of ┤ title ├ */
+.frame-title {
 	position: absolute;
-	top: calc(-0.5lh - 0.5px);
-	left: 2ch;
+	inset-block-start: calc(-0.5lh - 0.5px);
+	inset-inline-start: 1ch;
 	margin: 0;
 	padding: 0 1ch;
+	border-inline: 1px solid var(--line);
 	background: var(--bg);
 	font-size: inherit;
 	font-weight: 600;
 	line-height: 1lh;
 }
 
-.box-hint {
-	position: absolute;
-	bottom: calc(-0.5lh - 0.5px);
-	left: 50%;
-	transform: translateX(-50%);
-	margin: 0;
-	padding: 0 1ch;
-	background: var(--bg);
-	white-space: nowrap;
-}
-
 .intro {
-	margin: 0 0 1lh;
+	margin: 0.5lh 0 1lh;
+	color: var(--muted);
+	text-wrap: pretty;
 }
 
-.fields {
+#configurator {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(16ch, 1fr));
-	gap: 0.5lh 2ch;
+	gap: 1lh;
+}
+
+/* Every group of the form lays out its controls in one wrapping row under its caption */
+.group,
+.choice {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5lh 3ch;
 	align-items: end;
+	min-inline-size: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+
+	> legend {
+		padding: 0;
+		color: var(--muted);
+	}
+}
+
+.choice {
+	gap: 0.5lh 2ch;
+	align-items: baseline;
 }
 
 .field {
-	position: relative;
 	display: grid;
+	gap: 0;
+	color: var(--muted);
 
-	& > label {
+	&.select {
+		position: relative;
+
+		/* The picker arrow, drawn by the label since a select paints no pseudo elements of its own */
+		&::after {
+			content: "↓" / "";
+			position: absolute;
+			inset-inline-end: 1ch;
+			inset-block-end: 0.25lh;
+			pointer-events: none;
+		}
+	}
+}
+
+/* Check boxes and radios are drawn as [x] and (•), the input itself covers the label unseen */
+.check,
+.radio {
+	position: relative;
+	display: inline-flex;
+	gap: 1ch;
+	cursor: pointer;
+	white-space: nowrap;
+
+	&::before {
 		color: var(--muted);
 	}
 
-	&.select::after {
-		content: "▾";
+	&:has(> input:checked)::before {
+		color: var(--fg);
+	}
+
+	&:has(> input:focus-visible) {
+		outline: 1px dashed var(--fg);
+		outline-offset: 2px;
+	}
+
+	> input {
 		position: absolute;
-		right: 1ch;
-		bottom: 0.25lh;
+		inset: 0;
+		margin: 0;
+		opacity: 0;
+		cursor: pointer;
+	}
+}
+
+.check::before {
+	content: "[ ]" / "";
+}
+
+.check:has(> input:checked)::before {
+	content: "[x]" / "";
+}
+
+.radio::before {
+	content: "( )" / "";
+}
+
+.radio:has(> input:checked)::before {
+	content: "(•)" / "";
+}
+
+/* The run button reads as a bracketed word, enter in any field presses it */
+.run {
+	margin: 0;
+	padding: 0;
+	font: inherit;
+	font-weight: 600;
+	color: var(--fg);
+	background: none;
+	border: 0;
+	cursor: pointer;
+
+	&::before {
+		content: "[ " / "";
 		color: var(--muted);
-		pointer-events: none;
+	}
+
+	&::after {
+		content: " ]" / "";
+		color: var(--muted);
+	}
+
+	&:is(:hover, :focus-visible) {
+		outline: none;
+
+		&::before,
+		&::after {
+			color: var(--fg);
+		}
 	}
 }
 
 input,
 select {
-	width: 100%;
 	min-width: 0;
 	margin: 0;
 	padding: 0.25lh 1ch;
@@ -243,46 +336,126 @@ select {
 	&:focus-visible {
 		outline: none;
 	}
+
+	/* A value the command line would refuse, once the user has typed it */
+	&:user-invalid {
+		border-style: dashed;
+		color: var(--muted);
+	}
+}
+
+input[type="text"] {
+	inline-size: 22ch;
+}
+
+/* Numbers take the width of their digits, the way a flag value does */
+input[type="number"] {
+	field-sizing: content;
+	min-inline-size: 6ch;
+	appearance: textfield;
+
+	&::-webkit-inner-spin-button,
+	&::-webkit-outer-spin-button {
+		appearance: none;
+	}
 }
 
 select {
+	inline-size: 16ch;
+	padding-inline-end: 3ch;
 	appearance: none;
-	padding-right: 3ch;
 }
 
-/* A terminal window: the controls, the prompt that draws the banner, and the banner below it */
+/* Browsers that let a page draw the picker get one on the page grid, the others keep their own */
+@supports selector(::picker(select)) {
+	select,
+	::picker(select) {
+		appearance: base-select;
+	}
+
+	select::picker-icon {
+		display: none;
+	}
+
+	::picker(select) {
+		margin: 0;
+		padding: 0;
+		background: var(--screen);
+		color: var(--fg);
+		border: 1px solid var(--line-strong);
+		max-block-size: 12lh;
+	}
+
+	option {
+		padding: 0 1ch;
+
+		&::checkmark {
+			display: none;
+		}
+
+		&::before {
+			content: "( ) " / "";
+			color: var(--muted);
+		}
+
+		&:checked::before {
+			content: "(•) " / "";
+			color: var(--fg);
+		}
+
+		&:is(:hover, :focus-visible) {
+			outline: none;
+			background: var(--fg);
+			color: var(--bg);
+
+			&::before {
+				color: var(--bg);
+			}
+		}
+	}
+}
+
+/* The terminal window: the controls on the first row, a divider, the command, and the output below it */
 .terminal {
-	margin-top: 1lh;
+	padding: 0;
 	background: var(--screen);
-	border: 1px solid var(--line);
 
 	.titlebar {
 		display: flex;
+		align-items: center;
 		gap: 1ch;
-		padding: 0.25lh 1ch;
-		border-bottom: 1px solid var(--line);
+		block-size: 1lh;
+		margin: 0;
+		padding: 0 8ch 0 1ch;
+		border-block-end: 1px solid var(--line);
+	}
 
-		/* The three controls in gray, each at the lightness of its real color */
-		span {
-			width: 12px;
-			height: 12px;
-			border-radius: 50%;
-			background: #959595;
-		}
+	/* The three controls in gray, each at the lightness of its real color */
+	.dot {
+		inline-size: 12px;
+		block-size: 12px;
+		border-radius: 50%;
+		background: #959595;
 
-		span:nth-child(2) {
+		&:nth-child(2) {
 			background: #c7c7c7;
 		}
 
-		span:nth-child(3) {
+		&:nth-child(3) {
 			background: #aeaeae;
 		}
 	}
 
+	.title {
+		flex: 1;
+		text-align: center;
+		color: var(--muted);
+	}
+
 	/* A long command wraps at the window edge the way a shell wraps it */
-	.code {
+	pre {
 		margin: 0;
-		border: 0;
+		padding: 0 1ch;
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 	}
@@ -292,18 +465,47 @@ select {
 #canvas {
 	display: grid;
 	justify-content: start;
+	justify-items: start;
 	padding: 0 1ch 1lh;
 	overflow-x: auto;
 }
 
-.code {
-	margin: 1lh 0 0;
-	padding: 0.5lh 1ch;
-	background: var(--screen);
-	border: 1px solid var(--line);
-	overflow-x: auto;
-	white-space: pre;
-	tab-size: 2;
+/* The error a bad option prints, the badge the command line uses */
+.error {
+	padding: 0 1ch;
+	color: var(--bg);
+	background: var(--fg);
+	font-weight: 600;
+}
+
+.note {
+	margin: 2lh 0 0;
+	color: var(--muted);
+	text-align: center;
+	text-wrap: balance;
+}
+
+/* Picking the browser console takes the terminal off the page and leaves the note in its place */
+.terminal,
+.note {
+	transition:
+		opacity 0.3s,
+		display 0.3s allow-discrete;
+
+	@starting-style {
+		opacity: 0;
+	}
+}
+
+.note,
+main:has([name="env"][value="console"]:checked) .terminal {
+	display: none;
+	opacity: 0;
+}
+
+main:has([name="env"][value="console"]:checked) .note {
+	display: block;
+	opacity: 1;
 }
 
 .statusline {
@@ -341,13 +543,13 @@ select {
 }
 
 @media (max-width: 600px) {
-	.page,
-	.box {
+	.page {
 		padding-inline: 1ch;
 	}
 
-	.box-title {
-		left: 1ch;
+	input[type="text"],
+	select {
+		inline-size: 100%;
 	}
 
 	/* Six pixel columns give a phone the width of a small terminal */
@@ -359,5 +561,10 @@ select {
 @media (prefers-reduced-motion: reduce) {
 	.cursor {
 		animation: none;
+	}
+
+	.terminal,
+	.note {
+		transition: none;
 	}
 }
