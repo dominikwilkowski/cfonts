@@ -96,7 +96,7 @@ const fonts = new Map(
 
 for (const [select, chosen] of [
 	[form.elements.font, "neat"],
-	[form.elements["next-font"], "block"],
+	[form.elements["next-font"], "tiny"],
 ]) {
 	for (const name of fonts.keys()) {
 		select.add(new Option(name, name));
@@ -209,7 +209,7 @@ function compose(data) {
 
 	for (const option of options) {
 		const value = data.get(option.name) ?? "";
-		const skipped = value === option.unset || (option.name === "next-font" && data.get("next") === "");
+		const skipped = value === "" || value === option.unset || (option.name === "next-font" && data.get("next") === "");
 
 		if (skipped) {
 			continue;
