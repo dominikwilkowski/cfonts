@@ -18,7 +18,9 @@ pub fn cli_demo(options: &Options) -> String {
 pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
-	let banner = Cfonts::text("Demo")
+	let banner = Cfonts::text("cfonts")
+		.next("|  Demo")
+		.font(Font::Neat)
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
 		.next(format!(" {VERSION}"))
 		.font(Font::Console)
@@ -27,18 +29,21 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		.render_with(&CliEnv::default(), context);
 
 	output.push_str(&banner.text);
-	output.push_str("\n\n");
+	output.push_str("\n\n════════════════════════════════════════════════════════════\n\n");
 
 	let prompt = if styled { PROMPT_COLORED } else { PROMPT_PLAIN };
 
 	for font in Font::ALL {
 		let name = font.get_font().name();
-		let mut example: Options = Cfonts::text(format!(" {name} ")).font(font).spaceless().into();
+		let mut example: Options = Cfonts::text(String::from("{name}")).font(font).spaceless().into();
 		example.global_colors = options.global_colors.clone();
 		example.independent_gradient = options.independent_gradient;
 		example.background = options.background.clone();
 		let rendered = render::render_with(&example, &CliEnv::default(), context);
-		output.push_str(&format!("{prompt} cfonts \" {name} \" --font {name}\n\n{}\n\n\n\n", rendered.text));
+		output.push_str(&format!(
+			"{prompt} cfonts \"{name}\" --font {name}\n\n{}\n\n────────────────────────────────────────────────────────────\n\n",
+			rendered.text
+		));
 	}
 
 	output
@@ -64,7 +69,7 @@ mod tests {
 
 		for font in Font::ALL {
 			let name = font.get_font().name();
-			let command = format!("cfonts \" {name} \" --font {name}");
+			let command = format!("cfonts \"{name}\" --font {name}");
 
 			assert!(screen.contains(&command), "{command} is missing from the demo screen");
 			assert_eq!(Font::from_name(name), Some(font), "the printed --font {name} must parse back to the font");
