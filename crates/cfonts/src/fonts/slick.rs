@@ -501,7 +501,8 @@ pub static FONT_SLICK: FontFile<6> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_plain_segments_are_spaces, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_plain_segments_are_spaces, assert_slots_paint_only,
+		assert_supported,
 	};
 
 	#[test]
@@ -542,5 +543,10 @@ mod tests {
 	#[test]
 	fn buffers_complementary() {
 		assert_buffers_complementary(&super::FONT_SLICK);
+	}
+
+	#[test]
+	fn slots_paint_only_their_material() {
+		assert_slots_paint_only(&super::FONT_SLICK, &[&['╭', '╮', '╰', '╯', '─', '│', '┤', '├', '┴'], &['╱']]);
 	}
 }

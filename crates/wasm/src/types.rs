@@ -112,6 +112,7 @@ bridge_enum!(Font => CoreFont {
 	Depth,
 	Console,
 	Font3D,
+	Frost,
 	Grid,
 	Huge,
 	Neat,

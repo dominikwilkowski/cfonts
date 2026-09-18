@@ -20,6 +20,8 @@ mod console;
 pub use console::FONT_CONSOLE;
 mod font_3d;
 pub use font_3d::FONT_3D;
+mod frost;
+pub use frost::FONT_FROST;
 mod grid;
 pub use grid::FONT_GRID;
 mod huge;
@@ -142,6 +144,7 @@ pub enum Font {
 	Neat,
 	#[all(rename = "3d")]
 	Font3D,
+	Frost,
 	Simple,
 	SimpleBlock,
 	Tiny,
@@ -164,6 +167,7 @@ impl Font {
 			Self::Depth => &FONT_DEPTH,
 			Self::Console => &FONT_CONSOLE,
 			Self::Font3D => &FONT_3D,
+			Self::Frost => &FONT_FROST,
 			Self::Grid => &FONT_GRID,
 			Self::Huge => &FONT_HUGE,
 			Self::Neat => &FONT_NEAT,
@@ -192,6 +196,7 @@ impl Font {
 			"depth" => Some(Font::Depth),
 			"console" => Some(Font::Console),
 			"3d" | "font3d" => Some(Font::Font3D),
+			"frost" => Some(Font::Frost),
 			"grid" => Some(Font::Grid),
 			"huge" => Some(Font::Huge),
 			"neat" => Some(Font::Neat),
@@ -409,6 +414,59 @@ pub(crate) mod tests {
 		}
 	}
 
+	/// Assert every color slot paints only the characters listed for it, one list per slot
+	///
+	/// Some fonts draw each slot with its own material, the fill with one set of characters and
+	/// the edge with another, so a character tagged with the wrong slot paints in the wrong color
+	/// Spaces carry no ink and need no listing, the list count must match the colors the font declares
+	pub(crate) fn assert_slots_paint_only<const ROWS: usize>(font: &FontFile<ROWS>, allowed: &[&[char]]) {
+		assert_eq!(
+			allowed.len(),
+			font.colors,
+			"font \"{}\" declares {} colors but the white list covers {} slots",
+			font.name,
+			font.colors,
+			allowed.len(),
+		);
+
+		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
+			let Some(glyph) = glyph else {
+				continue;
+			};
+
+			for (line, row) in glyph.rows.iter().enumerate() {
+				for segment in row.segments {
+					let Segment::Colored { slot, text } = segment else {
+						continue;
+					};
+					let Some(characters) = allowed.get(*slot) else {
+						panic!(
+							"font \"{}\" glyph {} (line {}) tags <c{}> beyond the {} slots of the white list",
+							font.name,
+							glyph_name(font, code_point),
+							line,
+							slot + 1,
+							allowed.len(),
+						);
+					};
+
+					for character in text.chars().filter(|character| *character != ' ') {
+						assert!(
+							characters.contains(&character),
+							"font \"{}\" glyph {} (line {}) paints {:?} with <c{}>, which only paints {:?}",
+							font.name,
+							glyph_name(font, code_point),
+							line,
+							character,
+							slot + 1,
+							characters,
+						);
+					}
+				}
+			}
+		}
+	}
+
 	/// Assert the font uses every color it declares and tags none beyond them
 	///
 	/// A declared slot no glyph tags means a configured color silently never paints;
@@ -592,6 +650,23 @@ pub(crate) mod tests {
 	#[should_panic(expected = "tags <c3> (first in glyph 'A') beyond them")]
 	fn out_of_range_color_slots_fail_the_validation() {
 		assert_colors_all_used(&OUT_OF_RANGE_FIXTURE);
+	}
+
+	#[test]
+	#[should_panic(expected = "declares 3 colors but the white list covers 2 slots")]
+	fn a_white_list_of_the_wrong_length_fails_the_validation() {
+		assert_slots_paint_only(&DEAD_SLOT_FIXTURE, &[&['A'], &['B']]);
+	}
+
+	#[test]
+	#[should_panic(expected = "glyph 'A' (line 0) paints 'B' with <c3>, which only paints ['C']")]
+	fn a_character_outside_its_slots_white_list_fails_the_validation() {
+		assert_slots_paint_only(&DEAD_SLOT_FIXTURE, &[&['A'], &[], &['C']]);
+	}
+
+	#[test]
+	fn a_white_list_that_covers_every_slot_passes() {
+		assert_slots_paint_only(&DEAD_SLOT_FIXTURE, &[&['A'], &[], &['B']]);
 	}
 
 	/// Column width of a single row: the char count across all its segments

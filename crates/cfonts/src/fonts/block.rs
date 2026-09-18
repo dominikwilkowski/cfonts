@@ -397,7 +397,7 @@ pub static FONT_BLOCK: FontFile<6> = FontFile {
 			r"<c2> ╚═╝ ╚═╝ </c2>",
 		));
 		table['$' as usize] = Some(glyph!(
-			r"<c1>▄▄███▄▄</c1><c2>·</c2>",
+			r"<c1>▄▄███▄▄</c1><c2>╗</c2>",
 			r"<c1>██</c1><c2>╔════╝</c2>",
 			r"<c1>███████</c1><c2>╗</c2>",
 			r"<c2>╚════</c2><c1>██</c1><c2>║</c2>",
@@ -501,7 +501,7 @@ pub static FONT_BLOCK: FontFile<6> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_plain_segments_are_spaces, assert_supported,
+		assert_colors_all_used, assert_plain_segments_are_spaces, assert_slots_paint_only, assert_supported,
 	};
 
 	#[test]
@@ -537,5 +537,10 @@ mod tests {
 	#[test]
 	fn buffers_complementary() {
 		assert_buffers_complementary(&super::FONT_BLOCK);
+	}
+
+	#[test]
+	fn slots_paint_only_their_material() {
+		assert_slots_paint_only(&super::FONT_BLOCK, &[&['█', '▄', '▀'], &['╚', '╝', '╔', '╗', '═', '║']]);
 	}
 }
