@@ -1,0 +1,53 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": [
+			"biome.json",
+			"crates/cfonts/examples/**/*.html",
+			"crates/cfonts/examples/**/*.js",
+			"npm/**/*.js",
+			"npm/**/*.ts",
+			"package.json",
+			"playwright.config.ts",
+			"tests/**/*.ts",
+			"tsconfig.json"
+		]
+	},
+	"overrides": [
+		{
+			"includes": ["tsconfig.json"],
+			"json": {
+				"formatter": {
+					"trailingCommas": "all"
+				}
+			}
+		},
+		{
+			"includes": ["npm/tests/types/**"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedImports": "off"
+					}
+				}
+			}
+		}
+	],
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineEnding": "lf",
+		"lineWidth": 120
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended"
+		}
+	}
+}
