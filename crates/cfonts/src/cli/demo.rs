@@ -35,7 +35,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 
 	for font in Font::ALL {
 		let name = font.get_font().name();
-		let mut example: Options = Cfonts::text(String::from("{name}")).font(font).spaceless().into();
+		let mut example: Options = Cfonts::text(String::from(name)).font(font).spaceless().into();
 		example.global_colors = options.global_colors.clone();
 		example.independent_gradient = options.independent_gradient;
 		example.background = options.background.clone();
