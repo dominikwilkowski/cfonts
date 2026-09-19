@@ -125,6 +125,7 @@ bridge_enum!(Font => CoreFont {
 	Slick,
 	Thin,
 	Tiny,
+	Wire,
 });
 
 /// The closed set of render environments the boundary can ask for

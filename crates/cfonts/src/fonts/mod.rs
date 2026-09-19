@@ -46,6 +46,8 @@ mod thin;
 pub use thin::FONT_THIN;
 mod tiny;
 pub use tiny::FONT_TINY;
+mod wire;
+pub use wire::FONT_WIRE;
 
 use cfonts_macros::All;
 
@@ -150,6 +152,7 @@ pub enum Font {
 	Tiny,
 	Huge,
 	Edge,
+	Wire,
 	Console,
 }
 
@@ -180,6 +183,7 @@ impl Font {
 			Self::Slick => &FONT_SLICK,
 			Self::Thin => &FONT_THIN,
 			Self::Tiny => &FONT_TINY,
+			Self::Wire => &FONT_WIRE,
 		}
 	}
 
@@ -209,6 +213,7 @@ impl Font {
 			"slick" => Some(Font::Slick),
 			"thin" => Some(Font::Thin),
 			"tiny" => Some(Font::Tiny),
+			"wire" => Some(Font::Wire),
 			_ => None,
 		}
 	}
