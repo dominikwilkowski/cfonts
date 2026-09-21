@@ -46,6 +46,8 @@ mod thin;
 pub use thin::FONT_THIN;
 mod tiny;
 pub use tiny::FONT_TINY;
+mod vision;
+pub use vision::FONT_VISION;
 mod wire;
 pub use wire::FONT_WIRE;
 
@@ -137,21 +139,22 @@ pub enum Font {
 	Chrome,
 	Dense,
 	Depth,
-	Grid,
-	Pallet,
-	Retro,
-	Slick,
-	Thin,
-	Shade,
-	Neat,
+	Edge,
 	#[all(rename = "3d")]
 	Font3D,
 	Frost,
+	Grid,
+	Huge,
+	Neat,
+	Pallet,
+	Retro,
+	Shade,
 	Simple,
 	SimpleBlock,
+	Slick,
+	Thin,
 	Tiny,
-	Huge,
-	Edge,
+	Vision,
 	Wire,
 	Console,
 }
@@ -183,6 +186,7 @@ impl Font {
 			Self::Slick => &FONT_SLICK,
 			Self::Thin => &FONT_THIN,
 			Self::Tiny => &FONT_TINY,
+			Self::Vision => &FONT_VISION,
 			Self::Wire => &FONT_WIRE,
 		}
 	}
@@ -213,6 +217,7 @@ impl Font {
 			"slick" => Some(Font::Slick),
 			"thin" => Some(Font::Thin),
 			"tiny" => Some(Font::Tiny),
+			"vision" => Some(Font::Vision),
 			"wire" => Some(Font::Wire),
 			_ => None,
 		}

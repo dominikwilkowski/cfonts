@@ -125,6 +125,7 @@ bridge_enum!(Font => CoreFont {
 	Slick,
 	Thin,
 	Tiny,
+	Vision,
 	Wire,
 });
 
