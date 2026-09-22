@@ -39,6 +39,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+          target: wasm32-unknown-unknown
           cache: true
           cache-targets: true
           cache-bin: false
@@ -66,6 +67,11 @@ jobs:
           cargo check --locked -p cfonts --features ratatui
           cargo check --locked -p cfonts --features leptos
           cargo check --locked -p cfonts --features dioxus
+
+      - name: Check the framework examples
+        run: make check
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target/framework-examples
 
   test:
     name: Test
@@ -196,11 +202,6 @@ jobs:
           pin=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name=="cfonts") | .dependencies[] | select(.name=="cfonts-macros") | .req')
           test "$cargo_v" = "$npm_v" || { echo "crate $cargo_v != npm $npm_v"; exit 1; }
           test "$pin" = "=$cargo_v" || { echo "macros pin $pin != =$cargo_v"; exit 1; }
-
-      - name: Check framework examples
-        run: pnpm run test:frameworks
-        env:
-          CARGO_TARGET_DIR: ${{ github.workspace }}/target/framework-examples
 
       - name: Run WASM tests
         run: pnpm run test:wasm

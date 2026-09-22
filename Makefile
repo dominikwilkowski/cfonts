@@ -5,7 +5,7 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus node browser
+.PHONY: help cli ratatui leptos dioxus node browser check
 
 help:
 	@echo "make cli       the Rust API tour, printed to the terminal"
@@ -16,6 +16,7 @@ help:
 	@echo "make dioxus    the dioxus site, served by trunk"
 	@echo "make browser   the browser example, served by vite"
 	@echo "               or: pnpm run example:browser"
+	@echo "make check     compiles the leptos and dioxus examples, the check CI runs"
 
 cli:
 	cargo run --locked -p cfonts --example cli
@@ -35,12 +36,18 @@ dioxus: trunk
 browser: package
 	pnpm exec vite crates/cfonts/examples/browser
 
-# trunk builds the framework examples for the browser, install it once with `cargo install trunk`
-# and add the target with `rustup target add wasm32-unknown-unknown`
-.PHONY: trunk package
-trunk:
-	@command -v trunk > /dev/null || { echo "trunk is not installed, run: cargo install trunk"; exit 1; }
+check: wasm32
+	cargo check --locked --manifest-path crates/cfonts/examples/leptos/Cargo.toml --target wasm32-unknown-unknown
+	cargo check --locked --manifest-path crates/cfonts/examples/dioxus/Cargo.toml --target wasm32-unknown-unknown
+
+# The framework examples compile for the browser, add the target with `rustup target add wasm32-unknown-unknown`
+# and install trunk once with `cargo install trunk` to serve them
+.PHONY: wasm32 trunk package
+wasm32:
 	@rustup target list --installed | grep -q wasm32-unknown-unknown || { echo "the wasm32 target is missing, run: rustup target add wasm32-unknown-unknown"; exit 1; }
+
+trunk: wasm32
+	@command -v trunk > /dev/null || { echo "trunk is not installed, run: cargo install trunk"; exit 1; }
 
 # The JavaScript examples import the npm package, which is built from the wasm crate
 package:
