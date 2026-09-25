@@ -5,79 +5,80 @@ const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
 
 // The header, a red to blue gradient that moves one column further every iteration
 const logo = document.getElementById("logo");
-// One color per column of the logo, the red to blue gradient cfonts draws and the way back, so the ring rotates without a seam
+
+// One color per column of the logo, the red to blue gradient cfonts draws, so the ring rotates without a seam
 const gradient = [
 	"#ff0000",
-	"#ff2400",
-	"#ff4800",
-	"#ff6d00",
-	"#ff9100",
-	"#ffb600",
-	"#ffda00",
-	"#ffff00",
-	"#daff00",
-	"#b6ff00",
-	"#91ff00",
-	"#6dff00",
-	"#48ff00",
-	"#24ff00",
-	"#00ff00",
-	"#00ff24",
-	"#00ff48",
-	"#00ff6d",
-	"#00ff91",
-	"#00ffb6",
-	"#00ffda",
-	"#00ffff",
-	"#00daff",
-	"#00b6ff",
-	"#0091ff",
-	"#006dff",
-	"#0048ff",
-	"#0024ff",
+	"#ff001a",
+	"#ff0035",
+	"#ff0050",
+	"#ff006b",
+	"#ff0086",
+	"#ff00a1",
+	"#ff00bb",
+	"#ff00d6",
+	"#ff00f1",
+	"#f100ff",
+	"#d600ff",
+	"#bb00ff",
+	"#a100ff",
+	"#8600ff",
+	"#6b00ff",
+	"#5000ff",
+	"#3500ff",
+	"#1a00ff",
 	"#0000ff",
-	"#0023ff",
-	"#0046ff",
-	"#0069ff",
-	"#008cff",
-	"#00afff",
-	"#00d3ff",
-	"#00f6ff",
-	"#00ffe4",
-	"#00ffc1",
-	"#00ff9e",
-	"#00ff7b",
-	"#00ff57",
-	"#00ff34",
-	"#00ff11",
-	"#11ff00",
-	"#34ff00",
-	"#57ff00",
-	"#7bff00",
-	"#9eff00",
-	"#c1ff00",
-	"#e4ff00",
-	"#fff600",
-	"#ffd300",
-	"#ffaf00",
-	"#ff8c00",
-	"#ff6900",
-	"#ff4600",
-	"#ff2300",
+	"#001aff",
+	"#0035ff",
+	"#0050ff",
+	"#006bff",
+	"#0086ff",
+	"#00a1ff",
+	"#00bbff",
+	"#00d6ff",
+	"#00f1ff",
+	"#00fff1",
+	"#00ffd6",
+	"#00ffbb",
+	"#00ffa1",
+	"#00ff86",
+	"#00ff6b",
+	"#00ff50",
+	"#00ff35",
+	"#00ff1a",
+	"#00ff00",
+	"#1aff00",
+	"#35ff00",
+	"#50ff00",
+	"#6bff00",
+	"#86ff00",
+	"#a1ff00",
+	"#bbff00",
+	"#d6ff00",
+	"#f1ff00",
+	"#fff100",
+	"#ffd600",
+	"#ffbb00",
+	"#ffa100",
+	"#ff8600",
+	"#ff6b00",
+	"#ff5000",
+	"#ff3500",
+	"#ff1a00",
 ];
+let offset = 0;
 
 function paintLogo() {
 	logo.innerHTML = Cfonts.text("cfonts")
-		.font(Font.Block)
 		.spaceless()
-		.colors({ transition: gradient })
+		.colors({ start: gradient[(offset + gradient.length - 1) % gradient.length], end: gradient[offset] })
 		.render(host).text;
 }
 paintLogo();
 
 if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
 	setInterval(() => {
-		gradient.unshift(gradient.pop());
+		offset = (offset + 1) % gradient.length;
 		paintLogo();
 	}, 100);
 }
