@@ -1,0 +1,460 @@
+//! The [Ratatui](https://ratatui.rs/) widget guarded behind a feature flag
+
+// `::ratatui` forces resolution to the external crate instead of this module
+use ::ratatui::{
+	buffer::Buffer,
+	layout::Rect,
+	style::{Color as TerminalColor, Style},
+	widgets::Widget,
+};
+
+use crate::{
+	color::Color,
+	components::render_context,
+	environments::RowEvent,
+	layout::Layout,
+	options::Options,
+	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan},
+};
+
+/// A Ratatui widget that renders cfonts directly into a terminal buffer
+///
+/// This adapter consumes layout rows directly so it does not create an
+/// intermediate [`Rendered`](crate::Rendered) string or add another traversal
+///
+/// The layout is rebuilt with the widget area's width on every render so
+/// terminal resizing automatically re-wraps the composition
+///
+/// The widget has no padding rows, so a background ramp spans the glyph rows only
+pub struct CfontsWidget<'a> {
+	/// Options used to build the layout for the current widget area
+	pub options: &'a Options,
+
+	/// Entropy for candy picks; the same seed draws the same assortment
+	pub seed: u64,
+}
+
+/// One cfonts color as the terminal's own color
+///
+/// Named colors stay semantic so the terminal's palette applies,
+/// only RGB values pin exact channels
+fn terminal_color(color: Color) -> Option<TerminalColor> {
+	Some(match color {
+		Color::System | Color::Candy => return None,
+		Color::Black => TerminalColor::Black,
+		Color::Red => TerminalColor::Red,
+		Color::Green => TerminalColor::Green,
+		Color::Yellow => TerminalColor::Yellow,
+		Color::Blue => TerminalColor::Blue,
+		Color::Magenta => TerminalColor::Magenta,
+		Color::Cyan => TerminalColor::Cyan,
+		Color::White => TerminalColor::Gray,
+		Color::Gray => TerminalColor::DarkGray,
+		Color::RedBright => TerminalColor::LightRed,
+		Color::GreenBright => TerminalColor::LightGreen,
+		Color::YellowBright => TerminalColor::LightYellow,
+		Color::BlueBright => TerminalColor::LightBlue,
+		Color::MagentaBright => TerminalColor::LightMagenta,
+		Color::CyanBright => TerminalColor::LightCyan,
+		Color::WhiteBright => TerminalColor::White,
+		Color::Rgb(rgb) => TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue),
+	})
+}
+
+/// One cfonts color as a foreground style
+fn style_for(color: Color) -> Option<Style> {
+	terminal_color(color).map(|color| Style::default().fg(color))
+}
+
+/// One cfonts color as the background style of a band
+fn band_style_for(color: Color) -> Option<Style> {
+	terminal_color(color).map(|color| Style::default().bg(color))
+}
+
+impl Widget for &CfontsWidget<'_> {
+	fn render(self, area: Rect, buffer: &mut Buffer) {
+		// An empty area can show nothing; building the layout for it would be pure waste
+		if area.is_empty() {
+			return;
+		}
+
+		let rows = Layout::build(self.options, Some(area.width as usize)).into_rows();
+		let context = render_context(self.seed);
+		let mut plan = PaintPlan::build(self.options, &context, style_for);
+		let mut gradients = GradientPlans::build(&plan, self.options, &rows);
+		// An empty composition still shows one banded row, as the terminal and the browser do
+		let backdrop = Backdrop::build(self.options, &context, rows.len().max(1), band_style_for);
+		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
+
+		// The shared traversal visits every row; rows below the area paint nothing
+		let mut row_index = 0_usize;
+		let mut y = area.y;
+		let mut x = area.x;
+		let mut visible = false;
+
+		RowEvent::each(&rows, |event| match event {
+			RowEvent::Break => row_index += 1,
+			RowEvent::RowStart { row } => {
+				y = area.y.saturating_add(row_index as u16);
+				visible = row_index < area.height as usize && y < area.bottom();
+
+				if visible {
+					// the band paints the whole row of the area first, the glyphs land on it
+					// with foreground styles that keep it
+					if let Some(style) = band(row_index) {
+						buffer.set_style(Rect::new(area.x, y, area.width, 1), *style);
+					}
+
+					gradients.start_row(row);
+					// the layout computed each row's alignment inside the canvas already
+					x = area.x.saturating_add(row.align_offset as u16);
+				}
+			}
+			RowEvent::Text { text, block_index, slot, paintable } if visible => match plan.domain(block_index) {
+				PaintDomain::Slots => {
+					if x < area.right() {
+						let style = plan.paint_for(block_index, slot, paintable).copied().unwrap_or_default();
+						let (next_x, _) = buffer.set_stringn(x, y, text, (area.right() - x) as usize, style);
+						x = next_x;
+					}
+				}
+				PaintDomain::Block | PaintDomain::Global => {
+					// gradients paint one cell per column, each with its ramp color
+					for character in text.chars() {
+						let rgb = gradients.window(block_index).first().copied();
+
+						if x < area.right() {
+							let style = rgb
+								.map(|rgb| Style::default().fg(TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue)))
+								.unwrap_or_default();
+
+							let mut encoded = [0_u8; 4];
+							let (next_x, _) = buffer.set_stringn(x, y, character.encode_utf8(&mut encoded), 1, style);
+							x = next_x;
+						}
+
+						gradients.advance(1);
+					}
+				}
+			},
+			RowEvent::EntryEnd { width, block_index } if visible => {
+				// ramped segments advanced per column already; slot painted entries claim their columns whole
+				if plan.domain(block_index) == PaintDomain::Slots {
+					gradients.advance(width);
+				}
+			}
+			// Blank columns leave cells untouched: they keep the row's band, or stay transparent without one
+			RowEvent::Blank { width, .. } if visible => {
+				x = (x as usize).saturating_add(width).min(area.right() as usize) as u16;
+				gradients.advance(width);
+			}
+			_ => {}
+		});
+
+		if rows.is_empty()
+			&& let Some(style) = band(0)
+		{
+			buffer.set_style(Rect::new(area.x, area.y, area.width, 1), *style);
+		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use ::ratatui::{Terminal, backend::TestBackend};
+
+	use crate::{
+		BackgroundOption, ColorOption, GradientOption, GradientStop,
+		fonts::Font,
+		options::{Align, Valign},
+		tests::{block, options},
+	};
+
+	// render
+
+	#[test]
+	fn widget_draws_the_banner_into_the_buffer() {
+		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(5, 3)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		terminal.backend().assert_buffer_lines(["▄▀█  ", "█▀█  ", "     "]);
+	}
+
+	#[test]
+	fn widget_ignores_an_empty_area() {
+		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(0, 0)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+	}
+
+	#[test]
+	fn widget_aligns_rows_inside_the_area() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.align = Align::Right;
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(5, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		terminal.backend().assert_buffer_lines(["  ▄▀█", "  █▀█"]);
+	}
+
+	#[test]
+	fn widget_centers_with_floored_padding() {
+		// an uneven gap floors the left padding, like the CLI environment
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.align = Align::Center;
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		terminal.backend().assert_buffer_lines([" ▄▀█  ", " █▀█  "]);
+	}
+
+	#[test]
+	fn widget_truncates_at_the_area() {
+		// an area too small for the banner: rows clip at the width, extra rows are dropped
+		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(2, 1)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		terminal.backend().assert_buffer_lines(["▄▀"]);
+	}
+
+	#[test]
+	fn widget_rewraps_at_the_area_width() {
+		// two words that fit side by side in a wide area wrap in a narrow one
+		let options = options(Valign::Top, None, vec![block("AA BB", Font::Tiny, true)]);
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(9, 5)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		// the boundary space fits on the first line and stays there (spaces never drop)
+		terminal.backend().assert_buffer_lines(["▄▀█ ▄▀█  ", "█▀█ █▀█  ", "         ", "█▄▄ █▄▄  ", "█▄█ █▄█  "]);
+	}
+
+	// colors
+
+	#[test]
+	fn the_distinctive_semantic_mappings_hold() {
+		// the terminal's palette names shift against the cfonts names exactly here
+		assert_eq!(style_for(Color::White).unwrap().fg, Some(TerminalColor::Gray));
+		assert_eq!(style_for(Color::Gray).unwrap().fg, Some(TerminalColor::DarkGray));
+		assert_eq!(style_for(Color::RedBright).unwrap().fg, Some(TerminalColor::LightRed));
+		assert_eq!(style_for(Color::WhiteBright).unwrap().fg, Some(TerminalColor::White));
+	}
+
+	#[test]
+	fn widget_paints_named_colors_as_the_terminals_own() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Block, false)]);
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red, Color::Blue]));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(12, 6)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		// the tagged slots stay semantic terminal colors, never pinned channels
+		let colors: Vec<TerminalColor> = terminal
+			.backend()
+			.buffer()
+			.content()
+			.iter()
+			.map(|cell| cell.style().fg.unwrap_or(TerminalColor::Reset))
+			.collect();
+		assert!(colors.contains(&TerminalColor::Red));
+		assert!(colors.contains(&TerminalColor::Blue));
+		assert!(!colors.iter().any(|color| matches!(color, TerminalColor::Rgb(..))));
+	}
+
+	#[test]
+	fn widget_ramps_gradients_per_cell() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.blocks[0].colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		assert_eq!(buffer.cell((0, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(255, 0, 0)));
+		assert_eq!(buffer.cell((2, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(0, 0, 255)));
+	}
+
+	#[test]
+	fn widget_starts_the_global_ramp_where_the_ramped_block_starts() {
+		// the red block claims its three columns whole, so the global ramp spans only
+		// the second block and starts on red at the fourth cell
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Tiny, false)]);
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red]));
+		options.global_colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		assert_eq!(buffer.cell((0, 0)).unwrap().style().fg, Some(TerminalColor::Red));
+		assert_eq!(buffer.cell((3, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(255, 0, 0)));
+		assert_eq!(buffer.cell((5, 0)).unwrap().style().fg, Some(TerminalColor::Rgb(0, 0, 255)));
+	}
+
+	#[test]
+	fn widget_padding_rows_keep_the_ramp_columns() {
+		// the Tiny block pads with blanks under the Block font, and the tall block's
+		// cells keep their ramp colors on the padded rows
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Block, false)]);
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::System]));
+		options.global_colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(11, 6)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		for y in 0..6 {
+			assert_eq!(buffer.cell((3, y)).unwrap().style().fg, Some(TerminalColor::Rgb(255, 0, 0)), "row {y}");
+			assert_eq!(buffer.cell((10, y)).unwrap().style().fg, Some(TerminalColor::Rgb(0, 0, 255)), "row {y}");
+		}
+	}
+
+	// backgrounds
+
+	#[test]
+	fn a_band_is_the_terminals_own_background() {
+		assert_eq!(band_style_for(Color::Blue).unwrap().bg, Some(TerminalColor::Blue));
+		assert_eq!(band_style_for(Color::Blue).unwrap().fg, None);
+		assert!(band_style_for(Color::System).is_none());
+		assert!(band_style_for(Color::Candy).is_none());
+	}
+
+	#[test]
+	fn widget_bands_every_visible_row_across_the_area() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.background = Some(BackgroundOption::Color(Color::Blue));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(5, 3)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		// the two glyph rows carry the band to the edge of the area, the row below stays bare
+		let buffer = terminal.backend().buffer();
+		for x in 0..5 {
+			assert_eq!(buffer.cell((x, 0)).unwrap().style().bg, Some(TerminalColor::Blue), "column {x}");
+			assert_eq!(buffer.cell((x, 1)).unwrap().style().bg, Some(TerminalColor::Blue), "column {x}");
+			assert_eq!(buffer.cell((x, 2)).unwrap().style().bg, Some(TerminalColor::Reset), "column {x}");
+		}
+		// the glyphs still land on the band
+		assert_eq!(buffer.cell((0, 0)).unwrap().symbol(), "▄");
+		assert_eq!(buffer.cell((3, 0)).unwrap().symbol(), " ");
+	}
+
+	#[test]
+	fn widget_ramps_the_background_over_its_rows() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.background =
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		// two rows walk the whole ramp: the start color on top, the end color at the bottom
+		let buffer = terminal.backend().buffer();
+		assert_eq!(buffer.cell((0, 0)).unwrap().style().bg, Some(TerminalColor::Rgb(255, 0, 0)));
+		assert_eq!(buffer.cell((2, 1)).unwrap().style().bg, Some(TerminalColor::Rgb(0, 0, 255)));
+	}
+
+	#[test]
+	fn widget_keeps_font_colors_on_the_band() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red]));
+		options.background = Some(BackgroundOption::Color(Color::Blue));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let style = terminal.backend().buffer().cell((0, 0)).unwrap().style();
+		assert_eq!(style.fg, Some(TerminalColor::Red));
+		assert_eq!(style.bg, Some(TerminalColor::Blue));
+	}
+
+	#[test]
+	fn widget_keeps_the_band_inside_a_sub_area() {
+		// Tiny is two rows tall but the area shows one, and the area sits inside a larger frame
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.background = Some(BackgroundOption::Color(Color::Blue));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(6, 4)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, Rect::new(1, 1, 3, 1))).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		for y in 0..4 {
+			for x in 0..6 {
+				let inside = y == 1 && (1..4).contains(&x);
+				let expected = if inside { TerminalColor::Blue } else { TerminalColor::Reset };
+				assert_eq!(buffer.cell((x, y)).unwrap().style().bg, Some(expected), "cell ({x}, {y})");
+			}
+		}
+	}
+
+	#[test]
+	fn widget_keeps_the_band_under_gradient_glyphs() {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.blocks[0].colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		options.background = Some(BackgroundOption::Color(Color::Green));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let style = terminal.backend().buffer().cell((0, 0)).unwrap().style();
+		assert_eq!(style.fg, Some(TerminalColor::Rgb(255, 0, 0)));
+		assert_eq!(style.bg, Some(TerminalColor::Green));
+	}
+
+	#[test]
+	fn widget_bands_the_first_row_of_an_empty_composition() {
+		let mut options = options(Valign::Top, None, vec![block("", Font::Tiny, false)]);
+		options.background = Some(BackgroundOption::Color(Color::Blue));
+		let widget = CfontsWidget { options: &options, seed: 0 };
+		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
+
+		terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+
+		let buffer = terminal.backend().buffer();
+		assert_eq!(buffer.cell((1, 0)).unwrap().style().bg, Some(TerminalColor::Blue));
+		assert_eq!(buffer.cell((1, 1)).unwrap().style().bg, Some(TerminalColor::Reset));
+	}
+
+	#[test]
+	fn widget_candy_is_deterministic_for_a_seed() {
+		let mut options = options(Valign::Top, None, vec![block("AB", Font::Tiny, false)]);
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Candy]));
+
+		let draw = |seed: u64| {
+			let widget = CfontsWidget { options: &options, seed };
+			let mut terminal = Terminal::new(TestBackend::new(8, 2)).unwrap();
+			terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
+			terminal.backend().buffer().clone()
+		};
+
+		assert_eq!(draw(42), draw(42));
+		assert_ne!(draw(42), draw(43));
+	}
+}
