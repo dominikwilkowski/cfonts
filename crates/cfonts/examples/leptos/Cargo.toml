@@ -14,3 +14,4 @@ cfonts = {
 	features = ["leptos"],
 }
 leptos = { version = "0.8", features = ["csr"] }
+web-sys = { version = "0.3", features = ["MediaQueryList"] }
