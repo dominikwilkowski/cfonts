@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
@@ -142,8 +142,9 @@ pub enum EnvironmentKind {
 }
 
 /// The rendered output returned to JavaScript
-#[derive(Debug, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
+///
+/// It crosses as a plain object through [`Ts`](tsify::Ts) and reads back for the boundary tests
+#[derive(Debug, Deserialize, Serialize, Tsify)]
 pub struct Rendered {
 	pub text: String,
 

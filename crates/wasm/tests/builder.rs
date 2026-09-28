@@ -1,10 +1,17 @@
+use tsify::Ts;
+use wasm_bindgen::JsError;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
 	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont, Options,
 	RenderContext, Valign as CoreValign,
 };
-use cfonts_wasm::{Align, Cfonts, ColorLevel, EnvironmentKind, Font, GradientPreset, Valign, hex_to_rgb};
+use cfonts_wasm::{Align, Cfonts, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb};
+
+/// The artifact as the boundary hands it to JavaScript, read back into Rust
+fn rendered(crossed: Result<Ts<Rendered>, JsError>) -> Rendered {
+	crossed.expect("the render cannot fail").to_rust().expect("the artifact reads back")
+}
 
 /// The same render through the core directly, the boundary's oracle
 fn render_core(environment: EnvironmentKind, canvas_width: Option<usize>) -> String {
@@ -34,7 +41,7 @@ fn none_means_unlimited_for_every_environment() {
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
-			banner.render(environment, None, None, None, false).text,
+			rendered(banner.render(environment, None, None, None, false)).text,
 			render_core(environment, None),
 			"{environment:?}",
 		);
@@ -47,7 +54,7 @@ fn zero_means_unlimited_for_every_environment() {
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
-			banner.render(environment, Some(0), None, None, false).text,
+			rendered(banner.render(environment, Some(0), None, None, false)).text,
 			render_core(environment, Some(0)),
 			"{environment:?}",
 		);
@@ -60,7 +67,7 @@ fn a_fixed_width_is_forwarded_to_every_environment() {
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
-			banner.render(environment, Some(3), None, None, false).text,
+			rendered(banner.render(environment, Some(3), None, None, false)).text,
 			render_core(environment, Some(3)),
 			"{environment:?}",
 		);
@@ -69,7 +76,7 @@ fn a_fixed_width_is_forwarded_to_every_environment() {
 
 #[wasm_bindgen_test]
 fn browser_console_render_returns_an_artifact() {
-	let rendered = wrapping_banner().render(EnvironmentKind::BrowserConsole, None, None, None, false);
+	let rendered = rendered(wrapping_banner().render(EnvironmentKind::BrowserConsole, None, None, None, false));
 
 	// Logging belongs to BrowserHost in TypeScript so the raw binding only returns data
 	assert_eq!(rendered.text, "▄▀█ ▄▀█\n█▀█ █▀█",);
@@ -103,7 +110,7 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 		.max_length(2)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	assert_eq!(actual.render(EnvironmentKind::Browser, None, None, None, false).text, expected.text,);
+	assert_eq!(rendered(actual.render(EnvironmentKind::Browser, None, None, None, false)).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -155,7 +162,7 @@ fn local_settings_can_be_configured_repeatedly() {
 		.font(CoreFont::Tiny)
 		.render_with(&BrowserEnv, RenderContext::unlimited());
 
-	assert_eq!(actual.render(EnvironmentKind::Browser, None, None, None, false).text, expected.text,);
+	assert_eq!(rendered(actual.render(EnvironmentKind::Browser, None, None, None, false)).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -167,8 +174,8 @@ fn builders_keep_independent_state() {
 	let block = Cfonts::text("A".to_owned());
 
 	assert_ne!(
-		tiny.render(EnvironmentKind::Browser, None, None, None, false).text,
-		block.render(EnvironmentKind::Browser, None, None, None, false).text,
+		rendered(tiny.render(EnvironmentKind::Browser, None, None, None, false)).text,
+		rendered(block.render(EnvironmentKind::Browser, None, None, None, false)).text,
 	);
 }
 
@@ -177,8 +184,8 @@ fn rendering_does_not_consume_or_change_the_builder() {
 	let banner = wrapping_banner();
 
 	for environment in EnvironmentKind::ALL {
-		let first = banner.render(environment, Some(3), None, None, false);
-		let second = banner.render(environment, Some(3), None, None, false);
+		let first = rendered(banner.render(environment, Some(3), None, None, false));
+		let second = rendered(banner.render(environment, Some(3), None, None, false));
 
 		assert_eq!(first.text, second.text, "{environment:?}",);
 	}
@@ -197,8 +204,8 @@ fn color_configuration_without_a_color_level_paints_nothing() {
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
-			colored.render(environment, None, None, None, false).text,
-			plain.render(environment, None, None, None, false).text,
+			rendered(colored.render(environment, None, None, None, false)).text,
+			rendered(plain.render(environment, None, None, None, false)).text,
 			"{environment:?}",
 		);
 	}
@@ -240,8 +247,8 @@ fn global_colors_without_a_color_level_paint_nothing() {
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
-			colored.render(environment, None, None, None, false).text,
-			plain.render(environment, None, None, None, false).text,
+			rendered(colored.render(environment, None, None, None, false)).text,
+			rendered(plain.render(environment, None, None, None, false)).text,
 			"{environment:?}",
 		);
 	}
@@ -264,15 +271,16 @@ fn a_color_level_paints_the_configured_colors() {
 	banner.colors(vec!["red".to_owned()]).expect("valid colors");
 
 	assert!(
-		banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false).text.contains("\u{1b}[31m")
+		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false))
+			.text
+			.contains("\u{1b}[31m")
 	);
 	assert!(
-		banner
-			.render(EnvironmentKind::Browser, None, Some(ColorLevel::TrueColor), None, false)
+		rendered(banner.render(EnvironmentKind::Browser, None, Some(ColorLevel::TrueColor), None, false))
 			.text
 			.contains(r##"<span style="color:#ea3223">"##)
 	);
-	assert!(!banner.render(EnvironmentKind::Cli, None, None, None, false).text.contains('\u{1b}'));
+	assert!(!rendered(banner.render(EnvironmentKind::Cli, None, None, None, false)).text.contains('\u{1b}'));
 }
 
 #[wasm_bindgen_test]
@@ -281,11 +289,11 @@ fn console_styles_cross_the_boundary_in_marker_order() {
 	banner.font(Font::Tiny);
 	banner.colors(vec!["red".to_owned()]).expect("valid colors");
 
-	let unstyled = banner.render(EnvironmentKind::BrowserConsole, None, None, None, false);
+	let unstyled = rendered(banner.render(EnvironmentKind::BrowserConsole, None, None, None, false));
 	assert!(!unstyled.text.contains("%c"));
 	assert!(unstyled.styles.is_empty());
 
-	let styled = banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None, false);
+	let styled = rendered(banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None, false));
 	assert_eq!(styled.text.matches("%c").count(), styled.styles.len());
 	assert!(styled.styles.contains(&String::from("color:#ea3223")));
 }
@@ -296,9 +304,9 @@ fn candy_seeds_are_deterministic_across_the_boundary() {
 	banner.font(Font::Tiny);
 	banner.colors(vec!["candy".to_owned()]).expect("valid colors");
 
-	let one = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), Some(42), false);
-	let two = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), Some(42), false);
-	let other = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), Some(43), false);
+	let one = rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), Some(42), false));
+	let two = rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), Some(42), false));
+	let other = rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), Some(43), false));
 
 	assert_eq!(one.text, two.text);
 	assert_ne!(one.text, other.text);
@@ -311,13 +319,14 @@ fn gradients_paint_across_the_boundary() {
 	banner.font(Font::Tiny);
 	banner.gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
 
-	let plain = banner.render(EnvironmentKind::Cli, None, None, None, false);
+	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
-	let ramped = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false);
+	let ramped = rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false));
 	assert!(ramped.text.contains("\u{1b}[38;2;255;0;0m"));
 
-	let console = banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None, false);
+	let console =
+		rendered(banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None, false));
 	assert_eq!(console.text.matches("%c").count(), console.styles.len());
 }
 
@@ -328,9 +337,9 @@ fn the_independent_gradient_crosses_the_boundary() {
 	banner.line_height(0);
 	banner.gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
 
-	let fixed = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false).text;
+	let fixed = rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false)).text;
 	banner.independent_gradient().expect("first independent_gradient call");
-	let independent = banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false).text;
+	let independent = rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false)).text;
 
 	let expected = CoreCfonts::text("A|AB")
 		.font(CoreFont::Tiny)
@@ -374,7 +383,7 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 	banner.spaceless().expect("first spaceless call");
 	banner.background("blue".to_owned()).expect("a valid background");
 
-	let plain = banner.render(EnvironmentKind::Cli, None, None, None, false);
+	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
 	let expected = CoreCfonts::text("A")
@@ -382,12 +391,16 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 		.spaceless()
 		.background(cfonts::Color::Blue)
 		.render_with(&CliEnv::default(), RenderContext::colored(cfonts::ColorLevel::Basic));
-	assert_eq!(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::Basic), None, false).text, expected.text);
+	assert_eq!(
+		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::Basic), None, false)).text,
+		expected.text
+	);
 
-	let html = banner.render(EnvironmentKind::Browser, None, Some(ColorLevel::TrueColor), None, false).text;
+	let html = rendered(banner.render(EnvironmentKind::Browser, None, Some(ColorLevel::TrueColor), None, false)).text;
 	assert!(html.contains("<div style=\"background:#0020f5;min-height:1lh\">"));
 
-	let console = banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None, false);
+	let console =
+		rendered(banner.render(EnvironmentKind::BrowserConsole, None, Some(ColorLevel::TrueColor), None, false));
 	assert!(console.styles.contains(&"background:#0020f5".to_owned()));
 }
 
@@ -399,8 +412,8 @@ fn a_system_background_is_accepted_and_paints_nothing() {
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
-			system.render(environment, None, Some(ColorLevel::TrueColor), None, false).text,
-			plain.render(environment, None, Some(ColorLevel::TrueColor), None, false).text,
+			rendered(system.render(environment, None, Some(ColorLevel::TrueColor), None, false)).text,
+			rendered(plain.render(environment, None, Some(ColorLevel::TrueColor), None, false)).text,
 			"{environment:?}",
 		);
 	}
@@ -419,8 +432,9 @@ fn every_background_gradient_shape_matches_the_core_builder() {
 			.render_with(&CliEnv::default(), context)
 			.text
 	};
-	let boundary =
-		|banner: &Cfonts| banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false).text;
+	let boundary = |banner: &Cfonts| {
+		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false)).text
+	};
 
 	let mut two_stop = wrapping_banner();
 	two_stop.background_gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
@@ -522,8 +536,8 @@ fn raw_mode_changes_nothing_but_the_line_endings() {
 	banner.font(Font::Tiny);
 	banner.line_height(2);
 
-	let raw = banner.render(EnvironmentKind::Cli, None, None, None, true).text;
-	let plain = banner.render(EnvironmentKind::Cli, None, None, None, false).text;
+	let raw = rendered(banner.render(EnvironmentKind::Cli, None, None, None, true)).text;
+	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false)).text;
 
 	assert!(raw.contains("\r\n"));
 	assert!(raw.split("\r\n").eq(plain.split('\n')), "raw output must differ from plain output only by its endings");
@@ -535,8 +549,8 @@ fn raw_mode_means_nothing_to_the_browser_environments() {
 
 	for environment in [EnvironmentKind::Browser, EnvironmentKind::BrowserConsole] {
 		assert_eq!(
-			banner.render(environment, None, None, None, true).text,
-			banner.render(environment, None, None, None, false).text,
+			rendered(banner.render(environment, None, None, None, true)).text,
+			rendered(banner.render(environment, None, None, None, false)).text,
 			"{environment:?}"
 		);
 	}

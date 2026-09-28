@@ -1,5 +1,6 @@
 use std::num::NonZeroUsize;
 
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
@@ -245,6 +246,8 @@ impl Cfonts {
 	/// it has already resolved; `None` and zero width mean unlimited, no color
 	/// level paints nothing, raw mode ends terminal rows with `\r\n` and means
 	/// nothing to the browser environments
+	///
+	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(
 		&self,
 		environment: EnvironmentKind,
@@ -252,14 +255,15 @@ impl Cfonts {
 		color_level: Option<ColorLevel>,
 		seed: Option<u32>,
 		raw_mode: bool,
-	) -> Rendered {
+	) -> Result<Ts<Rendered>, JsError> {
 		let context = Self::context(canvas_width, color_level, seed);
-
-		match environment {
+		let rendered: Rendered = match environment {
 			EnvironmentKind::Cli => cfonts::render_with(&self.options, &CliEnv::new(raw_mode), context).into(),
 			EnvironmentKind::Browser => cfonts::render_with(&self.options, &BrowserEnv, context).into(),
 			EnvironmentKind::BrowserConsole => cfonts::render_with(&self.options, &BrowserConsoleEnv, context).into(),
-		}
+		};
+
+		Ok(rendered.into_ts()?)
 	}
 
 	fn context(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: Option<u32>) -> RenderContext {
