@@ -110,7 +110,6 @@ bridge_enum!(Font => CoreFont {
 	Chrome,
 	Dense,
 	Depth,
-	Console,
 	Font3D,
 	Frost,
 	Grid,
@@ -127,6 +126,7 @@ bridge_enum!(Font => CoreFont {
 	Tiny,
 	Vision,
 	Wire,
+	Console,
 });
 
 /// The closed set of render environments the boundary can ask for
