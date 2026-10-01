@@ -1,11 +1,12 @@
-use cfonts::{ColorLevel, RenderContext};
+use cfonts::{LeptosHost, RenderOverrides};
 use leptos::{html::ElementType, prelude::*, wasm_bindgen::JsCast};
 
 /// The page is an eighty column terminal, so long text wraps the way it would there
 ///
-/// The one place that knows the width, the canvas and the console print share it
-pub fn context() -> RenderContext {
-	RenderContext::with_canvas_width(80).with_color_level(Some(ColorLevel::TrueColor))
+/// The host is built here because this is the one place that knows the width,
+/// the canvas and the console print share the width
+pub fn host() -> LeptosHost {
+	LeptosHost::from_overrides(RenderOverrides::default().with_canvas_width(80))
 }
 
 /// The option the command line would refuse

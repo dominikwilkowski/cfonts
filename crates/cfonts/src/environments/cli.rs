@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::{Color, Rgb},
+	color::{Color, ColorLevel, Rgb},
 	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column},
 	layout::LayoutRow,
 	options::Options,
-	render::{ColorLevel, RenderContext},
+	render::RenderContext,
 };
 
 /// Erases from the cursor to the end of the line, which a terminal with background color erase

@@ -204,6 +204,7 @@ version = "4.0.0"
 dependencies = [
  "cfonts-macros",
  "dioxus",
+ "js-sys",
  "libc",
  "windows-sys 0.61.2",
  "windows-version",

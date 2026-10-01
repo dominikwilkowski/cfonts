@@ -2,7 +2,10 @@ use std::convert::Infallible;
 
 use leptos::prelude::*;
 
-use crate::{BrowserConsoleEnv, BrowserEnv, Host, Options, RenderContext, Rendered, components::render_context};
+use crate::{
+	BrowserConsoleEnv, BrowserEnv, Host, Options, RenderContext, RenderOverrides, Rendered, components::render_context,
+	hosts::entropy,
+};
 
 /// The Leptos host: `render` returns the HTML artifact, `say` writes through the page's console
 ///
@@ -10,12 +13,45 @@ use crate::{BrowserConsoleEnv, BrowserEnv, Host, Options, RenderContext, Rendere
 /// no page console exists, so `say` renders and writes nothing, and hydration
 /// replays the call in the browser
 ///
-/// The fixed default seed keeps candy colors identical between the server-rendered
-/// HTML and its hydration, so the two never mismatch
+/// The artifact paints in true color and never wraps unless the overrides say otherwise,
+/// and candy re-rolls on every render like the hosts do, so a page rendered on the server
+/// pins the seed once for the HTML and its hydration to draw the same picks
+///
+/// ```
+/// use cfonts::{LeptosHost, RenderOverrides};
+///
+/// // rolled once where the server render and the hydrating page both read it
+/// let host = LeptosHost::from_overrides(RenderOverrides::default().with_seed(LeptosHost::entropy()));
+/// ```
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LeptosHost {
-	/// Entropy for candy picks; the same seed draws the same assortment
-	pub seed: u64,
+	overrides: RenderOverrides,
+}
+
+impl LeptosHost {
+	/// Creates a page host with explicit overrides
+	#[must_use]
+	pub const fn from_overrides(overrides: RenderOverrides) -> Self {
+		Self { overrides }
+	}
+
+	/// A fresh seed for candy colors, the one a render rolls when no seed override is given
+	///
+	/// Pages that hold a seed of their own take it from here, so the candy picks differ
+	/// between page loads and hold for as long as the seed is kept
+	///
+	/// ```
+	/// use cfonts::{LeptosHost, RenderOverrides};
+	///
+	/// let seed = LeptosHost::entropy();
+	/// let host = LeptosHost::from_overrides(RenderOverrides::default().with_seed(seed));
+	///
+	/// assert_ne!(seed, LeptosHost::entropy());
+	/// ```
+	#[must_use]
+	pub fn entropy() -> u64 {
+		entropy()
+	}
 }
 
 impl Host for LeptosHost {
@@ -32,7 +68,7 @@ impl Host for LeptosHost {
 	}
 
 	fn resolve_context(&self) -> RenderContext {
-		render_context(self.seed)
+		render_context(self.overrides)
 	}
 
 	/// Spreads the style values into the page console, exactly like the TypeScript host's say
@@ -59,13 +95,18 @@ impl Host for LeptosHost {
 
 /// Renders cfonts HTML inside a Leptos element
 ///
-/// The artifact always paints in full color and never wraps:
-/// constrain and place it with your own page styles
+/// The artifact paints in true color and never wraps unless the overrides say otherwise:
+/// constrain and place it with your own page styles, or hand it a column count
 ///
-/// The seed makes candy picks reproducible across hydration
+/// Candy re-rolls on every render like the hosts do, so a page rendered on the server
+/// pins the seed once for the HTML and its hydration to draw the same picks,
+/// see [`LeptosHost`]
 #[component]
-pub fn CfontsLeptos(#[prop(into)] options: Signal<Options>, #[prop(optional)] seed: u64) -> impl IntoView {
-	let host = LeptosHost { seed };
+pub fn CfontsLeptos(
+	#[prop(into)] options: Signal<Options>,
+	#[prop(optional)] overrides: RenderOverrides,
+) -> impl IntoView {
+	let host = LeptosHost::from_overrides(overrides);
 
 	view! {
 		<div inner_html=move || options.with(|options| host.render(options).text) />
@@ -75,7 +116,7 @@ pub fn CfontsLeptos(#[prop(into)] options: Signal<Options>, #[prop(optional)] se
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{Cfonts, Color, Font, Valign};
+	use crate::{Cfonts, Color, ColorLevel, ColorOverride, Font, Valign, render_with};
 
 	#[test]
 	fn the_host_renders_the_browser_artifact() {
@@ -109,6 +150,42 @@ mod tests {
 			.render(&LeptosHost::default());
 
 		assert!(rendered.text.contains(r##"<span style="color:#ea3223">"##));
+	}
+
+	#[test]
+	fn a_width_override_wraps_the_page() {
+		// three columns hold one Tiny glyph, so the pair wraps where the unlimited page keeps it on one line
+		let options: Options = Cfonts::text("AA").font(Font::Tiny).valign(Valign::Top).spaceless().into();
+		let narrow = LeptosHost::from_overrides(RenderOverrides::default().with_canvas_width(3)).render(&options);
+
+		assert_ne!(narrow.text, LeptosHost::default().render(&options).text);
+		assert_eq!(
+			narrow,
+			render_with(
+				&options,
+				&BrowserEnv,
+				RenderContext::with_canvas_width(3).with_color_level(Some(ColorLevel::TrueColor))
+			)
+		);
+	}
+
+	#[test]
+	fn disabled_color_paints_nothing() {
+		let banner = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(vec![Color::Red]);
+		let disabled = LeptosHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Disabled));
+
+		assert!(!banner.render(&disabled).text.contains("<span"));
+		assert!(banner.render(&LeptosHost::default()).text.contains("<span"));
+	}
+
+	#[test]
+	fn a_pinned_seed_draws_the_same_candy_and_the_default_rolls_anew() {
+		let banner = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::Candy]);
+		let pinned = LeptosHost::from_overrides(RenderOverrides::default().with_seed(42));
+
+		assert_eq!(banner.render(&pinned), banner.render(&pinned));
+		// every default host rolls its own seed, so two of them draw different assortments
+		assert_ne!(banner.render(&LeptosHost::default()), banner.render(&LeptosHost::default()));
 	}
 
 	#[test]

@@ -1,12 +1,9 @@
-use std::{
-	collections::hash_map::RandomState,
-	hash::{BuildHasher, Hasher},
-	io::{self, Write},
-};
+use std::io::{self, Write};
 
 use crate::{
 	CliEnv, ColorLevel, ColorOverride, Host, RenderContext, RenderOverrides, Rendered,
 	hosts::{
+		entropy,
 		terminal_canvas_width::TerminalCanvasWidth,
 		terminal_color_support::{Stream, TerminalColorSupport},
 	},
@@ -92,7 +89,7 @@ impl RustHost {
 	/// ```
 	#[must_use]
 	pub fn entropy() -> u64 {
-		RandomState::new().build_hasher().finish()
+		entropy()
 	}
 }
 

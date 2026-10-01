@@ -57,6 +57,20 @@ impl Default for ColorTokens {
 	}
 }
 
+/// The RGB value one color paints in an environment without a palette of its own
+///
+/// The browser shows any value, so a level below full support paints the palette entry's own value:
+/// a named color's table value is a palette entry already, an RGB value takes the entry its level allows
+/// Nothing paints without a level, and `System` and `Candy` never paint from here
+pub(crate) fn leveled_rgb(color: Color, context: &RenderContext) -> Option<Rgb> {
+	let level = context.color_level()?;
+
+	match color {
+		Color::Rgb(rgb) => Some(rgb.at_level(level)),
+		named => named.to_rgb(),
+	}
+}
+
 /// Walks `text` one column at a time, handing each character its ramp color
 /// while the ramp lasts, and returns the columns consumed
 pub(crate) fn each_ramp_column(text: &str, colors: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {

@@ -136,6 +136,7 @@ name = "cfonts"
 version = "4.0.0"
 dependencies = [
  "cfonts-macros",
+ "js-sys",
  "leptos",
  "libc",
  "windows-sys",

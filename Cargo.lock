@@ -237,6 +237,7 @@ version = "4.0.0"
 dependencies = [
  "cfonts-macros",
  "dioxus",
+ "js-sys",
  "leptos",
  "libc",
  "ratatui",

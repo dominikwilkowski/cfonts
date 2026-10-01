@@ -593,8 +593,8 @@ fn the_browser_paints_named_colors_as_their_rgb_spans() {
 }
 
 #[test]
-fn the_browser_paints_the_same_css_at_every_level() {
-	// CSS has no palette to level down to
+fn the_browser_paints_named_colors_the_same_at_every_level() {
+	// a named color's table value is a palette entry already, only RGB values level down
 	let options = tiny("A", vec![Color::Red]);
 
 	let basic = render_with(&options, &BrowserEnv, RenderContext::colored(ColorLevel::Basic)).text;

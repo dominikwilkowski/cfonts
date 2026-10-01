@@ -1,7 +1,10 @@
 use std::{num::NonZeroUsize, ops::Range};
 
 use crate::{
-	color::{BackgroundOption, CANDY, CandyRng, Color, ColorOption, GradientColors, GradientOption, GradientStop, Rgb},
+	color::{
+		BackgroundOption, CANDY, CandyRng, Color, ColorLevel, ColorOption, GradientColors, GradientOption, GradientStop,
+		Rgb,
+	},
 	environments::{Environment, Rendered},
 	layout::{Layout, LayoutRow},
 	options::{Align, Options},
@@ -19,19 +22,6 @@ pub enum CanvasWidth {
 
 	/// Render into a fixed number of columns
 	Columns(NonZeroUsize),
-}
-
-/// The color support a render paints with
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ColorLevel {
-	/// The sixteen base colors
-	Basic,
-
-	/// The 256 color palette
-	Ansi256,
-
-	/// The full RGB space
-	TrueColor,
 }
 
 /// How a host should resolve its color support

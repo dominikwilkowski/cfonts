@@ -1,5 +1,11 @@
 //! Hosts resolve runtime capabilities into a context and perform the output action
 
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
+use std::{
+	collections::hash_map::RandomState,
+	hash::{BuildHasher, Hasher},
+};
+
 use crate::{
 	environments::{Environment, Rendered},
 	options::Options,
@@ -12,6 +18,32 @@ pub mod terminal_canvas_width;
 pub mod terminal_color_support;
 #[cfg(not(target_arch = "wasm32"))]
 pub use rust::RustHost;
+
+/// A fresh seed for candy colors, the one every host rolls when no seed override is given
+///
+/// The standard library seeds its hasher keys randomly per thread and steps them per instance,
+/// so every hash of nothing is a new value
+#[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
+pub(crate) fn entropy() -> u64 {
+	RandomState::new().build_hasher().finish()
+}
+
+/// A fresh seed for candy colors, the one every host rolls when no seed override is given
+///
+/// The browser keys the standard library's hasher from memory addresses, identical on every
+/// page load, so the seed asks the page instead: two draws of `Math.random`, one per half
+///
+/// Only the components render in the browser from Rust, the wasm package seeds from its own host
+#[cfg(all(
+	target_family = "wasm",
+	target_os = "unknown",
+	any(feature = "leptos", feature = "dioxus", feature = "ratatui")
+))]
+pub(crate) fn entropy() -> u64 {
+	let half = || (js_sys::Math::random() * f64::from(u32::MAX)) as u64;
+
+	(half() << 32) | half()
+}
 
 /// Resolves runtime capabilities and performs host-specific output
 ///

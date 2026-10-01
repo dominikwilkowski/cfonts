@@ -2,7 +2,7 @@ use std::{borrow::Cow, iter};
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, push_escaped},
+	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, leveled_rgb, push_escaped},
 	layout::LayoutRow,
 	options::Options,
 	render::RenderContext,
@@ -69,14 +69,10 @@ impl BrowserConsoleEnv {
 }
 
 impl Environment for BrowserConsoleEnv {
-	/// The console has no terminal palette, so named colors flatten to their RGB
-	/// values as CSS declarations; the end token is the reset declaration
+	/// The console has no terminal palette, so named colors flatten to their RGB values as CSS
+	/// declarations and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
-		if context.color_level().is_none() {
-			return ColorTokens::default();
-		}
-
-		match color.to_rgb() {
+		match leveled_rgb(color, context) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(format!("color:{}", rgb.to_css_hex())), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
@@ -84,11 +80,7 @@ impl Environment for BrowserConsoleEnv {
 
 	/// The band is a declaration too, `background` is the shortest spelling every console accepts
 	fn background_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
-		if context.color_level().is_none() {
-			return ColorTokens::default();
-		}
-
-		match color.to_rgb() {
+		match leveled_rgb(color, context) {
 			Some(rgb) => {
 				ColorTokens { start: Cow::Owned(format!("background:{}", rgb.to_css_hex())), end: Cow::Borrowed("") }
 			}
@@ -96,7 +88,8 @@ impl Environment for BrowserConsoleEnv {
 		}
 	}
 
-	/// Every column switches to its ramp color on the row's band, a drained column keeps the band alone
+	/// Every column switches to its ramp color, at the render's level, on the row's band,
+	/// a drained column keeps the band alone
 	///
 	/// Gradient domains always style, so the percent escaping always applies here
 	fn gradient_paint(
@@ -104,11 +97,12 @@ impl Environment for BrowserConsoleEnv {
 		text: &str,
 		colors: &[Rgb],
 		band: Option<&ColorTokens>,
-		_context: &RenderContext,
+		context: &RenderContext,
 		out: &mut Rendered,
 	) -> usize {
 		each_ramp_column(text, colors, |character, rgb| {
-			let color = rgb.map(|rgb| format!("color:{}", rgb.to_css_hex()));
+			let color =
+				rgb.zip(context.color_level()).map(|(rgb, level)| format!("color:{}", rgb.at_level(level).to_css_hex()));
 			Self::style_run(color.as_deref(), band, out);
 			Self::push_escaped_char(character, &mut out.text);
 		})
@@ -194,6 +188,26 @@ mod tests {
 		assert_eq!(red().end, "");
 		assert!(!BrowserConsoleEnv.color_tokens(Color::System, &leveled()).paints());
 		assert!(!BrowserConsoleEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+	}
+
+	#[test]
+	fn rgb_values_paint_the_palette_entry_of_their_level() {
+		// the console shows any value, so a level below full support paints the entry a terminal would pick
+		let orange = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+
+		assert_eq!(BrowserConsoleEnv.color_tokens(orange, &leveled()).start, "color:#f80");
+		assert_eq!(
+			BrowserConsoleEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Ansi256)).start,
+			"color:#ff8700"
+		);
+		assert_eq!(
+			BrowserConsoleEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Basic)).start,
+			"color:#ee776d"
+		);
+		assert_eq!(
+			BrowserConsoleEnv.background_tokens(orange, &RenderContext::colored(ColorLevel::Basic)).start,
+			"background:#ee776d"
+		);
 	}
 
 	// background_tokens
@@ -313,6 +327,18 @@ mod tests {
 				String::from("background:#0020f5"),
 			]
 		);
+	}
+
+	#[test]
+	fn gradient_columns_paint_at_the_renders_level() {
+		// pure red and pure blue sit nearest the bright red and the bright blue of the table
+		let mut out = Rendered::default();
+		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
+
+		BrowserConsoleEnv.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::Basic), &mut out);
+
+		assert_eq!(out.text, "%c▄%c▀");
+		assert_eq!(out.styles, vec![String::from("color:#ee776d"), String::from("color:#6974f6")]);
 	}
 
 	// blank, row_start, row_end

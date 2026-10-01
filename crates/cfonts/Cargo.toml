@@ -33,6 +33,9 @@ ratatui = { version = "0.30", optional = true, default-features = false }
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
+js-sys = { version = "0.3", optional = true }
+
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console"] }
 windows-version = "0.100"
@@ -45,9 +48,9 @@ temp-env = "0.3"
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Security"] }
 
 [features]
-dioxus = ["dep:dioxus"]
-leptos = ["dep:leptos"]
-ratatui = ["dep:ratatui"]
+dioxus = ["dep:dioxus", "dep:js-sys"]
+leptos = ["dep:leptos", "dep:js-sys"]
+ratatui = ["dep:ratatui", "dep:js-sys"]
 
 [[example]]
 name = "ratatui"

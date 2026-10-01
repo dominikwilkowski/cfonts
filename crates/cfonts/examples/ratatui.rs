@@ -18,7 +18,7 @@ use ratatui::{
 
 use cfonts::{
 	Align, Cfonts, CfontsWidget, Color, ColorOption, Font, GradientOption, GradientPreset, GradientStop, Options,
-	RustHost,
+	RenderOverrides, RustHost,
 };
 
 /// One entry of the picker, the label with its configuration, so adding a choice needs one entry
@@ -121,7 +121,8 @@ impl Widget for &App {
 		// The panel's inner width controls the banner's wrapping and alignment
 		let inner = block.inner(preview);
 		block.render(preview, buffer);
-		CfontsWidget { options: &self.options, seed: self.seed }.render(inner, buffer);
+		CfontsWidget { options: &self.options, overrides: RenderOverrides::default().with_seed(self.seed) }
+			.render(inner, buffer);
 	}
 }
 

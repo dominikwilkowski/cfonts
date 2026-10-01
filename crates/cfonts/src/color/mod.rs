@@ -50,6 +50,19 @@ impl std::fmt::Display for ColorError {
 
 impl std::error::Error for ColorError {}
 
+/// The color support a render paints with
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ColorLevel {
+	/// The sixteen base colors
+	Basic,
+
+	/// The 256 color palette
+	Ansi256,
+
+	/// The full RGB space
+	TrueColor,
+}
+
 /// An RGB color value
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rgb {
@@ -131,6 +144,62 @@ impl Rgb {
 
 	/// The six values one cube channel can take
 	const CUBE_LEVELS: [u8; 6] = [0, 95, 135, 175, 215, 255];
+
+	/// The sixteen named colors in ANSI order, the palette entries below the cube
+	const ANSI16: [Color; 16] = [
+		Color::Black,
+		Color::Red,
+		Color::Green,
+		Color::Yellow,
+		Color::Blue,
+		Color::Magenta,
+		Color::Cyan,
+		Color::White,
+		Color::Gray,
+		Color::RedBright,
+		Color::GreenBright,
+		Color::YellowBright,
+		Color::BlueBright,
+		Color::MagentaBright,
+		Color::CyanBright,
+		Color::WhiteBright,
+	];
+
+	/// The RGB value of one ANSI 256 palette index
+	///
+	/// The sixteen low entries carry the named colors' table values, the cube and the gray ramp are exact,
+	/// so every cube and gray index round trips through [`ansi256_index`](Self::ansi256_index)
+	pub fn from_ansi256_index(index: u8) -> Self {
+		match index {
+			0..=15 => Self::ANSI16[usize::from(index)].to_rgb().expect("every named color carries an RGB value"),
+			16..=231 => {
+				let cube = usize::from(index - 16);
+
+				Self {
+					red: Self::CUBE_LEVELS[cube / 36],
+					green: Self::CUBE_LEVELS[cube / 6 % 6],
+					blue: Self::CUBE_LEVELS[cube % 6],
+				}
+			}
+			232..=255 => {
+				let gray = 8 + 10 * (index - 232);
+
+				Self { red: gray, green: gray, blue: gray }
+			}
+		}
+	}
+
+	/// This color as the value a palette of one support level can show
+	///
+	/// Full support keeps the value, the 256 color palette gives its nearest entry
+	/// and the sixteen colors give the table value of the nearest named color
+	pub fn at_level(self, level: ColorLevel) -> Self {
+		match level {
+			ColorLevel::TrueColor => self,
+			ColorLevel::Ansi256 => Self::from_ansi256_index(self.ansi256_index()),
+			ColorLevel::Basic => self.nearest_named().to_rgb().expect("the nearest named color always carries an RGB value"),
+		}
+	}
 
 	/// The nearest cube level; the range edges sit at the midpoints and give ties to the lower level
 	fn cube_level(channel: u8) -> usize {
@@ -235,7 +304,7 @@ pub enum Color {
 	WhiteBright,
 	/// A random pick from the candy assortment, re-rolled per painted segment
 	Candy,
-	/// Any RGB color; leveled down for terminals that support less
+	/// Any RGB color, leveled down wherever the render's color level supports less
 	#[all(skip)]
 	Rgb(Rgb),
 }
@@ -773,6 +842,53 @@ mod tests {
 				}
 			}
 		}
+	}
+
+	// Rgb::from_ansi256_index
+
+	#[test]
+	fn every_cube_and_gray_index_round_trips() {
+		for index in 16..=255u8 {
+			assert_eq!(Rgb::from_ansi256_index(index).ansi256_index(), index, "{index}");
+		}
+	}
+
+	#[test]
+	fn the_sixteen_low_indices_carry_the_table_values() {
+		let named = [
+			Color::Black,
+			Color::Red,
+			Color::Green,
+			Color::Yellow,
+			Color::Blue,
+			Color::Magenta,
+			Color::Cyan,
+			Color::White,
+			Color::Gray,
+			Color::RedBright,
+			Color::GreenBright,
+			Color::YellowBright,
+			Color::BlueBright,
+			Color::MagentaBright,
+			Color::CyanBright,
+			Color::WhiteBright,
+		];
+
+		for (index, color) in named.into_iter().enumerate() {
+			assert_eq!(Rgb::from_ansi256_index(index as u8), color.to_rgb().unwrap(), "{index}");
+		}
+	}
+
+	// Rgb::at_level
+
+	#[test]
+	fn at_level_keeps_full_support_and_levels_down_below_it() {
+		let near_red = Rgb { red: 224, green: 48, blue: 32 };
+		let orange = Rgb { red: 255, green: 136, blue: 0 };
+
+		assert_eq!(near_red.at_level(ColorLevel::TrueColor), near_red);
+		assert_eq!(orange.at_level(ColorLevel::Ansi256), Rgb { red: 255, green: 135, blue: 0 });
+		assert_eq!(near_red.at_level(ColorLevel::Basic), Color::Red.to_rgb().unwrap());
 	}
 
 	// Rgb::ansi16_sgr

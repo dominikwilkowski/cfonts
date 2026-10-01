@@ -1,4 +1,4 @@
-use cfonts::{Align, BrowserConsoleEnv, Color, Font, GradientPreset, Host, LeptosHost, Valign, render_with};
+use cfonts::{Align, Color, Font, GradientPreset, Host, Valign};
 use leptos::{
 	prelude::*,
 	wasm_bindgen::{JsCast, JsValue},
@@ -10,7 +10,7 @@ use crate::components::{
 	command::Composition,
 	configurator::FormState,
 	datalist::Datalist,
-	helper::context,
+	helper::host,
 	number_input::NumberInput,
 	radio::{Radio, RadioGroup},
 	select::Select,
@@ -36,10 +36,7 @@ const BACKGROUND_EXAMPLES: [(&str, &str); 4] = [
 /// Prints the banner into the devtools console, or the error where the banner would go
 fn print(composition: &Composition) {
 	match &composition.options {
-		Ok(options) => {
-			let rendered = render_with(options, &BrowserConsoleEnv, context());
-			LeptosHost::default().write(&rendered).expect("the page console cannot fail");
-		}
+		Ok(options) => host().say(options).expect("the page console cannot fail"),
 		Err(error) => console::error_1(&JsValue::from_str(&format!("ERROR {}", error.message))),
 	}
 }

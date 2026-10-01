@@ -16,13 +16,14 @@ pub mod options;
 mod render;
 pub use builder::Cfonts;
 pub use color::{
-	BackgroundOption, Color, ColorError, ColorOption, GradientOption, GradientPreset, GradientStop, Rgb, TransitionStops,
+	BackgroundOption, Color, ColorError, ColorLevel, ColorOption, GradientOption, GradientPreset, GradientStop, Rgb,
+	TransitionStops,
 };
 pub use environments::{BrowserConsoleEnv, BrowserEnv, CliEnv, ColorTokens, Environment, Rendered};
 pub use fonts::Font;
 pub use hosts::Host;
 pub use options::{Align, BlockOptions, Options, Valign};
-pub use render::{CanvasWidth, ColorLevel, ColorOverride, RenderContext, RenderOverrides, render_with};
+pub use render::{CanvasWidth, ColorOverride, RenderContext, RenderOverrides, render_with};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use hosts::RustHost;

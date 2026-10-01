@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{Color, Rgb},
-	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, push_escaped},
+	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, leveled_rgb, push_escaped},
 	layout::LayoutRow,
 	options::Options,
 	render::RenderContext,
@@ -70,14 +70,10 @@ impl Environment for BrowserEnv {
 		true
 	}
 
-	/// The browser has no terminal palette, so named colors flatten to their RGB
-	/// values and every color level paints the same CSS
+	/// The browser has no terminal palette, so named colors flatten to their RGB values
+	/// and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
-		if context.color_level().is_none() {
-			return ColorTokens::default();
-		}
-
-		match color.to_rgb() {
+		match leveled_rgb(color, context) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_css_hex()), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
@@ -86,11 +82,7 @@ impl Environment for BrowserEnv {
 	/// A band is a block of its own, so it spans the full width, and `min-height:1lh` keeps a row
 	/// without text one line tall while text rows keep their natural line box
 	fn background_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
-		if context.color_level().is_none() {
-			return ColorTokens::default();
-		}
-
-		match color.to_rgb() {
+		match leveled_rgb(color, context) {
 			Some(rgb) => ColorTokens {
 				start: Cow::Owned(format!(r#"<div style="background:{};min-height:1lh">"#, rgb.to_css_hex())),
 				end: Cow::Borrowed(BLOCK_END),
@@ -99,17 +91,23 @@ impl Environment for BrowserEnv {
 		}
 	}
 
-	/// Every column gets its own span so each character carries its ramp color
+	/// Every column gets its own span so each character carries its ramp color, at the render's level
 	fn gradient_paint(
 		&self,
 		text: &str,
 		colors: &[Rgb],
 		_band: Option<&ColorTokens>,
-		_context: &RenderContext,
+		context: &RenderContext,
 		out: &mut Rendered,
 	) -> usize {
-		each_ramp_column(text, colors, |character, rgb| match rgb {
-			Some(rgb) => Self::push_span(&rgb.to_css_hex(), |out| Self::push_escaped_char(character, out), &mut out.text),
+		each_ramp_column(text, colors, |character, rgb| match rgb.zip(context.color_level()) {
+			Some((rgb, level)) => {
+				Self::push_span(
+					&rgb.at_level(level).to_css_hex(),
+					|out| Self::push_escaped_char(character, out),
+					&mut out.text,
+				);
+			}
 			None => Self::push_escaped_char(character, &mut out.text),
 		})
 	}
@@ -184,8 +182,10 @@ impl Environment for BrowserEnv {
 mod tests {
 	use super::*;
 	use crate::{
-		BackgroundOption, Cfonts, GradientOption, GradientStop, color::Rgb, fonts::Font, options::Valign,
-		render::ColorLevel,
+		BackgroundOption, Cfonts, GradientOption, GradientStop,
+		color::{ColorLevel, Rgb},
+		fonts::Font,
+		options::Valign,
 	};
 
 	/// A row of `width` columns without alignment
@@ -206,13 +206,24 @@ mod tests {
 
 	#[test]
 	fn named_colors_flatten_to_their_rgb_values() {
-		// the browser has no terminal palette, so every level paints the same CSS
+		// the browser has no terminal palette, so a named color paints its table value at every level
 		let context = RenderContext::colored(ColorLevel::Basic);
 
 		assert_eq!(BrowserEnv.color_tokens(Color::Red, &context).start, "#ea3223");
-		assert_eq!(BrowserEnv.color_tokens(Color::Rgb(Rgb { red: 1, green: 2, blue: 3 }), &context,).start, "#010203");
 		assert!(!BrowserEnv.color_tokens(Color::System, &context).paints());
 		assert!(!BrowserEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+	}
+
+	#[test]
+	fn rgb_values_paint_the_palette_entry_of_their_level() {
+		// the page can show any value, so a level below full support paints the entry a terminal would pick
+		let orange = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+		let near_black = Color::Rgb(Rgb { red: 1, green: 2, blue: 3 });
+
+		assert_eq!(BrowserEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::TrueColor)).start, "#f80");
+		assert_eq!(BrowserEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Ansi256)).start, "#ff8700");
+		assert_eq!(BrowserEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Basic)).start, "#ee776d");
+		assert_eq!(BrowserEnv.color_tokens(near_black, &RenderContext::colored(ColorLevel::Basic)).start, "#000");
 	}
 
 	// background_tokens
@@ -227,6 +238,22 @@ mod tests {
 		assert!(!BrowserEnv.background_tokens(Color::System, &context).paints());
 		assert!(!BrowserEnv.background_tokens(Color::Candy, &context).paints());
 		assert!(!BrowserEnv.background_tokens(Color::Blue, &RenderContext::unlimited()).paints());
+	}
+
+	// gradient_paint
+
+	#[test]
+	fn gradient_columns_paint_at_the_renders_level() {
+		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
+
+		let mut out = Rendered::default();
+		BrowserEnv.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::TrueColor), &mut out);
+		assert_eq!(out.text, r##"<span style="color:#f00">▄</span><span style="color:#00f">▀</span>"##);
+
+		// pure red and pure blue sit nearest the bright red and the bright blue of the table
+		let mut out = Rendered::default();
+		BrowserEnv.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::Basic), &mut out);
+		assert_eq!(out.text, r##"<span style="color:#ee776d">▄</span><span style="color:#6974f6">▀</span>"##);
 	}
 
 	// paint
