@@ -1,120 +1,8 @@
-use cfonts::{
-	Align, BackgroundOption, BlockOptions, Color, ColorError, ColorOption, Font, GradientOption, GradientPreset,
-	GradientStop, Options, TransitionStops, Valign,
-};
+use cfonts::{Align, BackgroundOption, BlockOptions, ColorOption, Font, Options, Valign};
 use leptos::prelude::*;
-use std::{num::NonZeroUsize, str::FromStr};
+use std::num::NonZeroUsize;
 
 use crate::components::{configurator::FormState, helper::FormError};
-
-/// The shape of one color value, told apart by the delimiter it uses
-enum ColorShape<'a> {
-	/// One color name, hex value or preset name
-	Single(&'a str),
-
-	/// Comma separated colors, one per font color slot
-	List(Vec<&'a str>),
-
-	/// Two gradient stops joined by a dash
-	Pair(&'a str, &'a str),
-
-	/// Two or more transition stops joined by colons
-	Stops(Vec<&'a str>),
-}
-
-impl<'a> ColorShape<'a> {
-	/// Splits one color value by the delimiter it uses, so the shape decides how its segments parse
-	///
-	/// A value uses at most one kind of delimiter and every segment names something,
-	/// a mixed value or an empty segment is the whole value's problem
-	fn shape(value: &'a str) -> Result<ColorShape<'a>, String> {
-		let delimiters: Vec<char> = [',', '-', ':'].into_iter().filter(|delimiter| value.contains(*delimiter)).collect();
-		let Some(delimiter) = delimiters.first().copied() else {
-			return Ok(Self::Single(value.trim()));
-		};
-		if delimiters.len() > 1 {
-			return Err(format!(
-				"\"{value}\" mixes delimiters, use commas for a list, a dash for a gradient or colons for a transition"
-			));
-		}
-
-		let segments: Vec<&str> = value.split(delimiter).map(str::trim).collect();
-		if segments.iter().any(|segment| segment.is_empty()) {
-			return Err(format!("\"{value}\" has an empty segment, every comma, dash or colon needs a color on both sides"));
-		}
-
-		Ok(match delimiter {
-			',' => Self::List(segments),
-			':' => Self::Stops(segments),
-			_ => match segments.as_slice() {
-				&[start, end] => Self::Pair(start, end),
-				_ => return Err(format!("A gradient holds exactly two colors, \"{value}\" holds {}", segments.len())),
-			},
-		})
-	}
-
-	/// Parses one segment of a color value through the core name-or-hex parser
-	///
-	/// A preset name is refused here: a preset stands alone as the whole value
-	fn segment<T: FromStr<Err = ColorError>>(value: &str, segment: &str) -> Result<T, String> {
-		if GradientPreset::from_name(segment).is_some() {
-			return Err(format!("The preset \"{segment}\" stands alone, it cannot join \"{value}\""));
-		}
-
-		segment.parse().map_err(|error: ColorError| error.to_string())
-	}
-
-	/// The two stop gradient a dash pair spells
-	fn pair(value: &str, start: &str, end: &str) -> Result<GradientOption, String> {
-		Ok(GradientOption::TwoStop { start: Self::segment(value, start)?, end: Self::segment(value, end)? })
-	}
-
-	/// The transition a colon list spells
-	fn transition(value: &'a str, segments: Vec<&'a str>) -> Result<GradientOption, String> {
-		let stops: Vec<GradientStop> =
-			segments.into_iter().map(|stop| Self::segment(value, stop)).collect::<Result<_, _>>()?;
-
-		Ok(GradientOption::Transition(TransitionStops::try_from(stops).expect("the colon shape holds two or more stops")))
-	}
-
-	/// Parses one colors value: its delimiter picks the shape and the shape picks the vocabulary
-	///
-	/// Names and hex values fill font color slots, stops travel a gradient
-	/// and a bare preset name is a gradient of its own
-	pub fn colors_of(value: &'a str) -> Result<ColorOption, String> {
-		Ok(match Self::shape(value)? {
-			Self::Single(token) => match GradientPreset::from_name(token) {
-				Some(preset) => ColorOption::Gradient(GradientOption::Preset(preset)),
-				None => ColorOption::Colors(vec![Self::segment(value, token)?]),
-			},
-			Self::List(segments) => {
-				ColorOption::Colors(segments.into_iter().map(|color| Self::segment(value, color)).collect::<Result<_, _>>()?)
-			}
-			Self::Pair(start, end) => ColorOption::Gradient(Self::pair(value, start, end)?),
-			Self::Stops(segments) => ColorOption::Gradient(Self::transition(value, segments)?),
-		})
-	}
-
-	/// Parses one background value: one color behind every row, or a gradient down the rows
-	///
-	/// A list has no rows to fill and candy has no rows to roll on, so both fail as no background at all
-	pub fn background_of(value: &'a str) -> Result<BackgroundOption, String> {
-		Ok(match Self::shape(value)? {
-			Self::Single(token) => match GradientPreset::from_name(token) {
-				Some(preset) => BackgroundOption::Gradient(GradientOption::Preset(preset)),
-				None => match Self::segment(value, token)? {
-					Color::Candy => return Err(ColorError::UnknownColor.to_string()),
-					color => BackgroundOption::Color(color),
-				},
-			},
-			Self::List(_) => {
-				return Err(format!("A background takes one color, a gradient or a preset, not \"{value}\""));
-			}
-			Self::Pair(start, end) => BackgroundOption::Gradient(Self::pair(value, start, end)?),
-			Self::Stops(segments) => BackgroundOption::Gradient(Self::transition(value, segments)?),
-		})
-	}
-}
 
 /// How a row finds its control of the form
 type Field<T> = fn(&FormState) -> RwSignal<T>;
@@ -212,7 +100,8 @@ static OPTIONS: [Row; 13] = [
 			read: |form| form.colors,
 			unset: "system",
 			apply: |options, value| {
-				options.global_colors = Some(ColorShape::colors_of(value)?);
+				// the page shows the value the user typed, then the core's sentence
+				options.global_colors = Some(value.parse::<ColorOption>().map_err(|error| format!("\"{value}\": {error}"))?);
 				Ok(())
 			},
 		},
@@ -224,7 +113,7 @@ static OPTIONS: [Row; 13] = [
 			read: |form| form.background,
 			unset: "system",
 			apply: |options, value| {
-				options.background = Some(ColorShape::background_of(value)?);
+				options.background = Some(value.parse::<BackgroundOption>().map_err(|error| format!("\"{value}\": {error}"))?);
 				Ok(())
 			},
 		},

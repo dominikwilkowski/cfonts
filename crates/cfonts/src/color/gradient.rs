@@ -257,7 +257,7 @@ impl GradientPreset {
 			"asexual" => Some(Self::Asexual),
 			"bisexual" | "bi" => Some(Self::Bisexual),
 			"genderfluid" => Some(Self::Genderfluid),
-			"genderqueer" => Some(Self::Genderqueer),
+			"genderqueer" | "queer" => Some(Self::Genderqueer),
 			"intersex" => Some(Self::Intersex),
 			"lesbian" => Some(Self::Lesbian),
 			"nonbinary" => Some(Self::Nonbinary),
@@ -265,6 +265,25 @@ impl GradientPreset {
 			"polysexual" | "poly" => Some(Self::Polysexual),
 			"transgender" | "trans" => Some(Self::Transgender),
 			_ => None,
+		}
+	}
+
+	/// The canonical name of this preset, the one its aliases stand for
+	pub const fn name(self) -> &'static str {
+		match self {
+			Self::Pride => "pride",
+			Self::Agender => "agender",
+			Self::Aromantic => "aromantic",
+			Self::Asexual => "asexual",
+			Self::Bisexual => "bisexual",
+			Self::Genderfluid => "genderfluid",
+			Self::Genderqueer => "genderqueer",
+			Self::Intersex => "intersex",
+			Self::Lesbian => "lesbian",
+			Self::Nonbinary => "nonbinary",
+			Self::Pansexual => "pansexual",
+			Self::Polysexual => "polysexual",
+			Self::Transgender => "transgender",
 		}
 	}
 
@@ -565,10 +584,11 @@ mod tests {
 	}
 
 	#[test]
-	fn every_preset_has_a_parseable_name() {
-		for preset in GradientPreset::ALL {
-			let name = format!("{preset:?}").to_lowercase();
-			assert!(GradientPreset::from_name(&name).is_some(), "{name} does not parse back to {preset:?}");
+	fn every_name_is_the_derived_name_and_parses_back() {
+		// the hand written names and the derived list can never drift apart
+		for (preset, name) in GradientPreset::ALL.into_iter().zip(GradientPreset::NAMES) {
+			assert_eq!(preset.name(), name, "{preset:?}");
+			assert_eq!(GradientPreset::from_name(preset.name()), Some(preset), "{preset:?}");
 		}
 	}
 }

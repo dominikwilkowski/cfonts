@@ -28,6 +28,21 @@ pub enum ColorError {
 
 	/// A gradient stop is any color name or a hex value except `system` and `candy`, those two do not blend
 	NotAGradientStop,
+
+	/// A color value uses one kind of delimiter, this one mixes two
+	MixedDelimiters,
+
+	/// A delimiter with nothing on one side
+	EmptySegment,
+
+	/// A dash gradient holds exactly two colors, carries the count given
+	TwoStopCount(usize),
+
+	/// A preset stands alone, carries the preset that was put into a list or among stops
+	PresetNotAlone(GradientPreset),
+
+	/// A background takes one color, a gradient or a preset, a comma list fills no rows
+	BackgroundList,
 }
 
 impl std::fmt::Display for ColorError {
@@ -44,6 +59,18 @@ impl std::fmt::Display for ColorError {
 			Self::NotAGradientStop => {
 				write!(f, "A gradient stop is any color name or a hex value like #ff8800 except system and candy")
 			}
+			Self::MixedDelimiters => {
+				write!(
+					f,
+					"A color value uses one kind of delimiter, commas for a list, a dash for a gradient or colons for a transition"
+				)
+			}
+			Self::EmptySegment => write!(f, "Every comma, dash or colon needs a color on both sides"),
+			Self::TwoStopCount(count) => write!(f, "A gradient holds exactly two colors, this one holds {count}"),
+			Self::PresetNotAlone(preset) => {
+				write!(f, "A preset stands alone, {} cannot join a list or a gradient", preset.name())
+			}
+			Self::BackgroundList => write!(f, "A background takes one color, a gradient or a preset, not a list"),
 		}
 	}
 }
@@ -604,6 +631,29 @@ pub enum GradientOption {
 }
 
 /// One scope's color configuration: a block's own or the whole composition's
+///
+/// It parses from the command line spelling, where the delimiter picks the shape:
+/// commas list one color per font slot, a dash joins the two stops of a gradient,
+/// colons join the stops of a transition and a bare preset name is a preset gradient
+///
+/// ```
+/// use cfonts::{Color, ColorOption, GradientOption, GradientPreset, GradientStop, TransitionStops};
+///
+/// assert_eq!("red,blue".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+/// assert_eq!(
+///     "red-blue".parse::<ColorOption>(),
+///     Ok(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+/// );
+/// assert_eq!(
+///     "red:yellow:green".parse::<ColorOption>(),
+///     Ok(ColorOption::Gradient(GradientOption::Transition(TransitionStops {
+///         first: GradientStop::Red,
+///         second: GradientStop::Yellow,
+///         rest: vec![GradientStop::Green],
+///     })))
+/// );
+/// assert_eq!("pride".parse::<ColorOption>(), Ok(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride))));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ColorOption {
 	/// One color per font color slot; missing slots stay unpainted, colors beyond the font's slots are ignored
@@ -634,6 +684,21 @@ impl From<GradientPreset> for ColorOption {
 /// The background of the whole composition: one color behind every row, or a gradient down the rows
 ///
 /// Every row paints its band, the padding rows above and below included
+///
+/// It parses from the command line spelling with the same delimiters as [`ColorOption`],
+/// a dash for a gradient and colons for a transition, a comma list has no rows to fill and is refused
+///
+/// ```
+/// use cfonts::{BackgroundOption, Color, ColorError, GradientOption, GradientStop};
+///
+/// assert_eq!("blue".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::Blue)));
+/// assert_eq!(
+///     "red-blue".parse::<BackgroundOption>(),
+///     Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+/// );
+/// assert!(matches!("red:yellow:green".parse::<BackgroundOption>(), Ok(BackgroundOption::Gradient(_))));
+/// assert_eq!("red,blue".parse::<BackgroundOption>(), Err(ColorError::BackgroundList));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BackgroundOption {
 	/// One color behind every row, `System` and `Candy` paint nothing
@@ -658,6 +723,122 @@ impl From<GradientOption> for BackgroundOption {
 impl From<GradientPreset> for BackgroundOption {
 	fn from(preset: GradientPreset) -> Self {
 		Self::Gradient(preset.into())
+	}
+}
+
+/// The shape of one color value, told apart by the delimiter it uses
+///
+/// The delimiter decides the vocabulary:
+/// - commas separate slot colors
+/// - a dash and colons separate gradient stops
+enum ColorShape<'a> {
+	/// One color name, hex value or preset name
+	Single(&'a str),
+
+	/// Comma separated colors, one per font color slot
+	List(Vec<&'a str>),
+
+	/// Two gradient stops joined by a dash
+	Pair(&'a str, &'a str),
+
+	/// Two or more transition stops joined by colons
+	Stops(Vec<&'a str>),
+}
+
+/// The three delimiters a color value may use, one kind per value
+pub(crate) const DELIMITERS: [char; 3] = [',', '-', ':'];
+
+/// Splits one color value by the delimiter it uses, so the shape decides how its segments parse
+///
+/// A value uses at most one kind of delimiter and every segment names something:
+/// a mixed value or an empty segment is the whole value's problem and is reported as such
+fn color_shape(value: &str) -> Result<ColorShape<'_>, ColorError> {
+	let delimiters: Vec<char> = DELIMITERS.into_iter().filter(|delimiter| value.contains(*delimiter)).collect();
+	let Some(delimiter) = delimiters.first().copied() else {
+		return Ok(ColorShape::Single(value.trim()));
+	};
+	if delimiters.len() > 1 {
+		return Err(ColorError::MixedDelimiters);
+	}
+
+	let segments: Vec<&str> = value.split(delimiter).map(str::trim).collect();
+	if segments.iter().any(|segment| segment.is_empty()) {
+		return Err(ColorError::EmptySegment);
+	}
+
+	Ok(match delimiter {
+		',' => ColorShape::List(segments),
+		':' => ColorShape::Stops(segments),
+		_ => match segments.as_slice() {
+			&[start, end] => ColorShape::Pair(start, end),
+			_ => return Err(ColorError::TwoStopCount(segments.len())),
+		},
+	})
+}
+
+/// Parses one segment of a color value through the name-or-hex parser of its vocabulary
+///
+/// A preset name is refused here: a preset stands alone as the whole value
+fn parse_segment<T: FromStr<Err = ColorError>>(segment: &str) -> Result<T, ColorError> {
+	match GradientPreset::from_name(segment) {
+		Some(preset) => Err(ColorError::PresetNotAlone(preset)),
+		None => segment.parse(),
+	}
+}
+
+/// The two stop gradient a dash pair spells
+fn parse_pair(start: &str, end: &str) -> Result<GradientOption, ColorError> {
+	Ok(GradientOption::TwoStop { start: parse_segment(start)?, end: parse_segment(end)? })
+}
+
+/// The transition a colon list spells
+fn parse_transition(segments: Vec<&str>) -> Result<GradientOption, ColorError> {
+	let stops: Vec<GradientStop> = segments.into_iter().map(parse_segment).collect::<Result<_, _>>()?;
+
+	Ok(GradientOption::Transition(TransitionStops::try_from(stops).expect("the colon shape holds two or more stops")))
+}
+
+/// A colors value parses from its command line spelling: the delimiter picks the shape
+/// and the shape picks the vocabulary
+///
+/// Names and hex values fill font color slots, stops travel a gradient
+/// and a bare preset name is a gradient of its own
+impl FromStr for ColorOption {
+	type Err = ColorError;
+
+	fn from_str(value: &str) -> Result<Self, Self::Err> {
+		Ok(match color_shape(value)? {
+			ColorShape::Single(token) => match GradientPreset::from_name(token) {
+				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
+				None => Self::Colors(vec![parse_segment(token)?]),
+			},
+			ColorShape::List(segments) => Self::Colors(segments.into_iter().map(parse_segment).collect::<Result<_, _>>()?),
+			ColorShape::Pair(start, end) => Self::Gradient(parse_pair(start, end)?),
+			ColorShape::Stops(segments) => Self::Gradient(parse_transition(segments)?),
+		})
+	}
+}
+
+/// A background value parses from its command line spelling: one color behind every row,
+/// or a gradient down the rows
+///
+/// A list has no rows to fill and candy has no rows to roll on, so both fail as no background at all
+impl FromStr for BackgroundOption {
+	type Err = ColorError;
+
+	fn from_str(value: &str) -> Result<Self, Self::Err> {
+		Ok(match color_shape(value)? {
+			ColorShape::Single(token) => match GradientPreset::from_name(token) {
+				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
+				None => match parse_segment(token)? {
+					Color::Candy => return Err(ColorError::UnknownColor),
+					color => Self::Color(color),
+				},
+			},
+			ColorShape::List(_) => return Err(ColorError::BackgroundList),
+			ColorShape::Pair(start, end) => Self::Gradient(parse_pair(start, end)?),
+			ColorShape::Stops(segments) => Self::Gradient(parse_transition(segments)?),
+		})
 	}
 }
 
@@ -704,6 +885,14 @@ impl CandyRng {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	// ColorError
+
+	#[test]
+	fn the_carried_attributes_reach_the_message() {
+		assert!(ColorError::TwoStopCount(3).to_string().contains('3'));
+		assert!(ColorError::PresetNotAlone(GradientPreset::Bisexual).to_string().contains("bisexual"));
+	}
 
 	// Rgb::from_hex
 
@@ -1179,6 +1368,131 @@ mod tests {
 			ColorOption::from(GradientPreset::Pride),
 			ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride))
 		);
+	}
+
+	// ColorOption::from_str
+
+	#[test]
+	fn the_delimiter_picks_the_shape_and_whitespace_around_segments_is_trimmed() {
+		assert_eq!(" red ".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Red])));
+		assert_eq!("red, blue".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+		assert_eq!(
+			"red - blue".parse::<ColorOption>(),
+			Ok(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+		assert_eq!(
+			"#ff8800-#0000ff".parse::<ColorOption>(),
+			Ok(ColorOption::Gradient(GradientOption::TwoStop {
+				start: GradientStop::Rgb(Rgb { red: 255, green: 136, blue: 0 }),
+				end: GradientStop::Rgb(Rgb { red: 0, green: 0, blue: 255 }),
+			}))
+		);
+		// the hash is optional inside a shape as it is for a single token, and spaces around stops are trimmed
+		assert_eq!("ff8800-0000ff".parse::<ColorOption>(), "#ff8800-#0000ff".parse::<ColorOption>());
+		assert_eq!("red : blue : green".parse::<ColorOption>(), "red:blue:green".parse::<ColorOption>());
+		assert_eq!(
+			"red:blue:green".parse::<ColorOption>(),
+			Ok(ColorOption::Gradient(GradientOption::Transition(TransitionStops {
+				first: GradientStop::Red,
+				second: GradientStop::Blue,
+				rest: vec![GradientStop::Green],
+			})))
+		);
+	}
+
+	#[test]
+	fn mixed_delimiters_and_empty_segments_refuse_the_whole_value() {
+		for value in ["red,blue-green", "red-blue:green", "red,blue:green"] {
+			assert_eq!(value.parse::<ColorOption>(), Err(ColorError::MixedDelimiters), "{value:?}");
+			assert_eq!(value.parse::<BackgroundOption>(), Err(ColorError::MixedDelimiters), "{value:?}");
+		}
+
+		for value in [",", "red,", "-blue", "red::blue", "red- -blue"] {
+			assert_eq!(value.parse::<ColorOption>(), Err(ColorError::EmptySegment), "{value:?}");
+			assert_eq!(value.parse::<BackgroundOption>(), Err(ColorError::EmptySegment), "{value:?}");
+		}
+	}
+
+	#[test]
+	fn a_dash_gradient_holds_exactly_two_stops_and_the_count_is_carried() {
+		assert_eq!("red-blue-green".parse::<ColorOption>(), Err(ColorError::TwoStopCount(3)));
+		assert_eq!("red-blue-green-black".parse::<BackgroundOption>(), Err(ColorError::TwoStopCount(4)));
+	}
+
+	#[test]
+	fn a_preset_stands_alone_and_the_preset_is_carried() {
+		// a bare preset name is looked up before the color names, so it is a gradient and never a slot color
+		assert_eq!(
+			"pride".parse::<ColorOption>(),
+			Ok(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride)))
+		);
+		assert_eq!(
+			"TRANS".parse::<ColorOption>(),
+			Ok(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Transgender)))
+		);
+
+		assert_eq!("pride,red".parse::<ColorOption>(), Err(ColorError::PresetNotAlone(GradientPreset::Pride)));
+		for (value, preset) in [("red-pride", GradientPreset::Pride), ("red:bi:blue", GradientPreset::Bisexual)] {
+			assert_eq!(value.parse::<ColorOption>(), Err(ColorError::PresetNotAlone(preset)), "{value:?}");
+			assert_eq!(value.parse::<BackgroundOption>(), Err(ColorError::PresetNotAlone(preset)), "{value:?}");
+		}
+
+		// a background refuses the list shape before it reads any segment
+		assert_eq!("pride,red".parse::<BackgroundOption>(), Err(ColorError::BackgroundList));
+	}
+
+	#[test]
+	fn candy_and_system_are_slot_colors_but_no_stops() {
+		assert_eq!("candy".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Candy])));
+		assert_eq!("system".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::System])));
+		assert_eq!("candy,system".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Candy, Color::System])));
+
+		for value in ["candy-red", "red:system"] {
+			assert_eq!(value.parse::<ColorOption>(), Err(ColorError::NotAGradientStop), "{value:?}");
+		}
+	}
+
+	#[test]
+	fn a_bad_segment_keeps_its_own_cause() {
+		assert_eq!("nope".parse::<ColorOption>(), Err(ColorError::UnknownColor));
+		assert_eq!("red,nope".parse::<ColorOption>(), Err(ColorError::UnknownColor));
+		assert_eq!("#ff8800,#zz".parse::<ColorOption>(), Err(ColorError::HexCharacter));
+		assert_eq!("red:#12345".parse::<ColorOption>(), Err(ColorError::HexLength(5)));
+		// segments are read in order and the first refused one wins, which is what the command line's
+		// recovery of a refused preset relies on
+		assert_eq!("nope,pride".parse::<ColorOption>(), Err(ColorError::UnknownColor));
+		assert_eq!("candy:pride".parse::<ColorOption>(), Err(ColorError::NotAGradientStop));
+	}
+
+	// BackgroundOption::from_str
+
+	#[test]
+	fn a_background_is_one_color_a_gradient_or_a_preset() {
+		assert_eq!("blue".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::Blue)));
+		assert_eq!("system".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::System)));
+		assert_eq!(
+			"#222".parse::<BackgroundOption>(),
+			Ok(BackgroundOption::Color(Color::Rgb(Rgb { red: 34, green: 34, blue: 34 })))
+		);
+		assert_eq!(
+			"red-blue".parse::<BackgroundOption>(),
+			Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+		);
+		assert!(matches!(
+			"red:blue:green".parse::<BackgroundOption>(),
+			Ok(BackgroundOption::Gradient(GradientOption::Transition(_)))
+		));
+		assert_eq!(
+			"pride".parse::<BackgroundOption>(),
+			Ok(BackgroundOption::Gradient(GradientOption::Preset(GradientPreset::Pride)))
+		);
+	}
+
+	#[test]
+	fn candy_and_lists_are_no_background() {
+		// candy fails like any unknown word, a list names its own problem
+		assert_eq!("candy".parse::<BackgroundOption>(), Err(ColorError::UnknownColor));
+		assert_eq!("red,blue".parse::<BackgroundOption>(), Err(ColorError::BackgroundList));
 	}
 
 	// CandyRng
