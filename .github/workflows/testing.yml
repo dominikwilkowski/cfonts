@@ -21,6 +21,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
 
 jobs:
   lint:
@@ -30,12 +31,12 @@ jobs:
 
     steps:
       - name: Checkout files
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           toolchain: stable
           components: rustfmt, clippy
@@ -91,7 +92,7 @@ jobs:
 
     steps:
       - name: Checkout files
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -106,7 +107,7 @@ jobs:
           echo "version=$TOOLCHAIN" >> "$GITHUB_OUTPUT"
 
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           toolchain: ${{ steps.toolchain.outputs.version }}
           target: wasm32-unknown-unknown
@@ -133,6 +134,12 @@ jobs:
       - name: Check the web feature on the WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features web
 
+      - name: Check the leptos feature on the WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features leptos
+
+      - name: Check the dioxus feature on the WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
+
   package:
     name: Package
     strategy:
@@ -146,12 +153,12 @@ jobs:
 
     steps:
       - name: Checkout files
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
@@ -164,9 +171,9 @@ jobs:
           cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          version: 11
+          version: "12.8.1"
 
       - name: Install node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -213,6 +220,12 @@ jobs:
       - name: Build and test the package
         run: pnpm run test:package
 
+      - name: Upload GitHub Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/released' && matrix.node == 24
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: target/browser-example
+
   coverage:
     name: Coverage
     needs: test
@@ -221,12 +234,12 @@ jobs:
 
     steps:
       - name: Checkout files
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           toolchain: stable
           components: llvm-tools-preview
@@ -237,9 +250,9 @@ jobs:
           cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@37f7c5781271959fb65b6b35224e28652ff2b63d # v2.87.0
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
-          tool: cargo-llvm-cov@0.9.0
+          tool: cargo-llvm-cov@0.9.1
           fallback: none
           checksum: true
 
@@ -250,10 +263,33 @@ jobs:
         run: tail ./lcov.info
 
       - name: Upload to coveralls
-        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: lcov.info
           format: lcov
           flag-name: rust
           coverage-reporter-version: v0.6.17
+
+  deploy-pages:
+    name: Deploy browser example
+    if: github.event_name == 'push' && github.ref == 'refs/heads/released'
+    needs: [lint, test, package, coverage]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Deploy browser example
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
