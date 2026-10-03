@@ -10,14 +10,20 @@ publish = false
 [dependencies]
 cfonts = {
 	path = "../..",
-default-features = false,
-features = ["dioxus"],
+	default-features = false,
+	features = ["dioxus"],
 }
 
+# hooks hold the page state, mounted hands the controls over so the page can set their custom validity
 dioxus = {
 	version = "0.7",
-default-features = false,
-features = ["launch"],
+	default-features = false,
+	features = ["launch", "hooks", "mounted"],
+}
+gloo-timers = { version = "0.3", features = ["futures"] }
+web-sys = {
+	version = "0.3",
+	features = ["Element", "Event", "HtmlInputElement", "HtmlSelectElement", "MediaQueryList", "Window", "console"],
 }
 
 [features]
