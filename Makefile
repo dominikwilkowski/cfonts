@@ -5,7 +5,7 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus node browser check
+.PHONY: help cli ratatui leptos dioxus node browser check test
 
 help:
 	@echo "make cli       the Rust API tour, printed to the terminal"
@@ -17,6 +17,7 @@ help:
 	@echo "make browser   the browser example, served by vite"
 	@echo "               or: pnpm run example:browser"
 	@echo "make check     compiles the leptos and dioxus examples, the check CI runs"
+	@echo "make test      the whole gate, every check and every test suite CI runs"
 
 cli:
 	cargo run --locked -p cfonts --example cli
@@ -39,6 +40,23 @@ browser: package
 check: wasm32
 	cargo check --locked --manifest-path crates/cfonts/examples/leptos/Cargo.toml --target wasm32-unknown-unknown
 	cargo check --locked --manifest-path crates/cfonts/examples/dioxus/Cargo.toml --target wasm32-unknown-unknown
+
+# A cfg gated on one feature hides behind --all-features, so every feature compiles alone, on both targets,
+# and pnpm test runs the cargo tests, make check, the wasm tests and the package suite with the browser rows
+test: wasm32
+	cargo fmt --all -- --check
+	cargo clippy --locked --workspace --all-features --tests --all-targets -- -D warnings
+	cargo check --locked --workspace --all-targets --all-features --release
+	cargo check --locked -p cfonts --features web
+	cargo check --locked -p cfonts --features ratatui
+	cargo check --locked -p cfonts --features leptos
+	cargo check --locked -p cfonts --features dioxus
+	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
+	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features web
+	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
+	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features leptos
+	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
+	pnpm test
 
 # The framework examples compile for the browser, add the target with `rustup target add wasm32-unknown-unknown`
 # and install trunk once with `cargo install trunk` to serve them
