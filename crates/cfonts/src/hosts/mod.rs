@@ -1,4 +1,4 @@
-//! Hosts resolve runtime capabilities into a context and perform the output action
+//! Hosts answer what their runtime can show and perform the output action
 
 #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
 use std::{
@@ -7,15 +7,20 @@ use std::{
 };
 
 use crate::{
+	color::ColorLevel,
 	environments::{Environment, Rendered},
 	options::Options,
-	render::{RenderContext, render_with},
+	render::{RenderContext, render_resolved},
 };
 
+#[cfg(feature = "web")]
+mod browser;
 #[cfg(not(target_arch = "wasm32"))]
 mod rust;
 pub mod terminal_canvas_width;
 pub mod terminal_color_support;
+#[cfg(feature = "web")]
+pub use browser::BrowserHost;
 #[cfg(not(target_arch = "wasm32"))]
 pub use rust::RustHost;
 
@@ -33,59 +38,48 @@ pub(crate) fn entropy() -> u64 {
 /// The browser keys the standard library's hasher from memory addresses, identical on every
 /// page load, so the seed asks the page instead: two draws of `Math.random`, one per half
 ///
-/// Only the components render in the browser from Rust, the wasm package seeds from its own host
-#[cfg(all(
-	target_family = "wasm",
-	target_os = "unknown",
-	any(feature = "leptos", feature = "dioxus", feature = "ratatui")
-))]
+/// Only the browser host and the widget render in the browser from Rust, the wasm package seeds from its own host
+#[cfg(all(target_family = "wasm", target_os = "unknown", any(feature = "web", feature = "ratatui")))]
 pub(crate) fn entropy() -> u64 {
 	let half = || (js_sys::Math::random() * f64::from(u32::MAX)) as u64;
 
 	(half() << 32) | half()
 }
 
-/// Resolves runtime capabilities and performs host-specific output
+/// Answers where a render runs and how its output leaves the program
 ///
-/// A host may use different environments for returned and emitted artifacts
-/// Browser hosts use this distinction to return HTML from `render` while
-/// emitting browser-console output from `say`
+/// A host answers three questions, the canvas width, the color level and the candy seed,
+/// and owns the one write, the environment answers the format, the caller combines them:
+/// every pair of host and environment is legal
 pub trait Host {
-	/// Environment used when returning an artifact
-	type RenderEnvironment: Environment + ?Sized;
-
-	/// Environment used when performing the host's output action
-	type SayEnvironment: Environment + ?Sized;
-
 	/// Error returned by the host's output action
 	type Error;
 
-	/// Returns the environment used by [`render`](Self::render)
-	fn render_environment(&self) -> &Self::RenderEnvironment;
+	/// The width in columns the render wraps at, None for no limit
+	fn canvas_width(&self) -> Option<usize>;
 
-	/// Returns the environment used by [`say`](Self::say)
-	fn say_environment(&self) -> &Self::SayEnvironment;
+	/// The color support the render paints with, None paints nothing
+	fn color_level(&self) -> Option<ColorLevel>;
 
-	/// Resolves host capabilities once for one render operation
-	fn resolve_context(&self) -> RenderContext;
+	/// The seed that makes candy colors reproducible
+	fn seed(&self) -> u64;
 
-	/// Performs the host-specific output action
-	fn write(&self, rendered: &Rendered) -> Result<(), Self::Error>;
+	/// Performs the host-specific output action, `line_end` is what the environment ends the artifact with
+	fn write(&self, rendered: &Rendered, line_end: &str) -> Result<(), Self::Error>;
 
-	/// Resolves context once and returns one rendered artifact
+	/// Answers the three questions once and returns one rendered artifact
 	#[must_use]
-	fn render(&self, options: &Options) -> Rendered {
-		let context = self.resolve_context();
+	fn render<E: Environment + ?Sized>(&self, environment: &E, options: &Options) -> Rendered {
+		let context = RenderContext::resolved(self.canvas_width(), self.color_level(), self.seed());
 
-		render_with(options, self.render_environment(), context)
+		render_resolved(options, environment, context)
 	}
 
-	/// Resolves context once, renders through the say environment and writes once
-	fn say(&self, options: &Options) -> Result<(), Self::Error> {
-		let context = self.resolve_context();
-		let rendered = render_with(options, self.say_environment(), context);
+	/// Renders once and writes once
+	fn say<E: Environment + ?Sized>(&self, environment: &E, options: &Options) -> Result<(), Self::Error> {
+		let rendered = self.render(environment, options);
 
-		self.write(&rendered)
+		self.write(&rendered, environment.line_end())
 	}
 }
 
@@ -97,17 +91,11 @@ mod tests {
 	};
 
 	use super::Host;
-	use crate::{Environment, Options, RenderContext, Rendered};
+	use crate::{Cfonts, ColorLevel, Environment, Font, Options, Rendered};
 
 	struct SpyEnvironment {
 		marker: &'static str,
 		render_calls: Cell<usize>,
-	}
-
-	impl SpyEnvironment {
-		fn new(marker: &'static str) -> Self {
-			Self { marker, render_calls: Cell::new(0) }
-		}
 	}
 
 	impl Environment for SpyEnvironment {
@@ -116,79 +104,84 @@ mod tests {
 
 			out.text.push_str(self.marker);
 		}
+
+		fn line_end(&self) -> &'static str {
+			"|end"
+		}
 	}
 
+	#[derive(Default)]
 	struct SpyHost {
-		render_environment: SpyEnvironment,
-		say_environment: SpyEnvironment,
-		context_resolutions: Cell<usize>,
+		answers: Cell<usize>,
 		write_calls: Cell<usize>,
 		written: RefCell<String>,
 	}
 
-	impl Default for SpyHost {
-		fn default() -> Self {
-			Self {
-				render_environment: SpyEnvironment::new("render"),
-				say_environment: SpyEnvironment::new("say"),
-				context_resolutions: Cell::new(0),
-				write_calls: Cell::new(0),
-				written: RefCell::new(String::new()),
-			}
-		}
-	}
-
 	impl Host for SpyHost {
-		type RenderEnvironment = SpyEnvironment;
-		type SayEnvironment = SpyEnvironment;
 		type Error = Infallible;
 
-		fn render_environment(&self) -> &Self::RenderEnvironment {
-			&self.render_environment
+		fn canvas_width(&self) -> Option<usize> {
+			self.answers.set(self.answers.get() + 1);
+
+			Some(3)
 		}
 
-		fn say_environment(&self) -> &Self::SayEnvironment {
-			&self.say_environment
+		fn color_level(&self) -> Option<ColorLevel> {
+			self.answers.set(self.answers.get() + 1);
+
+			Some(ColorLevel::TrueColor)
 		}
 
-		fn resolve_context(&self) -> RenderContext {
-			self.context_resolutions.set(self.context_resolutions.get() + 1);
+		fn seed(&self) -> u64 {
+			self.answers.set(self.answers.get() + 1);
 
-			RenderContext::unlimited()
+			42
 		}
 
-		fn write(&self, rendered: &Rendered) -> Result<(), Self::Error> {
+		fn write(&self, rendered: &Rendered, line_end: &str) -> Result<(), Self::Error> {
 			self.write_calls.set(self.write_calls.get() + 1);
-			self.written.replace(rendered.text.clone());
+			self.written.replace(format!("{}{line_end}", rendered.text));
 
 			Ok(())
 		}
 	}
 
 	#[test]
-	fn render_resolves_once_and_uses_only_the_render_environment() {
+	fn render_answers_each_question_once_through_the_given_environment() {
 		let host = SpyHost::default();
+		let environment = SpyEnvironment { marker: "render", render_calls: Cell::new(0) };
 
-		let rendered = Host::render(&host, &Options::default());
+		let rendered = host.render(&environment, &Options::default());
 
 		assert_eq!(rendered.text, "render");
-		assert_eq!(host.context_resolutions.get(), 1);
-		assert_eq!(host.render_environment.render_calls.get(), 1,);
-		assert_eq!(host.say_environment.render_calls.get(), 0,);
+		assert_eq!(host.answers.get(), 3);
+		assert_eq!(environment.render_calls.get(), 1);
 		assert_eq!(host.write_calls.get(), 0);
 		assert!(host.written.borrow().is_empty());
 	}
 
 	#[test]
-	fn say_resolves_once_renders_once_and_writes_once() {
+	fn say_renders_once_and_writes_once_with_the_environments_line_end() {
 		let host = SpyHost::default();
+		let environment = SpyEnvironment { marker: "say", render_calls: Cell::new(0) };
 
-		Host::say(&host, &Options::default()).expect("the spy host cannot fail");
+		host.say(&environment, &Options::default()).expect("the spy host cannot fail");
 
-		assert_eq!(host.context_resolutions.get(), 1);
-		assert_eq!(host.render_environment.render_calls.get(), 0,);
-		assert_eq!(host.say_environment.render_calls.get(), 1,);
+		assert_eq!(host.answers.get(), 3);
+		assert_eq!(environment.render_calls.get(), 1);
 		assert_eq!(host.write_calls.get(), 1);
-		assert_eq!(host.written.borrow().as_str(), "say",);
+		assert_eq!(host.written.borrow().as_str(), "say|end");
+	}
+
+	#[test]
+	fn the_answers_reach_the_render() {
+		// three columns hold one Tiny glyph, so the pair wraps where an unlimited canvas keeps it on one line
+		let host = SpyHost::default();
+		let options: Options = Cfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
+		let environment = SpyEnvironment { marker: "", render_calls: Cell::new(0) };
+
+		let rendered = host.render(&environment, &options);
+
+		assert_eq!(rendered.text.lines().count(), 4);
 	}
 }

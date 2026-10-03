@@ -267,6 +267,13 @@ pub trait Environment {
 		out.text.push('\n');
 	}
 
+	/// What a host writes after the artifact to end it
+	///
+	/// The default writes nothing: a page or a console ends its own output
+	fn line_end(&self) -> &'static str {
+		""
+	}
+
 	/// The padding rows above the composition with their bands, skipped when `options.spaceless` is set
 	fn top_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], _out: &mut Rendered) {}
 
@@ -386,7 +393,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 mod tests {
 	use super::*;
 	use crate::{
-		BackgroundOption, Cfonts, ColorLevel, GradientOption, GradientStop,
+		BackgroundOption, Cfonts, ColorLevel, GradientOption, GradientStop, RenderOverrides,
 		fonts::Font,
 		layout::Layout,
 		options::Valign,
@@ -492,7 +499,7 @@ mod tests {
 			.line_height(0)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserEnv, RenderContext::with_canvas_width(3));
+			.render_with(&BrowserEnv, RenderOverrides::default().with_canvas_width(3));
 
 		assert_eq!(
 			rendered.text,
@@ -505,7 +512,7 @@ mod tests {
 		let rendered = Cfonts::text("A")
 			.font(Font::Tiny)
 			.valign(Valign::Top)
-			.render_with(&CliEnv::default(), RenderContext::unlimited());
+			.render_with(&CliEnv::default(), RenderOverrides::default());
 
 		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}

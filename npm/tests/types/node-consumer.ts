@@ -3,25 +3,27 @@ import { BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, Font, GradientPre
 const banner = Cfonts.text("hello").font(Font.Block);
 const host = NodeHost.fromOverrides({ canvasWidth: 80 });
 
-const rendered = banner.render(host);
-banner.say(host);
+const rendered = banner.render(host, CliEnv);
+banner.say(host, CliEnv);
 
-banner.say(NodeHost.fromOverrides({ seed: NodeHost.entropy() }));
+banner.say(NodeHost.fromOverrides({ seed: NodeHost.entropy() }), CliEnv);
 
-banner.say(new NodeHost().withRawMode(true));
-banner.say(NodeHost.fromOverrides({ canvasWidth: 80 }).withRawMode(false));
-const raw = banner.renderWith(CliEnv.withRawMode(true), { canvasWidth: 80 });
+banner.say(host, CliEnv.rawMode());
+const raw = banner.renderWith(CliEnv.rawMode(), { canvasWidth: 80 });
 console.log(raw.text);
 
-// @ts-expect-error raw mode is a boolean
-new NodeHost().withRawMode("yes");
+// @ts-expect-error every render names its environment
+banner.render(host);
 
 // @ts-expect-error the browser environments have no raw mode
-BrowserEnv.withRawMode(true);
+BrowserEnv.rawMode();
 
 const artifact = banner.renderWith(BrowserConsoleEnv, {
 	canvasWidth: 80,
 });
+
+// @ts-expect-error the overrides take a color, not a resolved level
+banner.renderWith(BrowserConsoleEnv, { colorLevel: 3 });
 
 const colorful = Cfonts.text("colors")
 	.colors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }])
@@ -36,7 +38,7 @@ colorful.colors({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
 const channels: { red: number; green: number; blue: number } = hexToRgb("#ff8800");
 console.log(channels.red);
 colorful.colors({ preset: GradientPreset.Lesbian });
-colorful.render(host);
+colorful.render(host, CliEnv);
 
 Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }]);
 

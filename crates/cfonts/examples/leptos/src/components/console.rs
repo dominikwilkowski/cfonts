@@ -1,4 +1,4 @@
-use cfonts::Host;
+use cfonts::{BrowserEnv, Host};
 use leptos::prelude::*;
 
 use crate::components::{
@@ -22,7 +22,7 @@ pub fn Console(text: RwSignal<String>, composition: Signal<Composition>) -> impl
 	};
 	let canvas = move || {
 		composition.with(|composition| match &composition.options {
-			Ok(options) => host().render(options).text,
+			Ok(options) => host().render(&BrowserEnv, options).text,
 			Err(error) => format!("<span class=\"error\">ERROR</span> {}", escaped(&error.message)),
 		})
 	};

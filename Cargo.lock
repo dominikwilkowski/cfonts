@@ -242,6 +242,7 @@ dependencies = [
  "libc",
  "ratatui",
  "temp-env",
+ "web-sys",
  "windows-sys",
  "windows-version",
 ]

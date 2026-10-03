@@ -1,5 +1,5 @@
 use cfonts::{
-	CanvasWidth, Cfonts, CliEnv, ColorLevel, ColorOverride, Font, Options, RenderContext, RenderOverrides, render_with,
+	CanvasWidth, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, Options, RenderOverrides, render_with,
 };
 
 #[test]
@@ -14,11 +14,11 @@ fn render_overrides_distinguish_auto_unlimited_and_columns() {
 }
 
 #[test]
-fn explicit_context_controls_wrapping_without_detection() {
+fn explicit_overrides_control_wrapping_without_detection() {
 	let options: Options = Cfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
 
-	let narrow = render_with(&options, &CliEnv::default(), RenderContext::with_canvas_width(3));
-	let unlimited = render_with(&options, &CliEnv::default(), RenderContext::unlimited());
+	let narrow = render_with(&options, &CliEnv::default(), RenderOverrides::default().with_canvas_width(3));
+	let unlimited = render_with(&options, &CliEnv::default(), RenderOverrides::default());
 
 	assert_ne!(narrow.text, unlimited.text);
 }
@@ -34,22 +34,30 @@ fn overrides_carry_color_and_seed() {
 }
 
 #[test]
-fn contexts_default_to_colorless_and_carry_what_they_are_given() {
-	let plain = RenderContext::unlimited();
-	assert_eq!(plain.color_level(), None);
-	assert_eq!(plain.seed(), 0);
+fn without_a_host_auto_means_off() {
+	// nothing detects here: no color paints and candy rolls from the zero seed, so two renders agree
+	let candy = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::Candy]);
+	let plain = candy.render_with(&CliEnv::default(), RenderOverrides::default());
+	assert!(!plain.text.contains('\u{1b}'));
 
-	let colorful = RenderContext::colored(ColorLevel::Ansi256).with_seed(42);
-	assert_eq!(colorful.color_level(), Some(ColorLevel::Ansi256));
-	assert_eq!(colorful.seed(), 42);
+	let leveled = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
+	assert!(candy.render_with(&CliEnv::default(), leveled).text.contains('\u{1b}'));
+	assert_eq!(candy.render_with(&CliEnv::default(), leveled), candy.render_with(&CliEnv::default(), leveled));
+	assert_ne!(
+		candy.render_with(&CliEnv::default(), leveled),
+		candy.render_with(&CliEnv::default(), leveled.with_seed(42))
+	);
 }
 
 #[test]
 fn a_color_level_without_color_options_paints_nothing() {
 	// capabilities alone paint nothing: only configured colors consume the level
 	let banner = Cfonts::text("HI").font(Font::Tiny);
-	let plain = banner.render_with(&CliEnv::default(), RenderContext::unlimited());
-	let leveled = banner.render_with(&CliEnv::default(), RenderContext::colored(ColorLevel::TrueColor).with_seed(42));
+	let plain = banner.render_with(&CliEnv::default(), RenderOverrides::default());
+	let leveled = banner.render_with(
+		&CliEnv::default(),
+		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(42),
+	);
 
 	assert_eq!(plain.text, leveled.text);
 }

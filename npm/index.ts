@@ -24,7 +24,7 @@ import {
 } from "./color-input.js";
 import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, renderEnvironment } from "./environments/index.js";
 import type { Host } from "./hosts/types.js";
-import { normalizeRenderContext, type RenderContext, type RenderOverrides } from "./render-context.js";
+import { normalizeRenderOverrides, type RenderOverrides } from "./render-context.js";
 import { expectEnum, expectString, expectU32 } from "./validation.js";
 
 export type {
@@ -38,7 +38,6 @@ export type {
 	GradientStopInput,
 	GradientStops,
 	Host,
-	RenderContext,
 	Rendered,
 	RenderOverrides,
 	RgbInput,
@@ -307,46 +306,56 @@ export class Cfonts {
 	}
 
 	/**
-	 * Renders through an explicit environment and resolved context
+	 * Renders through an explicit environment without a host
 	 *
-	 * This does not perform host discovery or output side effects
+	 * This does not perform host discovery or output side effects: nothing is decided here,
+	 * so an override left out is off, no canvas limit, no color, the zero seed
 	 *
 	 * @example
 	 * Cfonts.text("hello").renderWith(CliEnv);
 	 *
 	 * @example
-	 * Cfonts.text("hello").renderWith(BrowserEnv, { colorLevel: ColorLevel.TrueColor });
+	 * Cfonts.text("hello").renderWith(BrowserEnv, { color: ColorLevel.TrueColor });
 	 */
-	renderWith(environment: Environment, context?: RenderContext): Rendered {
-		return renderEnvironment(this.#inner, environment, normalizeRenderContext(context));
+	renderWith(environment: Environment, overrides?: RenderOverrides): Rendered {
+		return renderEnvironment(
+			this.#inner,
+			environment,
+			normalizeRenderOverrides(overrides === undefined ? {} : overrides, "renderWith"),
+		);
 	}
 
 	/**
-	 * Renders through the supplied host without performing output
+	 * Renders through the supplied host into the environment's format without performing output
+	 *
+	 * The host answers what its runtime can show, the environment formats the artifact
 	 *
 	 * @example
-	 * const rendered = Cfonts.text("hello").render(host);
+	 * const rendered = Cfonts.text("hello").render(host, CliEnv);
 	 * console.log(rendered.text);
 	 */
-	render(host: Host): Rendered {
+	render(host: Host, environment: Environment): Rendered {
 		if (host === null || typeof host !== "object" || typeof host.render !== "function") {
 			throw new TypeError("`render()` expects a cfonts host");
 		}
 
-		return host.render(this);
+		return host.render(this, environment);
 	}
 
 	/**
 	 * Renders and delegates output to the supplied host
 	 *
 	 * @example
-	 * Cfonts.text("hello").say(host); // NodeHost writes to stdout, BrowserHost to the console
+	 * Cfonts.text("hello").say(host, CliEnv); // NodeHost writes to stdout
+	 *
+	 * @example
+	 * Cfonts.text("hello").say(host, BrowserConsoleEnv); // BrowserHost writes to the console
 	 */
-	say(host: Host): void {
+	say(host: Host, environment: Environment): void {
 		if (host === null || typeof host !== "object" || typeof host.say !== "function") {
 			throw new TypeError("`say()` expects a cfonts host");
 		}
 
-		host.say(this);
+		host.say(this, environment);
 	}
 }

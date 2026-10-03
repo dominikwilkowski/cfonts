@@ -1,6 +1,6 @@
 //! Sexy fonts for the console: cfonts renders text as banner art
 //!
-//! [`Cfonts`] is the builder, a [`Host`] resolves runtime capabilities and
+//! [`Cfonts`] is the builder, a [`Host`] answers what its runtime can show and
 //! performs output, and pure environments format the artifact for their target
 
 mod builder;
@@ -25,15 +25,17 @@ pub use hosts::Host;
 pub use options::{Align, BlockOptions, Options, Valign};
 pub use render::{CanvasWidth, ColorOverride, RenderContext, RenderOverrides, render_with};
 
+#[cfg(feature = "web")]
+pub use hosts::BrowserHost;
 #[cfg(not(target_arch = "wasm32"))]
 pub use hosts::RustHost;
 
 #[cfg(feature = "dioxus")]
 pub use components::CfontsDioxus;
+#[cfg(feature = "leptos")]
+pub use components::CfontsLeptos;
 #[cfg(feature = "ratatui")]
 pub use components::CfontsWidget;
-#[cfg(feature = "leptos")]
-pub use components::{CfontsLeptos, LeptosHost};
 
 #[cfg(test)]
 mod tests;

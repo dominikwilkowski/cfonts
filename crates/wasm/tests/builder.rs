@@ -3,8 +3,8 @@ use wasm_bindgen::JsError;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
-	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Font as CoreFont, Options,
-	RenderContext, Valign as CoreValign,
+	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, ColorOverride, Font as CoreFont,
+	Options, RenderOverrides, Valign as CoreValign,
 };
 use cfonts_wasm::{Align, Cfonts, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb};
 
@@ -16,12 +16,12 @@ fn rendered(crossed: Result<Ts<Rendered>, JsError>) -> Rendered {
 /// The same render through the core directly, the boundary's oracle
 fn render_core(environment: EnvironmentKind, canvas_width: Option<usize>) -> String {
 	let options: Options = CoreCfonts::text("AA").font(CoreFont::Tiny).line_height(0).spaceless().into();
-	let context = RenderContext::with_canvas_width(canvas_width.unwrap_or(0));
+	let overrides = RenderOverrides::default().with_canvas_width(canvas_width.unwrap_or(0));
 
 	match environment {
-		EnvironmentKind::Cli => cfonts::render_with(&options, &CliEnv::default(), context).text,
-		EnvironmentKind::Browser => cfonts::render_with(&options, &BrowserEnv, context).text,
-		EnvironmentKind::BrowserConsole => cfonts::render_with(&options, &BrowserConsoleEnv, context).text,
+		EnvironmentKind::Cli => cfonts::render_with(&options, &CliEnv::default(), overrides).text,
+		EnvironmentKind::Browser => cfonts::render_with(&options, &BrowserEnv, overrides).text,
+		EnvironmentKind::BrowserConsole => cfonts::render_with(&options, &BrowserConsoleEnv, overrides).text,
 	}
 }
 
@@ -108,7 +108,7 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 		.valign(CoreValign::Bottom)
 		.spaceless()
 		.max_length(2)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 
 	assert_eq!(rendered(actual.render(EnvironmentKind::Browser, None, None, None, false)).text, expected.text,);
 }
@@ -160,7 +160,7 @@ fn local_settings_can_be_configured_repeatedly() {
 		.next("B")
 		.next("C")
 		.font(CoreFont::Tiny)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 
 	assert_eq!(rendered(actual.render(EnvironmentKind::Browser, None, None, None, false)).text, expected.text,);
 }
@@ -346,7 +346,10 @@ fn the_independent_gradient_crosses_the_boundary() {
 		.line_height(0)
 		.colors(cfonts::GradientOption::TwoStop { start: cfonts::GradientStop::Red, end: cfonts::GradientStop::Blue })
 		.independent_gradient()
-		.render_with(&CliEnv::default(), RenderContext::colored(cfonts::ColorLevel::TrueColor));
+		.render_with(
+			&CliEnv::default(),
+			RenderOverrides::default().with_color(ColorOverride::Level(cfonts::ColorLevel::TrueColor)),
+		);
 
 	assert_ne!(independent, fixed);
 	assert_eq!(independent, expected.text);
@@ -386,11 +389,10 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
-	let expected = CoreCfonts::text("A")
-		.font(CoreFont::Tiny)
-		.spaceless()
-		.background(cfonts::Color::Blue)
-		.render_with(&CliEnv::default(), RenderContext::colored(cfonts::ColorLevel::Basic));
+	let expected = CoreCfonts::text("A").font(CoreFont::Tiny).spaceless().background(cfonts::Color::Blue).render_with(
+		&CliEnv::default(),
+		RenderOverrides::default().with_color(ColorOverride::Level(cfonts::ColorLevel::Basic)),
+	);
 	assert_eq!(
 		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::Basic), None, false)).text,
 		expected.text
@@ -421,7 +423,7 @@ fn a_system_background_is_accepted_and_paints_nothing() {
 
 #[wasm_bindgen_test]
 fn every_background_gradient_shape_matches_the_core_builder() {
-	let context = RenderContext::colored(cfonts::ColorLevel::TrueColor);
+	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(cfonts::ColorLevel::TrueColor));
 	// the core twin of wrapping_banner with the background applied
 	let core = |background: cfonts::BackgroundOption| {
 		CoreCfonts::text("AA")
@@ -429,7 +431,7 @@ fn every_background_gradient_shape_matches_the_core_builder() {
 			.line_height(0)
 			.spaceless()
 			.background(background)
-			.render_with(&CliEnv::default(), context)
+			.render_with(&CliEnv::default(), overrides)
 			.text
 	};
 	let boundary = |banner: &Cfonts| {

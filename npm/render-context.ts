@@ -2,31 +2,13 @@ import { ColorLevel } from "../pkg/cfonts_wasm.js";
 
 import { expectEnum, expectU32 } from "./validation.js";
 
-/** Resolved capabilities for one render */
-export interface RenderContext {
-	/**
-	 * Resolved width in columns
-	 *
-	 * Undefined and zero mean unlimited
-	 */
-	readonly canvasWidth?: number;
-
-	/**
-	 * Resolved color support
-	 *
-	 * Undefined paints nothing
-	 */
-	readonly colorLevel?: ColorLevel;
-
-	/** The seed that makes candy colors reproducible */
-	readonly seed?: number;
-}
-
 /**
- * Capability requests a host resolves against its own detection
+ * What a consumer asks of a render: the one request type hosts and `renderWith()` take
  *
- * The environment variables `FORCE_SIZE`, `FORCE_COLOR` and `NO_COLOR`
- * take precedence over every override
+ * A host resolves these against its own detection, where the environment variables
+ * `FORCE_SIZE`, `FORCE_COLOR` and `NO_COLOR` take precedence over every override
+ * `renderWith()` detects nothing, so a value left out is off there: no canvas limit,
+ * no color, the zero seed
  */
 export interface RenderOverrides {
 	/**
@@ -47,44 +29,17 @@ export interface RenderOverrides {
 	readonly seed?: number;
 }
 
-const UNLIMITED_CONTEXT: RenderContext = Object.freeze({});
-
-export function normalizeRenderContext(context?: RenderContext): RenderContext {
-	if (context === undefined) {
-		return UNLIMITED_CONTEXT;
-	}
-
-	if (context === null || typeof context !== "object" || Array.isArray(context)) {
-		throw new TypeError("`renderWith()` expects a render context object");
-	}
-
-	const canvasWidth =
-		context.canvasWidth === undefined || expectU32(context.canvasWidth, "renderWith") === 0
-			? undefined
-			: context.canvasWidth;
-	const colorLevel =
-		context.colorLevel === undefined ? undefined : expectEnum<ColorLevel>(context.colorLevel, ColorLevel, "renderWith");
-	const seed = context.seed === undefined ? undefined : expectU32(context.seed, "renderWith");
-
-	if (canvasWidth === undefined && colorLevel === undefined && seed === undefined) {
-		return UNLIMITED_CONTEXT;
-	}
-
-	return Object.freeze({ canvasWidth, colorLevel, seed });
-}
-
-export function normalizeRenderOverrides(overrides: RenderOverrides): RenderOverrides {
+export function normalizeRenderOverrides(overrides: RenderOverrides, method: string): RenderOverrides {
 	if (overrides === null || typeof overrides !== "object" || Array.isArray(overrides)) {
-		throw new TypeError("`fromOverrides()` expects an overrides object");
+		throw new TypeError(`\`${method}()\` expects an overrides object`);
 	}
 
-	const canvasWidth =
-		overrides.canvasWidth === undefined ? undefined : expectU32(overrides.canvasWidth, "fromOverrides");
+	const canvasWidth = overrides.canvasWidth === undefined ? undefined : expectU32(overrides.canvasWidth, method);
 	const color =
 		overrides.color === undefined || overrides.color === false
 			? overrides.color
-			: expectEnum<ColorLevel>(overrides.color, ColorLevel, "fromOverrides");
-	const seed = overrides.seed === undefined ? undefined : expectU32(overrides.seed, "fromOverrides");
+			: expectEnum<ColorLevel>(overrides.color, ColorLevel, method);
+	const seed = overrides.seed === undefined ? undefined : expectU32(overrides.seed, method);
 
 	return Object.freeze({ canvasWidth, color, seed });
 }

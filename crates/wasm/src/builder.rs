@@ -5,8 +5,8 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::{
 	BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor, ColorError,
-	ColorOption, GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options, RenderContext,
-	TransitionStops, options::BlockOptions,
+	ColorOption, ColorOverride, GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options,
+	RenderOverrides, TransitionStops, options::BlockOptions,
 };
 
 use crate::{Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign};
@@ -243,9 +243,9 @@ impl Cfonts {
 	/// Renders one artifact through the core Rust library
 	///
 	/// The JavaScript host passes the environment it selected and the capabilities
-	/// it has already resolved; `None` and zero width mean unlimited, no color
-	/// level paints nothing, raw mode ends terminal rows with `\r\n` and means
-	/// nothing to the browser environments
+	/// it has already resolved, so every override crosses pinned: `None` and zero
+	/// width mean unlimited, no color level paints nothing, raw mode ends terminal
+	/// rows with `\r\n` and means nothing to the browser environments
 	///
 	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(
@@ -256,21 +256,21 @@ impl Cfonts {
 		seed: Option<u32>,
 		raw_mode: bool,
 	) -> Result<Ts<Rendered>, JsError> {
-		let context = Self::context(canvas_width, color_level, seed);
+		let overrides = RenderOverrides::default()
+			.with_canvas_width(canvas_width.unwrap_or(0))
+			.with_color(color_level.map_or(ColorOverride::Disabled, |level| ColorOverride::Level(level.into())))
+			.with_seed(seed.map_or(0, u64::from));
 		let rendered: Rendered = match environment {
-			EnvironmentKind::Cli => cfonts::render_with(&self.options, &CliEnv::new(raw_mode), context).into(),
-			EnvironmentKind::Browser => cfonts::render_with(&self.options, &BrowserEnv, context).into(),
-			EnvironmentKind::BrowserConsole => cfonts::render_with(&self.options, &BrowserConsoleEnv, context).into(),
+			EnvironmentKind::Cli => {
+				let environment = if raw_mode { CliEnv::default().raw_mode() } else { CliEnv::default() };
+
+				cfonts::render_with(&self.options, &environment, overrides).into()
+			}
+			EnvironmentKind::Browser => cfonts::render_with(&self.options, &BrowserEnv, overrides).into(),
+			EnvironmentKind::BrowserConsole => cfonts::render_with(&self.options, &BrowserConsoleEnv, overrides).into(),
 		};
 
 		Ok(rendered.into_ts()?)
-	}
-
-	fn context(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: Option<u32>) -> RenderContext {
-		// None and Some(0) both mean unlimited
-		RenderContext::with_canvas_width(canvas_width.unwrap_or(0))
-			.with_color_level(color_level.map(Into::into))
-			.with_seed(seed.map_or(0, u64::from))
 	}
 }
 

@@ -182,7 +182,7 @@ impl Environment for BrowserEnv {
 mod tests {
 	use super::*;
 	use crate::{
-		BackgroundOption, Cfonts, GradientOption, GradientStop,
+		BackgroundOption, Cfonts, ColorOverride, GradientOption, GradientStop, RenderOverrides,
 		color::{ColorLevel, Rgb},
 		fonts::Font,
 		options::Valign,
@@ -199,7 +199,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.background(background)
-			.render_with(&BrowserEnv, RenderContext::colored(ColorLevel::TrueColor))
+			.render_with(&BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)))
 	}
 
 	// color_tokens
@@ -329,7 +329,7 @@ mod tests {
 	#[test]
 	fn render_wraps_the_rows_in_a_styled_div() {
 		let rendered =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderContext::unlimited());
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderOverrides::default());
 
 		assert_eq!(
 			rendered.text,
@@ -351,7 +351,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserEnv, RenderContext::unlimited());
+			.render_with(&BrowserEnv, RenderOverrides::default());
 		assert_eq!(
 			rendered.text,
 			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█<br>█▀█</div>"#,
@@ -367,7 +367,7 @@ mod tests {
 			.valign(Valign::Top)
 			.next("B")
 			.font(Font::Tiny)
-			.render_with(&BrowserEnv, RenderContext::unlimited());
+			.render_with(&BrowserEnv, RenderOverrides::default());
 		assert_eq!(rendered.text.matches("<br>").count(), 5);
 	}
 
@@ -404,12 +404,12 @@ mod tests {
 		// empty text prints one bare row between the paddings, and that row is a block like the rest
 		let banded = Cfonts::text("")
 			.background(Color::Blue)
-			.render_with(&BrowserEnv, RenderContext::colored(ColorLevel::TrueColor))
+			.render_with(&BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)))
 			.text;
 		assert_eq!(banded.matches(r#"<div style="background:#0020f5;min-height:1lh"></div>"#).count(), 5);
 		assert!(!banded.contains("<br>"));
 
-		let plain = Cfonts::text("").render_with(&BrowserEnv, RenderContext::unlimited()).text;
+		let plain = Cfonts::text("").render_with(&BrowserEnv, RenderOverrides::default()).text;
 		assert_eq!(plain.matches(r#"<div style="min-height:1lh"></div>"#).count(), 5);
 		assert!(!plain.contains("<br>"));
 	}
@@ -421,7 +421,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserEnv, RenderContext::unlimited())
+			.render_with(&BrowserEnv, RenderOverrides::default())
 			.text;
 
 		assert!(rendered.ends_with(&format!("▄▀█<br>█▀█<br>{}</div>", EMPTY_ROW.repeat(3))), "{rendered}");
@@ -434,7 +434,7 @@ mod tests {
 			.valign(Valign::Top)
 			.spaceless()
 			.background(Color::Blue)
-			.render_with(&BrowserEnv, RenderContext::colored(ColorLevel::TrueColor))
+			.render_with(&BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)))
 			.text;
 
 		assert_eq!(
@@ -451,7 +451,7 @@ mod tests {
 	#[test]
 	fn system_and_unleveled_backgrounds_leave_the_plain_shape() {
 		let plain =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderContext::unlimited());
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderOverrides::default());
 
 		assert_eq!(plated(Color::System), plain);
 		assert_eq!(
@@ -459,7 +459,7 @@ mod tests {
 				.font(Font::Tiny)
 				.valign(Valign::Top)
 				.background(Color::Blue)
-				.render_with(&BrowserEnv, RenderContext::unlimited()),
+				.render_with(&BrowserEnv, RenderOverrides::default()),
 			plain
 		);
 	}

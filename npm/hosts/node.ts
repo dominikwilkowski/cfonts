@@ -1,9 +1,9 @@
 import { release } from "node:os";
 
 import { type ColorLevel, detectCanvasWidth, detectColorSupport } from "../../pkg/cfonts_wasm.js";
-import { CliEnv, type Environment, lineEnd } from "../environments/index.js";
+import { type Environment, lineEnd } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
-import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
+import { normalizeRenderOverrides, type RenderOverrides, randomSeed } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**
@@ -52,11 +52,10 @@ function measuredColumns(): number | undefined {
 }
 
 /**
- * Resolves Node terminal capabilities and writes CLI artifacts to stdout
+ * Resolves Node terminal capabilities and writes artifacts to stdout
  */
 export class NodeHost implements Host {
 	#overrides: RenderOverrides = Object.freeze({});
-	#environment: Environment = CliEnv;
 
 	/**
 	 * A fresh seed for candy colors, the one a render rolls when no seed override is given
@@ -85,40 +84,29 @@ export class NodeHost implements Host {
 	 */
 	static fromOverrides(overrides: RenderOverrides): NodeHost {
 		const host = new NodeHost();
-		host.#overrides = normalizeRenderOverrides(overrides);
+		host.#overrides = normalizeRenderOverrides(overrides, "fromOverrides");
 		return host;
 	}
 
+	render(composition: Cfonts, environment: Environment): Rendered {
+		return composition.renderWith(environment, this.#resolve());
+	}
+
+	say(composition: Cfonts, environment: Environment): void {
+		const rendered = composition.renderWith(environment, this.#resolve());
+
+		process.stdout.write(`${rendered.text}${lineEnd(environment)}`);
+	}
+
 	/**
-	 * Renders with `\r\n` line endings for terminals in raw mode, the way TUIs set them
-	 *
-	 * @example
-	 * new NodeHost().withRawMode(true);
-	 *
-	 * @example
-	 * NodeHost.fromOverrides({ canvasWidth: 40 }).withRawMode(true);
+	 * The three answers of this host, pinned so the render decides nothing
 	 */
-	withRawMode(rawMode: boolean): this {
-		this.#environment = CliEnv.withRawMode(rawMode);
-		return this;
-	}
-
-	render(composition: Cfonts): Rendered {
-		return composition.renderWith(this.#environment, this.#resolveContext());
-	}
-
-	say(composition: Cfonts): void {
-		const rendered = composition.renderWith(this.#environment, this.#resolveContext());
-
-		process.stdout.write(`${rendered.text}${lineEnd(this.#environment)}`);
-	}
-
-	#resolveContext(): RenderContext {
+	#resolve(): RenderOverrides {
 		const [names, values] = environmentEntries();
 
 		return Object.freeze({
 			canvasWidth: this.#resolveCanvasWidth(names, values),
-			colorLevel: this.#resolveColorLevel(names, values),
+			color: this.#resolveColorLevel(names, values),
 			seed: this.#overrides.seed ?? randomSeed(),
 		});
 	}

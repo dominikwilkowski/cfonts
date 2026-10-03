@@ -139,6 +139,7 @@ dependencies = [
  "js-sys",
  "leptos",
  "libc",
+ "web-sys",
  "windows-sys",
  "windows-version",
 ]

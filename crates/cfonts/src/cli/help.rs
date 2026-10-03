@@ -1,27 +1,31 @@
 use crate::{
-	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, RenderContext, RustHost, Valign,
+	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, Options, RenderContext, RustHost, Valign,
 	cli::{
 		Args, VERSION,
 		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_mark},
 	},
+	render::render_resolved,
 };
 
 /// The full help screen, resolved like any render: real width, real color level
 pub fn cli_help() -> String {
-	cli_help_with(RustHost::default().resolve_context())
+	let host = RustHost::default();
+
+	cli_help_with(RenderContext::resolved(host.canvas_width(), host.color_level(), host.seed()))
 }
 
 /// Assembles the help screen for one known context
 pub(crate) fn cli_help_with(context: RenderContext) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
-	let banner = Cfonts::text("cfonts")
+	let banner: Options = Cfonts::text("cfonts")
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
 		.next(format!(" {VERSION}"))
 		.font(Font::Console)
 		.valign(Valign::Bottom)
 		.colors(vec![Color::System])
-		.render_with(&CliEnv::default(), context);
+		.into();
+	let banner = render_resolved(&banner, &CliEnv::default(), context);
 
 	// every backticked span of the usage is an input and renders in the mark color
 	const USAGE: &str = concat!(

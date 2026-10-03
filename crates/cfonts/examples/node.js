@@ -15,16 +15,17 @@ import {
 	Valign,
 } from "cfonts";
 
+// The host answers what the terminal can show and owns the write, the environment formats the artifact
 const host = new NodeHost();
 
 // A quick print to stdout with the default settings
-Cfonts.text("hello cfonts").say(host);
+Cfonts.text("hello cfonts").say(host, CliEnv);
 
 // Get the instance and do something with it later
 const composition = Cfonts.text("hello world").font(Font.Tiny);
 
 // Render manually and write the artifact wherever a stream goes, say adds the line end for you, here you add it
-const terminal = composition.render(host);
+const terminal = composition.render(host, CliEnv);
 process.stderr.write(`stderr: ${terminal.text}\n`); // stderr keeps stdout clean for piping
 const buffer = Buffer.from(`buffer: ${terminal.text}\n`); // or collect the bytes for a file, a socket or a log sink
 process.stdout.write(buffer);
@@ -36,45 +37,45 @@ console.log(html.text);
 // A file is not a terminal: width zero lifts the wrap and false paints no escape codes
 // FORCE_SIZE and NO_COLOR env vars take precedence over API overrides and detection
 const fileHost = NodeHost.fromOverrides({ canvasWidth: 0, color: false });
-const notes = Cfonts.text("release notes").font(Font.Simple).render(fileHost);
+const notes = Cfonts.text("release notes").font(Font.Simple).render(fileHost, CliEnv);
 console.log(notes.text); // ready for writeFileSync("NOTES.txt", notes.text)
 
 // A serial console knows sixteen colors, so a hex gradient snaps to the closest ones
 const serialHost = NodeHost.fromOverrides({ color: ColorLevel.Basic });
-Cfonts.text("serial").colors({ start: "#f80", end: "#80f" }).say(serialHost);
+Cfonts.text("serial").colors({ start: "#f80", end: "#80f" }).say(serialHost, CliEnv);
 
 // Candy rolls a fresh color per painted segment, a seed makes the roll repeatable
 const seededHost = NodeHost.fromOverrides({ seed: 42 });
-Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost);
-Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost); // the same picks again
+Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost, CliEnv);
+Cfonts.text("same").font(Font.Chrome).colors([Color.Candy, Color.Candy]).spaceless().say(seededHost, CliEnv); // the same picks again
 
 // A seed rolled by the host does the same and stays repeatable for as long as it is kept
 const rolled = NodeHost.fromOverrides({ seed: NodeHost.entropy() });
 const party = Cfonts.text("party").font(Font.Chrome).colors([Color.Candy, Color.Candy]);
-assert.equal(party.render(rolled).text, party.render(rolled).text); // nothing printed, the picks differ per run
+assert.equal(party.render(rolled, CliEnv).text, party.render(rolled, CliEnv).text); // nothing printed, the picks differ per run
 
 // A terminal in raw mode, the way TUIs set it, needs a carriage return before every line feed
-Cfonts.text("raw").font(Font.Tiny).say(new NodeHost().withRawMode(true));
+Cfonts.text("raw").font(Font.Tiny).say(host, CliEnv.rawMode());
 
-// renderWith detects nothing, so colors need a level in the context
+// renderWith detects nothing, so colors need a level in the overrides
 // A static HTML report embeds the banner in true color, a preset is a transition through the flag's stops
 const report = Cfonts.text("report")
 	.font(Font.Chrome)
 	.colors({ preset: GradientPreset.Pride })
-	.renderWith(BrowserEnv, { colorLevel: ColorLevel.TrueColor });
+	.renderWith(BrowserEnv, { color: ColorLevel.TrueColor });
 console.log(report.text); // ready for writeFileSync("report.html", report.text)
 
 // The browser console form pairs every %c marker in the text with one entry of styles
 const devtools = Cfonts.text("devtools")
 	.font(Font.Tiny)
 	.colors({ start: Color.Cyan, end: Color.Blue })
-	.renderWith(BrowserConsoleEnv, { colorLevel: ColorLevel.TrueColor });
+	.renderWith(BrowserConsoleEnv, { color: ColorLevel.TrueColor });
 process.stdout.write(`${devtools.text}\n`); // console.log would consume the markers here
 console.log(`${devtools.styles.length} styles pair with the markers above, a browser console paints them`);
 
 // The host resolves the terminal width but this can be overwritten
 const fixedHost = NodeHost.fromOverrides({ canvasWidth: 40 });
-Cfonts.text("hello fixed world").font(Font.Edge).align(Align.Center).say(fixedHost);
+Cfonts.text("hello fixed world").font(Font.Edge).align(Align.Center).say(fixedHost, CliEnv);
 
 // Or you can use the renderWith method
 const fixedRendered = Cfonts.text("hello small world")
@@ -84,29 +85,29 @@ const fixedRendered = Cfonts.text("hello small world")
 console.log(fixedRendered.text);
 
 // The environment carries the raw mode for manual renders, a terminal emulator in a page wants these endings too
-const emulator = Cfonts.text("xterm").font(Font.Tiny).renderWith(CliEnv.withRawMode(true), { canvasWidth: 44 });
+const emulator = Cfonts.text("xterm").font(Font.Tiny).renderWith(CliEnv.rawMode(), { canvasWidth: 44 });
 console.log(emulator.text);
 
 // Colors paint through the host's resolved support level, one per font color slot
-Cfonts.text("colors").colors([Color.Red, Color.Yellow]).say(host);
+Cfonts.text("colors").colors([Color.Red, Color.Yellow]).say(host, CliEnv);
 
 // A gradient ramps between two colors the long way around the color wheel, one color per column
-Cfonts.text("rainbow").colors({ start: Color.Red, end: Color.Blue }).say(host);
+Cfonts.text("rainbow").colors({ start: Color.Red, end: Color.Blue }).say(host, CliEnv);
 
 // A transition travels straight to each color
 Cfonts.text("sunset")
 	.colors({ transition: [Color.Yellow, "#ff8800", Color.Magenta] })
-	.say(host);
+	.say(host, CliEnv);
 
 // Design tokens come as channels, hexToRgb turns a hex value into that shape
 const brand = hexToRgb("#f08");
 Cfonts.text("brand")
 	.colors([brand, { red: 255, green: 255, blue: 255 }]) // colors can also be set as objects
-	.say(host);
+	.say(host, CliEnv);
 
 // System keeps the terminal's own text color, here for the fill while only the frame is painted
 // So the first color works on dark mode and light mode and any other terminal themes
-Cfonts.text(" theme ").font(Font.Shade).colors([Color.System, Color.Yellow]).say(host);
+Cfonts.text(" theme ").font(Font.Shade).colors([Color.System, Color.Yellow]).say(host, CliEnv);
 
 // Blocks share one line, each with its own font and colors
 Cfonts.text("say ")
@@ -115,7 +116,7 @@ Cfonts.text("say ")
 	.next("fire")
 	.font(Font.Tiny)
 	.colors([Color.YellowBright])
-	.say(host);
+	.say(host, CliEnv);
 
 // Global colors cover every block and can be set anywhere while color setters have to be set within the current block
 // Once a global color is set, a block with its own colors keeps them can overwrite them
@@ -129,7 +130,7 @@ Cfonts.text("one ")
 	.next("three")
 	.font(Font.Tiny)
 	// no color set in this block
-	.say(host);
+	.say(host, CliEnv);
 
 // A global gradient ramps across every block as one, and a preset works here too
 Cfonts.text("two")
@@ -137,7 +138,7 @@ Cfonts.text("two")
 	.font(Font.Tiny)
 	.valign(Valign.Middle)
 	.globalColors({ preset: GradientPreset.Transgender })
-	.say(host);
+	.say(host, CliEnv);
 
 // Setting the independentGradient means each line will use its real length,
 // without it a gradient uses the longest line to calculate the gradient colors
@@ -145,16 +146,16 @@ Cfonts.text("All you need is|Love")
 	.font(Font.Braille)
 	.align(Align.Center)
 	.colors({ start: Color.Red, end: Color.Blue })
-	.say(host);
+	.say(host, CliEnv);
 Cfonts.text("All you need is|Love")
 	.font(Font.Braille)
 	.align(Align.Center)
 	.colors({ start: Color.Red, end: Color.Blue })
 	.independentGradient()
-	.say(host);
+	.say(host, CliEnv);
 
 // You can set a static background for your output which will include the padding (which can be disabled with `.spaceless()`)
-Cfonts.text(" Banner ").colors([Color.White, Color.Yellow]).background(Color.Blue).say(host);
+Cfonts.text(" Banner ").colors([Color.White, Color.Yellow]).background(Color.Blue).say(host, CliEnv);
 
 console.log(""); // Adding some space between examples
 
@@ -164,7 +165,7 @@ Cfonts.text(" Right ")
 	.colors([Color.Black, Color.Black])
 	.background({ start: Color.Blue, end: Color.Magenta })
 	.font(Font.Huge)
-	.say(host);
+	.say(host, CliEnv);
 
 console.log(""); // Adding some space between examples
 
@@ -174,12 +175,12 @@ Cfonts.text("neon")
 	.font(Font.Chrome)
 	.colors(["#f08", "#f08", "#f08"])
 	.background({ transition: [Color.Magenta, Color.Cyan, Color.Magenta] })
-	.say(host);
+	.say(host, CliEnv);
 
 console.log(""); // Adding some space between examples
 
 // A preset paints a background too, top to bottom through the flag's stops
-Cfonts.text(" pride ").background({ preset: GradientPreset.Pride }).say(host);
+Cfonts.text(" pride ").background({ preset: GradientPreset.Pride }).say(host, CliEnv);
 
 console.log(""); // Adding some space between examples
 
@@ -194,21 +195,26 @@ Cfonts.text("cfonts")
 	.valign(Valign.Bottom)
 	.background(Color.Gray)
 	.align(Align.Center)
-	.say(host);
+	.say(host, CliEnv);
 
 console.log(""); // Adding some space between examples
 
 // Spaceless drops the padding (two empty lines above and below) for tight stacks
-Cfonts.text("Neat").font(Font.Neat).colors([Color.White]).spaceless().background(Color.Red).say(host);
+Cfonts.text("Neat").font(Font.Neat).colors([Color.White]).spaceless().background(Color.Red).say(host, CliEnv);
 
 // Max length breaks a line after this many glyphs (it means max characters)
 // word wrap moves whole words to the next line instead of breaking them mid way
-Cfonts.text("wrap whole words").font(Font.Retro).maxLength(8).colors({ start: "f08", end: "f08" }).say(host);
-Cfonts.text("wrap whole words").font(Font.Retro).maxLength(8).colors({ start: "f08", end: "f08" }).wordWrap().say(host);
+Cfonts.text("wrap whole words").font(Font.Retro).maxLength(8).colors({ start: "f08", end: "f08" }).say(host, CliEnv);
+Cfonts.text("wrap whole words")
+	.font(Font.Retro)
+	.maxLength(8)
+	.colors({ start: "f08", end: "f08" })
+	.wordWrap()
+	.say(host, CliEnv);
 
 // Letter spacing widens the gap between letters, line height sets the rows between lines
-Cfonts.text("wide|normal").font(Font.Thin).letterSpacing(3).say(host);
-Cfonts.text("tight|close").font(Font.Thin).lineHeight(0).say(host);
+Cfonts.text("wide|normal").font(Font.Thin).letterSpacing(3).say(host, CliEnv);
+Cfonts.text("tight|close").font(Font.Thin).lineHeight(0).say(host, CliEnv);
 
 // Put together: a startup banner with a logo and a status line
 Cfonts.text("Bronzies")
@@ -218,27 +224,28 @@ Cfonts.text("Bronzies")
 	.colors({ start: "#f00", end: "#fff" })
 	.spaceless()
 	.align(Align.Center)
-	.say(host);
+	.say(host, CliEnv);
 
 console.log(""); // Adding some space between examples
 
-// A host is any object with render and say methods
+// A host is any object with render and say methods, it answers what it can show and owns the output
 // This custom host prefixes every line for a build log
 const buildLog = {
-	render: (composition) => composition.renderWith(CliEnv, { canvasWidth: 60, colorLevel: ColorLevel.Ansi256 }),
-	say(composition) {
-		for (const line of this.render(composition).text.split("\n")) {
+	render: (composition, environment) =>
+		composition.renderWith(environment, { canvasWidth: 60, color: ColorLevel.Ansi256 }),
+	say(composition, environment) {
+		for (const line of this.render(composition, environment).text.split("\n")) {
 			process.stdout.write(`[build] ${line}\n`);
 		}
 	},
 };
-Cfonts.text("step 3").font(Font.Tiny).colors([Color.Green]).spaceless().say(buildLog);
+Cfonts.text("step 3").font(Font.Tiny).colors([Color.Green]).spaceless().say(buildLog, CliEnv);
 Cfonts.text("failed")
 	.font(Font.Tiny)
 	.colors([Color.White])
 	.background(Color.Red)
 	.spaceless()
 	.align(Align.Center)
-	.say(buildLog);
+	.say(buildLog, CliEnv);
 
 console.log(""); // Adding some space between examples

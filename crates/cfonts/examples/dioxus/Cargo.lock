@@ -206,6 +206,7 @@ dependencies = [
  "dioxus",
  "js-sys",
  "libc",
+ "web-sys",
  "windows-sys 0.61.2",
  "windows-version",
 ]

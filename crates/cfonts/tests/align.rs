@@ -7,7 +7,9 @@
 mod common;
 use common::{browser_content, with_force_size};
 
-use cfonts::{Align, BrowserEnv, Cfonts, Font, NEW_LINE_CHAR, Options, RenderContext, Valign, hosts::RustHost};
+use cfonts::{
+	Align, BrowserEnv, Cfonts, CliEnv, Font, NEW_LINE_CHAR, Options, RenderOverrides, Valign, hosts::RustHost,
+};
 
 // painted output
 
@@ -15,9 +17,21 @@ use cfonts::{Align, BrowserEnv, Cfonts, Font, NEW_LINE_CHAR, Options, RenderCont
 fn cli_aligns_left_center_and_right() {
 	// Alignment will only add padding to the left of the output
 	with_force_size(7, || {
-		let left = Cfonts::text("A").font(Font::Tiny).align(Align::Left).spaceless().render(&RustHost::default());
-		let center = Cfonts::text("A").font(Font::Tiny).align(Align::Center).spaceless().render(&RustHost::default());
-		let right = Cfonts::text("A").font(Font::Tiny).align(Align::Right).spaceless().render(&RustHost::default());
+		let left = Cfonts::text("A")
+			.font(Font::Tiny)
+			.align(Align::Left)
+			.spaceless()
+			.render(&RustHost::default(), &CliEnv::default());
+		let center = Cfonts::text("A")
+			.font(Font::Tiny)
+			.align(Align::Center)
+			.spaceless()
+			.render(&RustHost::default(), &CliEnv::default());
+		let right = Cfonts::text("A")
+			.font(Font::Tiny)
+			.align(Align::Right)
+			.spaceless()
+			.render(&RustHost::default(), &CliEnv::default());
 
 		#[rustfmt::skip]
 		assert_eq!(
@@ -56,7 +70,7 @@ fn cli_aligns_multi_font_lines_as_one_unit() {
 			.font(Font::Tiny)
 			.align(Align::Center)
 			.spaceless()
-			.render(&RustHost::default());
+			.render(&RustHost::default(), &CliEnv::default());
 
 		#[rustfmt::skip]
 		assert_eq!(
@@ -77,7 +91,7 @@ fn cli_aligns_multi_font_lines_as_one_unit() {
 			.font(Font::Block)
 			.align(Align::Center)
 			.spaceless()
-			.render(&RustHost::default());
+			.render(&RustHost::default(), &CliEnv::default());
 
 		#[rustfmt::skip]
 		assert_eq!(
@@ -101,7 +115,7 @@ fn the_browser_wrapper_stays_static_for_every_alignment() {
 	// Alignment pads the rows physically; the wrapper never changes with it
 	for align in [Align::Left, Align::Center, Align::Right] {
 		let rendered =
-			Cfonts::text("HI").font(Font::Block).align(align).render_with(&BrowserEnv, RenderContext::unlimited());
+			Cfonts::text("HI").font(Font::Block).align(align).render_with(&BrowserEnv, RenderOverrides::default());
 		assert_eq!(rendered.text.matches("text-align:left").count(), 1, "static wrapper for {align:?}");
 		assert!(!rendered.text.contains("text-align:center"));
 		assert!(!rendered.text.contains("text-align:right"));
@@ -110,7 +124,7 @@ fn the_browser_wrapper_stays_static_for_every_alignment() {
 
 #[test]
 fn the_default_alignment_is_left() {
-	let rendered = Cfonts::text("A").font(Font::Tiny).render_with(&BrowserEnv, RenderContext::unlimited());
+	let rendered = Cfonts::text("A").font(Font::Tiny).render_with(&BrowserEnv, RenderOverrides::default());
 	assert!(rendered.text.contains("text-align:left"));
 }
 
@@ -118,10 +132,10 @@ fn the_default_alignment_is_left() {
 fn single_line_rows_are_their_own_frame_and_need_no_padding() {
 	// One line spans the whole widest-line frame, so no alignment can pad it
 	for font in Font::ALL {
-		let left = Cfonts::text("HI").font(font).align(Align::Left).render_with(&BrowserEnv, RenderContext::unlimited());
+		let left = Cfonts::text("HI").font(font).align(Align::Left).render_with(&BrowserEnv, RenderOverrides::default());
 		let center =
-			Cfonts::text("HI").font(font).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
-		let right = Cfonts::text("HI").font(font).align(Align::Right).render_with(&BrowserEnv, RenderContext::unlimited());
+			Cfonts::text("HI").font(font).align(Align::Center).render_with(&BrowserEnv, RenderOverrides::default());
+		let right = Cfonts::text("HI").font(font).align(Align::Right).render_with(&BrowserEnv, RenderOverrides::default());
 
 		assert_eq!(browser_content(&left), browser_content(&center), "{font:?} center");
 		assert_eq!(browser_content(&left), browser_content(&right), "{font:?} right");
@@ -136,7 +150,7 @@ fn browser_alignment_pads_rows_within_the_widest_line() {
 		.align(Align::Right)
 		.spaceless()
 		.line_height(0)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 
 	let lines: Vec<&str> = browser_content(&rendered).split("<br>").collect();
 	assert!(!lines[0].starts_with(' '), "the widest line starts unpadded: {}", lines[0]);
@@ -157,7 +171,7 @@ fn browser_alignment_leaves_zero_width_lines_unpadded() {
 			.line_height(0)
 			.spaceless()
 			.align(align)
-			.render_with(&BrowserEnv, RenderContext::unlimited());
+			.render_with(&BrowserEnv, RenderOverrides::default());
 		assert_eq!(browser_content(&unbounded), expected, "{align:?} unbounded");
 
 		let canvased = Cfonts::text(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B"))
@@ -165,7 +179,7 @@ fn browser_alignment_leaves_zero_width_lines_unpadded() {
 			.line_height(0)
 			.spaceless()
 			.align(align)
-			.render_with(&BrowserEnv, RenderContext::with_canvas_width(3));
+			.render_with(&BrowserEnv, RenderOverrides::default().with_canvas_width(3));
 		assert_eq!(browser_content(&canvased), expected, "{align:?} explicit canvas");
 	}
 }
@@ -177,7 +191,7 @@ fn spaceless_keeps_the_wrapper() {
 		.font(Font::Tiny)
 		.align(Align::Right)
 		.spaceless()
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 	assert_eq!(rendered.text.matches("text-align:left").count(), 1);
 }
 
@@ -188,7 +202,7 @@ fn explicit_width_wrapping_keeps_one_alignment_wrapper() {
 		.line_height(0)
 		.align(Align::Center)
 		.spaceless()
-		.render_with(&BrowserEnv, RenderContext::with_canvas_width(3));
+		.render_with(&BrowserEnv, RenderOverrides::default().with_canvas_width(3));
 
 	assert_eq!(rendered.text.matches("text-align:left").count(), 1,);
 	assert_eq!(rendered.text.matches("<div").count(), 1);
@@ -199,10 +213,10 @@ fn explicit_width_wrapping_keeps_one_alignment_wrapper() {
 #[test]
 fn wrapped_rows_pad_inside_an_explicit_canvas() {
 	// With a real canvas the browser pads exactly like the terminal does
-	let context = RenderContext::with_canvas_width(5);
+	let overrides = RenderOverrides::default().with_canvas_width(5);
 
-	let left = Cfonts::text("AA").font(Font::Tiny).align(Align::Left).render_with(&BrowserEnv, context);
-	let right = Cfonts::text("AA").font(Font::Tiny).align(Align::Right).render_with(&BrowserEnv, context);
+	let left = Cfonts::text("AA").font(Font::Tiny).align(Align::Left).render_with(&BrowserEnv, overrides);
+	let right = Cfonts::text("AA").font(Font::Tiny).align(Align::Right).render_with(&BrowserEnv, overrides);
 
 	assert_ne!(browser_content(&left), browser_content(&right));
 	assert!(browser_content(&right).contains("  ▄"), "wrapped rows pad to the canvas edge");
@@ -212,7 +226,7 @@ fn wrapped_rows_pad_inside_an_explicit_canvas() {
 fn browser_wrapper_contains_exactly_one_text_align_declaration() {
 	// The wrapper pins its own left alignment so page styles cannot skew the padding
 	let rendered =
-		Cfonts::text("Hi").font(Font::Tiny).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
+		Cfonts::text("Hi").font(Font::Tiny).align(Align::Center).render_with(&BrowserEnv, RenderOverrides::default());
 	let wrapper = rendered.text.split('>').next().expect("opening wrapper");
 
 	assert_eq!(wrapper.matches("text-align:left").count(), 1);
@@ -230,25 +244,25 @@ fn align_is_global_ignores_setter_position() {
 		.next("B")
 		.font(Font::Block)
 		.align(Align::Right)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 	let rendered2 = Cfonts::text("A")
 		.font(Font::Tiny)
 		.next("B")
 		.align(Align::Right)
 		.font(Font::Block)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 	let rendered3 = Cfonts::text("A")
 		.font(Font::Tiny)
 		.align(Align::Right)
 		.next("B")
 		.font(Font::Block)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 	let rendered4 = Cfonts::text("A")
 		.align(Align::Right)
 		.font(Font::Tiny)
 		.next("B")
 		.font(Font::Block)
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 
 	assert_eq!(rendered1.text.matches("text-align:left").count(), 1);
 
@@ -268,7 +282,7 @@ fn alignment_survives_full_builder_combinations() {
 		.valign(Valign::Bottom)
 		.max_length(8)
 		.spaceless()
-		.render_with(&BrowserEnv, RenderContext::unlimited());
+		.render_with(&BrowserEnv, RenderOverrides::default());
 
 	// right alignment inside the widest-line frame pads every wrapped line flush,
 	// the line height gap rows are bare blocks and carry no padding
@@ -283,16 +297,16 @@ fn tweaked_options_render_with_their_alignment() {
 	// Passing your own options aligns the same way the builder does
 	let options: Options = Cfonts::text("A").font(Font::Tiny).align(Align::Center).into();
 	let built =
-		Cfonts::text("A").font(Font::Tiny).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
+		Cfonts::text("A").font(Font::Tiny).align(Align::Center).render_with(&BrowserEnv, RenderOverrides::default());
 
-	assert_eq!(cfonts::render_with(&options, &BrowserEnv, RenderContext::unlimited()).text, built.text);
+	assert_eq!(cfonts::render_with(&options, &BrowserEnv, RenderOverrides::default()).text, built.text);
 }
 
 #[test]
 fn empty_text_still_renders_the_wrapper() {
 	// Even empty text renders a wrapper
 	let rendered =
-		Cfonts::text("").font(Font::Block).align(Align::Center).render_with(&BrowserEnv, RenderContext::unlimited());
+		Cfonts::text("").font(Font::Block).align(Align::Center).render_with(&BrowserEnv, RenderOverrides::default());
 	assert_eq!(rendered.text.matches("text-align:left").count(), 1);
 }
 
@@ -304,7 +318,7 @@ fn no_blocks_still_render_with_their_alignment() {
 		..Default::default() // This effectively sets the text to an empty string
 	};
 
-	let rendered = cfonts::render_with(&options, &BrowserEnv, RenderContext::unlimited());
+	let rendered = cfonts::render_with(&options, &BrowserEnv, RenderOverrides::default());
 
 	assert!(rendered.text.contains("text-align:left"));
 	assert!(rendered.text.starts_with("<div"));

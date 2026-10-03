@@ -1,7 +1,6 @@
 import { EnvironmentKind, type Rendered, type Cfonts as WasmCfonts } from "../../pkg/cfonts_wasm.js";
 
-import type { RenderContext } from "../render-context.js";
-import { expectBoolean } from "../validation.js";
+import type { RenderOverrides } from "../render-context.js";
 
 const environmentKind = Symbol("cfonts.environment");
 const rawMode = Symbol("cfonts.rawMode");
@@ -29,9 +28,12 @@ export interface TerminalEnvironment extends Environment {
 	 * and so does a terminal emulator in a page
 	 *
 	 * @example
-	 * Cfonts.text("hello").renderWith(CliEnv.withRawMode(true));
+	 * Cfonts.text("hello").renderWith(CliEnv.rawMode());
+	 *
+	 * @example
+	 * Cfonts.text("hello").say(host, CliEnv.rawMode());
 	 */
-	withRawMode(rawMode: boolean): Environment;
+	rawMode(): Environment;
 }
 
 function defineEnvironment(kind: EnvironmentKind, raw = false): Environment {
@@ -46,15 +48,21 @@ const rawTerminal = defineEnvironment(EnvironmentKind.Cli, true);
 /** Formats ANSI-compatible terminal text */
 export const CliEnv: TerminalEnvironment = Object.freeze({
 	...defineEnvironment(EnvironmentKind.Cli),
-	withRawMode(raw: boolean): Environment {
-		return expectBoolean(raw, "withRawMode") ? rawTerminal : CliEnv;
+	rawMode(): Environment {
+		return rawTerminal;
 	},
 });
 
 /**
- * The line ending a host writes after a terminal artifact, the one the environment ends its rows with
+ * The line ending a host writes after an artifact, the one the environment ends its rows with
+ *
+ * Only the terminal ends its artifact, a page or a console ends its own output
  */
 export function lineEnd(environment: Environment): string {
+	if (environment[environmentKind] !== EnvironmentKind.Cli) {
+		return "";
+	}
+
 	return environment[rawMode] ? "\r\n" : "\n";
 }
 
@@ -67,12 +75,22 @@ export const BrowserEnv = defineEnvironment(EnvironmentKind.Browser);
  */
 export const BrowserConsoleEnv = defineEnvironment(EnvironmentKind.BrowserConsole);
 
-export function renderEnvironment(builder: WasmCfonts, environment: Environment, context: RenderContext): Rendered {
+/**
+ * Renders through the boundary with every override pinned: an override left out is off,
+ * no canvas limit, no color, the zero seed
+ */
+export function renderEnvironment(builder: WasmCfonts, environment: Environment, overrides: RenderOverrides): Rendered {
 	const kind = environment?.[environmentKind];
 
 	if (typeof kind !== "number" || !Object.hasOwn(EnvironmentKind, kind)) {
 		throw new TypeError("`renderWith()` expects a cfonts environment");
 	}
 
-	return builder.render(kind, context.canvasWidth, context.colorLevel, context.seed, environment[rawMode] === true);
+	return builder.render(
+		kind,
+		overrides.canvasWidth,
+		overrides.color === false ? undefined : overrides.color,
+		overrides.seed,
+		environment[rawMode] === true,
+	);
 }

@@ -6,7 +6,7 @@ use crate::{
 	fonts::Font,
 	hosts::Host,
 	options::{Align, BlockOptions, Options, Valign},
-	render::{self, RenderContext},
+	render::{self, RenderOverrides},
 };
 
 #[doc(hidden)]
@@ -208,37 +208,38 @@ impl<
 		self
 	}
 
-	/// Renders through an explicit environment and resolved context
+	/// Renders through an explicit environment without a host
 	///
 	/// This is the low-level API for consumers that need a particular artifact
-	/// without host detection or output side effects
+	/// without host detection or output side effects: nothing is decided here,
+	/// so an override left on `Auto` means off, no canvas limit, no color, the zero seed
 	///
 	/// ```
 	/// use cfonts::{
-	///     BrowserEnv, Cfonts, Font, RenderContext,
+	///     BrowserEnv, Cfonts, Font, RenderOverrides,
 	/// };
 	///
 	/// let rendered = Cfonts::text("A")
 	///     .font(Font::Tiny)
 	///     .render_with(
 	///         &BrowserEnv,
-	///         RenderContext::unlimited(),
+	///         RenderOverrides::default(),
 	///     );
 	///
 	/// assert!(rendered.text.contains("▄▀█"));
 	/// ```
-	pub fn render_with<E: Environment + ?Sized>(&self, environment: &E, context: RenderContext) -> Rendered {
-		render::render_with(&self.options, environment, context)
+	pub fn render_with<E: Environment + ?Sized>(&self, environment: &E, overrides: RenderOverrides) -> Rendered {
+		render::render_with(&self.options, environment, overrides)
 	}
 
-	/// Renders the composition through a host
+	/// Renders the composition through a host into an environment's format
 	///
-	/// The host resolves runtime capabilities and selects its render environment
+	/// The host answers what its runtime can show, the environment formats the artifact
 	/// This returns a [`Rendered`] value without performing the host's output action
 	///
 	/// ```
 	/// use cfonts::{
-	///     Cfonts, Font, RenderOverrides, RustHost,
+	///     Cfonts, CliEnv, Font, RenderOverrides, RustHost,
 	/// };
 	///
 	/// let host = RustHost::from_overrides(
@@ -248,12 +249,12 @@ impl<
 	///
 	/// let rendered = Cfonts::text("A")
 	///     .font(Font::Tiny)
-	///     .render(&host);
+	///     .render(&host, &CliEnv::default());
 	///
 	/// assert!(rendered.text.contains("▄▀█"));
 	/// ```
-	pub fn render<H: Host + ?Sized>(&self, host: &H) -> Rendered {
-		host.render(&self.options)
+	pub fn render<H: Host + ?Sized, E: Environment + ?Sized>(&self, host: &H, environment: &E) -> Rendered {
+		host.render(environment, &self.options)
 	}
 
 	/// Renders the composition and performs the host's output action
@@ -262,15 +263,15 @@ impl<
 	/// Use [`render`](Self::render) when you need the artifact without writing it
 	///
 	/// ```no_run
-	/// use cfonts::{Cfonts, Font, RustHost};
+	/// use cfonts::{Cfonts, CliEnv, Font, RustHost};
 	///
 	/// Cfonts::text("hello")
 	///     .font(Font::Block)
-	///     .say(&RustHost::default())
+	///     .say(&RustHost::default(), &CliEnv::default())
 	///     .expect("stdout should be writable");
 	/// ```
-	pub fn say<H: Host + ?Sized>(&self, host: &H) -> Result<(), H::Error> {
-		host.say(&self.options)
+	pub fn say<H: Host + ?Sized, E: Environment + ?Sized>(&self, host: &H, environment: &E) -> Result<(), H::Error> {
+		host.say(environment, &self.options)
 	}
 }
 
@@ -725,7 +726,7 @@ mod tests {
 	use std::{cell::RefCell, convert::Infallible};
 
 	use super::*;
-	use crate::{CliEnv, Color, GradientOption, GradientPreset, GradientStop};
+	use crate::{CliEnv, Color, ColorLevel, GradientOption, GradientPreset, GradientStop};
 
 	// Double-setting a global is a compile error, not a runtime panic:
 	// that guarantee lives in the `compile_fail` doctests on each global setter
@@ -838,8 +839,6 @@ mod tests {
 
 	// test hosts
 
-	const CLI: CliEnv = CliEnv::new(false);
-
 	/// A host that captures its write instead of touching stdout
 	#[derive(Default)]
 	struct CaptureHost {
@@ -847,24 +846,22 @@ mod tests {
 	}
 
 	impl Host for CaptureHost {
-		type RenderEnvironment = CliEnv;
-		type SayEnvironment = CliEnv;
 		type Error = Infallible;
 
-		fn render_environment(&self) -> &CliEnv {
-			&CLI
+		fn canvas_width(&self) -> Option<usize> {
+			None
 		}
 
-		fn say_environment(&self) -> &CliEnv {
-			&CLI
+		fn color_level(&self) -> Option<ColorLevel> {
+			None
 		}
 
-		fn resolve_context(&self) -> RenderContext {
-			RenderContext::unlimited()
+		fn seed(&self) -> u64 {
+			0
 		}
 
-		fn write(&self, rendered: &Rendered) -> Result<(), Self::Error> {
-			self.written.borrow_mut().push(rendered.text.clone());
+		fn write(&self, rendered: &Rendered, line_end: &str) -> Result<(), Self::Error> {
+			self.written.borrow_mut().push(format!("{}{line_end}", rendered.text));
 			Ok(())
 		}
 	}
@@ -873,23 +870,21 @@ mod tests {
 	struct FailingHost;
 
 	impl Host for FailingHost {
-		type RenderEnvironment = CliEnv;
-		type SayEnvironment = CliEnv;
 		type Error = &'static str;
 
-		fn render_environment(&self) -> &CliEnv {
-			&CLI
+		fn canvas_width(&self) -> Option<usize> {
+			None
 		}
 
-		fn say_environment(&self) -> &CliEnv {
-			&CLI
+		fn color_level(&self) -> Option<ColorLevel> {
+			None
 		}
 
-		fn resolve_context(&self) -> RenderContext {
-			RenderContext::unlimited()
+		fn seed(&self) -> u64 {
+			0
 		}
 
-		fn write(&self, _rendered: &Rendered) -> Result<(), Self::Error> {
+		fn write(&self, _rendered: &Rendered, _line_end: &str) -> Result<(), Self::Error> {
 			Err("the writer is broken")
 		}
 	}
@@ -900,7 +895,7 @@ mod tests {
 	fn render_returns_the_artifact_without_writing() {
 		let host = CaptureHost::default();
 
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&host);
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&host, &CliEnv::default());
 
 		assert_eq!(rendered.text, "▄▀█\n█▀█");
 		assert!(host.written.borrow().is_empty());
@@ -909,7 +904,8 @@ mod tests {
 	#[test]
 	fn render_succeeds_even_when_the_hosts_writer_is_broken() {
 		// render never touches the output action, so a broken writer cannot matter
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&FailingHost);
+		let rendered =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&FailingHost, &CliEnv::default());
 
 		assert_eq!(rendered.text, "▄▀█\n█▀█");
 	}
@@ -917,16 +913,18 @@ mod tests {
 	// say
 
 	#[test]
-	fn say_writes_the_composition_through_the_host() {
+	fn say_writes_the_composition_through_the_host_with_the_environments_line_end() {
 		let host = CaptureHost::default();
+		let banner = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless();
 
-		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().say(&host).expect("CaptureHost cannot fail");
+		banner.say(&host, &CliEnv::default()).expect("CaptureHost cannot fail");
+		banner.say(&host, &CliEnv::default().raw_mode()).expect("CaptureHost cannot fail");
 
-		assert_eq!(host.written.borrow().as_slice(), ["▄▀█\n█▀█"]);
+		assert_eq!(host.written.borrow().as_slice(), ["▄▀█\n█▀█\n", "▄▀█\r\n█▀█\r\n"]);
 	}
 
 	#[test]
 	fn say_returns_the_hosts_write_error() {
-		assert_eq!(Cfonts::text("A").say(&FailingHost), Err("the writer is broken"));
+		assert_eq!(Cfonts::text("A").say(&FailingHost, &CliEnv::default()), Err("the writer is broken"));
 	}
 }

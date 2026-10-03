@@ -24,6 +24,17 @@ pub enum CanvasWidth {
 	Columns(NonZeroUsize),
 }
 
+impl CanvasWidth {
+	/// The width in columns, with `auto` standing in where the request leaves the decision open
+	pub(crate) fn columns_or(self, auto: Option<usize>) -> Option<usize> {
+		match self {
+			Self::Auto => auto,
+			Self::Unlimited => None,
+			Self::Columns(columns) => Some(columns.get()),
+		}
+	}
+}
+
 /// How a host should resolve its color support
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ColorOverride {
@@ -38,7 +49,21 @@ pub enum ColorOverride {
 	Level(ColorLevel),
 }
 
-/// User-provided values that a host resolves into a [`RenderContext`]
+impl ColorOverride {
+	/// The color level, with `auto` standing in where the request leaves the decision open
+	pub(crate) fn level_or(self, auto: Option<ColorLevel>) -> Option<ColorLevel> {
+		match self {
+			Self::Auto => auto,
+			Self::Disabled => None,
+			Self::Level(level) => Some(level),
+		}
+	}
+}
+
+/// What a consumer asks of a render: the one request type hosts and the host free path take
+///
+/// A host resolves these against its runtime, the host free [`render_with`] decides nothing,
+/// so `Auto` means off there: no canvas, no color, the zero seed
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RenderOverrides {
 	canvas_width: CanvasWidth,
@@ -89,7 +114,9 @@ impl RenderOverrides {
 	}
 }
 
-/// Host capabilities resolved before layout begins
+/// The capabilities one render runs under: what environments read and hosts produce
+///
+/// Consumers ask through [`RenderOverrides`], a host or the host free path turns the request into this
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RenderContext {
 	canvas_width: Option<NonZeroUsize>,
@@ -98,31 +125,28 @@ pub struct RenderContext {
 }
 
 impl RenderContext {
+	/// The context a host's three answers make, zero columns mean unlimited
+	pub(crate) fn resolved(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: u64) -> Self {
+		Self { canvas_width: canvas_width.and_then(NonZeroUsize::new), color_level, seed }
+	}
+
 	/// Creates a context without a canvas-width limit
-	#[must_use]
-	pub const fn unlimited() -> Self {
+	#[cfg(test)]
+	pub(crate) const fn unlimited() -> Self {
 		Self { canvas_width: None, color_level: None, seed: 0 }
 	}
 
 	/// Creates a context with a fixed canvas width
 	///
 	/// Zero means unlimited
-	#[must_use]
-	pub fn with_canvas_width(canvas_width: usize) -> Self {
+	#[cfg(test)]
+	pub(crate) fn with_canvas_width(canvas_width: usize) -> Self {
 		Self { canvas_width: NonZeroUsize::new(canvas_width), ..Self::unlimited() }
 	}
 
-	/// Creates a context from an already validated width but expects NonZeroUsize instead of usize
-	///
-	/// Only the native host resolves to `NonZeroUsize` directly; the wasm boundary passes `Option<usize>`
-	#[cfg(not(target_arch = "wasm32"))]
-	pub(crate) fn from_validated_width(canvas_width: Option<NonZeroUsize>) -> Self {
-		Self { canvas_width, ..Self::unlimited() }
-	}
-
 	/// Creates a context with the given color support and no canvas-width limit
-	#[must_use]
-	pub fn colored(color_level: ColorLevel) -> Self {
+	#[cfg(test)]
+	pub(crate) fn colored(color_level: ColorLevel) -> Self {
 		Self { color_level: Some(color_level), ..Self::unlimited() }
 	}
 
@@ -132,22 +156,22 @@ impl RenderContext {
 		self.canvas_width.map(NonZeroUsize::get)
 	}
 
-	/// Sets the resolved color support; None paints nothing
-	#[must_use]
-	pub const fn with_color_level(mut self, color_level: Option<ColorLevel>) -> Self {
+	/// Sets the resolved color support, None paints nothing
+	#[cfg(test)]
+	pub(crate) const fn with_color_level(mut self, color_level: Option<ColorLevel>) -> Self {
 		self.color_level = color_level;
 		self
 	}
 
-	/// Returns the resolved color support; None paints nothing
+	/// Returns the resolved color support, None paints nothing
 	#[must_use]
 	pub const fn color_level(self) -> Option<ColorLevel> {
 		self.color_level
 	}
 
 	/// Sets the seed that makes candy colors reproducible
-	#[must_use]
-	pub const fn with_seed(mut self, seed: u64) -> Self {
+	#[cfg(test)]
+	pub(crate) const fn with_seed(mut self, seed: u64) -> Self {
 		self.seed = seed;
 		self
 	}
@@ -545,8 +569,29 @@ impl<T> Backdrop<T> {
 	}
 }
 
-/// Builds layout once and renders it through a pure environment
-pub fn render_with<E: Environment + ?Sized>(options: &Options, environment: &E, context: RenderContext) -> Rendered {
+/// Renders through a pure environment without a host
+///
+/// Nothing detects or decides here, so `Auto` means off: no canvas limit, no color and the zero seed
+pub fn render_with<E: Environment + ?Sized>(
+	options: &Options,
+	environment: &E,
+	overrides: RenderOverrides,
+) -> Rendered {
+	let context = RenderContext::resolved(
+		overrides.canvas_width().columns_or(None),
+		overrides.color().level_or(None),
+		overrides.seed().unwrap_or(0),
+	);
+
+	render_resolved(options, environment, context)
+}
+
+/// Builds layout once under a resolved context and renders it through a pure environment
+pub(crate) fn render_resolved<E: Environment + ?Sized>(
+	options: &Options,
+	environment: &E,
+	context: RenderContext,
+) -> Rendered {
 	let mut rows = Layout::build(options, context.canvas_width()).into_rows();
 
 	// Environments that own their frame align rows within the widest line when

@@ -51,26 +51,26 @@ pub struct CliEnv {
 }
 
 impl CliEnv {
-	/// Creates the terminal formatter; raw mode ends every line with `\r\n`
+	/// Ends every line with `\r\n`, the ending a terminal in raw mode needs
 	#[must_use]
-	pub const fn new(raw_mode: bool) -> Self {
-		Self { line_end: if raw_mode { "\r\n" } else { "\n" } }
-	}
-
-	/// The line ending every row break writes
-	#[cfg(not(target_arch = "wasm32"))]
-	pub(crate) const fn line_end(&self) -> &'static str {
-		self.line_end
+	pub const fn raw_mode(mut self) -> Self {
+		self.line_end = "\r\n";
+		self
 	}
 }
 
 impl Default for CliEnv {
 	fn default() -> Self {
-		Self::new(false)
+		Self { line_end: "\n" }
 	}
 }
 
 impl Environment for CliEnv {
+	/// The line ending every row break writes, so the host closes the artifact like the rows
+	fn line_end(&self) -> &'static str {
+		self.line_end
+	}
+
 	/// Named colors keep their fixed sixteen-color codes at every level so the terminal's own palette applies
 	/// only RGB values level down
 	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
@@ -158,7 +158,7 @@ impl Environment for CliEnv {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{Cfonts, Font, color::Rgb};
+	use crate::{Cfonts, Font, RenderOverrides, color::Rgb};
 
 	// color_tokens
 
@@ -232,7 +232,7 @@ mod tests {
 
 	#[test]
 	fn padding_rows_carry_their_bands_around_their_line_ends() {
-		let env = CliEnv::new(true);
+		let env = CliEnv::default().raw_mode();
 		let band = env.background_tokens(Color::Blue, &RenderContext::colored(ColorLevel::Basic));
 
 		let mut out = Rendered::default();
@@ -266,8 +266,14 @@ mod tests {
 	// line endings
 
 	#[test]
+	fn the_line_end_follows_the_raw_flag() {
+		assert_eq!(CliEnv::default().line_end(), "\n");
+		assert_eq!(CliEnv::default().raw_mode().line_end(), "\r\n");
+	}
+
+	#[test]
 	fn raw_mode_pairs_every_line_break_with_a_carriage_return() {
-		let raw = Cfonts::text("A").font(Font::Tiny).render_with(&CliEnv::new(true), RenderContext::unlimited());
+		let raw = Cfonts::text("A").font(Font::Tiny).render_with(&CliEnv::default().raw_mode(), RenderOverrides::default());
 
 		assert!(raw.text.contains("\r\n"));
 		assert_eq!(
@@ -279,7 +285,7 @@ mod tests {
 
 	#[test]
 	fn the_default_line_ending_carries_no_carriage_return() {
-		let plain = Cfonts::text("A").font(Font::Tiny).render_with(&CliEnv::default(), RenderContext::unlimited());
+		let plain = Cfonts::text("A").font(Font::Tiny).render_with(&CliEnv::default(), RenderOverrides::default());
 
 		assert!(plain.text.contains('\n'));
 		assert!(!plain.text.contains('\r'));
@@ -289,8 +295,8 @@ mod tests {
 	fn raw_mode_changes_nothing_but_the_line_endings() {
 		// blank rows from line_height and the paddings travel through the same endings as the glyph rows
 		let banner = Cfonts::text("AB").font(Font::Tiny).line_height(2);
-		let raw = banner.render_with(&CliEnv::new(true), RenderContext::unlimited());
-		let plain = banner.render_with(&CliEnv::default(), RenderContext::unlimited());
+		let raw = banner.render_with(&CliEnv::default().raw_mode(), RenderOverrides::default());
+		let plain = banner.render_with(&CliEnv::default(), RenderOverrides::default());
 
 		assert!(
 			raw.text.split("\r\n").eq(plain.text.split('\n')),

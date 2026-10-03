@@ -4,21 +4,23 @@ use crate::{
 		VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
 	},
-	render,
+	render::render_resolved,
 };
 
 /// The full demo screen, resolved like any render: real width, real color level
 ///
 /// The composition wide paint settings of `options` reach every font example
 pub fn cli_demo(options: &Options) -> String {
-	cli_demo_with(RustHost::default().resolve_context(), options)
+	let host = RustHost::default();
+
+	cli_demo_with(RenderContext::resolved(host.canvas_width(), host.color_level(), host.seed()), options)
 }
 
 /// Assembles the demo screen for one known context
 pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
-	let banner = Cfonts::text("cfonts")
+	let banner: Options = Cfonts::text("cfonts")
 		.next("|  Demo")
 		.font(Font::Neat)
 		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
@@ -26,7 +28,8 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		.font(Font::Console)
 		.valign(Valign::Bottom)
 		.colors(vec![Color::System])
-		.render_with(&CliEnv::default(), context);
+		.into();
+	let banner = render_resolved(&banner, &CliEnv::default(), context);
 
 	output.push_str(&banner.text);
 	output.push_str("\n\n════════════════════════════════════════════════════════════\n\n");
@@ -39,7 +42,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		example.global_colors = options.global_colors.clone();
 		example.independent_gradient = options.independent_gradient;
 		example.background = options.background.clone();
-		let rendered = render::render_with(&example, &CliEnv::default(), context);
+		let rendered = render_resolved(&example, &CliEnv::default(), context);
 		output.push_str(&format!(
 			"{prompt} cfonts \"{name}\" --font {name}\n\n{}\n\n────────────────────────────────────────────────────────────\n\n",
 			rendered.text

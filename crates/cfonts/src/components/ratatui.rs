@@ -10,11 +10,11 @@ use ::ratatui::{
 
 use crate::{
 	color::{Color, ColorLevel, Rgb},
-	components::render_context,
 	environments::RowEvent,
+	hosts::entropy,
 	layout::Layout,
 	options::Options,
-	render::{Backdrop, CanvasWidth, GradientPlans, PaintDomain, PaintPlan, RenderOverrides},
+	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext, RenderOverrides},
 };
 
 /// A Ratatui widget that renders cfonts directly into a terminal buffer
@@ -99,14 +99,15 @@ impl Widget for &CfontsWidget<'_> {
 			return;
 		}
 
-		// the area is the terminal the widget measures, the overrides name a canvas instead
-		let canvas_width = match self.overrides.canvas_width() {
-			CanvasWidth::Auto => Some(area.width as usize),
-			CanvasWidth::Unlimited => None,
-			CanvasWidth::Columns(columns) => Some(columns.get()),
-		};
+		// the area is the terminal the widget measures, the overrides name a canvas instead,
+		// and the application owns the terminal so nothing is detected: automatic color paints in full
+		let canvas_width = self.overrides.canvas_width().columns_or(Some(area.width as usize));
 		let rows = Layout::build(self.options, canvas_width).into_rows();
-		let context = render_context(self.overrides);
+		let context = RenderContext::resolved(
+			canvas_width,
+			self.overrides.color().level_or(Some(ColorLevel::TrueColor)),
+			self.overrides.seed().unwrap_or_else(entropy),
+		);
 		// the plan and the backdrop never ask for a style without a level, so the None arm of the closures is never taken
 		let level = context.color_level();
 		let mut plan = PaintPlan::build(self.options, &context, |color| level.and_then(|level| style_for(color, level)));

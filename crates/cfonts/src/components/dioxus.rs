@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{Options, RenderOverrides, components::render_browser};
+use crate::{BrowserEnv, BrowserHost, Host, Options, RenderOverrides};
 
 /// Renders cfonts HTML inside a Dioxus element
 ///
@@ -8,19 +8,19 @@ use crate::{Options, RenderOverrides, components::render_browser};
 /// constrain and place it with your own page styles, or hand it a column count
 ///
 /// Candy re-rolls on every render like the hosts do, so a page rendered on the server
-/// pins the seed once for the HTML and its hydration to draw the same picks
-/// A page built for the browser alone has no entropy source of its own in cfonts, every render rolls afresh there
+/// pins the seed once for the HTML and its hydration to draw the same picks,
+/// see [`BrowserHost`]
 ///
 /// ```
-/// use cfonts::{RenderOverrides, RustHost};
+/// use cfonts::{BrowserHost, RenderOverrides};
 ///
-/// // rolled on the server, where a Rust host exists, and carried to the page through the props the hydration reads
-/// let overrides = RenderOverrides::default().with_seed(RustHost::entropy());
+/// // rolled on the server and carried to the page through the props the hydration reads
+/// let overrides = RenderOverrides::default().with_seed(BrowserHost::entropy());
 /// ```
 #[component]
 pub fn CfontsDioxus(options: ReadSignal<Options>, #[props(default)] overrides: RenderOverrides) -> Element {
 	let options = options.read();
-	let rendered = render_browser(&options, overrides);
+	let rendered = BrowserHost::from_overrides(overrides).render(&BrowserEnv, &options);
 
 	rsx! {
 		div {

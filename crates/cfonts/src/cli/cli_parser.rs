@@ -1415,7 +1415,7 @@ mod preset_tests {
 mod block_composition {
 	use super::helpers::*;
 	use super::*;
-	use crate::{CliEnv, Color, ColorOption, Font, RenderContext, render_with};
+	use crate::{CliEnv, Color, ColorOption, Font, RenderOverrides, render_with};
 
 	#[test]
 	fn next_starts_additional_text_blocks() {
@@ -1514,10 +1514,10 @@ mod block_composition {
 		let with_empty = parse_args(&hatch, tty()).unwrap();
 		let without = parse_args(&plain, tty()).unwrap();
 
-		let context = RenderContext::from_validated_width(None);
+		let overrides = RenderOverrides::default();
 		assert_eq!(
-			render_with(&with_empty.options, &CliEnv::default(), context).text,
-			render_with(&without.options, &CliEnv::default(), context).text,
+			render_with(&with_empty.options, &CliEnv::default(), overrides).text,
+			render_with(&without.options, &CliEnv::default(), overrides).text,
 		);
 	}
 

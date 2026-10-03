@@ -1,4 +1,4 @@
-import { Align, BrowserHost, Cfonts, Font, GradientPreset, Valign } from "cfonts";
+import { Align, BrowserConsoleEnv, BrowserEnv, BrowserHost, Cfonts, Font, GradientPreset, Valign } from "cfonts";
 
 // The page is an eighty column terminal, so long text wraps the way it would there
 const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
@@ -72,7 +72,7 @@ function paintLogo() {
 	logo.innerHTML = Cfonts.text("cfonts")
 		.spaceless()
 		.colors({ start: gradient[(offset + gradient.length - 1) % gradient.length], end: gradient[offset] })
-		.render(host).text;
+		.render(host, BrowserEnv).text;
 }
 paintLogo();
 
@@ -249,7 +249,7 @@ function run() {
 		if (error) {
 			console.error(`ERROR ${error.message}`);
 		} else {
-			cfonts.say(host);
+			cfonts.say(host, BrowserConsoleEnv);
 		}
 		return;
 	}
@@ -263,7 +263,7 @@ function run() {
 		canvas.replaceChildren(output);
 		canvas.setAttribute("aria-label", error.message);
 	} else {
-		canvas.innerHTML = cfonts.render(host).text;
+		canvas.innerHTML = cfonts.render(host, BrowserEnv).text;
 		canvas.setAttribute("aria-label", data.get("text"));
 	}
 }

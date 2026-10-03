@@ -163,7 +163,7 @@ impl Environment for BrowserConsoleEnv {
 mod tests {
 	use super::*;
 	use crate::{
-		Cfonts, ColorLevel, GradientOption, GradientStop, RenderContext,
+		Cfonts, ColorLevel, ColorOverride, GradientOption, GradientStop, RenderContext, RenderOverrides,
 		fonts::Font,
 		options::{Align, Valign},
 	};
@@ -430,7 +430,7 @@ mod tests {
 			.align(Align::Right)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserConsoleEnv, RenderContext::with_canvas_width(10));
+			.render_with(&BrowserConsoleEnv, RenderOverrides::default().with_canvas_width(10));
 
 		assert_eq!(rendered.text, "       ▄▀█\n       █▀█");
 		assert!(rendered.styles.is_empty());
@@ -442,7 +442,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserConsoleEnv, RenderContext::unlimited());
+			.render_with(&BrowserConsoleEnv, RenderOverrides::default());
 
 		assert_eq!(rendered.text, "▄▀█\n█▀█");
 		assert!(rendered.styles.is_empty());
@@ -450,7 +450,10 @@ mod tests {
 
 	#[test]
 	fn render_pads_with_empty_lines() {
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserConsoleEnv, leveled());
+		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(
+			&BrowserConsoleEnv,
+			RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
+		);
 
 		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}
@@ -465,7 +468,10 @@ mod tests {
 			.next("B")
 			.font(Font::Block)
 			.background(Color::Blue)
-			.render_with(&BrowserConsoleEnv, leveled());
+			.render_with(
+				&BrowserConsoleEnv,
+				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
+			);
 
 		assert!(rendered.text.lines().all(|line| line.starts_with("%c")), "{}", rendered.text);
 		assert!(rendered.text.lines().skip(2).all(|line| line.starts_with("%c   ")), "{}", rendered.text);
@@ -474,12 +480,11 @@ mod tests {
 
 	#[test]
 	fn a_band_alone_costs_one_switch_and_one_reset_per_row() {
-		let rendered = Cfonts::text("A")
-			.font(Font::Tiny)
-			.valign(Valign::Top)
-			.spaceless()
-			.background(Color::Blue)
-			.render_with(&BrowserConsoleEnv, leveled());
+		let rendered =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::Blue).render_with(
+				&BrowserConsoleEnv,
+				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
+			);
 
 		assert_eq!(rendered.text, "%c▄▀█%c\n%c█▀█%c");
 		assert_eq!(rendered.styles, ["background:#0020f5", "", "background:#0020f5", ""]);
@@ -492,7 +497,10 @@ mod tests {
 			.valign(Valign::Top)
 			.spaceless()
 			.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
-			.render_with(&BrowserConsoleEnv, leveled());
+			.render_with(
+				&BrowserConsoleEnv,
+				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
+			);
 
 		assert_eq!(rendered.text, "%c▄%c▀%c█%c\n%c█%c▀%c█%c");
 		assert_eq!(rendered.styles.len(), 8);

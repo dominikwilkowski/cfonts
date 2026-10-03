@@ -1,11 +1,11 @@
 import { ColorLevel } from "../../pkg/cfonts_wasm.js";
-import { BrowserConsoleEnv, BrowserEnv } from "../environments/index.js";
+import type { Environment } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
-import { normalizeRenderOverrides, type RenderContext, type RenderOverrides, randomSeed } from "../render-context.js";
+import { normalizeRenderOverrides, type RenderOverrides, randomSeed } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**
- * Renders HTML for pages and writes browser-console artifacts through console.log
+ * Decides instead of detecting, a page has no terminal to ask, and writes artifacts through console.log
  */
 export class BrowserHost implements Host {
 	#overrides: RenderOverrides = Object.freeze({});
@@ -29,16 +29,16 @@ export class BrowserHost implements Host {
 	 */
 	static fromOverrides(overrides: RenderOverrides): BrowserHost {
 		const host = new BrowserHost();
-		host.#overrides = normalizeRenderOverrides(overrides);
+		host.#overrides = normalizeRenderOverrides(overrides, "fromOverrides");
 		return host;
 	}
 
-	render(composition: Cfonts): Rendered {
-		return composition.renderWith(BrowserEnv, this.#resolveContext());
+	render(composition: Cfonts, environment: Environment): Rendered {
+		return composition.renderWith(environment, this.#resolve());
 	}
 
-	say(composition: Cfonts): void {
-		const rendered = composition.renderWith(BrowserConsoleEnv, this.#resolveContext());
+	say(composition: Cfonts, environment: Environment): void {
+		const rendered = composition.renderWith(environment, this.#resolve());
 
 		if (rendered.styles.length > 0) {
 			console.log(rendered.text, ...rendered.styles);
@@ -47,13 +47,15 @@ export class BrowserHost implements Host {
 		}
 	}
 
-	#resolveContext(): RenderContext {
-		const override = this.#overrides.color;
-
+	/**
+	 * The three answers of this host, pinned so the render decides nothing
+	 */
+	#resolve(): RenderOverrides {
 		return Object.freeze({
-			canvasWidth: this.#overrides.canvasWidth === 0 ? undefined : this.#overrides.canvasWidth,
+			// a page has no terminal to measure, so only a column count wraps
+			canvasWidth: this.#overrides.canvasWidth,
 			// pages always support full color unless told otherwise
-			colorLevel: override === false ? undefined : (override ?? ColorLevel.TrueColor),
+			color: this.#overrides.color ?? ColorLevel.TrueColor,
 			seed: this.#overrides.seed ?? randomSeed(),
 		});
 	}
