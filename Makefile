@@ -5,7 +5,7 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus node browser check test
+.PHONY: help cli ratatui leptos dioxus node browser bundle check test
 
 help:
 	@echo "make cli       the Rust API tour, printed to the terminal"
@@ -16,8 +16,9 @@ help:
 	@echo "make dioxus    the dioxus site, served by trunk"
 	@echo "make browser   the browser example, served by vite"
 	@echo "               or: pnpm run example:browser"
-	@echo "make check     compiles the leptos and dioxus examples, the check CI runs"
-	@echo "make test      the whole gate, every check and every test suite CI runs"
+	@echo "make bundle    the browser, leptos and dioxus pages the smoke test serves, after pnpm run build"
+	@echo "make check     compiles the leptos and dioxus examples"
+	@echo "make test      the whole gate, every check and every test"
 
 cli:
 	cargo run --locked -p cfonts --example cli
@@ -37,12 +38,19 @@ dioxus: trunk
 browser: package
 	pnpm exec vite crates/cfonts/examples/browser
 
+# The browser page imports the npm package, which `pnpm run build` leaves in pkg and dist,
+# and test:package builds it right before the built tests run, so bundle takes it as is instead of building it again
+bundle: trunk
+	pnpm exec vite build crates/cfonts/examples/browser --base ./ --outDir ../../../../target/browser-example --emptyOutDir
+	cd crates/cfonts/examples/leptos && trunk build --locked --dist ../../../../target/leptos-example
+	cd crates/cfonts/examples/dioxus && trunk build --locked --dist ../../../../target/dioxus-example
+
 check: wasm32
 	cargo check --locked --manifest-path crates/cfonts/examples/leptos/Cargo.toml --target wasm32-unknown-unknown
 	cargo check --locked --manifest-path crates/cfonts/examples/dioxus/Cargo.toml --target wasm32-unknown-unknown
 
 # A cfg gated on one feature hides behind --all-features, so every feature compiles alone, on both targets,
-# and pnpm test runs the cargo tests, make check, the wasm tests and the package suite with the browser rows
+# and pnpm test runs the cargo tests, make check, the wasm tests and the package suite with the smoke test of the three example pages
 test: wasm32
 	cargo fmt --all -- --check
 	cargo clippy --locked --workspace --all-features --tests --all-targets -- -D warnings

@@ -42,6 +42,10 @@ jobs:
           components: rustfmt, clippy
           target: wasm32-unknown-unknown
           cache: true
+          cache-workspaces: |
+            . -> target
+            crates/cfonts/examples/leptos -> target
+            crates/cfonts/examples/dioxus -> target
           cache-targets: true
           cache-bin: false
           cache-on-failure: false
@@ -72,8 +76,6 @@ jobs:
 
       - name: Check the framework examples
         run: make check
-        env:
-          CARGO_TARGET_DIR: ${{ github.workspace }}/target/framework-examples
 
   test:
     name: Test
@@ -163,12 +165,23 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           cache: true
+          cache-workspaces: |
+            . -> target
+            crates/cfonts/examples/leptos -> target
+            crates/cfonts/examples/dioxus -> target
           cache-targets: true
           cache-bin: false
           cache-on-failure: false
           cache-all-crates: false
           cache-workspace-crates: false
           cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+      - name: Install trunk
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: trunk@0.21.14
+          fallback: none
+          checksum: true
 
       - name: Install pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0

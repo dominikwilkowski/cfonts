@@ -78,7 +78,7 @@ impl std::fmt::Display for ColorError {
 impl std::error::Error for ColorError {}
 
 /// The color support a render paints with
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, All)]
 pub enum ColorLevel {
 	/// The sixteen base colors
 	Basic,

@@ -135,7 +135,7 @@ test("a value the command line refuses shows its error in the terminal", async (
 
 	await colors.fill("foo");
 	await expect(canvas).toContainText("ERROR");
-	await expect(canvas).toContainText("Unsupported color `foo`");
+	await expect(canvas).toContainText('"foo": A color is either a color name or a hex value like #ff8800');
 	await expect(colors).toHaveJSProperty("validity.valid", false);
 	await expect(page.locator("#command")).not.toContainText("--colors"); // the command stops at the refused option
 

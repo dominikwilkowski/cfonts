@@ -706,7 +706,7 @@ test("gradient shapes are validated", () => {
 	assert.throws(() => Cfonts.text("A").colors({ transition: [] }), /at least two stops, this one holds 0/); // empty, rejected in Rust
 	assert.throws(() => Cfonts.text("A").colors({ transition: ["red"] }), /at least two stops, this one holds 1/); // one stop, rejected in Rust
 	assert.throws(() => Cfonts.text("A").globalColors({ transition: ["red"] }), /at least two stops, this one holds 1/);
-	assert.throws(() => Cfonts.text("A").colors({ start: "system", end: "blue" }), /Unsupported gradient stop/); // system is not a gradient stop
+	assert.throws(() => Cfonts.text("A").colors({ start: "system", end: "blue" }), /"system": A gradient stop/); // system is not a gradient stop
 
 	// a member left undefined is no shape, as the types say
 	Cfonts.text("A").colors({ preset: GradientPreset.Pride, start: undefined });
@@ -734,10 +734,10 @@ test("gradient stops accept the base Color values", () => {
 test("gradient stops outside the blendable palette are rejected in Rust", () => {
 	// valid enum members travel as their names; which colors may blend is Rust's decision
 	for (const color of [Color.System, Color.Candy]) {
-		assert.throws(() => Cfonts.text("A").colors({ start: color, end: Color.Blue }), /Unsupported gradient stop/);
+		assert.throws(() => Cfonts.text("A").colors({ start: color, end: Color.Blue }), /except system and candy/);
 	}
 
-	assert.throws(() => Cfonts.text("A").colors({ transition: [Color.Red, Color.Candy] }), /Unsupported gradient stop/);
+	assert.throws(() => Cfonts.text("A").colors({ transition: [Color.Red, Color.Candy] }), /except system and candy/);
 
 	// an unknown number is still a shape error, caught at the boundary
 	assert.throws(() => Cfonts.text("A").colors({ start: 99, end: Color.Blue }), {
@@ -913,9 +913,9 @@ test("background validates its input", () => {
 		() => Cfonts.text("A").background({ preset: GradientPreset.Pride, start: "red", end: "blue" }),
 		/expects a background/,
 	); // two gradient shapes teach the background shapes
-	assert.throws(() => Cfonts.text("A").background("reed"), /Unsupported color/); // unknown name, rejected in Rust
-	assert.throws(() => Cfonts.text("A").background(Color.Candy), /Unsupported background/); // candy cannot fill a row
-	assert.throws(() => Cfonts.text("A").background({ start: "system", end: "blue" }), /Unsupported gradient stop/);
+	assert.throws(() => Cfonts.text("A").background("reed"), /"reed": A color is either a color name/); // unknown name, rejected in Rust
+	assert.throws(() => Cfonts.text("A").background(Color.Candy), /A color is either a color name/); // candy cannot fill a row, refused like an unknown name
+	assert.throws(() => Cfonts.text("A").background({ start: "system", end: "blue" }), /except system and candy/);
 });
 
 test("the background can only be set once", () => {

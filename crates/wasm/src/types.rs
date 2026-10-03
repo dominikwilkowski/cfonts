@@ -3,7 +3,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	Align as CoreAlign, Color as CoreColor, ColorLevel as CoreColorLevel, Font as CoreFont,
+	Align as CoreAlign, Color as CoreColor, ColorError, ColorLevel as CoreColorLevel, Font as CoreFont,
 	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Rgb, Valign as CoreValign,
 };
 use cfonts_macros::All;
@@ -110,12 +110,12 @@ bridge_enum!(Font => CoreFont {
 	Chrome,
 	Dense,
 	Depth,
+	Edge,
 	Font3D,
 	Frost,
 	Grid,
 	Huge,
 	Neat,
-	Edge,
 	Pallet,
 	Retro,
 	Shade,
@@ -160,12 +160,20 @@ impl From<CoreRendered> for Rendered {
 
 /// Parses a hex value such as `#ff8800` into RGB channel values
 ///
-/// The channels cross the boundary as `[red, green, blue]`;
+/// The channels cross the boundary as `[red, green, blue]`,
 /// TypeScript reshapes them into its `{red, green, blue}` object
 /// so hex parsing has exactly one home in Rust
 #[wasm_bindgen(js_name = hexToRgb)]
 pub fn hex_to_rgb(hex: &str) -> Result<Vec<u8>, JsError> {
-	let rgb = Rgb::from_hex(hex).map_err(|error| JsError::new(&error.to_string()))?;
+	let rgb = Rgb::from_hex(hex).map_err(|error| color_error(hex, error))?;
 
 	Ok(vec![rgb.red, rgb.green, rgb.blue])
+}
+
+/// Names the refused input in front of the core's sentence
+///
+/// The boundary relays the core instead of wording color errors itself,
+/// so the browser page prints the one sentence the framework pages and the command line print
+pub(crate) fn color_error(input: &str, error: ColorError) -> JsError {
+	JsError::new(&format!("\"{input}\": {error}"))
 }

@@ -9,7 +9,7 @@ use cfonts::{
 	RenderOverrides, TransitionStops, options::BlockOptions,
 };
 
-use crate::{Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign};
+use crate::{Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, types::color_error};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
@@ -159,7 +159,7 @@ impl Cfonts {
 
 	/// Sets the colors across the whole composition
 	///
-	/// Shares the one global color slot with the global gradient shapes;
+	/// Shares the one global color slot with the global gradient shapes,
 	/// parsing happens before the slot is claimed, so a failed call leaves the builder unchanged
 	#[wasm_bindgen(js_name = globalColors)]
 	pub fn global_colors(&mut self, colors: Vec<String>) -> Result<(), JsError> {
@@ -280,10 +280,10 @@ fn parse_color(input: &str) -> Result<CoreColor, JsError> {
 }
 
 /// Parses a boundary background color, candy rolls per segment and cannot fill a row,
-/// so it is refused like an unknown name
+/// so it is refused as an unknown color, the way the core and the command line refuse it
 fn parse_background(input: &str) -> Result<CoreColor, JsError> {
 	match parse_color(input)? {
-		CoreColor::Candy => Err(JsError::new(&format!("Unsupported background `{input}`, use a color name or hex value"))),
+		CoreColor::Candy => Err(color_error(input, ColorError::UnknownColor)),
 		color => Ok(color),
 	}
 }
@@ -291,15 +291,6 @@ fn parse_background(input: &str) -> Result<CoreColor, JsError> {
 /// Parses a boundary gradient stop through the core name-or-hex parser
 fn parse_stop(input: &str) -> Result<GradientStop, JsError> {
 	input.parse().map_err(|error| color_error(input, error))
-}
-
-/// The precise hex problems speak for themselves; an unknown color or a slot only stop names the input
-fn color_error(input: &str, error: ColorError) -> JsError {
-	match error {
-		ColorError::UnknownColor => JsError::new(&format!("Unsupported color `{input}`, use a color name or hex value")),
-		ColorError::NotAGradientStop => JsError::new(&format!("Unsupported gradient stop `{input}`: {error}")),
-		error => JsError::new(&error.to_string()),
-	}
 }
 
 /// Builds the two stop boundary gradient from its stop strings

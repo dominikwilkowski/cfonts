@@ -3,10 +3,14 @@ use wasm_bindgen::JsError;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
-	Align as CoreAlign, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, ColorOverride, Font as CoreFont,
-	Options, RenderOverrides, Valign as CoreValign,
+	Align as CoreAlign, BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv,
+	Color as CoreColor, ColorLevel as CoreColorLevel, ColorOverride, Font as CoreFont, GradientOption,
+	GradientPreset as CoreGradientPreset, GradientStop, Options, RenderOverrides, Rgb, TransitionStops,
+	Valign as CoreValign, render_with,
 };
-use cfonts_wasm::{Align, Cfonts, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb};
+use cfonts_wasm::{
+	Align, Cfonts, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb,
+};
 
 /// The artifact as the boundary hands it to JavaScript, read back into Rust
 fn rendered(crossed: Result<Ts<Rendered>, JsError>) -> Rendered {
@@ -19,9 +23,9 @@ fn render_core(environment: EnvironmentKind, canvas_width: Option<usize>) -> Str
 	let overrides = RenderOverrides::default().with_canvas_width(canvas_width.unwrap_or(0));
 
 	match environment {
-		EnvironmentKind::Cli => cfonts::render_with(&options, &CliEnv::default(), overrides).text,
-		EnvironmentKind::Browser => cfonts::render_with(&options, &BrowserEnv, overrides).text,
-		EnvironmentKind::BrowserConsole => cfonts::render_with(&options, &BrowserConsoleEnv, overrides).text,
+		EnvironmentKind::Cli => render_with(&options, &CliEnv::default(), overrides).text,
+		EnvironmentKind::Browser => render_with(&options, &BrowserEnv, overrides).text,
+		EnvironmentKind::BrowserConsole => render_with(&options, &BrowserConsoleEnv, overrides).text,
 	}
 }
 
@@ -344,11 +348,11 @@ fn the_independent_gradient_crosses_the_boundary() {
 	let expected = CoreCfonts::text("A|AB")
 		.font(CoreFont::Tiny)
 		.line_height(0)
-		.colors(cfonts::GradientOption::TwoStop { start: cfonts::GradientStop::Red, end: cfonts::GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
 		.independent_gradient()
 		.render_with(
 			&CliEnv::default(),
-			RenderOverrides::default().with_color(ColorOverride::Level(cfonts::ColorLevel::TrueColor)),
+			RenderOverrides::default().with_color(ColorOverride::Level(CoreColorLevel::TrueColor)),
 		);
 
 	assert_ne!(independent, fixed);
@@ -389,9 +393,9 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
-	let expected = CoreCfonts::text("A").font(CoreFont::Tiny).spaceless().background(cfonts::Color::Blue).render_with(
+	let expected = CoreCfonts::text("A").font(CoreFont::Tiny).spaceless().background(CoreColor::Blue).render_with(
 		&CliEnv::default(),
-		RenderOverrides::default().with_color(ColorOverride::Level(cfonts::ColorLevel::Basic)),
+		RenderOverrides::default().with_color(ColorOverride::Level(CoreColorLevel::Basic)),
 	);
 	assert_eq!(
 		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::Basic), None, false)).text,
@@ -423,9 +427,9 @@ fn a_system_background_is_accepted_and_paints_nothing() {
 
 #[wasm_bindgen_test]
 fn every_background_gradient_shape_matches_the_core_builder() {
-	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(cfonts::ColorLevel::TrueColor));
+	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(CoreColorLevel::TrueColor));
 	// the core twin of wrapping_banner with the background applied
-	let core = |background: cfonts::BackgroundOption| {
+	let core = |background: BackgroundOption| {
 		CoreCfonts::text("AA")
 			.font(CoreFont::Tiny)
 			.line_height(0)
@@ -447,23 +451,20 @@ fn every_background_gradient_shape_matches_the_core_builder() {
 	let mut preset = wrapping_banner();
 	preset.background_gradient_preset(GradientPreset::Pride).expect("a fresh slot");
 
-	let stops = |names: &[cfonts::GradientStop]| {
-		cfonts::TransitionStops::try_from(names.to_vec()).expect("three stops make a transition")
-	};
-	let gray = cfonts::GradientStop::Rgb(cfonts::Rgb { red: 136, green: 153, blue: 221 });
+	let stops =
+		|names: &[GradientStop]| TransitionStops::try_from(names.to_vec()).expect("three stops make a transition");
+	let gray = GradientStop::Rgb(Rgb { red: 136, green: 153, blue: 221 });
 
 	assert!(boundary(&two_stop).starts_with("\u{1b}[48;2;255;0;0m"));
 	assert_eq!(
 		boundary(&two_stop),
-		core(cfonts::GradientOption::TwoStop { start: cfonts::GradientStop::Red, end: cfonts::GradientStop::Blue }.into())
+		core(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }.into())
 	);
 	assert_eq!(
 		boundary(&transition),
-		core(
-			cfonts::GradientOption::Transition(stops(&[cfonts::GradientStop::Red, gray, cfonts::GradientStop::Blue])).into()
-		)
+		core(GradientOption::Transition(stops(&[GradientStop::Red, gray, GradientStop::Blue])).into())
 	);
-	assert_eq!(boundary(&preset), core(cfonts::GradientPreset::Pride.into()));
+	assert_eq!(boundary(&preset), core(CoreGradientPreset::Pride.into()));
 	assert_ne!(boundary(&preset), boundary(&two_stop));
 }
 
@@ -476,14 +477,19 @@ fn hex_values_convert_into_channel_values() {
 }
 
 #[wasm_bindgen_test]
-fn the_font_bridge_covers_every_core_font() {
-	let bridged = Font::ALL.map(CoreFont::from);
-
-	assert_eq!(bridged.len(), CoreFont::ALL.len(), "the wasm bridge and the core font list disagree");
-
-	for font in CoreFont::ALL {
-		assert!(bridged.contains(&font), "{font:?} is not reachable through the wasm bridge");
-	}
+fn every_bridge_lists_the_variants_in_the_core_order() {
+	// the TypeScript enums list the variants in the bridge's order and the framework pages fill their pickers
+	// from the core, so every picker built from either side agrees only while the two orders match
+	assert_eq!(Align::ALL.map(CoreAlign::from).as_slice(), CoreAlign::ALL.as_slice(), "Align");
+	assert_eq!(Valign::ALL.map(CoreValign::from).as_slice(), CoreValign::ALL.as_slice(), "Valign");
+	assert_eq!(ColorLevel::ALL.map(CoreColorLevel::from).as_slice(), CoreColorLevel::ALL.as_slice(), "ColorLevel");
+	assert_eq!(Color::ALL.map(CoreColor::from).as_slice(), CoreColor::ALL.as_slice(), "Color");
+	assert_eq!(
+		GradientPreset::ALL.map(CoreGradientPreset::from).as_slice(),
+		CoreGradientPreset::ALL.as_slice(),
+		"GradientPreset"
+	);
+	assert_eq!(Font::ALL.map(CoreFont::from).as_slice(), CoreFont::ALL.as_slice(), "Font");
 }
 
 #[wasm_bindgen_test]
