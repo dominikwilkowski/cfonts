@@ -16,8 +16,8 @@ pub mod options;
 mod render;
 pub use builder::Cfonts;
 pub use color::{
-	BackgroundOption, Color, ColorError, ColorLevel, ColorOption, GradientOption, GradientPreset, GradientStop, Rgb,
-	TransitionStops,
+	Background, BackgroundOption, Color, ColorError, ColorLevel, ColorOption, Gradient, GradientOption, GradientPreset,
+	Kind, Rgb, TakesCandy, TakesSystem, Text, TransitionStops,
 };
 pub use environments::{BrowserConsoleEnv, BrowserEnv, CliEnv, ColorTokens, Environment, Rendered};
 pub use fonts::Font;

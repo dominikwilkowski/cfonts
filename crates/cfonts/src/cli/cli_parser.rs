@@ -7,11 +7,12 @@ use std::{
 };
 
 use crate::{
-	Align, BackgroundOption, BlockOptions, Color, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
+	Align, BackgroundOption, BlockOptions, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
 	cli::{
 		Args,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
 	},
+	color::{ANSI_RESET, Value},
 };
 
 /// Whether a parse problem aborts the parse or only warns
@@ -302,8 +303,8 @@ impl ParseError<'_> {
 	}
 
 	fn write_message(&self, f: &mut impl fmt::Write, color_enabled: bool) -> fmt::Result {
-		let open = if color_enabled { Color::Yellow.ansi16_sgr().unwrap_or("") } else { "" };
-		let close = if color_enabled { Color::ANSI_RESET } else { "" };
+		let open = if color_enabled { Value::Yellow.ansi16_sgr().unwrap_or("") } else { "" };
+		let close = if color_enabled { ANSI_RESET } else { "" };
 		let prompt = if color_enabled { PROMPT_COLORED } else { PROMPT_PLAIN };
 		let warning_open = if color_enabled { "\x1B[43m\x1B[30m" } else { "" };
 		let error_open = if color_enabled { "\x1B[41m\x1B[37m" } else { "" };
@@ -795,7 +796,7 @@ pub(crate) mod helpers {
 mod color_values {
 	use super::helpers::*;
 	use super::*;
-	use crate::{GradientOption, GradientPreset, GradientStop, Rgb, TransitionStops};
+	use crate::{Color, GradientOption, GradientPreset, Rgb, TransitionStops};
 
 	/// The global colors of one parsed command line
 	fn global(list: &[&str]) -> ColorOption {
@@ -804,23 +805,22 @@ mod color_values {
 
 	#[test]
 	fn a_comma_list_fills_the_font_color_slots() {
-		assert_eq!(global(&["hi", "-c", "red,blue"]), ColorOption::Colors(vec![Color::Red, Color::Blue]));
-		assert_eq!(global(&["hi", "-c", "red"]), ColorOption::Colors(vec![Color::Red]));
+		assert_eq!(global(&["hi", "-c", "red,blue"]), ColorOption::Colors(vec![Color::RED, Color::BLUE]));
+		assert_eq!(global(&["hi", "-c", "red"]), ColorOption::Colors(vec![Color::RED]));
 	}
 
 	#[test]
 	fn a_dash_joins_two_stops_and_colons_join_a_transition() {
 		assert_eq!(
 			global(&["hi", "-c", "red-blue"]),
-			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+			ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		);
 
 		// two stops joined by colons are a transition, not the hue space walk of the dash
-		let stops = TransitionStops::try_from(vec![GradientStop::Red, GradientStop::Blue]).expect("two stops");
+		let stops = TransitionStops::try_from(vec![Color::RED, Color::BLUE]).expect("two stops");
 		assert_eq!(global(&["hi", "-c", "red:blue"]), ColorOption::Gradient(GradientOption::Transition(stops)));
 
-		let stops =
-			TransitionStops::try_from(vec![GradientStop::Red, GradientStop::Blue, GradientStop::Green]).expect("three stops");
+		let stops = TransitionStops::try_from(vec![Color::RED, Color::BLUE, Color::GREEN]).expect("three stops");
 		assert_eq!(global(&["hi", "-c", "red:blue:green"]), ColorOption::Gradient(GradientOption::Transition(stops)));
 	}
 
@@ -838,11 +838,11 @@ mod color_values {
 		let gray = Rgb { red: 136, green: 136, blue: 136 };
 		assert_eq!(
 			global(&["hi", "-c", "RED - #888"]),
-			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Rgb(gray) })
+			ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::from(gray) })
 		);
 		assert_eq!(
 			global(&["hi", "-c", "redBright-blue"]),
-			ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::RedBright, end: GradientStop::Blue })
+			ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED_BRIGHT, end: Color::BLUE })
 		);
 	}
 
@@ -854,7 +854,7 @@ mod color_values {
 		assert_eq!(parsed.options.blocks[0].colors, None);
 		assert_eq!(
 			parsed.options.blocks[1].colors,
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 		);
 	}
 
@@ -877,7 +877,7 @@ mod color_values {
 		assert!(parsed.warnings.is_empty());
 
 		let parsed = run(&["hi", "-c", "red-blue", "-c", "red,blue"]);
-		assert_eq!(parsed.options.global_colors, Some(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+		assert_eq!(parsed.options.global_colors, Some(ColorOption::Colors(vec![Color::RED, Color::BLUE])));
 		assert!(parsed.warnings.is_empty());
 	}
 
@@ -946,24 +946,21 @@ mod color_values {
 		for list in [&["one", "-b", "blue", "--next", "two"][..], &["one", "--next", "two", "-b", "blue"]] {
 			let parsed = run(list);
 
-			assert_eq!(parsed.options.background, Some(BackgroundOption::Color(Color::Blue)), "{list:?}");
+			assert_eq!(parsed.options.background, Some(BackgroundOption::Color(Color::BLUE)), "{list:?}");
 			assert!(parsed.options.blocks.iter().all(|block| block.colors.is_none()), "{list:?}");
 		}
 	}
 
 	#[test]
 	fn a_background_takes_every_gradient_shape_and_system() {
-		assert_eq!(run(&["hi", "-b", "system"]).options.background, Some(BackgroundOption::Color(Color::System)));
+		assert_eq!(run(&["hi", "-b", "system"]).options.background, Some(BackgroundOption::Color(Color::SYSTEM)));
 		assert_eq!(
 			run(&["hi", "-b", "red-blue"]).options.background,
-			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 		);
 		assert_eq!(
 			run(&["hi", "-b", "whiteBright-blue"]).options.background,
-			Some(BackgroundOption::Gradient(GradientOption::TwoStop {
-				start: GradientStop::WhiteBright,
-				end: GradientStop::Blue
-			}))
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::WHITE_BRIGHT, end: Color::BLUE }))
 		);
 		assert_eq!(
 			run(&["hi", "-b", "trans"]).options.background,
@@ -1038,7 +1035,7 @@ mod moved_gradient_flags {
 mod argument_parsing {
 	use super::helpers::*;
 	use super::*;
-	use crate::{Align, Color, ColorOption, Font, GradientOption, GradientStop, Rgb, Valign};
+	use crate::{Align, Color, ColorOption, Font, GradientOption, Rgb, Text, Valign};
 
 	#[test]
 	fn the_first_argument_becomes_the_text_block() {
@@ -1137,7 +1134,7 @@ mod argument_parsing {
 
 	#[test]
 	fn colors_parse_names_hex_values_and_lists() {
-		for name in Color::LIST.split(", ") {
+		for name in Color::<Text>::NAMES {
 			let expected = Color::from_name(name).unwrap();
 			let input = args(&["my text", "-c", name]);
 			assert_eq!(
@@ -1152,7 +1149,7 @@ mod argument_parsing {
 			let input = args(&["my text", "-c", hex]);
 			assert_eq!(
 				parse_args(&input, tty()).unwrap().options.global_colors,
-				Some(ColorOption::Colors(vec![Color::Rgb(gray)])),
+				Some(ColorOption::Colors(vec![Color::from(gray)])),
 				"{hex}"
 			);
 		}
@@ -1160,14 +1157,14 @@ mod argument_parsing {
 		let list = args(&["my text", "--colors", "bLuE,#888888,GREY"]);
 		assert_eq!(
 			parse_args(&list, tty()).unwrap().options.global_colors,
-			Some(ColorOption::Colors(vec![Color::Blue, Color::Rgb(gray), Color::Gray]))
+			Some(ColorOption::Colors(vec![Color::BLUE, Color::from(gray), Color::GRAY]))
 		);
 
 		// hex values work without the # prefix, matching the other boundaries
 		let bare = args(&["my text", "--colors", "888888"]);
 		assert_eq!(
 			parse_args(&bare, tty()).unwrap().options.global_colors,
-			Some(ColorOption::Colors(vec![Color::Rgb(gray)]))
+			Some(ColorOption::Colors(vec![Color::from(gray)]))
 		);
 	}
 
@@ -1336,10 +1333,10 @@ mod argument_parsing {
 		assert!(parsed.show_demo);
 		assert_eq!(
 			parsed.options.global_colors,
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 		);
 		assert!(parsed.options.independent_gradient);
-		assert_eq!(parsed.options.background, Some(BackgroundOption::Color(Color::Blue)));
+		assert_eq!(parsed.options.background, Some(BackgroundOption::Color(Color::BLUE)));
 	}
 }
 
@@ -1442,7 +1439,7 @@ mod block_composition {
 		assert_eq!(blocks[0].font, Font::Tiny);
 		// first block colors cascade to the global default
 		assert_eq!(blocks[0].colors, None);
-		assert_eq!(parsed.options.global_colors, Some(ColorOption::Colors(vec![Color::Red])));
+		assert_eq!(parsed.options.global_colors, Some(ColorOption::Colors(vec![Color::RED])));
 		assert!(!blocks[0].word_wrap);
 		assert_eq!(blocks[1].font, Font::Block);
 		assert_eq!(blocks[1].colors, None);

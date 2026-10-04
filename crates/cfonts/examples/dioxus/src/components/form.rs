@@ -1,4 +1,4 @@
-use cfonts::{Align, BrowserConsoleEnv, Color, Font, GradientPreset, Host, Valign};
+use cfonts::{Align, Background, BrowserConsoleEnv, Color, Font, GradientPreset, Host, Text, Valign};
 use dioxus::prelude::*;
 use web_sys::{
 	Event, HtmlInputElement, console,
@@ -161,14 +161,14 @@ pub fn Form(form_state: FormState, composition: ReadSignal<Composition>) -> Elem
 		Datalist {
 			id: "color_grammar",
 			examples: &COLOR_EXAMPLES,
-			names: Color::NAMES.iter().chain(GradientPreset::NAMES.iter()).copied().collect(),
+			names: Color::<Text>::NAMES.iter().chain(GradientPreset::NAMES.iter()).copied().collect(),
 		}
 		Datalist {
 			id: "background_grammar",
 			examples: &BACKGROUND_EXAMPLES,
-			names: Color::NAMES
+			names: Color::<Background>::NAMES
 				.iter()
-				.filter(|name| !matches!(**name, "candy" | "system"))
+				.filter(|name| **name != "system")
 				.chain(GradientPreset::NAMES.iter())
 				.copied()
 				.collect(),

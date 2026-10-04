@@ -1,4 +1,4 @@
-use cfonts::{Cfonts, CfontsDioxus, GradientOption, GradientStop, Options, Rgb};
+use cfonts::{Cfonts, CfontsDioxus, Color, GradientOption, Options, Rgb};
 use dioxus::prelude::*;
 use gloo_timers::future::sleep;
 use std::time::Duration;
@@ -71,8 +71,8 @@ pub fn Logo() -> Element {
 		Cfonts::text("cfonts")
 			.spaceless()
 			.global_colors(GradientOption::TwoStop {
-				start: GradientStop::Rgb(GRADIENT_COLORS[(offset() + GRADIENT_COLORS.len() - 1) % GRADIENT_COLORS.len()]),
-				end: GradientStop::Rgb(GRADIENT_COLORS[offset()]),
+				start: Color::from(GRADIENT_COLORS[(offset() + GRADIENT_COLORS.len() - 1) % GRADIENT_COLORS.len()]),
+				end: Color::from(GRADIENT_COLORS[offset()]),
 			})
 			.into()
 	});

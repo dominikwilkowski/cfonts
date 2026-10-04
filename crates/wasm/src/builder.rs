@@ -4,8 +4,8 @@ use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	BackgroundOption, Cfonts as CoreCfonts, Color as CoreColor, ColorOption, ColorOverride, GradientOption,
-	GradientPreset as CoreGradientPreset, GradientStop, Options, RenderOverrides, TransitionStops, options::BlockOptions,
+	BackgroundOption, Cfonts as CoreCfonts, Color as CoreColor, ColorOption, ColorOverride, Gradient, GradientOption,
+	GradientPreset as CoreGradientPreset, Options, RenderOverrides, Text, TransitionStops, options::BlockOptions,
 	render_with,
 };
 
@@ -300,13 +300,13 @@ impl Cfonts {
 	}
 }
 
-/// Parses a boundary color through the core name-or-hex parser
-fn parse_color(input: &str) -> Result<CoreColor, JsError> {
+/// Parses a boundary slot color through the core name-or-hex parser
+fn parse_color(input: &str) -> Result<CoreColor<Text>, JsError> {
 	input.parse().map_err(|error| color_error(input, error))
 }
 
-/// Parses a boundary gradient stop through the core name-or-hex parser
-fn parse_stop(input: &str) -> Result<GradientStop, JsError> {
+/// Parses a boundary gradient stop through the core name-or-hex parser, the kind refuses system and candy
+fn parse_stop(input: &str) -> Result<CoreColor<Gradient>, JsError> {
 	input.parse().map_err(|error| color_error(input, error))
 }
 
@@ -317,7 +317,7 @@ fn two_stop(start: &str, end: &str) -> Result<GradientOption, JsError> {
 
 /// Builds the transition boundary gradient from its stop strings
 fn transition(stops: &[String]) -> Result<GradientOption, JsError> {
-	let stops = stops.iter().map(|stop| parse_stop(stop)).collect::<Result<Vec<GradientStop>, JsError>>()?;
+	let stops = stops.iter().map(|stop| parse_stop(stop)).collect::<Result<Vec<CoreColor<Gradient>>, JsError>>()?;
 
 	Ok(GradientOption::Transition(TransitionStops::try_from(stops).map_err(|error| JsError::new(&error.to_string()))?))
 }

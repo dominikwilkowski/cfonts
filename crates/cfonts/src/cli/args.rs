@@ -1,7 +1,7 @@
 use std::{num::NonZeroUsize, str::FromStr};
 
 use crate::{
-	Align, BackgroundOption, Color, ColorError, ColorOption, Font, GradientPreset, RustHost, Valign,
+	Align, Background, BackgroundOption, Color, ColorError, ColorOption, Font, GradientPreset, RustHost, Text, Valign,
 	cli::{
 		CliBlockOptions, ParseError, ParseState,
 		helper::{
@@ -302,7 +302,7 @@ impl Args {
 				scope: &["This will apply globally"],
 				description: &["The output aligns within the width of your terminal"],
 				examples: &["cfonts hello --align center", "cfonts hello --align right --font tiny"],
-				arguments: Some(const_chunk!(Align::NAMES, "", "`")),
+				arguments: Some(const_chunk!(Align::NAMES, "`")),
 			},
 			Self::Valign => ArgInfo {
 				long: "valign",
@@ -317,7 +317,7 @@ impl Args {
 					"cfonts Big --font block --next \" small\" --font tiny --valign bottom",
 					"cfonts --valign middle Big --next \" small\" --font console",
 				],
-				arguments: Some(const_chunk!(Valign::NAMES, "", "`")),
+				arguments: Some(const_chunk!(Valign::NAMES, "`")),
 			},
 			Self::Spaceless => ArgInfo {
 				long: "spaceless",
@@ -409,7 +409,7 @@ impl Args {
 				scope: &["Applies to the current text block"],
 				description: &["Every block can use its own font"],
 				examples: &["cfonts hello --font chrome", "cfonts hello --font tiny --next \" world\" --font block"],
-				arguments: Some(const_chunk!(Font::NAMES, "", "`")),
+				arguments: Some(const_chunk!(Font::NAMES, "`")),
 			},
 			Self::Color => ArgInfo {
 				long: "colors",
@@ -433,7 +433,7 @@ impl Args {
 					"cfonts hello --colors red:yellow:green",
 					"cfonts Hi --colors red-blue --next \" there\" --colors system",
 				],
-				arguments: Some(const_chunk!(Color::NAMES, "", "`")),
+				arguments: Some(const_chunk!(Color::<Text>::NAMES, "`")),
 			},
 			Self::Background => ArgInfo {
 				long: "background",
@@ -453,7 +453,7 @@ impl Args {
 					"cfonts hello --background red-blue",
 					"cfonts hello --background red:yellow:green --spaceless",
 				],
-				arguments: Some(const_chunk!(Color::NAMES, "candy", "`")),
+				arguments: Some(const_chunk!(Color::<Background>::NAMES, "`")),
 			},
 			Self::LetterSpacing => ArgInfo {
 				long: "letter-spacing",
@@ -576,7 +576,7 @@ mod tests {
 
 	use super::*;
 	use crate::{
-		GradientOption, GradientStop,
+		GradientOption,
 		cli::{ParseState, cli_parser::helpers::strip_styling},
 	};
 
@@ -689,7 +689,7 @@ mod tests {
 
 	#[test]
 	fn parsed_colors_pass_through_and_refused_ones_name_the_argument() {
-		assert_eq!(Args::Color.parse_colors("red, blue"), Ok(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+		assert_eq!(Args::Color.parse_colors("red, blue"), Ok(ColorOption::Colors(vec![Color::RED, Color::BLUE])));
 		assert_eq!(
 			Args::Color.parse_colors("pride"),
 			Ok(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride)))
@@ -734,10 +734,10 @@ mod tests {
 
 	#[test]
 	fn parsed_backgrounds_pass_through_and_refused_ones_name_the_argument() {
-		assert_eq!(Args::Background.parse_background("blue"), Ok(BackgroundOption::Color(Color::Blue)));
+		assert_eq!(Args::Background.parse_background("blue"), Ok(BackgroundOption::Color(Color::BLUE)));
 		assert_eq!(
 			Args::Background.parse_background("red-blue"),
-			Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+			Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 		);
 
 		// candy fails like any unknown word, a list gets the teaching error
@@ -797,7 +797,7 @@ mod tests {
 	fn the_background_help_lists_every_color_but_candy() {
 		let arguments = Args::Background.infos().arguments.expect("backgrounds list their colors");
 
-		for name in Color::NAMES {
+		for name in Color::<Text>::NAMES {
 			assert_eq!(arguments.contains(name), name != "candy", "{name}");
 		}
 	}

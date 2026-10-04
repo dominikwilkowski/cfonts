@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::{Color, Rgb},
+	color::{Background, Color, Rgb, Text},
 	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, leveled_rgb, push_escaped},
 	layout::LayoutRow,
 	options::Options,
@@ -72,7 +72,7 @@ impl Environment for BrowserEnv {
 
 	/// The browser has no terminal palette, so named colors flatten to their RGB values
 	/// and a level below full support paints the palette entry's own value
-	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
 		match leveled_rgb(color, context) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_css_hex()), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
@@ -81,7 +81,7 @@ impl Environment for BrowserEnv {
 
 	/// A band is a block of its own, so it spans the full width, and `min-height:1lh` keeps a row
 	/// without text one line tall while text rows keep their natural line box
-	fn background_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
 		match leveled_rgb(color, context) {
 			Some(rgb) => ColorTokens {
 				start: Cow::Owned(format!(r#"<div style="background:{};min-height:1lh">"#, rgb.to_css_hex())),
@@ -182,7 +182,7 @@ impl Environment for BrowserEnv {
 mod tests {
 	use super::*;
 	use crate::{
-		BackgroundOption, Cfonts, ColorOverride, GradientOption, GradientStop, RenderOverrides,
+		BackgroundOption, Cfonts, ColorOverride, GradientOption, RenderOverrides,
 		color::{ColorLevel, Rgb},
 		fonts::Font,
 		options::Valign,
@@ -209,16 +209,16 @@ mod tests {
 		// the browser has no terminal palette, so a named color paints its table value at every level
 		let context = RenderContext::colored(ColorLevel::Basic);
 
-		assert_eq!(BrowserEnv.color_tokens(Color::Red, &context).start, "#ea3223");
-		assert!(!BrowserEnv.color_tokens(Color::System, &context).paints());
-		assert!(!BrowserEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+		assert_eq!(BrowserEnv.color_tokens(Color::RED, &context).start, "#ea3223");
+		assert!(!BrowserEnv.color_tokens(Color::SYSTEM, &context).paints());
+		assert!(!BrowserEnv.color_tokens(Color::RED, &RenderContext::unlimited()).paints());
 	}
 
 	#[test]
 	fn rgb_values_paint_the_palette_entry_of_their_level() {
 		// the page can show any value, so a level below full support paints the entry a terminal would pick
-		let orange = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
-		let near_black = Color::Rgb(Rgb { red: 1, green: 2, blue: 3 });
+		let orange = Color::from(Rgb { red: 255, green: 136, blue: 0 });
+		let near_black = Color::from(Rgb { red: 1, green: 2, blue: 3 });
 
 		assert_eq!(BrowserEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::TrueColor)).start, "#f80");
 		assert_eq!(BrowserEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Ansi256)).start, "#ff8700");
@@ -231,13 +231,12 @@ mod tests {
 	#[test]
 	fn a_band_is_a_block_one_line_tall() {
 		let context = RenderContext::colored(ColorLevel::Basic);
-		let tokens = BrowserEnv.background_tokens(Color::Blue, &context);
+		let tokens = BrowserEnv.background_tokens(Color::BLUE, &context);
 
 		assert_eq!(tokens.start, r#"<div style="background:#0020f5;min-height:1lh">"#);
 		assert_eq!(tokens.end, "</div>");
-		assert!(!BrowserEnv.background_tokens(Color::System, &context).paints());
-		assert!(!BrowserEnv.background_tokens(Color::Candy, &context).paints());
-		assert!(!BrowserEnv.background_tokens(Color::Blue, &RenderContext::unlimited()).paints());
+		assert!(!BrowserEnv.background_tokens(Color::SYSTEM, &context).paints());
+		assert!(!BrowserEnv.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
 	}
 
 	// gradient_paint
@@ -302,7 +301,7 @@ mod tests {
 	#[test]
 	fn banded_and_empty_rows_need_no_break() {
 		// a block ends its own line
-		let band = BrowserEnv.background_tokens(Color::Blue, &RenderContext::colored(ColorLevel::Basic));
+		let band = BrowserEnv.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
 		let mut out = Rendered::default();
 		BrowserEnv.row_break(&row(3), Some(&band), &mut out);
 		BrowserEnv.row_break(&row(0), None, &mut out);
@@ -313,7 +312,7 @@ mod tests {
 
 	#[test]
 	fn padding_rows_are_blocks_with_or_without_a_band() {
-		let band = BrowserEnv.background_tokens(Color::Blue, &RenderContext::colored(ColorLevel::Basic));
+		let band = BrowserEnv.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
 
 		let mut out = Rendered::default();
 		BrowserEnv.top_padding([Some(&band), None], &mut out);
@@ -376,7 +375,7 @@ mod tests {
 		let band = r#"<div style="background:#0020f5;min-height:1lh">"#;
 
 		assert_eq!(
-			plated(Color::Blue).text,
+			plated(Color::BLUE).text,
 			format!(
 				concat!(
 					r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#,
@@ -391,7 +390,7 @@ mod tests {
 
 	#[test]
 	fn a_background_gradient_gives_every_row_its_own_block() {
-		let rendered = plated(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }).text;
+		let rendered = plated(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }).text;
 		let bands: Vec<&str> =
 			rendered.split(r#"<div style="background:"#).skip(1).map(|rest| &rest[..rest.find(';').unwrap()]).collect();
 
@@ -403,7 +402,7 @@ mod tests {
 	fn an_empty_composition_keeps_one_row_in_both_shapes() {
 		// empty text prints one bare row between the paddings, and that row is a block like the rest
 		let banded = Cfonts::text("")
-			.background(Color::Blue)
+			.background(Color::BLUE)
 			.render_with(&BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)))
 			.text;
 		assert_eq!(banded.matches(r#"<div style="background:#0020f5;min-height:1lh"></div>"#).count(), 5);
@@ -433,7 +432,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.background(Color::Blue)
+			.background(Color::BLUE)
 			.render_with(&BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)))
 			.text;
 
@@ -453,12 +452,12 @@ mod tests {
 		let plain =
 			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(&BrowserEnv, RenderOverrides::default());
 
-		assert_eq!(plated(Color::System), plain);
+		assert_eq!(plated(Color::SYSTEM), plain);
 		assert_eq!(
 			Cfonts::text("A")
 				.font(Font::Tiny)
 				.valign(Valign::Top)
-				.background(Color::Blue)
+				.background(Color::BLUE)
 				.render_with(&BrowserEnv, RenderOverrides::default()),
 			plain
 		);

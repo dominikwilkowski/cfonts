@@ -7,7 +7,7 @@ pub mod gradient;
 pub(crate) use gradient::GradientColors;
 pub use gradient::GradientPreset;
 
-use std::str::FromStr;
+use std::{marker::PhantomData, str::FromStr};
 
 use cfonts_macros::All;
 
@@ -173,23 +173,23 @@ impl Rgb {
 	const CUBE_LEVELS: [u8; 6] = [0, 95, 135, 175, 215, 255];
 
 	/// The sixteen named colors in ANSI order, the palette entries below the cube
-	const ANSI16: [Color; 16] = [
-		Color::Black,
-		Color::Red,
-		Color::Green,
-		Color::Yellow,
-		Color::Blue,
-		Color::Magenta,
-		Color::Cyan,
-		Color::White,
-		Color::Gray,
-		Color::RedBright,
-		Color::GreenBright,
-		Color::YellowBright,
-		Color::BlueBright,
-		Color::MagentaBright,
-		Color::CyanBright,
-		Color::WhiteBright,
+	const ANSI16: [Value; 16] = [
+		Value::Black,
+		Value::Red,
+		Value::Green,
+		Value::Yellow,
+		Value::Blue,
+		Value::Magenta,
+		Value::Cyan,
+		Value::White,
+		Value::Gray,
+		Value::RedBright,
+		Value::GreenBright,
+		Value::YellowBright,
+		Value::BlueBright,
+		Value::MagentaBright,
+		Value::CyanBright,
+		Value::WhiteBright,
 	];
 
 	/// The RGB value of one ANSI 256 palette index
@@ -247,11 +247,11 @@ impl Rgb {
 	}
 
 	/// The closest of the sixteen named colors, hand curated, the one table both color layers read
-	pub(crate) fn nearest_named(self) -> Color {
+	pub(crate) fn nearest_named(self) -> Value {
 		match self.ansi256_index() {
-			16 => Color::Black,
-			17..=19 => Color::Blue,
-			20..=21 | 25..=27 => Color::BlueBright,
+			16 => Value::Black,
+			17..=19 => Value::Blue,
+			20..=21 | 25..=27 => Value::BlueBright,
 			22..=24
 			| 58..=60
 			| 64..=66
@@ -264,8 +264,8 @@ impl Rgb {
 			| 148..=151
 			| 172..=174
 			| 178..=181
-			| 184..=189 => Color::Yellow,
-			28..=30 | 34..=36 | 70..=72 | 76..=79 | 112..=114 => Color::Green,
+			| 184..=189 => Value::Yellow,
+			28..=30 | 34..=36 | 70..=72 | 76..=79 | 112..=114 => Value::Green,
 			31..=33
 			| 37..=39
 			| 44..=45
@@ -276,20 +276,20 @@ impl Rgb {
 			| 103..=105
 			| 109..=111
 			| 115..=117
-			| 152..=153 => Color::Cyan,
-			40..=43 | 46..=49 | 82..=85 | 118..=120 | 154..=157 => Color::GreenBright,
-			50..=51 | 86..=87 | 121..=123 | 158..=159 => Color::CyanBright,
-			52..=54 | 88..=90 | 124..=126 | 166..=168 => Color::Red,
+			| 152..=153 => Value::Cyan,
+			40..=43 | 46..=49 | 82..=85 | 118..=120 | 154..=157 => Value::GreenBright,
+			50..=51 | 86..=87 | 121..=123 | 158..=159 => Value::CyanBright,
+			52..=54 | 88..=90 | 124..=126 | 166..=168 => Value::Red,
 			55..=57 | 91..=93 | 96..=99 | 127..=129 | 132..=135 | 139..=141 | 145..=147 | 169..=171 | 175..=177 => {
-				Color::Magenta
+				Value::Magenta
 			}
-			160..=163 | 196..=199 | 202..=205 | 208..=211 => Color::RedBright,
-			164..=165 | 182..=183 | 200..=201 | 206..=207 | 212..=213 | 218..=219 => Color::MagentaBright,
-			190..=193 | 214..=217 | 220..=228 => Color::YellowBright,
-			194..=195 | 229..=231 | 253..=255 => Color::WhiteBright,
-			232..=239 => Color::Black,
-			240..=246 => Color::Gray,
-			247..=252 => Color::White,
+			160..=163 | 196..=199 | 202..=205 | 208..=211 => Value::RedBright,
+			164..=165 | 182..=183 | 200..=201 | 206..=207 | 212..=213 | 218..=219 => Value::MagentaBright,
+			190..=193 | 214..=217 | 220..=228 => Value::YellowBright,
+			194..=195 | 229..=231 | 253..=255 => Value::WhiteBright,
+			232..=239 => Value::Black,
+			240..=246 => Value::Gray,
+			247..=252 => Value::White,
 			// ansi256_index never yields the 16 base palette entries
 			0..=15 => unreachable!("The 6×6×6 cube and grayscale ramp start at index 16"),
 		}
@@ -306,12 +306,99 @@ impl Rgb {
 	}
 }
 
-/// One foreground color assignable to a font color slot
+/// The ANSI foreground reset that closes every painted run,
+/// returning the terminal to the default foreground that [`Color::SYSTEM`] stands for
+pub(crate) const ANSI_RESET: &str = "\x1b[39m";
+
+/// The ANSI background reset that closes every band,
+/// returning the terminal to the default background that [`Color::SYSTEM`] stands for
+pub(crate) const ANSI_BACKGROUND_RESET: &str = "\x1b[49m";
+
+mod sealed {
+	pub trait Sealed {}
+}
+
+/// Where a color goes: the text, a gradient stop or the background
 ///
-/// This enum is the currency all internal color handling deals in
-#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
-pub enum Color {
-	/// The terminal's or page's own foreground; paints nothing
+/// The kind polices the two slot only values, `system` and `candy`, at compile time through
+/// [`TakesSystem`] and [`TakesCandy`], and tells the parsers the same rule at runtime through its consts,
+/// so one place decides what a name may become where it goes
+///
+/// The trait is sealed, the three kinds are the three places a color goes
+pub trait Kind: sealed::Sealed + Copy + Eq + std::fmt::Debug {
+	/// Whether `system`, the terminal's or page's own color, is a color of this kind
+	const TAKES_SYSTEM: bool;
+
+	/// Whether `candy`, a fresh pick per painted segment, is a color of this kind
+	const TAKES_CANDY: bool;
+
+	/// The error a slot only name parses to where this kind does not take it,
+	/// so a valid text color in the wrong place teaches instead of confuses
+	const REFUSAL: ColorError;
+}
+
+/// The kind of a font color slot, every name is a text color
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Text;
+
+/// The kind of a gradient stop, a ramp needs a value to blend from, so system and candy are no stops
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Gradient;
+
+/// The kind of a background, candy rolls per painted segment and a background has rows, not segments
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Background;
+
+impl sealed::Sealed for Text {}
+impl sealed::Sealed for Gradient {}
+impl sealed::Sealed for Background {}
+
+impl Kind for Text {
+	const TAKES_SYSTEM: bool = true;
+	const TAKES_CANDY: bool = true;
+	/// Every slot only name is a text color, so no refusal ever happens
+	const REFUSAL: ColorError = ColorError::UnknownColor;
+}
+
+impl Kind for Gradient {
+	const TAKES_SYSTEM: bool = false;
+	const TAKES_CANDY: bool = false;
+	const REFUSAL: ColorError = ColorError::NotAGradientStop;
+}
+
+impl Kind for Background {
+	const TAKES_SYSTEM: bool = true;
+	const TAKES_CANDY: bool = false;
+	/// Candy fails like any unknown word, a background has no segments to roll on and says nothing more
+	const REFUSAL: ColorError = ColorError::UnknownColor;
+}
+
+/// The kinds a system color may go to, the terminal's own foreground or background
+#[diagnostic::on_unimplemented(
+	message = "a `Color<{Self}>` cannot be `System`, system paints nothing and a gradient needs a value to blend from",
+	label = "`Color::SYSTEM` is a text or background color only",
+	note = "use a named color such as `Color::RED` or an RGB value from `Color::rgb` here"
+)]
+pub trait TakesSystem: Kind {}
+
+/// The kinds a candy color may go to, only the text has segments to roll on
+#[diagnostic::on_unimplemented(
+	message = "a `Color<{Self}>` cannot be `Candy`, candy rolls a fresh pick per painted text segment and only the text has segments",
+	label = "`Color::CANDY` is a text color only",
+	note = "use a named color such as `Color::RED` or an RGB value from `Color::rgb` here"
+)]
+pub trait TakesCandy: Kind {}
+
+impl TakesSystem for Text {}
+impl TakesSystem for Background {}
+impl TakesCandy for Text {}
+
+/// What a color is, apart from where it goes
+///
+/// The crate's internals match on this, the public [`Color`] wraps it with its kind
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Value {
+	/// The terminal's or page's own color, paints nothing
 	System,
 	Black,
 	Red,
@@ -332,50 +419,14 @@ pub enum Color {
 	/// A random pick from the candy assortment, re-rolled per painted segment
 	Candy,
 	/// Any RGB color, leveled down wherever the render's color level supports less
-	#[all(skip)]
 	Rgb(Rgb),
 }
 
-impl Color {
-	/// The ANSI foreground reset that closes every painted run,
-	/// returning the terminal to the default foreground that [`Color::System`] stands for
-	pub(crate) const ANSI_RESET: &str = "\x1b[39m";
-
-	/// The ANSI background reset that closes every band,
-	/// returning the terminal to the default background that [`Color::System`] stands for
-	pub(crate) const ANSI_BACKGROUND_RESET: &str = "\x1b[49m";
-
-	/// Looks up a color by its name, case insensitively
+impl Value {
+	/// The RGB value this color paints, from the painted table where red is `#ea3223`
 	///
-	/// Hex values are not names: they go through [`Rgb::from_hex`]
-	pub fn from_name(name: &str) -> Option<Self> {
-		match name.to_ascii_lowercase().as_str() {
-			"system" => Some(Self::System),
-			"black" => Some(Self::Black),
-			"red" => Some(Self::Red),
-			"green" => Some(Self::Green),
-			"yellow" => Some(Self::Yellow),
-			"blue" => Some(Self::Blue),
-			"magenta" => Some(Self::Magenta),
-			"cyan" => Some(Self::Cyan),
-			"white" => Some(Self::White),
-			"gray" | "grey" => Some(Self::Gray),
-			"redbright" => Some(Self::RedBright),
-			"greenbright" => Some(Self::GreenBright),
-			"yellowbright" => Some(Self::YellowBright),
-			"bluebright" => Some(Self::BlueBright),
-			"magentabright" => Some(Self::MagentaBright),
-			"cyanbright" => Some(Self::CyanBright),
-			"whitebright" => Some(Self::WhiteBright),
-			"candy" => Some(Self::Candy),
-			_ => None,
-		}
-	}
-
-	/// The RGB value of this color
-	///
-	/// `System` paints nothing and `Candy` must be rolled into a named color first: both yield None
-	pub fn to_rgb(self) -> Option<Rgb> {
+	/// `System` paints nothing and `Candy` must be rolled into a named color first, both yield None
+	pub(crate) fn to_rgb(self) -> Option<Rgb> {
 		match self {
 			Self::System | Self::Candy => None,
 			Self::Black => Some(Rgb { red: 0, green: 0, blue: 0 }),
@@ -399,8 +450,8 @@ impl Color {
 
 	/// The fixed ANSI 16 foreground sequence of a named color
 	///
-	/// Named colors never level up or down so they respect the terminal's own palette;
-	/// `System` paints nothing, `Candy` and `Rgb` resolve elsewhere; all three yield None
+	/// Named colors never level up or down so they respect the terminal's own palette,
+	/// `System` paints nothing, `Candy` and `Rgb` resolve elsewhere, all three yield None
 	pub(crate) const fn ansi16_sgr(self) -> Option<&'static str> {
 		match self {
 			Self::System => None,
@@ -451,6 +502,232 @@ impl Color {
 	}
 }
 
+/// The sixteen names every kind takes, in the order the help lists them
+const NAMED: [&str; 16] = [
+	"black",
+	"red",
+	"green",
+	"yellow",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+	"gray",
+	"redbright",
+	"greenbright",
+	"yellowbright",
+	"bluebright",
+	"magentabright",
+	"cyanbright",
+	"whitebright",
+];
+
+/// The names of one kind in the order the help lists them: `system` first and `candy` last where the kind takes them
+///
+/// `COUNT` is the kind's name count, a wrong count stops the build
+const fn names<K: Kind, const COUNT: usize>() -> [&'static str; COUNT] {
+	let mut names = [""; COUNT];
+	let mut index = 0;
+
+	if K::TAKES_SYSTEM {
+		names[index] = "system";
+		index += 1;
+	}
+	let mut named = 0;
+	while named < NAMED.len() {
+		names[index] = NAMED[named];
+		index += 1;
+		named += 1;
+	}
+	if K::TAKES_CANDY {
+		names[index] = "candy";
+		index += 1;
+	}
+	assert!(index == COUNT, "every name of the kind has its slot");
+
+	names
+}
+
+/// One color and where it goes: the text, a gradient stop or the background
+///
+/// The kind polices the two slot only values at compile time: [`Color::SYSTEM`] paints nothing and goes to
+/// the text or the background, [`Color::CANDY`] rolls a fresh pick per painted segment and goes to the text only,
+/// a gradient stop takes neither because a ramp needs a value to blend from
+///
+/// The kind defaults to [`Text`] and infers from where the color goes, so one spelling fits every place
+///
+/// ```
+/// use cfonts::{Cfonts, Color, GradientOption};
+///
+/// let _banner = Cfonts::text("hello")
+///     .colors(vec![Color::RED, Color::CANDY, Color::SYSTEM, Color::rgb(255, 136, 0)])
+///     .background(Color::SYSTEM);
+///
+/// let _ramp = GradientOption::TwoStop { start: Color::RED, end: Color::rgb(0, 0, 255) };
+///
+/// let red: Color = Color::RED;
+/// assert_eq!(red.to_rgb().map(|rgb| rgb.to_hex()), Some(String::from("#ea3223")));
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Color<K: Kind = Text> {
+	pub(crate) value: Value,
+	kind: PhantomData<K>,
+}
+
+/// The value alone, the kind is in the type
+impl<K: Kind> std::fmt::Debug for Color<K> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		std::fmt::Debug::fmt(&self.value, f)
+	}
+}
+
+impl<K: Kind> Color<K> {
+	const fn new(value: Value) -> Self {
+		Self { value, kind: PhantomData }
+	}
+
+	pub const BLACK: Self = Self::new(Value::Black);
+	pub const RED: Self = Self::new(Value::Red);
+	pub const GREEN: Self = Self::new(Value::Green);
+	pub const YELLOW: Self = Self::new(Value::Yellow);
+	pub const BLUE: Self = Self::new(Value::Blue);
+	pub const MAGENTA: Self = Self::new(Value::Magenta);
+	pub const CYAN: Self = Self::new(Value::Cyan);
+	pub const WHITE: Self = Self::new(Value::White);
+	pub const GRAY: Self = Self::new(Value::Gray);
+	pub const RED_BRIGHT: Self = Self::new(Value::RedBright);
+	pub const GREEN_BRIGHT: Self = Self::new(Value::GreenBright);
+	pub const YELLOW_BRIGHT: Self = Self::new(Value::YellowBright);
+	pub const BLUE_BRIGHT: Self = Self::new(Value::BlueBright);
+	pub const MAGENTA_BRIGHT: Self = Self::new(Value::MagentaBright);
+	pub const CYAN_BRIGHT: Self = Self::new(Value::CyanBright);
+	pub const WHITE_BRIGHT: Self = Self::new(Value::WhiteBright);
+
+	/// Any RGB color from its channels, leveled down wherever the render's color level supports less
+	pub const fn rgb(red: u8, green: u8, blue: u8) -> Self {
+		Self::new(Value::Rgb(Rgb { red, green, blue }))
+	}
+
+	/// Looks up a color of this kind by its name, case insensitively
+	///
+	/// `system` and `candy` are names only where the kind takes them,
+	/// hex values are not names: they go through [`Rgb::from_hex`]
+	pub fn from_name(name: &str) -> Option<Self> {
+		let value = match name.to_ascii_lowercase().as_str() {
+			"system" if K::TAKES_SYSTEM => Value::System,
+			"black" => Value::Black,
+			"red" => Value::Red,
+			"green" => Value::Green,
+			"yellow" => Value::Yellow,
+			"blue" => Value::Blue,
+			"magenta" => Value::Magenta,
+			"cyan" => Value::Cyan,
+			"white" => Value::White,
+			"gray" | "grey" => Value::Gray,
+			"redbright" => Value::RedBright,
+			"greenbright" => Value::GreenBright,
+			"yellowbright" => Value::YellowBright,
+			"bluebright" => Value::BlueBright,
+			"magentabright" => Value::MagentaBright,
+			"cyanbright" => Value::CyanBright,
+			"whitebright" => Value::WhiteBright,
+			"candy" if K::TAKES_CANDY => Value::Candy,
+			_ => return None,
+		};
+
+		Some(Self::new(value))
+	}
+}
+
+impl<K: Kind> From<Rgb> for Color<K> {
+	fn from(rgb: Rgb) -> Self {
+		Self::new(Value::Rgb(rgb))
+	}
+}
+
+impl<K: TakesSystem> Color<K> {
+	/// The terminal's or page's own color, paints nothing
+	///
+	/// A text or background color, a gradient stop has nothing to blend from
+	///
+	/// ```compile_fail,E0277
+	/// use cfonts::{Color, GradientOption};
+	///
+	/// let _ramp = GradientOption::TwoStop { start: Color::SYSTEM, end: Color::BLUE }; // compiler error
+	/// ```
+	pub const SYSTEM: Self = Self::new(Value::System);
+}
+
+impl<K: TakesCandy> Color<K> {
+	/// A fresh pick from the candy assortment per painted segment
+	///
+	/// A text color only, a background has rows, not segments, and a gradient stop has nothing to blend from
+	///
+	/// ```compile_fail,E0277
+	/// use cfonts::{Cfonts, Color};
+	///
+	/// let _plate = Cfonts::text("hello").background(Color::CANDY); // compiler error
+	/// ```
+	pub const CANDY: Self = Self::new(Value::Candy);
+}
+
+impl Color<Text> {
+	/// Every name a text color takes, in the order the help lists them
+	pub const NAMES: [&'static str; 18] = names::<Text, 18>();
+
+	/// The RGB value this color paints, from the painted table where red is `#ea3223`
+	///
+	/// `SYSTEM` paints nothing and `CANDY` is rolled into a named color first, both yield None
+	pub fn to_rgb(self) -> Option<Rgb> {
+		self.value.to_rgb()
+	}
+}
+
+impl Color<Background> {
+	/// Every name a background takes, in the order the help lists them
+	pub const NAMES: [&'static str; 17] = names::<Background, 17>();
+
+	/// The RGB value this color paints, from the painted table where red is `#ea3223`
+	///
+	/// `SYSTEM` paints nothing and yields None
+	pub fn to_rgb(self) -> Option<Rgb> {
+		self.value.to_rgb()
+	}
+}
+
+impl Color<Gradient> {
+	/// Every name a gradient stop takes, in the order the help lists them
+	pub const NAMES: [&'static str; 16] = names::<Gradient, 16>();
+
+	/// The RGB value a gradient blends from, the canonical table where red is `#ff0000`
+	///
+	/// Nine names carry a canonical value beside the painted one of a text or background color,
+	/// red blends from `#ff0000` and paints `#ea3223`
+	/// The bright names have no canonical value and blend from their painted value, as does an RGB value
+	pub fn to_rgb(self) -> Rgb {
+		match self.value {
+			Value::Black => Rgb { red: 0, green: 0, blue: 0 },
+			Value::Red => Rgb { red: 255, green: 0, blue: 0 },
+			Value::Green => Rgb { red: 0, green: 255, blue: 0 },
+			Value::Yellow => Rgb { red: 255, green: 255, blue: 0 },
+			Value::Blue => Rgb { red: 0, green: 0, blue: 255 },
+			Value::Magenta => Rgb { red: 255, green: 0, blue: 255 },
+			Value::Cyan => Rgb { red: 0, green: 255, blue: 255 },
+			Value::White => Rgb { red: 255, green: 255, blue: 255 },
+			Value::Gray => Rgb { red: 128, green: 128, blue: 128 },
+			Value::RedBright
+			| Value::GreenBright
+			| Value::YellowBright
+			| Value::BlueBright
+			| Value::MagentaBright
+			| Value::CyanBright
+			| Value::WhiteBright
+			| Value::Rgb(_) => self.value.to_rgb().expect("the bright names and RGB values carry a painted value"),
+			Value::System | Value::Candy => unreachable!("no gradient stop holds a slot only value"),
+		}
+	}
+}
+
 /// The name-or-hex rule every color boundary parses with
 ///
 /// Names win and are checked first; a `#` prefixed value that fails reports the
@@ -471,120 +748,32 @@ fn parse_name_or_hex<T>(
 	Rgb::from_hex(input).map(from_rgb).map_err(|_| ColorError::UnknownColor)
 }
 
-/// A color parses from its name or a hex value; the leading `#` is optional
-impl FromStr for Color {
-	type Err = ColorError;
-
-	fn from_str(input: &str) -> Result<Self, Self::Err> {
-		parse_name_or_hex(input, Self::from_name, Self::Rgb)
-	}
-}
-
-/// A gradient stop parses from its name or a hex value, the leading `#` is optional
+/// A color parses from its name or a hex value, the leading `#` is optional
 ///
-/// The slot only accepts colors, `system` and `candy` are not stops and say so,
-/// so a valid color name in the wrong place teaches instead of confuses
-impl FromStr for GradientStop {
+/// A slot only name the kind does not take gets the kind's own error,
+/// so a valid text color in the wrong place teaches instead of confuses
+impl<K: Kind> FromStr for Color<K> {
 	type Err = ColorError;
 
 	fn from_str(input: &str) -> Result<Self, Self::Err> {
-		parse_name_or_hex(input, Self::from_name, Self::Rgb).map_err(|error| match error {
-			ColorError::UnknownColor if Color::from_name(input).is_some() => ColorError::NotAGradientStop,
+		parse_name_or_hex(input, Self::from_name, Self::from).map_err(|error| match error {
+			ColorError::UnknownColor if Color::<Text>::from_name(input).is_some() => K::REFUSAL,
 			error => error,
 		})
-	}
-}
-
-/// One stop of a gradient
-///
-/// Gradient names map to canonical values (red is `#ff0000`), unlike the slot color table (where red is `#ea3223`):
-/// both mappings are behavior from older versions, kept apart by the two types
-/// The bright names have no canonical value and carry the slot color table's value
-/// `System` and `Candy` cannot be gradient stops, and every stop has an RGB value
-#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
-pub enum GradientStop {
-	Black,
-	Red,
-	Green,
-	Blue,
-	Yellow,
-	Magenta,
-	Cyan,
-	White,
-	Gray,
-	RedBright,
-	GreenBright,
-	YellowBright,
-	BlueBright,
-	MagentaBright,
-	CyanBright,
-	WhiteBright,
-	#[all(skip)]
-	Rgb(Rgb),
-}
-
-impl GradientStop {
-	/// Looks up a gradient stop by its name, case insensitively
-	///
-	/// Hex values are not names: they go through [`Rgb::from_hex`]
-	pub fn from_name(name: &str) -> Option<Self> {
-		match name.to_ascii_lowercase().as_str() {
-			"black" => Some(Self::Black),
-			"red" => Some(Self::Red),
-			"green" => Some(Self::Green),
-			"blue" => Some(Self::Blue),
-			"yellow" => Some(Self::Yellow),
-			"magenta" => Some(Self::Magenta),
-			"cyan" => Some(Self::Cyan),
-			"white" => Some(Self::White),
-			"gray" | "grey" => Some(Self::Gray),
-			"redbright" => Some(Self::RedBright),
-			"greenbright" => Some(Self::GreenBright),
-			"yellowbright" => Some(Self::YellowBright),
-			"bluebright" => Some(Self::BlueBright),
-			"magentabright" => Some(Self::MagentaBright),
-			"cyanbright" => Some(Self::CyanBright),
-			"whitebright" => Some(Self::WhiteBright),
-			_ => None,
-		}
-	}
-
-	/// The RGB value of this stop, from the gradient parser's canonical table,
-	/// the bright stops carry the slot color table's value
-	pub fn to_rgb(self) -> Rgb {
-		match self {
-			Self::Black => Rgb { red: 0, green: 0, blue: 0 },
-			Self::Red => Rgb { red: 255, green: 0, blue: 0 },
-			Self::Green => Rgb { red: 0, green: 255, blue: 0 },
-			Self::Blue => Rgb { red: 0, green: 0, blue: 255 },
-			Self::Yellow => Rgb { red: 255, green: 255, blue: 0 },
-			Self::Magenta => Rgb { red: 255, green: 0, blue: 255 },
-			Self::Cyan => Rgb { red: 0, green: 255, blue: 255 },
-			Self::White => Rgb { red: 255, green: 255, blue: 255 },
-			Self::Gray => Rgb { red: 128, green: 128, blue: 128 },
-			Self::RedBright => Color::RedBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::GreenBright => Color::GreenBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::YellowBright => Color::YellowBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::BlueBright => Color::BlueBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::MagentaBright => Color::MagentaBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::CyanBright => Color::CyanBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::WhiteBright => Color::WhiteBright.to_rgb().expect("a bright color carries an RGB value"),
-			Self::Rgb(rgb) => rgb,
-		}
 	}
 }
 
 /// Two or more transition stops, with the minimum count encoded in the type
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransitionStops {
-	pub first: GradientStop,
-	pub second: GradientStop,
-	pub rest: Vec<GradientStop>,
+	pub first: Color<Gradient>,
+	pub second: Color<Gradient>,
+	pub rest: Vec<Color<Gradient>>,
 }
 
 impl TransitionStops {
 	/// All stops in order
-	pub fn iter(&self) -> impl Iterator<Item = GradientStop> + '_ {
+	pub fn iter(&self) -> impl Iterator<Item = Color<Gradient>> + '_ {
 		[self.first, self.second].into_iter().chain(self.rest.iter().copied())
 	}
 
@@ -600,10 +789,10 @@ impl TransitionStops {
 }
 
 /// Two or more stops in a list become transition stops, fewer are an error
-impl TryFrom<Vec<GradientStop>> for TransitionStops {
+impl TryFrom<Vec<Color<Gradient>>> for TransitionStops {
 	type Error = ColorError;
 
-	fn try_from(stops: Vec<GradientStop>) -> Result<Self, Self::Error> {
+	fn try_from(stops: Vec<Color<Gradient>>) -> Result<Self, Self::Error> {
 		let count = stops.len();
 		let mut stops = stops.into_iter();
 
@@ -621,7 +810,7 @@ impl TryFrom<Vec<GradientStop>> for TransitionStops {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GradientOption {
 	/// Two colors interpolated through hue space; every color in between gets visited
-	TwoStop { start: GradientStop, end: GradientStop },
+	TwoStop { start: Color<Gradient>, end: Color<Gradient> },
 
 	/// Two or more stops connected by straight lines through RGB space
 	Transition(TransitionStops),
@@ -637,19 +826,19 @@ pub enum GradientOption {
 /// colons join the stops of a transition and a bare preset name is a preset gradient
 ///
 /// ```
-/// use cfonts::{Color, ColorOption, GradientOption, GradientPreset, GradientStop, TransitionStops};
+/// use cfonts::{Color, ColorOption, GradientOption, GradientPreset, TransitionStops};
 ///
-/// assert_eq!("red,blue".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+/// assert_eq!("red,blue".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::RED, Color::BLUE])));
 /// assert_eq!(
 ///     "red-blue".parse::<ColorOption>(),
-///     Ok(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+///     Ok(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 /// );
 /// assert_eq!(
 ///     "red:yellow:green".parse::<ColorOption>(),
 ///     Ok(ColorOption::Gradient(GradientOption::Transition(TransitionStops {
-///         first: GradientStop::Red,
-///         second: GradientStop::Yellow,
-///         rest: vec![GradientStop::Green],
+///         first: Color::RED,
+///         second: Color::YELLOW,
+///         rest: vec![Color::GREEN],
 ///     })))
 /// );
 /// assert_eq!("pride".parse::<ColorOption>(), Ok(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride))));
@@ -657,14 +846,14 @@ pub enum GradientOption {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ColorOption {
 	/// One color per font color slot; missing slots stay unpainted, colors beyond the font's slots are ignored
-	Colors(Vec<Color>),
+	Colors(Vec<Color<Text>>),
 
 	/// A gradient across the scope's columns
 	Gradient(GradientOption),
 }
 
-impl From<Vec<Color>> for ColorOption {
-	fn from(colors: Vec<Color>) -> Self {
+impl From<Vec<Color<Text>>> for ColorOption {
+	fn from(colors: Vec<Color<Text>>) -> Self {
 		Self::Colors(colors)
 	}
 }
@@ -689,27 +878,28 @@ impl From<GradientPreset> for ColorOption {
 /// a dash for a gradient and colons for a transition, a comma list has no rows to fill and is refused
 ///
 /// ```
-/// use cfonts::{BackgroundOption, Color, ColorError, GradientOption, GradientStop};
+/// use cfonts::{BackgroundOption, Color, ColorError, GradientOption};
 ///
-/// assert_eq!("blue".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::Blue)));
+/// assert_eq!("blue".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::BLUE)));
+/// assert_eq!("system".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::SYSTEM)));
 /// assert_eq!(
 ///     "red-blue".parse::<BackgroundOption>(),
-///     Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+///     Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 /// );
 /// assert!(matches!("red:yellow:green".parse::<BackgroundOption>(), Ok(BackgroundOption::Gradient(_))));
 /// assert_eq!("red,blue".parse::<BackgroundOption>(), Err(ColorError::BackgroundList));
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BackgroundOption {
-	/// One color behind every row, `System` and `Candy` paint nothing
-	Color(Color),
+	/// One color behind every row, `SYSTEM` paints nothing
+	Color(Color<Background>),
 
 	/// A gradient from the top row to the bottom row, one color per row
 	Gradient(GradientOption),
 }
 
-impl From<Color> for BackgroundOption {
-	fn from(color: Color) -> Self {
+impl From<Color<Background>> for BackgroundOption {
+	fn from(color: Color<Background>) -> Self {
 		Self::Color(color)
 	}
 }
@@ -793,7 +983,7 @@ fn parse_pair(start: &str, end: &str) -> Result<GradientOption, ColorError> {
 
 /// The transition a colon list spells
 fn parse_transition(segments: Vec<&str>) -> Result<GradientOption, ColorError> {
-	let stops: Vec<GradientStop> = segments.into_iter().map(parse_segment).collect::<Result<_, _>>()?;
+	let stops: Vec<Color<Gradient>> = segments.into_iter().map(parse_segment).collect::<Result<_, _>>()?;
 
 	Ok(GradientOption::Transition(TransitionStops::try_from(stops).expect("the colon shape holds two or more stops")))
 }
@@ -830,10 +1020,7 @@ impl FromStr for BackgroundOption {
 		Ok(match color_shape(value)? {
 			ColorShape::Single(token) => match GradientPreset::from_name(token) {
 				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => match parse_segment(token)? {
-					Color::Candy => return Err(ColorError::UnknownColor),
-					color => Self::Color(color),
-				},
+				None => Self::Color(parse_segment(token)?),
 			},
 			ColorShape::List(_) => return Err(ColorError::BackgroundList),
 			ColorShape::Pair(start, end) => Self::Gradient(parse_pair(start, end)?),
@@ -843,18 +1030,18 @@ impl FromStr for BackgroundOption {
 }
 
 /// The candy assortment: five base and six bright colors, no base blue and no white
-pub(crate) const CANDY: [Color; 11] = [
-	Color::Red,
-	Color::Green,
-	Color::Yellow,
-	Color::Magenta,
-	Color::Cyan,
-	Color::RedBright,
-	Color::GreenBright,
-	Color::YellowBright,
-	Color::BlueBright,
-	Color::MagentaBright,
-	Color::CyanBright,
+pub(crate) const CANDY: [Color<Text>; 11] = [
+	Color::RED,
+	Color::GREEN,
+	Color::YELLOW,
+	Color::MAGENTA,
+	Color::CYAN,
+	Color::RED_BRIGHT,
+	Color::GREEN_BRIGHT,
+	Color::YELLOW_BRIGHT,
+	Color::BLUE_BRIGHT,
+	Color::MAGENTA_BRIGHT,
+	Color::CYAN_BRIGHT,
 ];
 
 /// A tiny deterministic PRNG (SplitMix64) for candy picks
@@ -1045,22 +1232,22 @@ mod tests {
 	#[test]
 	fn the_sixteen_low_indices_carry_the_table_values() {
 		let named = [
-			Color::Black,
-			Color::Red,
-			Color::Green,
-			Color::Yellow,
-			Color::Blue,
-			Color::Magenta,
-			Color::Cyan,
-			Color::White,
-			Color::Gray,
-			Color::RedBright,
-			Color::GreenBright,
-			Color::YellowBright,
-			Color::BlueBright,
-			Color::MagentaBright,
-			Color::CyanBright,
-			Color::WhiteBright,
+			Value::Black,
+			Value::Red,
+			Value::Green,
+			Value::Yellow,
+			Value::Blue,
+			Value::Magenta,
+			Value::Cyan,
+			Value::White,
+			Value::Gray,
+			Value::RedBright,
+			Value::GreenBright,
+			Value::YellowBright,
+			Value::BlueBright,
+			Value::MagentaBright,
+			Value::CyanBright,
+			Value::WhiteBright,
 		];
 
 		for (index, color) in named.into_iter().enumerate() {
@@ -1077,7 +1264,7 @@ mod tests {
 
 		assert_eq!(near_red.at_level(ColorLevel::TrueColor), near_red);
 		assert_eq!(orange.at_level(ColorLevel::Ansi256), Rgb { red: 255, green: 135, blue: 0 });
-		assert_eq!(near_red.at_level(ColorLevel::Basic), Color::Red.to_rgb().unwrap());
+		assert_eq!(near_red.at_level(ColorLevel::Basic), Value::Red.to_rgb().unwrap());
 	}
 
 	// Rgb::ansi16_sgr
@@ -1096,8 +1283,8 @@ mod tests {
 	fn bright_magenta_agrees_between_named_and_hex() {
 		// the slot value classified through the palette must land on the same
 		// code the named color pins
-		let hex = Color::MagentaBright.to_rgb().expect("MagentaBright carries a value");
-		let named = Color::MagentaBright.ansi16_sgr().expect("MagentaBright has a fixed code");
+		let hex = Value::MagentaBright.to_rgb().expect("MagentaBright carries a value");
+		let named = Value::MagentaBright.ansi16_sgr().expect("MagentaBright has a fixed code");
 
 		assert_eq!(hex.ansi16_sgr(), named);
 	}
@@ -1108,9 +1295,39 @@ mod tests {
 	fn rgb_values_level_down_to_the_same_named_color_on_both_layers() {
 		let orange = Rgb { red: 255, green: 136, blue: 0 };
 
-		assert_eq!(orange.nearest_named(), Color::RedBright);
+		assert_eq!(orange.nearest_named(), Value::RedBright);
 		assert_eq!(orange.ansi16_sgr(), "\x1b[91m");
 		assert_eq!(orange.ansi16_background_sgr(), "\x1b[101m");
+	}
+
+	// Kind
+
+	/// Every name of a kind parses back and the two slot only names follow the kind's consts
+	fn names_follow_the_kind<K: Kind>(names: &[&str]) {
+		for name in names {
+			assert!(Color::<K>::from_name(name).is_some(), "{name} is a {}", std::any::type_name::<K>());
+		}
+
+		assert_eq!(names.contains(&"system"), K::TAKES_SYSTEM);
+		assert_eq!(names.contains(&"candy"), K::TAKES_CANDY);
+		assert_eq!(Color::<K>::from_name("system").is_some(), K::TAKES_SYSTEM);
+		assert_eq!(Color::<K>::from_name("candy").is_some(), K::TAKES_CANDY);
+	}
+
+	#[test]
+	fn every_name_of_a_kind_parses_back_and_the_slot_only_names_follow_its_consts() {
+		names_follow_the_kind::<Text>(&Color::<Text>::NAMES);
+		names_follow_the_kind::<Background>(&Color::<Background>::NAMES);
+		names_follow_the_kind::<Gradient>(&Color::<Gradient>::NAMES);
+	}
+
+	#[test]
+	fn the_names_of_a_kind_follow_the_help_order() {
+		// system first, the sixteen, candy last, the two slot only names left out where the kind does not take them
+		assert_eq!(Color::<Text>::NAMES[0], "system");
+		assert_eq!(Color::<Text>::NAMES[17], "candy");
+		assert_eq!(Color::<Background>::NAMES, Color::<Text>::NAMES[..17]);
+		assert_eq!(Color::<Gradient>::NAMES, Color::<Text>::NAMES[1..17]);
 	}
 
 	// Color::from_name
@@ -1118,52 +1335,62 @@ mod tests {
 	#[test]
 	fn color_names_resolve_to_their_colors() {
 		for (name, color) in [
-			("system", Color::System),
-			("black", Color::Black),
-			("red", Color::Red),
-			("green", Color::Green),
-			("yellow", Color::Yellow),
-			("blue", Color::Blue),
-			("magenta", Color::Magenta),
-			("cyan", Color::Cyan),
-			("white", Color::White),
-			("gray", Color::Gray),
-			("grey", Color::Gray),
-			("redBright", Color::RedBright),
-			("greenBright", Color::GreenBright),
-			("yellowBright", Color::YellowBright),
-			("blueBright", Color::BlueBright),
-			("magentaBright", Color::MagentaBright),
-			("cyanBright", Color::CyanBright),
-			("whiteBright", Color::WhiteBright),
-			("candy", Color::Candy),
+			("system", Color::SYSTEM),
+			("black", Color::BLACK),
+			("red", Color::RED),
+			("green", Color::GREEN),
+			("yellow", Color::YELLOW),
+			("blue", Color::BLUE),
+			("magenta", Color::MAGENTA),
+			("cyan", Color::CYAN),
+			("white", Color::WHITE),
+			("gray", Color::GRAY),
+			("grey", Color::GRAY),
+			("redBright", Color::RED_BRIGHT),
+			("greenBright", Color::GREEN_BRIGHT),
+			("yellowBright", Color::YELLOW_BRIGHT),
+			("blueBright", Color::BLUE_BRIGHT),
+			("magentaBright", Color::MAGENTA_BRIGHT),
+			("cyanBright", Color::CYAN_BRIGHT),
+			("whiteBright", Color::WHITE_BRIGHT),
+			("candy", Color::CANDY),
 		] {
-			assert_eq!(Color::from_name(name), Some(color), "{name}");
+			assert_eq!(Color::<Text>::from_name(name), Some(color), "{name}");
 		}
 	}
 
 	#[test]
 	fn color_names_ignore_case() {
-		assert_eq!(Color::from_name("RED"), Some(Color::Red));
-		assert_eq!(Color::from_name("RedBright"), Some(Color::RedBright));
-		assert_eq!(Color::from_name("REDBRIGHT"), Some(Color::RedBright));
+		assert_eq!(Color::<Text>::from_name("RED"), Some(Color::RED));
+		assert_eq!(Color::<Text>::from_name("RedBright"), Some(Color::RED_BRIGHT));
+		assert_eq!(Color::<Text>::from_name("REDBRIGHT"), Some(Color::RED_BRIGHT));
 	}
 
 	#[test]
 	fn color_names_reject_everything_else() {
-		assert_eq!(Color::from_name("reed"), None);
-		assert_eq!(Color::from_name("#ff0000"), None);
-		assert_eq!(Color::from_name(""), None);
+		assert_eq!(Color::<Text>::from_name("reed"), None);
+		assert_eq!(Color::<Text>::from_name("#ff0000"), None);
+		assert_eq!(Color::<Text>::from_name(""), None);
+	}
+
+	#[test]
+	fn the_slot_only_names_are_names_only_where_the_kind_takes_them() {
+		assert_eq!(Color::<Background>::from_name("system"), Some(Color::SYSTEM));
+		assert_eq!(Color::<Background>::from_name("candy"), None);
+		assert_eq!(Color::<Gradient>::from_name("system"), None);
+		assert_eq!(Color::<Gradient>::from_name("candy"), None);
 	}
 
 	// Color::from_str
 
 	#[test]
 	fn colors_parse_from_names_and_hex_values() {
-		assert_eq!("red".parse::<Color>(), Ok(Color::Red));
-		assert_eq!("REDBRIGHT".parse::<Color>(), Ok(Color::RedBright));
-		assert_eq!("#ff8800".parse::<Color>(), Ok(Color::Rgb(Rgb { red: 255, green: 136, blue: 0 })));
-		assert_eq!("f80".parse::<Color>(), Ok(Color::Rgb(Rgb { red: 255, green: 136, blue: 0 })));
+		assert_eq!("red".parse::<Color>(), Ok(Color::RED));
+		assert_eq!("REDBRIGHT".parse::<Color>(), Ok(Color::RED_BRIGHT));
+		assert_eq!("#ff8800".parse::<Color>(), Ok(Color::rgb(255, 136, 0)));
+		assert_eq!("f80".parse::<Color>(), Ok(Color::rgb(255, 136, 0)));
+		assert_eq!("blue".parse::<Color<Gradient>>(), Ok(Color::BLUE));
+		assert_eq!("f80".parse::<Color<Gradient>>(), Ok(Color::rgb(255, 136, 0)));
 	}
 
 	#[test]
@@ -1172,6 +1399,39 @@ mod tests {
 		assert_eq!("#zzz".parse::<Color>(), Err(ColorError::HexCharacter));
 		assert_eq!("reed".parse::<Color>(), Err(ColorError::UnknownColor));
 		assert_eq!("fffffff".parse::<Color>(), Err(ColorError::UnknownColor));
+		assert_eq!("#zz".parse::<Color<Gradient>>(), Err(ColorError::HexCharacter));
+		assert_eq!("#12345".parse::<Color<Gradient>>(), Err(ColorError::HexLength(5)));
+		assert_eq!("reed".parse::<Color<Gradient>>(), Err(ColorError::UnknownColor));
+	}
+
+	#[test]
+	fn a_slot_only_name_gets_the_refusal_of_the_kind() {
+		// a real text color that is no stop names its own problem, a candy background fails like any unknown word
+		for input in ["system", "candy"] {
+			assert_eq!(input.parse::<Color<Gradient>>(), Err(ColorError::NotAGradientStop), "{input}");
+		}
+		assert_eq!("candy".parse::<Color<Background>>(), Err(ColorError::UnknownColor));
+		assert_eq!("system".parse::<Color<Background>>(), Ok(Color::SYSTEM));
+	}
+
+	#[test]
+	fn every_text_name_but_system_and_candy_is_a_stop() {
+		// every name parses to the stop of the same value, the two slot only names teach instead
+		for name in Color::<Text>::NAMES {
+			let stop = name.parse::<Color<Gradient>>();
+
+			match name {
+				"system" | "candy" => assert_eq!(stop, Err(ColorError::NotAGradientStop), "{name}"),
+				_ => {
+					let stop = stop.unwrap_or_else(|error| panic!("{name} is a stop, not {error}"));
+					let text = Color::<Text>::from_name(name).expect("every name of the list is a text color");
+
+					assert_eq!(format!("{stop:?}"), format!("{text:?}"), "{name}");
+				}
+			}
+		}
+
+		assert_eq!("REDBRIGHT".parse::<Color<Gradient>>(), Ok(Color::RED_BRIGHT));
 	}
 
 	// Color::to_rgb
@@ -1179,189 +1439,140 @@ mod tests {
 	#[test]
 	fn named_colors_carry_the_hex_values() {
 		// the color2hex table, round tripped through to_hex so the table stays self checking
-		for (color, hex) in [
-			(Color::Black, "#000000"),
-			(Color::Red, "#ea3223"),
-			(Color::Green, "#377d22"),
-			(Color::Yellow, "#fffd54"),
-			(Color::Blue, "#0020f5"),
-			(Color::Magenta, "#ea3df7"),
-			(Color::Cyan, "#74fbfd"),
-			(Color::White, "#ffffff"),
-			(Color::Gray, "#808080"),
-			(Color::RedBright, "#ee776d"),
-			(Color::GreenBright, "#8cf57b"),
-			(Color::YellowBright, "#fffb7f"),
-			(Color::BlueBright, "#6974f6"),
-			(Color::MagentaBright, "#ee82f8"),
-			(Color::CyanBright, "#8dfafd"),
-			(Color::WhiteBright, "#ffffff"),
-		] {
+		let table: [(Color, &str); 16] = [
+			(Color::BLACK, "#000000"),
+			(Color::RED, "#ea3223"),
+			(Color::GREEN, "#377d22"),
+			(Color::YELLOW, "#fffd54"),
+			(Color::BLUE, "#0020f5"),
+			(Color::MAGENTA, "#ea3df7"),
+			(Color::CYAN, "#74fbfd"),
+			(Color::WHITE, "#ffffff"),
+			(Color::GRAY, "#808080"),
+			(Color::RED_BRIGHT, "#ee776d"),
+			(Color::GREEN_BRIGHT, "#8cf57b"),
+			(Color::YELLOW_BRIGHT, "#fffb7f"),
+			(Color::BLUE_BRIGHT, "#6974f6"),
+			(Color::MAGENTA_BRIGHT, "#ee82f8"),
+			(Color::CYAN_BRIGHT, "#8dfafd"),
+			(Color::WHITE_BRIGHT, "#ffffff"),
+		];
+
+		for (color, hex) in table {
 			assert_eq!(color.to_rgb().expect("named colors have an RGB value").to_hex(), hex, "{color:?}");
 		}
 	}
 
 	#[test]
+	fn a_background_paints_the_value_of_the_text_color_of_the_same_name() {
+		for name in Color::<Gradient>::NAMES {
+			let text = Color::<Text>::from_name(name).expect("every stop name is a text color");
+			let background = Color::<Background>::from_name(name).expect("every stop name is a background");
+
+			assert_eq!(background.to_rgb(), text.to_rgb(), "{name}");
+		}
+	}
+
+	#[test]
 	fn system_and_candy_have_no_rgb_value() {
-		assert_eq!(Color::System.to_rgb(), None);
-		assert_eq!(Color::Candy.to_rgb(), None);
+		assert_eq!(Color::<Text>::SYSTEM.to_rgb(), None);
+		assert_eq!(Color::<Text>::CANDY.to_rgb(), None);
+		assert_eq!(Color::<Background>::SYSTEM.to_rgb(), None);
 	}
 
 	#[test]
 	fn rgb_colors_pass_through() {
 		let rgb = Rgb { red: 1, green: 2, blue: 3 };
-		assert_eq!(Color::Rgb(rgb).to_rgb(), Some(rgb));
+		assert_eq!(Color::<Text>::from(rgb).to_rgb(), Some(rgb));
+		assert_eq!(Color::<Background>::from(rgb).to_rgb(), Some(rgb));
+		assert_eq!(Color::<Gradient>::from(rgb).to_rgb(), rgb);
+		assert_eq!(Color::<Gradient>::rgb(1, 2, 3).to_rgb(), rgb);
 	}
-
-	// Color::ansi16_sgr
-
-	#[test]
-	fn named_colors_carry_the_sgr_codes() {
-		assert_eq!(Color::System.ansi16_sgr(), None);
-		assert_eq!(Color::Black.ansi16_sgr(), Some("\x1b[30m"));
-		assert_eq!(Color::Red.ansi16_sgr(), Some("\x1b[31m"));
-		assert_eq!(Color::White.ansi16_sgr(), Some("\x1b[37m"));
-		assert_eq!(Color::Gray.ansi16_sgr(), Some("\x1b[90m"));
-		assert_eq!(Color::RedBright.ansi16_sgr(), Some("\x1b[91m"));
-		assert_eq!(Color::WhiteBright.ansi16_sgr(), Some("\x1b[97m"));
-		assert_eq!(Color::Candy.ansi16_sgr(), None);
-		assert_eq!(Color::Rgb(Rgb { red: 0, green: 0, blue: 0 }).ansi16_sgr(), None);
-	}
-
-	// GradientStop::from_name
-
-	#[test]
-	fn gradient_stop_names_resolve_to_their_stops() {
-		for (name, stop) in [
-			("black", GradientStop::Black),
-			("red", GradientStop::Red),
-			("green", GradientStop::Green),
-			("blue", GradientStop::Blue),
-			("yellow", GradientStop::Yellow),
-			("magenta", GradientStop::Magenta),
-			("cyan", GradientStop::Cyan),
-			("white", GradientStop::White),
-			("gray", GradientStop::Gray),
-			("grey", GradientStop::Gray),
-		] {
-			assert_eq!(GradientStop::from_name(name), Some(stop), "{name}");
-		}
-	}
-
-	#[test]
-	fn gradient_stop_names_ignore_case() {
-		assert_eq!(GradientStop::from_name("RED"), Some(GradientStop::Red));
-		assert_eq!(GradientStop::from_name("Gray"), Some(GradientStop::Gray));
-	}
-
-	#[test]
-	fn gradient_stop_names_reject_slot_only_colors() {
-		assert_eq!(GradientStop::from_name("system"), None);
-		assert_eq!(GradientStop::from_name("candy"), None);
-		assert_eq!(GradientStop::from_name("#ff0000"), None);
-	}
-
-	// GradientStop::from_str
-
-	#[test]
-	fn stops_parse_from_names_and_hex_values() {
-		assert_eq!("blue".parse::<GradientStop>(), Ok(GradientStop::Blue));
-		assert_eq!("f80".parse::<GradientStop>(), Ok(GradientStop::Rgb(Rgb { red: 255, green: 136, blue: 0 })));
-	}
-
-	#[test]
-	fn slot_only_colors_do_not_parse_as_stops() {
-		// a real color name that is not a stop names its own problem, an unknown name stays unknown
-		for input in ["system", "candy"] {
-			assert_eq!(input.parse::<GradientStop>(), Err(ColorError::NotAGradientStop), "{input}");
-		}
-		assert_eq!("reed".parse::<GradientStop>(), Err(ColorError::UnknownColor));
-	}
-
-	#[test]
-	fn every_color_but_system_and_candy_is_a_stop() {
-		// every name parses to the stop of the same name, and the bright names carry the slot color table's value
-		for (color, name) in Color::ALL.into_iter().zip(Color::NAMES) {
-			let stop = name.parse::<GradientStop>();
-
-			match color {
-				Color::System | Color::Candy => assert_eq!(stop, Err(ColorError::NotAGradientStop), "{name}"),
-				Color::Rgb(_) => unreachable!("ALL holds the named colors only"),
-				_ => {
-					let stop = stop.unwrap_or_else(|error| panic!("{name} is a stop, not {error}"));
-					assert_eq!(format!("{stop:?}"), format!("{color:?}"), "{name}");
-
-					if name.ends_with("bright") {
-						assert_eq!(stop.to_rgb(), color.to_rgb().unwrap(), "{name}");
-					}
-				}
-			}
-		}
-
-		assert_eq!("REDBRIGHT".parse::<GradientStop>(), Ok(GradientStop::RedBright));
-	}
-
-	#[test]
-	fn hex_errors_in_stops_keep_their_own_cause() {
-		assert_eq!("#zz".parse::<GradientStop>(), Err(ColorError::HexCharacter));
-		assert_eq!("#12345".parse::<GradientStop>(), Err(ColorError::HexLength(5)));
-	}
-
-	// GradientStop::to_rgb
 
 	#[test]
 	fn gradient_stops_carry_the_canonical_values() {
 		// the gradient argument parser table
-		for (stop, hex) in [
-			(GradientStop::Black, "#000000"),
-			(GradientStop::Red, "#ff0000"),
-			(GradientStop::Green, "#00ff00"),
-			(GradientStop::Blue, "#0000ff"),
-			(GradientStop::Yellow, "#ffff00"),
-			(GradientStop::Magenta, "#ff00ff"),
-			(GradientStop::Cyan, "#00ffff"),
-			(GradientStop::White, "#ffffff"),
-			(GradientStop::Gray, "#808080"),
-		] {
+		let table: [(Color<Gradient>, &str); 9] = [
+			(Color::BLACK, "#000000"),
+			(Color::RED, "#ff0000"),
+			(Color::GREEN, "#00ff00"),
+			(Color::BLUE, "#0000ff"),
+			(Color::YELLOW, "#ffff00"),
+			(Color::MAGENTA, "#ff00ff"),
+			(Color::CYAN, "#00ffff"),
+			(Color::WHITE, "#ffffff"),
+			(Color::GRAY, "#808080"),
+		];
+
+		for (stop, hex) in table {
 			assert_eq!(stop.to_rgb().to_hex(), hex, "{stop:?}");
 		}
+	}
+
+	#[test]
+	fn the_bright_names_blend_from_their_painted_value() {
+		for name in Color::<Gradient>::NAMES.into_iter().filter(|name| name.ends_with("bright")) {
+			let stop = Color::<Gradient>::from_name(name).expect("every bright name is a stop");
+			let text = Color::<Text>::from_name(name).expect("every bright name is a text color");
+
+			assert_eq!(Some(stop.to_rgb()), text.to_rgb(), "{name}");
+		}
+	}
+
+	// Color: Debug
+
+	#[test]
+	fn debug_prints_the_value_alone() {
+		assert_eq!(format!("{:?}", Color::<Gradient>::RED), "Red");
+		assert_eq!(format!("{:?}", Color::<Text>::CANDY), "Candy");
+		assert_eq!(format!("{:?}", Color::<Background>::rgb(1, 2, 3)), "Rgb(Rgb { red: 1, green: 2, blue: 3 })");
+	}
+
+	// Value::ansi16_sgr
+
+	#[test]
+	fn named_colors_carry_the_sgr_codes() {
+		assert_eq!(Value::System.ansi16_sgr(), None);
+		assert_eq!(Value::Black.ansi16_sgr(), Some("\x1b[30m"));
+		assert_eq!(Value::Red.ansi16_sgr(), Some("\x1b[31m"));
+		assert_eq!(Value::White.ansi16_sgr(), Some("\x1b[37m"));
+		assert_eq!(Value::Gray.ansi16_sgr(), Some("\x1b[90m"));
+		assert_eq!(Value::RedBright.ansi16_sgr(), Some("\x1b[91m"));
+		assert_eq!(Value::WhiteBright.ansi16_sgr(), Some("\x1b[97m"));
+		assert_eq!(Value::Candy.ansi16_sgr(), None);
+		assert_eq!(Value::Rgb(Rgb { red: 0, green: 0, blue: 0 }).ansi16_sgr(), None);
 	}
 
 	// TransitionStops
 
 	#[test]
 	fn transition_stops_iterate_in_order_and_count_from_two() {
-		let stops =
-			TransitionStops { first: GradientStop::Red, second: GradientStop::Blue, rest: vec![GradientStop::Green] };
+		let stops = TransitionStops { first: Color::RED, second: Color::BLUE, rest: vec![Color::GREEN] };
 
 		assert_eq!(stops.len(), 3);
 		assert!(!stops.is_empty());
-		assert_eq!(
-			stops.iter().collect::<Vec<GradientStop>>(),
-			vec![GradientStop::Red, GradientStop::Blue, GradientStop::Green]
-		);
+		assert_eq!(stops.iter().collect::<Vec<Color<Gradient>>>(), vec![Color::RED, Color::BLUE, Color::GREEN]);
 	}
 
 	#[test]
 	fn transition_stops_come_from_a_list_of_at_least_two() {
-		let stops = TransitionStops::try_from(vec![GradientStop::Red, GradientStop::Blue, GradientStop::Green])
-			.expect("three stops are enough");
+		let stops = TransitionStops::try_from(vec![Color::RED, Color::BLUE, Color::GREEN]).expect("three stops are enough");
 
-		assert_eq!(stops.first, GradientStop::Red);
-		assert_eq!(stops.second, GradientStop::Blue);
-		assert_eq!(stops.rest, vec![GradientStop::Green]);
+		assert_eq!(stops.first, Color::RED);
+		assert_eq!(stops.second, Color::BLUE);
+		assert_eq!(stops.rest, vec![Color::GREEN]);
 
 		assert_eq!(TransitionStops::try_from(vec![]), Err(ColorError::TransitionStops(0)));
-		assert_eq!(TransitionStops::try_from(vec![GradientStop::Red]), Err(ColorError::TransitionStops(1)));
+		assert_eq!(TransitionStops::try_from(vec![Color::RED]), Err(ColorError::TransitionStops(1)));
 	}
 
 	// ColorOption
 
 	#[test]
 	fn color_lists_gradients_and_presets_convert_into_the_option() {
-		assert_eq!(ColorOption::from(vec![Color::Red]), ColorOption::Colors(vec![Color::Red]));
+		assert_eq!(ColorOption::from(vec![Color::RED]), ColorOption::Colors(vec![Color::RED]));
 
-		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		assert_eq!(ColorOption::from(gradient.clone()), ColorOption::Gradient(gradient));
 
 		assert_eq!(
@@ -1374,18 +1585,15 @@ mod tests {
 
 	#[test]
 	fn the_delimiter_picks_the_shape_and_whitespace_around_segments_is_trimmed() {
-		assert_eq!(" red ".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Red])));
-		assert_eq!("red, blue".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Red, Color::Blue])));
+		assert_eq!(" red ".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::RED])));
+		assert_eq!("red, blue".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::RED, Color::BLUE])));
 		assert_eq!(
 			"red - blue".parse::<ColorOption>(),
-			Ok(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+			Ok(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 		);
 		assert_eq!(
 			"#ff8800-#0000ff".parse::<ColorOption>(),
-			Ok(ColorOption::Gradient(GradientOption::TwoStop {
-				start: GradientStop::Rgb(Rgb { red: 255, green: 136, blue: 0 }),
-				end: GradientStop::Rgb(Rgb { red: 0, green: 0, blue: 255 }),
-			}))
+			Ok(ColorOption::Gradient(GradientOption::TwoStop { start: Color::rgb(255, 136, 0), end: Color::rgb(0, 0, 255) }))
 		);
 		// the hash is optional inside a shape as it is for a single token, and spaces around stops are trimmed
 		assert_eq!("ff8800-0000ff".parse::<ColorOption>(), "#ff8800-#0000ff".parse::<ColorOption>());
@@ -1393,9 +1601,9 @@ mod tests {
 		assert_eq!(
 			"red:blue:green".parse::<ColorOption>(),
 			Ok(ColorOption::Gradient(GradientOption::Transition(TransitionStops {
-				first: GradientStop::Red,
-				second: GradientStop::Blue,
-				rest: vec![GradientStop::Green],
+				first: Color::RED,
+				second: Color::BLUE,
+				rest: vec![Color::GREEN],
 			})))
 		);
 	}
@@ -1443,9 +1651,9 @@ mod tests {
 
 	#[test]
 	fn candy_and_system_are_slot_colors_but_no_stops() {
-		assert_eq!("candy".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Candy])));
-		assert_eq!("system".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::System])));
-		assert_eq!("candy,system".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::Candy, Color::System])));
+		assert_eq!("candy".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::CANDY])));
+		assert_eq!("system".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::SYSTEM])));
+		assert_eq!("candy,system".parse::<ColorOption>(), Ok(ColorOption::Colors(vec![Color::CANDY, Color::SYSTEM])));
 
 		for value in ["candy-red", "red:system"] {
 			assert_eq!(value.parse::<ColorOption>(), Err(ColorError::NotAGradientStop), "{value:?}");
@@ -1468,15 +1676,12 @@ mod tests {
 
 	#[test]
 	fn a_background_is_one_color_a_gradient_or_a_preset() {
-		assert_eq!("blue".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::Blue)));
-		assert_eq!("system".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::System)));
-		assert_eq!(
-			"#222".parse::<BackgroundOption>(),
-			Ok(BackgroundOption::Color(Color::Rgb(Rgb { red: 34, green: 34, blue: 34 })))
-		);
+		assert_eq!("blue".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::BLUE)));
+		assert_eq!("system".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::SYSTEM)));
+		assert_eq!("#222".parse::<BackgroundOption>(), Ok(BackgroundOption::Color(Color::rgb(34, 34, 34))));
 		assert_eq!(
 			"red-blue".parse::<BackgroundOption>(),
-			Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }))
+			Ok(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }))
 		);
 		assert!(matches!(
 			"red:blue:green".parse::<BackgroundOption>(),
@@ -1523,13 +1728,6 @@ mod tests {
 
 		for _ in 0..256 {
 			assert!(rng.pick() < CANDY.len());
-		}
-	}
-
-	#[test]
-	fn every_list_name_parses_back() {
-		for name in Color::LIST.split(", ") {
-			assert!(Color::from_name(name).is_some(), "color {name:?} does not parse");
 		}
 	}
 }

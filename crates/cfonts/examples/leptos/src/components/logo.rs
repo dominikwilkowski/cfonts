@@ -1,4 +1,4 @@
-use cfonts::{Cfonts, CfontsLeptos, GradientOption, GradientStop, Rgb};
+use cfonts::{Cfonts, CfontsLeptos, Color, GradientOption, Rgb};
 use leptos::prelude::*;
 use std::time::Duration;
 
@@ -69,8 +69,8 @@ pub fn Logo() -> impl IntoView {
 		Cfonts::text("cfonts")
 			.spaceless()
 			.global_colors(GradientOption::TwoStop {
-				start: GradientStop::Rgb(GRADIENT_COLORS[(offset.get() + GRADIENT_COLORS.len() - 1) % GRADIENT_COLORS.len()]),
-				end: GradientStop::Rgb(GRADIENT_COLORS[offset.get()]),
+				start: Color::from(GRADIENT_COLORS[(offset.get() + GRADIENT_COLORS.len() - 1) % GRADIENT_COLORS.len()]),
+				end: Color::from(GRADIENT_COLORS[offset.get()]),
 			})
 			.into()
 	});

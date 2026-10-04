@@ -2,8 +2,7 @@ use std::{num::NonZeroUsize, ops::Range};
 
 use crate::{
 	color::{
-		BackgroundOption, CANDY, CandyRng, Color, ColorLevel, ColorOption, GradientColors, GradientOption, GradientStop,
-		Rgb,
+		Background, BackgroundOption, CANDY, CandyRng, Color, ColorLevel, ColorOption, GradientColors, GradientOption, Rgb,
 	},
 	environments::{Environment, Rendered},
 	layout::{Layout, LayoutRow},
@@ -294,10 +293,10 @@ impl<T> PaintPlan<T> {
 						let slots: Vec<SlotPaint<T>> = colors
 							.iter()
 							.take(font_colors)
-							.map(|color| match color {
-								Color::System => SlotPaint::None,
-								Color::Candy => SlotPaint::Candy,
-								color => resolve(*color).map_or(SlotPaint::None, SlotPaint::Fixed),
+							.map(|color| match *color {
+								Color::SYSTEM => SlotPaint::None,
+								Color::CANDY => SlotPaint::Candy,
+								color => resolve(color).map_or(SlotPaint::None, SlotPaint::Fixed),
 							})
 							.collect();
 
@@ -375,7 +374,7 @@ impl GradientState {
 	fn new(gradient: &GradientOption) -> Self {
 		let (stops, transition) = match gradient {
 			GradientOption::TwoStop { start, end } => (vec![start.to_rgb(), end.to_rgb()], false),
-			GradientOption::Transition(stops) => (stops.iter().map(GradientStop::to_rgb).collect(), true),
+			GradientOption::Transition(stops) => (stops.iter().map(|stop| stop.to_rgb()).collect(), true),
 			GradientOption::Preset(preset) => (preset.stops().to_vec(), true),
 		};
 
@@ -540,7 +539,7 @@ impl<T> Backdrop<T> {
 		options: &Options,
 		context: &RenderContext,
 		rows: usize,
-		mut resolve: impl FnMut(Color) -> Option<T>,
+		mut resolve: impl FnMut(Color<Background>) -> Option<T>,
 	) -> Option<Self> {
 		if context.color_level().is_none() || rows == 0 {
 			return None;
@@ -553,7 +552,7 @@ impl<T> Backdrop<T> {
 				ramp.fill(Some(0..rows));
 
 				let paints: Vec<Option<T>> =
-					(0..rows).map(|row| ramp.window(row).first().and_then(|rgb| resolve(Color::Rgb(*rgb)))).collect();
+					(0..rows).map(|row| ramp.window(row).first().and_then(|rgb| resolve(Color::from(*rgb)))).collect();
 
 				paints.iter().any(Option::is_some).then_some(Self::Ramp(paints))
 			}
@@ -631,10 +630,10 @@ mod tests {
 	fn the_resolver_runs_once_per_block_and_slot() {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Block)
-			.colors(vec![Color::Red, Color::Blue])
+			.colors(vec![Color::RED, Color::BLUE])
 			.next("two")
 			.font(Font::Block)
-			.colors(vec![Color::Green])
+			.colors(vec![Color::GREEN])
 			.into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
@@ -648,7 +647,7 @@ mod tests {
 
 	#[test]
 	fn no_color_level_builds_a_bare_plan() {
-		let options: Options = Cfonts::text("hello").colors(vec![Color::Red]).into();
+		let options: Options = Cfonts::text("hello").colors(vec![Color::RED]).into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::unlimited());
 
@@ -660,7 +659,7 @@ mod tests {
 	#[test]
 	fn system_and_colors_beyond_the_fonts_slots_never_paint() {
 		// Tiny holds one color slot, so the second color can never apply and must not style the render
-		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::System, Color::Red]).into();
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::SYSTEM, Color::RED]).into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
 
@@ -672,8 +671,8 @@ mod tests {
 
 	#[test]
 	fn untagged_text_paints_only_in_single_color_fonts() {
-		let single: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::Red]).into();
-		let multi: Options = Cfonts::text("hello").font(Font::Block).colors(vec![Color::Red, Color::Blue]).into();
+		let single: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::RED]).into();
+		let multi: Options = Cfonts::text("hello").font(Font::Block).colors(vec![Color::RED, Color::BLUE]).into();
 
 		let (mut plan, _) = plan_for(&single, &RenderContext::colored(ColorLevel::TrueColor));
 		assert_eq!(plan.paint_for(0, None, true), Some(&String::from("Red")));
@@ -687,10 +686,10 @@ mod tests {
 	fn a_blocks_own_color_wins_over_the_global_colors() {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Tiny)
-			.colors(vec![Color::Red])
+			.colors(vec![Color::RED])
 			.next("two")
 			.font(Font::Tiny)
-			.global_colors(vec![Color::Blue])
+			.global_colors(vec![Color::BLUE])
 			.into();
 
 		let (mut plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
@@ -704,10 +703,10 @@ mod tests {
 		// two candy slots share the one resolved assortment
 		let options: Options = Cfonts::text("hello")
 			.font(Font::Tiny)
-			.colors(vec![Color::Candy])
+			.colors(vec![Color::CANDY])
 			.next("world")
 			.font(Font::Tiny)
-			.colors(vec![Color::Candy])
+			.colors(vec![Color::CANDY])
 			.into();
 
 		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
@@ -729,7 +728,7 @@ mod tests {
 
 	#[test]
 	fn candy_rolls_are_deterministic_for_a_seed() {
-		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::Candy]).into();
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::CANDY]).into();
 		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
 
 		let (mut one, _) = plan_for(&options, &seeded);
@@ -747,7 +746,7 @@ mod tests {
 
 	#[test]
 	fn the_scan_does_not_consume_rolls() {
-		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::Candy]).into();
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::CANDY]).into();
 		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
 
 		let (mut scanned, _) = plan_for(&options, &seeded);
@@ -783,7 +782,7 @@ mod tests {
 	fn a_blocks_own_color_suppresses_the_global_gradient_for_it() {
 		let options: Options = Cfonts::text("one")
 			.font(Font::Tiny)
-			.colors(vec![Color::Red])
+			.colors(vec![Color::RED])
 			.next("two")
 			.font(Font::Tiny)
 			.global_colors(GradientPreset::Pride)
@@ -827,35 +826,35 @@ mod tests {
 	// Backdrop
 
 	/// Resolves every color but the terminal's own to itself, the way an environment with a palette would
-	fn resolve(color: Color) -> Option<Color> {
-		(!matches!(color, Color::System | Color::Candy)).then_some(color)
+	fn resolve(color: Color<Background>) -> Option<Color<Background>> {
+		(color != Color::SYSTEM).then_some(color)
 	}
 
 	#[test]
 	fn a_fixed_background_repeats_on_every_row() {
-		let options = Options { background: Some(BackgroundOption::Color(Color::Blue)), ..Default::default() };
+		let options = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
 		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::Basic), 3, resolve).unwrap();
 
 		for row in 0..3 {
-			assert_eq!(backdrop.band(row), Some(&Color::Blue), "row {row}");
+			assert_eq!(backdrop.band(row), Some(&Color::BLUE), "row {row}");
 		}
 	}
 
 	#[test]
 	fn a_background_gradient_runs_from_the_top_row_to_the_bottom_row() {
-		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
 		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 5, resolve).unwrap();
 
-		assert_eq!(backdrop.band(0), Some(&Color::Rgb(Rgb { red: 255, green: 0, blue: 0 })));
-		assert_eq!(backdrop.band(4), Some(&Color::Rgb(Rgb { red: 0, green: 0, blue: 255 })));
-		assert!(backdrop.band(2).is_some_and(|band| !matches!(band, Color::Rgb(Rgb { red: 255, green: 0, blue: 0 }))));
+		assert_eq!(backdrop.band(0), Some(&Color::rgb(255, 0, 0)));
+		assert_eq!(backdrop.band(4), Some(&Color::rgb(0, 0, 255)));
+		assert!(backdrop.band(2).is_some_and(|band| *band != Color::rgb(255, 0, 0)));
 		assert_eq!(backdrop.band(5), None, "no band past the rows");
 	}
 
 	#[test]
 	fn a_single_row_gradient_still_paints_a_band() {
-		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
 		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 1, resolve).unwrap();
 
@@ -869,18 +868,15 @@ mod tests {
 		let unset = Options::default();
 		assert!(Backdrop::build(&unset, &level, 3, resolve).is_none());
 
-		let system = Options { background: Some(BackgroundOption::Color(Color::System)), ..Default::default() };
+		let system = Options { background: Some(BackgroundOption::Color(Color::SYSTEM)), ..Default::default() };
 		assert!(Backdrop::build(&system, &level, 3, resolve).is_none());
 
-		let candy = Options { background: Some(BackgroundOption::Color(Color::Candy)), ..Default::default() };
-		assert!(Backdrop::build(&candy, &level, 3, resolve).is_none());
-
-		let blue = Options { background: Some(BackgroundOption::Color(Color::Blue)), ..Default::default() };
+		let blue = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
 		assert!(Backdrop::build(&blue, &RenderContext::unlimited(), 3, resolve).is_none(), "no color level");
 		assert!(Backdrop::build(&blue, &level, 0, resolve).is_none(), "no rows");
 
 		// an environment that paints no RGB values turns a gradient into no backdrop as well
-		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let ramped = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
 		assert!(Backdrop::build(&ramped, &level, 3, |_| None::<Color>).is_none(), "no paint");
 	}

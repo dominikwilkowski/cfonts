@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::{Color, ColorLevel, Rgb},
+	color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Background, Color, ColorLevel, Rgb, Text, Value},
 	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column},
 	layout::LayoutRow,
 	options::Options,
@@ -73,33 +73,33 @@ impl Environment for CliEnv {
 
 	/// Named colors keep their fixed sixteen-color codes at every level so the terminal's own palette applies
 	/// only RGB values level down
-	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
 		let Some(level) = context.color_level() else {
 			return ColorTokens::default();
 		};
 
-		let start: Cow<'static, str> = match color {
-			Color::System | Color::Candy => return ColorTokens::default(),
-			Color::Rgb(rgb) => Self::rgb_start(rgb, level),
+		let start: Cow<'static, str> = match color.value {
+			Value::System | Value::Candy => return ColorTokens::default(),
+			Value::Rgb(rgb) => Self::rgb_start(rgb, level),
 			named => Cow::Borrowed(named.ansi16_sgr().expect("every named color carries a fixed code")),
 		};
 
-		ColorTokens { start, end: Cow::Borrowed(Color::ANSI_RESET) }
+		ColorTokens { start, end: Cow::Borrowed(ANSI_RESET) }
 	}
 
 	/// Named colors keep their fixed sixteen-color codes at every level here too, only RGB values level down
-	fn background_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
 		let Some(level) = context.color_level() else {
 			return ColorTokens::default();
 		};
 
-		let start: Cow<'static, str> = match color {
-			Color::System | Color::Candy => return ColorTokens::default(),
-			Color::Rgb(rgb) => Self::rgb_background_start(rgb, level),
+		let start: Cow<'static, str> = match color.value {
+			Value::System | Value::Candy => return ColorTokens::default(),
+			Value::Rgb(rgb) => Self::rgb_background_start(rgb, level),
 			named => Cow::Borrowed(named.ansi16_background_sgr().expect("every named color carries a fixed code")),
 		};
 
-		ColorTokens { start, end: Cow::Borrowed(Color::ANSI_BACKGROUND_RESET) }
+		ColorTokens { start, end: Cow::Borrowed(ANSI_BACKGROUND_RESET) }
 	}
 
 	/// Every column gets its own run: the ramp color's start, the character, the reset
@@ -120,7 +120,7 @@ impl Environment for CliEnv {
 			Some(rgb) => {
 				out.text.push_str(&Self::rgb_start(*rgb, level));
 				out.text.push(character);
-				out.text.push_str(Color::ANSI_RESET);
+				out.text.push_str(ANSI_RESET);
 			}
 			None => out.text.push(character),
 		})
@@ -158,14 +158,14 @@ impl Environment for CliEnv {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{Cfonts, Font, RenderOverrides, color::Rgb};
+	use crate::{Cfonts, Font, RenderOverrides};
 
 	// color_tokens
 
 	#[test]
 	fn named_colors_borrow_their_fixed_codes_at_every_level() {
 		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-			let tokens = CliEnv::default().color_tokens(Color::Red, &RenderContext::colored(level));
+			let tokens = CliEnv::default().color_tokens(Color::RED, &RenderContext::colored(level));
 
 			assert_eq!(tokens.start, "\u{1b}[31m", "{level:?}");
 			assert_eq!(tokens.end, "\u{1b}[39m");
@@ -175,7 +175,7 @@ mod tests {
 
 	#[test]
 	fn rgb_colors_level_down() {
-		let rgb = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+		let rgb = Color::rgb(255, 136, 0);
 
 		assert_eq!(
 			CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
@@ -193,10 +193,10 @@ mod tests {
 	#[test]
 	fn background_codes_follow_the_foreground_rules() {
 		let env = CliEnv::default();
-		let rgb = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+		let rgb = Color::rgb(255, 136, 0);
 
 		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-			let tokens = env.background_tokens(Color::Blue, &RenderContext::colored(level));
+			let tokens = env.background_tokens(Color::BLUE, &RenderContext::colored(level));
 			assert_eq!(tokens.start, "\u{1b}[44m", "{level:?}");
 			assert_eq!(tokens.end, "\u{1b}[49m");
 		}
@@ -208,9 +208,8 @@ mod tests {
 		assert_eq!(env.background_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start, "\u{1b}[48;5;208m");
 		assert_eq!(env.background_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[101m");
 
-		assert!(!env.background_tokens(Color::System, &RenderContext::colored(ColorLevel::Basic)).paints());
-		assert!(!env.background_tokens(Color::Candy, &RenderContext::colored(ColorLevel::Basic)).paints());
-		assert!(!env.background_tokens(Color::Blue, &RenderContext::unlimited()).paints());
+		assert!(!env.background_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::Basic)).paints());
+		assert!(!env.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
 	}
 
 	// row_start, top_padding, bottom_padding
@@ -218,7 +217,7 @@ mod tests {
 	#[test]
 	fn a_row_opens_its_band_and_fills_to_the_edge_before_its_alignment() {
 		let env = CliEnv::default();
-		let band = env.background_tokens(Color::Blue, &RenderContext::colored(ColorLevel::Basic));
+		let band = env.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
 
 		let mut out = Rendered::default();
@@ -233,7 +232,7 @@ mod tests {
 	#[test]
 	fn padding_rows_carry_their_bands_around_their_line_ends() {
 		let env = CliEnv::default().raw_mode();
-		let band = env.background_tokens(Color::Blue, &RenderContext::colored(ColorLevel::Basic));
+		let band = env.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
 
 		let mut out = Rendered::default();
 		env.top_padding([Some(&band), None], &mut out);
@@ -246,21 +245,22 @@ mod tests {
 
 	#[test]
 	fn rgb_black_levels_down_to_ansi_black() {
-		let black = Color::Rgb(Rgb { red: 0, green: 0, blue: 0 });
+		let black = Color::rgb(0, 0, 0);
 		let tokens = CliEnv::default().color_tokens(black, &RenderContext::colored(ColorLevel::Basic));
 
 		assert_eq!(tokens.start, "\u{1b}[30m");
 		assert_eq!(tokens.end, "\u{1b}[39m");
 		// the RGB path and the named path agree on black at the basic level
-		assert_eq!(tokens, CliEnv::default().color_tokens(Color::Black, &RenderContext::colored(ColorLevel::Basic)));
+		assert_eq!(tokens, CliEnv::default().color_tokens(Color::BLACK, &RenderContext::colored(ColorLevel::Basic)));
 	}
 
 	#[test]
 	fn system_candy_and_unleveled_contexts_paint_nothing() {
 		// the paint plan rolls candy into a named color before tokens resolve, so raw candy never paints
-		assert!(!CliEnv::default().color_tokens(Color::System, &RenderContext::colored(ColorLevel::TrueColor)).paints());
-		assert!(!CliEnv::default().color_tokens(Color::Candy, &RenderContext::colored(ColorLevel::TrueColor)).paints());
-		assert!(!CliEnv::default().color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+		assert!(!CliEnv::default().color_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::TrueColor)).paints());
+		assert!(!CliEnv::default().color_tokens(Color::CANDY, &RenderContext::colored(ColorLevel::TrueColor)).paints());
+		assert!(!CliEnv::default().color_tokens(Color::RED, &RenderContext::unlimited()).paints());
+		assert!(!CliEnv::default().color_tokens(Color::rgb(1, 2, 3), &RenderContext::unlimited()).paints());
 	}
 
 	// line endings

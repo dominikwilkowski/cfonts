@@ -2,7 +2,7 @@
 //!
 //! The macros expand at their call sites, so their bodies spell every helper with its full path
 
-use crate::Color;
+use crate::color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Value};
 
 /// The shell prompt every example line starts with, styled and plain
 pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
@@ -16,10 +16,10 @@ pub(crate) const VALUE_LEAD: &str = "\n    ";
 ///
 /// The closing codes reset the two colors and nothing else, so bold or italic text around a mark keeps its emphasis
 pub(crate) const MARK_OPEN: &str = const_concat!(
-	Color::Green.ansi16_sgr().expect("green carries a fixed code"),
-	Color::Black.ansi16_background_sgr().expect("black carries a fixed code"),
+	Value::Green.ansi16_sgr().expect("green carries a fixed code"),
+	Value::Black.ansi16_background_sgr().expect("black carries a fixed code"),
 );
-pub(crate) const MARK_CLOSE: &str = const_concat!(Color::ANSI_RESET, Color::ANSI_BACKGROUND_RESET);
+pub(crate) const MARK_CLOSE: &str = const_concat!(ANSI_RESET, ANSI_BACKGROUND_RESET);
 
 /// Names of a chunked list are set apart by a comma and a space, and after every fifth name
 /// by a comma and a line break into the value indent
@@ -28,25 +28,6 @@ const CONTINUATION: &str = const_concat!(",", VALUE_LEAD);
 
 /// How many names one line of a chunked list holds
 const NAMES_PER_LINE: usize = 5;
-
-/// Whether two strings hold the same bytes, at compile time
-const fn same(left: &str, right: &str) -> bool {
-	let (left, right) = (left.as_bytes(), right.as_bytes());
-
-	if left.len() != right.len() {
-		return false;
-	}
-
-	let mut index = 0;
-	while index < left.len() {
-		if left[index] != right[index] {
-			return false;
-		}
-		index += 1;
-	}
-
-	true
-}
 
 /// Copies `bytes` into `buffer` at `offset` and returns the offset after them
 const fn copy_bytes(buffer: &mut [u8], offset: usize, bytes: &[u8]) -> usize {
@@ -118,58 +99,39 @@ macro_rules! const_concat {
 
 pub(crate) use const_concat;
 
-/// How many pieces a chunked list of `names` has, every name equal to `skip` left out:
-/// every kept name between two copies of its wrap, and a separator before every one but the first
-pub(crate) const fn chunk_count(names: &[&str], skip: &str) -> usize {
-	let mut kept = 0;
-	let mut index = 0;
-
-	while index < names.len() {
-		if !same(names[index], skip) {
-			kept += 1;
-		}
-		index += 1;
-	}
-
-	if kept == 0 { 0 } else { 4 * kept - 1 }
+/// How many pieces a chunked list of `names` has:
+/// every name between two copies of its wrap, and a separator before every one but the first
+pub(crate) const fn chunk_count(names: &[&str]) -> usize {
+	if names.is_empty() { 0 } else { 4 * names.len() - 1 }
 }
 
 /// The pieces of a chunked list, every name between two copies of `wrap` and separators in between,
-/// five names per line, every name equal to `skip` left out
-pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(
-	names: &[&'a str],
-	skip: &str,
-	wrap: &'a str,
-) -> [&'a str; COUNT] {
+/// five names per line
+pub(crate) const fn chunk_pieces<'a, const COUNT: usize>(names: &[&'a str], wrap: &'a str) -> [&'a str; COUNT] {
 	let mut pieces = [""; COUNT];
 	let mut piece = 0;
-	let mut kept = 0;
 	let mut index = 0;
 
 	while index < names.len() {
-		if !same(names[index], skip) {
-			if kept > 0 {
-				pieces[piece] = if kept % NAMES_PER_LINE == 0 { CONTINUATION } else { SEPARATOR };
-				piece += 1;
-			}
-			pieces[piece] = wrap;
-			pieces[piece + 1] = names[index];
-			pieces[piece + 2] = wrap;
-			piece += 3;
-			kept += 1;
+		if index > 0 {
+			pieces[piece] = if index % NAMES_PER_LINE == 0 { CONTINUATION } else { SEPARATOR };
+			piece += 1;
 		}
+		pieces[piece] = wrap;
+		pieces[piece + 1] = names[index];
+		pieces[piece + 2] = wrap;
+		piece += 3;
 		index += 1;
 	}
 
 	pieces
 }
 
-/// Lays a name array out five per line into one `&'static str` at compile time,
-/// one name left out and every name wrapped in `wrap`
+/// Lays a name array out five per line into one `&'static str` at compile time, every name wrapped in `wrap`
 macro_rules! const_chunk {
-	($names:expr, $skip:expr, $wrap:expr) => {{
-		const COUNT: usize = crate::cli::helper::chunk_count(&$names, $skip);
-		const PIECES: [&str; COUNT] = crate::cli::helper::chunk_pieces(&$names, $skip, $wrap);
+	($names:expr, $wrap:expr) => {{
+		const COUNT: usize = crate::cli::helper::chunk_count(&$names);
+		const PIECES: [&str; COUNT] = crate::cli::helper::chunk_pieces(&$names, $wrap);
 		crate::cli::helper::const_join!(&PIECES, "")
 	}};
 }
@@ -345,17 +307,6 @@ mod tests {
 	}
 
 	#[test]
-	fn same_agrees_with_string_equality_on_every_pair() {
-		let texts = ["", "a", "ab", "ba", "é", "e\u{301}", "\0"];
-
-		for left in texts {
-			for right in texts {
-				assert_eq!(same(black_box(left), black_box(right)), left == right, "{left:?} {right:?}");
-			}
-		}
-	}
-
-	#[test]
 	fn const_concat_accepts_one_empty_part() {
 		const TEXT: &str = const_concat!("");
 
@@ -394,17 +345,9 @@ mod tests {
 	}
 
 	#[test]
-	fn const_chunk_lays_five_names_per_line_and_leaves_one_out() {
-		const NAMES: [&str; 7] = ["a", "b", "c", "d", "e", "f", "g"];
-		const TEXT: &str = const_chunk!(NAMES, "c", "");
-
-		assert_eq!(TEXT, "a, b, d, e, f,\n    g");
-	}
-
-	#[test]
-	fn const_chunk_breaks_exactly_after_the_fifth_kept_name() {
+	fn const_chunk_breaks_exactly_after_the_fifth_name() {
 		const NAMES: [&str; 6] = ["é", "b", "c", "d", "e", "f"];
-		const TEXT: &str = const_chunk!(NAMES, "", "");
+		const TEXT: &str = const_chunk!(NAMES, "");
 
 		assert_eq!(TEXT, "é, b, c, d, e,\n    f");
 	}
@@ -412,60 +355,49 @@ mod tests {
 	#[test]
 	fn const_chunk_wraps_every_name_and_leaves_the_separators_bare() {
 		const NAMES: [&str; 6] = ["a", "b", "c", "d", "e", "f"];
-		const TEXT: &str = const_chunk!(NAMES, "", "`");
+		const TEXT: &str = const_chunk!(NAMES, "`");
 
 		assert_eq!(TEXT, "`a`, `b`, `c`, `d`, `e`,\n    `f`");
 	}
 
 	#[test]
-	fn const_chunk_of_no_kept_names_is_empty() {
-		const NAMES: [&str; 1] = ["a"];
-		const TEXT: &str = const_chunk!(NAMES, "a", "`");
+	fn const_chunk_of_no_names_is_empty() {
+		const NAMES: [&str; 0] = [];
+		const TEXT: &str = const_chunk!(NAMES, "`");
 
 		assert_eq!(TEXT, "");
 	}
 
 	#[test]
-	fn chunk_count_is_four_pieces_per_kept_name_less_one() {
+	fn chunk_count_is_four_pieces_per_name_less_one() {
 		let names: &[&str] = &["a", "b", "c", "d", "e", "f", "g"];
-
-		// a wrap, the name and a wrap for every kept name, and a separator before every one but the first
-		assert_eq!(chunk_count(black_box(names), black_box("c")), 4 * 6 - 1);
-		assert_eq!(chunk_count(black_box(names), black_box("z")), 4 * 7 - 1);
-	}
-
-	#[test]
-	fn chunk_count_of_no_kept_names_is_zero() {
-		let names: &[&str] = &["a", "a"];
 		let none: &[&str] = &[];
 
-		assert_eq!(chunk_count(black_box(names), black_box("a")), 0);
-		assert_eq!(chunk_count(black_box(none), black_box("a")), 0);
+		// a wrap, the name and a wrap for every name, and a separator before every one but the first
+		assert_eq!(chunk_count(black_box(names)), 4 * 7 - 1);
+		assert_eq!(chunk_count(black_box(none)), 0);
 	}
 
 	#[test]
-	fn chunk_pieces_put_every_kept_name_between_its_wraps_in_order() {
-		let names: &[&str] = &["a", "b", "skip", "c", "d"];
-		let kept = ["a", "b", "c", "d"];
+	fn chunk_pieces_put_every_name_between_its_wraps_in_order() {
+		let names: &[&str] = &["a", "b", "c", "d"];
 
-		let pieces: [&str; 15] = chunk_pieces(black_box(names), black_box("skip"), black_box("`"));
+		let pieces: [&str; 15] = chunk_pieces(black_box(names), black_box("`"));
 
-		for (index, name) in kept.iter().enumerate() {
-			assert_eq!(&pieces[4 * index..4 * index + 3], ["`", *name, "`"], "kept name {index}");
+		for (index, name) in names.iter().enumerate() {
+			assert_eq!(&pieces[4 * index..4 * index + 3], ["`", *name, "`"], "name {index}");
 		}
-		assert!(!pieces.contains(&"skip"));
 	}
 
 	#[test]
-	fn chunk_pieces_break_the_line_after_every_fifth_kept_name() {
-		// the skipped name sits inside the first five, so it must not count toward the line
-		let names: &[&str] = &["a", "b", "skip", "c", "d", "e", "f", "g", "h", "i", "j", "k"];
+	fn chunk_pieces_break_the_line_after_every_fifth_name() {
+		let names: &[&str] = &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"];
 
-		let pieces: [&str; 43] = chunk_pieces(black_box(names), black_box("skip"), black_box(""));
+		let pieces: [&str; 43] = chunk_pieces(black_box(names), black_box(""));
 
-		for kept in 1..11 {
-			let expected = if kept % 5 == 0 { CONTINUATION } else { SEPARATOR };
-			assert_eq!(pieces[4 * kept - 1], expected, "before kept name {kept}");
+		for name in 1..11 {
+			let expected = if name % 5 == 0 { CONTINUATION } else { SEPARATOR };
+			assert_eq!(pieces[4 * name - 1], expected, "before name {name}");
 		}
 	}
 

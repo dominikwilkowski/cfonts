@@ -1,5 +1,5 @@
 use crate::{
-	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, Options, RenderContext, RustHost, Valign,
+	Cfonts, CliEnv, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, Valign,
 	cli::{
 		VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -23,11 +23,11 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 	let banner: Options = Cfonts::text("cfonts")
 		.next("|  Demo")
 		.font(Font::Neat)
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::GREEN })
 		.next(format!(" {VERSION}"))
 		.font(Font::Console)
 		.valign(Valign::Bottom)
-		.colors(vec![Color::System])
+		.colors(vec![Color::SYSTEM])
 		.into();
 	let banner = render_resolved(&banner, &CliEnv::default(), context);
 
@@ -59,7 +59,7 @@ mod tests {
 
 	#[test]
 	fn the_background_reaches_every_font_example() {
-		let options = Options { background: Some(BackgroundOption::Color(Color::Blue)), ..Default::default() };
+		let options = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
 		let screen = cli_demo_with(RenderContext::colored(ColorLevel::Basic), &options);
 
 		// every example is its own render, so every one opens the band on its rows
@@ -127,7 +127,7 @@ mod tests {
 
 	#[test]
 	fn the_colors_reach_every_font_example() {
-		let options = Options { global_colors: Some(ColorOption::Colors(vec![Color::Red])), ..Default::default() };
+		let options = Options { global_colors: Some(ColorOption::Colors(vec![Color::RED])), ..Default::default() };
 		let screen = cli_demo_with(RenderContext::unlimited().with_color_level(Some(ColorLevel::Basic)), &options);
 
 		// everything after a prompt is one font's example
@@ -140,8 +140,7 @@ mod tests {
 	fn the_independent_flag_reaches_every_font_example() {
 		// a narrow canvas wraps the examples, so the flag has lines to restart the ramp on
 		let context = RenderContext::with_canvas_width(40).with_color_level(Some(ColorLevel::TrueColor));
-		let ramp =
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+		let ramp = Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
 		let fixed = cli_demo_with(context, &Options { global_colors: ramp.clone(), ..Default::default() });
 		let independent =
 			cli_demo_with(context, &Options { global_colors: ramp, independent_gradient: true, ..Default::default() });

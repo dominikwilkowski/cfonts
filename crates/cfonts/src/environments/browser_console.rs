@@ -1,7 +1,7 @@
 use std::{borrow::Cow, iter};
 
 use crate::{
-	color::{Color, Rgb},
+	color::{Background, Color, Rgb, Text},
 	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, leveled_rgb, push_escaped},
 	layout::LayoutRow,
 	options::Options,
@@ -71,7 +71,7 @@ impl BrowserConsoleEnv {
 impl Environment for BrowserConsoleEnv {
 	/// The console has no terminal palette, so named colors flatten to their RGB values as CSS
 	/// declarations and a level below full support paints the palette entry's own value
-	fn color_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
 		match leveled_rgb(color, context) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(format!("color:{}", rgb.to_css_hex())), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
@@ -79,7 +79,7 @@ impl Environment for BrowserConsoleEnv {
 	}
 
 	/// The band is a declaration too, `background` is the shortest spelling every console accepts
-	fn background_tokens(&self, color: Color, context: &RenderContext) -> ColorTokens {
+	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
 		match leveled_rgb(color, context) {
 			Some(rgb) => {
 				ColorTokens { start: Cow::Owned(format!("background:{}", rgb.to_css_hex())), end: Cow::Borrowed("") }
@@ -163,7 +163,7 @@ impl Environment for BrowserConsoleEnv {
 mod tests {
 	use super::*;
 	use crate::{
-		Cfonts, ColorLevel, ColorOverride, GradientOption, GradientStop, RenderContext, RenderOverrides,
+		Cfonts, ColorLevel, ColorOverride, GradientOption, RenderContext, RenderOverrides,
 		fonts::Font,
 		options::{Align, Valign},
 	};
@@ -173,11 +173,11 @@ mod tests {
 	}
 
 	fn red() -> ColorTokens {
-		BrowserConsoleEnv.color_tokens(Color::Red, &leveled())
+		BrowserConsoleEnv.color_tokens(Color::RED, &leveled())
 	}
 
 	fn blue_band() -> ColorTokens {
-		BrowserConsoleEnv.background_tokens(Color::Blue, &leveled())
+		BrowserConsoleEnv.background_tokens(Color::BLUE, &leveled())
 	}
 
 	// color_tokens
@@ -186,26 +186,26 @@ mod tests {
 	fn named_colors_flatten_to_css_declarations() {
 		assert_eq!(red().start, "color:#ea3223");
 		assert_eq!(red().end, "");
-		assert!(!BrowserConsoleEnv.color_tokens(Color::System, &leveled()).paints());
-		assert!(!BrowserConsoleEnv.color_tokens(Color::Red, &RenderContext::unlimited()).paints());
+		assert!(!BrowserConsoleEnv.color_tokens(Color::SYSTEM, &leveled()).paints());
+		assert!(!BrowserConsoleEnv.color_tokens(Color::RED, &RenderContext::unlimited()).paints());
 	}
 
 	#[test]
 	fn rgb_values_paint_the_palette_entry_of_their_level() {
 		// the console shows any value, so a level below full support paints the entry a terminal would pick
-		let orange = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+		let orange = Rgb { red: 255, green: 136, blue: 0 };
 
-		assert_eq!(BrowserConsoleEnv.color_tokens(orange, &leveled()).start, "color:#f80");
+		assert_eq!(BrowserConsoleEnv.color_tokens(orange.into(), &leveled()).start, "color:#f80");
 		assert_eq!(
-			BrowserConsoleEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Ansi256)).start,
+			BrowserConsoleEnv.color_tokens(orange.into(), &RenderContext::colored(ColorLevel::Ansi256)).start,
 			"color:#ff8700"
 		);
 		assert_eq!(
-			BrowserConsoleEnv.color_tokens(orange, &RenderContext::colored(ColorLevel::Basic)).start,
+			BrowserConsoleEnv.color_tokens(orange.into(), &RenderContext::colored(ColorLevel::Basic)).start,
 			"color:#ee776d"
 		);
 		assert_eq!(
-			BrowserConsoleEnv.background_tokens(orange, &RenderContext::colored(ColorLevel::Basic)).start,
+			BrowserConsoleEnv.background_tokens(orange.into(), &RenderContext::colored(ColorLevel::Basic)).start,
 			"background:#ee776d"
 		);
 	}
@@ -216,9 +216,8 @@ mod tests {
 	fn a_band_is_a_background_declaration() {
 		assert_eq!(blue_band().start, "background:#0020f5");
 		assert_eq!(blue_band().end, "");
-		assert!(!BrowserConsoleEnv.background_tokens(Color::System, &leveled()).paints());
-		assert!(!BrowserConsoleEnv.background_tokens(Color::Candy, &leveled()).paints());
-		assert!(!BrowserConsoleEnv.background_tokens(Color::Blue, &RenderContext::unlimited()).paints());
+		assert!(!BrowserConsoleEnv.background_tokens(Color::SYSTEM, &leveled()).paints());
+		assert!(!BrowserConsoleEnv.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
 	}
 
 	// paint
@@ -247,7 +246,7 @@ mod tests {
 	#[test]
 	fn a_different_style_switches_with_one_marker() {
 		let mut out = Rendered::default();
-		let blue = BrowserConsoleEnv.color_tokens(Color::Blue, &leveled());
+		let blue = BrowserConsoleEnv.color_tokens(Color::BLUE, &leveled());
 
 		BrowserConsoleEnv.paint("▄", &red(), None, true, &leveled(), &mut out);
 		BrowserConsoleEnv.paint("▀", &blue, None, true, &leveled(), &mut out);
@@ -467,7 +466,7 @@ mod tests {
 			.spaceless()
 			.next("B")
 			.font(Font::Block)
-			.background(Color::Blue)
+			.background(Color::BLUE)
 			.render_with(
 				&BrowserConsoleEnv,
 				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
@@ -481,7 +480,7 @@ mod tests {
 	#[test]
 	fn a_band_alone_costs_one_switch_and_one_reset_per_row() {
 		let rendered =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::Blue).render_with(
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::BLUE).render_with(
 				&BrowserConsoleEnv,
 				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 			);
@@ -496,7 +495,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+			.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 			.render_with(
 				&BrowserConsoleEnv,
 				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),

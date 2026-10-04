@@ -113,7 +113,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.background(Color::Blue)
+			.background(Color::BLUE)
 			.render(&BrowserHost::default(), &BrowserEnv);
 
 		assert!(rendered.text.contains(r#"<div style="background:#0020f5;min-height:1lh">▄▀█</div>"#));
@@ -125,7 +125,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.colors(vec![Color::Red])
+			.colors(vec![Color::RED])
 			.render(&BrowserHost::default(), &BrowserEnv);
 
 		assert!(rendered.text.contains(r##"<span style="color:#ea3223">"##));
@@ -154,7 +154,7 @@ mod tests {
 
 	#[test]
 	fn the_color_override_resolves_to_its_level_or_to_nothing() {
-		let banner = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(vec![Color::Red]);
+		let banner = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(vec![Color::RED]);
 		let disabled = BrowserHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Disabled));
 		let basic =
 			BrowserHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)));
@@ -167,7 +167,7 @@ mod tests {
 
 	#[test]
 	fn a_pinned_seed_draws_the_same_candy_and_the_default_rolls_anew() {
-		let banner = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::Candy]);
+		let banner = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::CANDY]);
 		let pinned = BrowserHost::from_overrides(RenderOverrides::default().with_seed(42));
 
 		assert_eq!(pinned.seed(), 42);

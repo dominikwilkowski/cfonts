@@ -1,5 +1,5 @@
 use crate::{
-	Cfonts, CliEnv, Color, Font, GradientOption, GradientStop, Host, Options, RenderContext, RustHost, Valign,
+	Cfonts, CliEnv, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, Valign,
 	cli::{
 		Args, VERSION,
 		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_mark},
@@ -19,11 +19,11 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 	let styled = context.color_level().is_some();
 	let mut output = String::new();
 	let banner: Options = Cfonts::text("cfonts")
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Green })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::GREEN })
 		.next(format!(" {VERSION}"))
 		.font(Font::Console)
 		.valign(Valign::Bottom)
-		.colors(vec![Color::System])
+		.colors(vec![Color::SYSTEM])
 		.into();
 	let banner = render_resolved(&banner, &CliEnv::default(), context);
 

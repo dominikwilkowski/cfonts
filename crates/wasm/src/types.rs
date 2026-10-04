@@ -3,8 +3,8 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	Align as CoreAlign, Color as CoreColor, ColorError, ColorLevel as CoreColorLevel, Font as CoreFont,
-	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Rgb, Valign as CoreValign,
+	Align as CoreAlign, ColorError, ColorLevel as CoreColorLevel, Font as CoreFont, GradientPreset as CoreGradientPreset,
+	Rendered as CoreRendered, Rgb, Valign as CoreValign,
 };
 use cfonts_macros::All;
 
@@ -63,8 +63,14 @@ bridge_enum!(ColorLevel => CoreColorLevel {
 	TrueColor,
 });
 
-// Rgb colors cross as hex values, so the boundary enum only carries the named variants
-bridge_enum!(Color -> CoreColor {
+/// The named colors JavaScript picks from, the text color names in the core's order
+///
+/// A pick crosses as its name and the core parses it into the kind the setter takes,
+/// so TypeScript keeps system and candy out of gradients and candy out of backgrounds on its side
+/// and Rgb colors cross as hex values, which is why no bridge into the core exists
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
+pub enum Color {
 	System,
 	Black,
 	Red,
@@ -83,7 +89,7 @@ bridge_enum!(Color -> CoreColor {
 	CyanBright,
 	WhiteBright,
 	Candy,
-});
+}
 
 bridge_enum!(GradientPreset => CoreGradientPreset {
 	Pride,

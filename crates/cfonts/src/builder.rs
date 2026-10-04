@@ -169,18 +169,18 @@ impl<
 	/// use cfonts::{Cfonts, Color, ColorOption, Options};
 	///
 	/// let options: Options = Cfonts::text("hello")
-	///     .colors(vec![Color::Red, Color::System])
+	///     .colors(vec![Color::RED, Color::SYSTEM])
 	///     .into();
 	///
-	/// assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
+	/// assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::RED, Color::SYSTEM])));
 	/// ```
 	///
 	/// ```
-	/// use cfonts::{Cfonts, GradientOption, GradientPreset, GradientStop};
+	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset};
 	///
 	/// let _ramped = Cfonts::text("hello").colors(GradientOption::TwoStop {
-	///     start: GradientStop::Red,
-	///     end: GradientStop::Blue,
+	///     start: Color::RED,
+	///     end: Color::BLUE,
 	/// });
 	///
 	/// let _preset = Cfonts::text("hello").colors(GradientPreset::Pride);
@@ -557,15 +557,15 @@ impl<
 	/// *This is a global setting and may only be configured once*
 	///
 	/// ```
-	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset, GradientStop};
+	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset};
 	///
 	/// let _banner = Cfonts::text("hello")
-	///     .global_colors(vec![Color::Red]);
+	///     .global_colors(vec![Color::RED]);
 	///
 	/// let _ramped = Cfonts::text("hello")
 	///     .global_colors(GradientOption::TwoStop {
-	///         start: GradientStop::Red,
-	///         end: GradientStop::Blue,
+	///         start: Color::RED,
+	///         end: Color::BLUE,
 	///     });
 	///
 	/// let _preset = Cfonts::text("hello")
@@ -576,7 +576,7 @@ impl<
 	/// use cfonts::{Cfonts, Color, GradientPreset};
 	///
 	/// let _banner = Cfonts::text("hello")
-	///     .global_colors(vec![Color::Red])
+	///     .global_colors(vec![Color::RED])
 	///     .global_colors(GradientPreset::Agender); // compiler error
 	/// ```
 	pub fn global_colors(
@@ -628,15 +628,15 @@ impl<
 	/// *This is a global setting and may only be configured once*
 	///
 	/// ```
-	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset, GradientStop};
+	/// use cfonts::{Cfonts, Color, GradientOption, GradientPreset};
 	///
 	/// let _plate = Cfonts::text("hello")
-	///     .background(Color::Blue);
+	///     .background(Color::BLUE);
 	///
 	/// let _ramped = Cfonts::text("hello")
 	///     .background(GradientOption::TwoStop {
-	///         start: GradientStop::Red,
-	///         end: GradientStop::Blue,
+	///         start: Color::RED,
+	///         end: Color::BLUE,
 	///     });
 	///
 	/// let _preset = Cfonts::text("hello")
@@ -647,7 +647,7 @@ impl<
 	/// use cfonts::{Cfonts, Color, GradientPreset};
 	///
 	/// let _plate = Cfonts::text("hello")
-	///     .background(Color::Blue)
+	///     .background(Color::BLUE)
 	///     .background(GradientPreset::Pride); // compiler error
 	/// ```
 	pub fn background(
@@ -726,7 +726,7 @@ mod tests {
 	use std::{cell::RefCell, convert::Infallible};
 
 	use super::*;
-	use crate::{CliEnv, Color, ColorLevel, GradientOption, GradientPreset, GradientStop};
+	use crate::{CliEnv, Color, ColorLevel, GradientOption, GradientPreset};
 
 	// Double-setting a global is a compile error, not a runtime panic:
 	// that guarantee lives in the `compile_fail` doctests on each global setter
@@ -742,7 +742,7 @@ mod tests {
 			.max_length(20)
 			.global_colors(GradientPreset::Pride)
 			.independent_gradient()
-			.background(Color::Blue)
+			.background(Color::BLUE)
 			.into();
 
 		assert_eq!(options.align, Align::Center);
@@ -751,15 +751,15 @@ mod tests {
 		assert_eq!(options.max_length, NonZeroUsize::new(20));
 		assert_eq!(options.global_colors, Some(ColorOption::from(GradientPreset::Pride)));
 		assert!(options.independent_gradient);
-		assert_eq!(options.background, Some(BackgroundOption::Color(Color::Blue)));
+		assert_eq!(options.background, Some(BackgroundOption::Color(Color::BLUE)));
 	}
 
 	#[test]
 	fn the_background_accepts_a_color_a_gradient_and_a_preset() {
-		let options: Options = Cfonts::text("hello").background(Color::Blue).into();
-		assert_eq!(options.background, Some(BackgroundOption::Color(Color::Blue)));
+		let options: Options = Cfonts::text("hello").background(Color::BLUE).into();
+		assert_eq!(options.background, Some(BackgroundOption::Color(Color::BLUE)));
 
-		let two_stop = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let two_stop = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let options: Options = Cfonts::text("hello").background(two_stop.clone()).into();
 		assert_eq!(options.background, Some(BackgroundOption::Gradient(two_stop)));
 
@@ -769,10 +769,10 @@ mod tests {
 
 	#[test]
 	fn the_global_color_accepts_colors_gradients_and_presets() {
-		let options: Options = Cfonts::text("hello").global_colors(vec![Color::Red, Color::System]).into();
-		assert_eq!(options.global_colors, Some(ColorOption::Colors(vec![Color::Red, Color::System])));
+		let options: Options = Cfonts::text("hello").global_colors(vec![Color::RED, Color::SYSTEM]).into();
+		assert_eq!(options.global_colors, Some(ColorOption::Colors(vec![Color::RED, Color::SYSTEM])));
 
-		let two_stop = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let two_stop = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let options: Options = Cfonts::text("hello").global_colors(two_stop.clone()).into();
 		assert_eq!(options.global_colors, Some(ColorOption::Gradient(two_stop)));
 
@@ -817,9 +817,9 @@ mod tests {
 
 	#[test]
 	fn color_targets_the_current_block() {
-		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).next("two").into();
+		let options: Options = Cfonts::text("one").colors(vec![Color::RED]).next("two").into();
 
-		assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::Red])));
+		assert_eq!(options.blocks[0].colors, Some(ColorOption::Colors(vec![Color::RED])));
 		assert_eq!(options.blocks[1].colors, None);
 	}
 
@@ -832,7 +832,7 @@ mod tests {
 
 	#[test]
 	fn color_is_repeatable_and_takes_gradients() {
-		let options: Options = Cfonts::text("one").colors(vec![Color::Red]).colors(GradientPreset::Pride).into();
+		let options: Options = Cfonts::text("one").colors(vec![Color::RED]).colors(GradientPreset::Pride).into();
 
 		assert_eq!(options.blocks[0].colors, Some(ColorOption::Gradient(GradientOption::Preset(GradientPreset::Pride))));
 	}

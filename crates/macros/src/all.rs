@@ -52,7 +52,6 @@ fn expand(input: TokenStream) -> Result<TokenStream, String> {
 
 	let mut variants: Vec<(String, Option<String>)> = Vec::new();
 	let mut body_tokens = body.stream().into_iter().peekable();
-	let mut skip_next_variant = false;
 	let mut rename_next_variant: Option<String> = None;
 
 	while let Some(token) = body_tokens.next() {
@@ -62,7 +61,6 @@ fn expand(input: TokenStream) -> Result<TokenStream, String> {
 				if let Some(TokenTree::Group(attribute)) = body_tokens.next() {
 					match parse_all_attribute(&attribute)? {
 						AllAttribute::NotOurs => {}
-						AllAttribute::Skip => skip_next_variant = true,
 						AllAttribute::Rename(list_name) => rename_next_variant = Some(list_name),
 					}
 				}
@@ -70,21 +68,13 @@ fn expand(input: TokenStream) -> Result<TokenStream, String> {
 			TokenTree::Ident(variant) => {
 				let rename = rename_next_variant.take();
 
-				if skip_next_variant {
-					skip_next_variant = false;
-
-					if rename.is_some() {
-						return Err(format!("variant {variant} of enum {name} is marked both #[all(skip)] and #[all(rename)]"));
-					}
-				} else {
-					// data carrying variants have a parentheses or braces group after their name
-					if matches!(body_tokens.peek(), Some(TokenTree::Group(_))) {
-						return Err(format!(
-							"variant {variant} of enum {name} holds data, mark it with #[all(skip)] to leave it out of ALL"
-						));
-					}
-					variants.push((variant.to_string(), rename));
+				// data carrying variants have a parentheses or braces group after their name
+				if matches!(body_tokens.peek(), Some(TokenTree::Group(_))) {
+					return Err(format!(
+						"variant {variant} of enum {name} holds data, ALL cannot list a variant that holds data"
+					));
 				}
+				variants.push((variant.to_string(), rename));
 				// data and discriminants like `Foo = 1` don't matter for ALL so we skip everything up to the comma
 				for leftover in body_tokens.by_ref() {
 					if matches!(leftover, TokenTree::Punct(ref punct) if punct.as_char() == ',') {
@@ -118,16 +108,13 @@ enum AllAttribute {
 	/// Not an `all` attribute; someone else's business
 	NotOurs,
 
-	/// `#[all(skip)]`: leave the next variant out of ALL and LIST
-	Skip,
-
 	/// `#[all(rename = "name")]`: use this name in LIST instead of the lowercased variant name
 	Rename(String),
 }
 
 /// Recognizes the `#[all(…)]` helper attributes, rejecting every unknown form
 fn parse_all_attribute(attribute: &Group) -> Result<AllAttribute, String> {
-	const KNOWN_FORMS: &str = "only #[all(skip)] and #[all(rename = \"name\")] are supported";
+	const KNOWN_FORMS: &str = "only #[all(rename = \"name\")] is supported";
 
 	if attribute.delimiter() != Delimiter::Bracket {
 		return Ok(AllAttribute::NotOurs);
@@ -147,9 +134,6 @@ fn parse_all_attribute(attribute: &Group) -> Result<AllAttribute, String> {
 	let mut argument_tokens = arguments.stream().into_iter();
 
 	match argument_tokens.next() {
-		Some(TokenTree::Ident(ref ident)) if ident.to_string() == "skip" && argument_tokens.next().is_none() => {
-			Ok(AllAttribute::Skip)
-		}
 		Some(TokenTree::Ident(ref ident)) if ident.to_string() == "rename" => {
 			match (argument_tokens.next(), argument_tokens.next(), argument_tokens.next()) {
 				(Some(TokenTree::Punct(ref equals)), Some(TokenTree::Literal(literal)), None) if equals.as_char() == '=' => {

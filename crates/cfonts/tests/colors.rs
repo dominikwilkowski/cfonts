@@ -3,7 +3,7 @@ use common::browser_content;
 
 use cfonts::{
 	Align, BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font,
-	GradientOption, GradientPreset, GradientStop, NEW_LINE_CHAR, Options, RenderOverrides, Rgb, Valign, render_with,
+	GradientOption, GradientPreset, NEW_LINE_CHAR, Options, RenderOverrides, Rgb, Valign, render_with,
 };
 
 /// The expected terminal bytes of one row painted column by column from a ramp
@@ -43,7 +43,7 @@ fn ramp_codes(row: &str) -> Vec<&str> {
 
 #[test]
 fn named_colors_paint_their_fixed_codes_at_every_level() {
-	let options = tiny("A", vec![Color::Red]);
+	let options = tiny("A", vec![Color::RED]);
 	let expected = "\u{1b}[31m▄▀█\u{1b}[39m\n\u{1b}[31m█▀█\u{1b}[39m";
 
 	for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
@@ -58,7 +58,7 @@ fn named_colors_paint_their_fixed_codes_at_every_level() {
 
 #[test]
 fn rgb_colors_level_down_the_chain() {
-	let options = tiny("A", vec![Color::Rgb(Rgb { red: 255, green: 136, blue: 0 })]);
+	let options = tiny("A", vec![Color::from(Rgb { red: 255, green: 136, blue: 0 })]);
 
 	let true_color = render_with(
 		&options,
@@ -87,7 +87,7 @@ fn rgb_colors_level_down_the_chain() {
 #[test]
 fn no_color_level_paints_nothing() {
 	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderOverrides::default()).text;
-	let colored = render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), RenderOverrides::default()).text;
+	let colored = render_with(&tiny("A", vec![Color::RED]), &CliEnv::default(), RenderOverrides::default()).text;
 
 	assert_eq!(colored, plain);
 }
@@ -101,7 +101,7 @@ fn system_paints_nothing() {
 	)
 	.text;
 	let system = render_with(
-		&tiny("A", vec![Color::System]),
+		&tiny("A", vec![Color::SYSTEM]),
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
@@ -112,7 +112,7 @@ fn system_paints_nothing() {
 
 #[test]
 fn candy_renders_are_deterministic_for_a_seed() {
-	let options = tiny("AB", vec![Color::Candy]);
+	let options = tiny("AB", vec![Color::CANDY]);
 	let seeded = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(42);
 
 	let one = render_with(&options, &CliEnv::default(), seeded).text;
@@ -131,7 +131,7 @@ fn candy_renders_are_deterministic_for_a_seed() {
 #[test]
 fn candy_paints_only_assortment_codes() {
 	let rendered = render_with(
-		&tiny("ABC", vec![Color::Candy]),
+		&tiny("ABC", vec![Color::CANDY]),
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(7),
 	)
@@ -157,13 +157,13 @@ fn candy_paints_only_assortment_codes() {
 #[test]
 fn excess_colors_beyond_the_fonts_slots_are_ignored() {
 	let one = render_with(
-		&tiny("A", vec![Color::Red]),
+		&tiny("A", vec![Color::RED]),
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
 	let two = render_with(
-		&tiny("A", vec![Color::Red, Color::Blue]),
+		&tiny("A", vec![Color::RED, Color::BLUE]),
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
@@ -175,7 +175,7 @@ fn excess_colors_beyond_the_fonts_slots_are_ignored() {
 #[test]
 fn letter_spaces_paint_in_single_color_fonts() {
 	let rendered = render_with(
-		&tiny("AB", vec![Color::Red]),
+		&tiny("AB", vec![Color::RED]),
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
@@ -191,7 +191,7 @@ fn letter_spaces_paint_in_single_color_fonts() {
 #[test]
 fn multi_slot_fonts_paint_each_tagged_slot() {
 	let options: Options =
-		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::Red, Color::Blue]).into();
+		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::RED, Color::BLUE]).into();
 
 	let rendered = render_with(
 		&options,
@@ -207,7 +207,7 @@ fn multi_slot_fonts_paint_each_tagged_slot() {
 #[test]
 fn missing_slots_stay_bare() {
 	let options: Options =
-		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::Red]).into();
+		Cfonts::text("A").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::RED]).into();
 
 	let rendered = render_with(
 		&options,
@@ -226,7 +226,7 @@ fn missing_slots_stay_bare() {
 #[test]
 fn letter_spaces_stay_bare_in_tagged_fonts() {
 	let options: Options =
-		Cfonts::text("AB").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::Red, Color::Blue]).into();
+		Cfonts::text("AB").font(Font::Block).valign(Valign::Top).spaceless().colors(vec![Color::RED, Color::BLUE]).into();
 
 	let rendered = render_with(
 		&options,
@@ -245,10 +245,10 @@ fn global_colors_cover_blocks_without_their_own() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(vec![Color::Red])
+		.colors(vec![Color::RED])
 		.next("B")
 		.font(Font::Tiny)
-		.global_colors(vec![Color::Blue])
+		.global_colors(vec![Color::BLUE])
 		.into();
 
 	let rendered = render_with(
@@ -270,7 +270,7 @@ fn an_empty_color_list_suppresses_the_global_colors() {
 		.valign(Valign::Top)
 		.spaceless()
 		.colors(Vec::<Color>::new())
-		.global_colors(vec![Color::Red])
+		.global_colors(vec![Color::RED])
 		.into();
 
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
@@ -300,7 +300,7 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -325,7 +325,7 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.independent_gradient()
 		.into();
 
@@ -370,11 +370,11 @@ fn a_static_block_at_either_edge_does_not_stretch_the_global_ramp() {
 	// painted block the ramped block walks the whole ramp over its own three columns
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 	let ramp = ramp_from(&["#ff0000", "#00ff00", "#0000ff"]);
-	let gradient = || GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let gradient = || GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 
 	let static_first: Options = Cfonts::text("A")
 		.font(Font::Tiny)
-		.colors(vec![Color::Red])
+		.colors(vec![Color::RED])
 		.next("B")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
@@ -392,7 +392,7 @@ fn a_static_block_at_either_edge_does_not_stretch_the_global_ramp() {
 		.font(Font::Tiny)
 		.next("B")
 		.font(Font::Tiny)
-		.colors(vec![Color::Red])
+		.colors(vec![Color::RED])
 		.valign(Valign::Top)
 		.spaceless()
 		.global_colors(gradient())
@@ -413,12 +413,12 @@ fn a_static_block_in_between_consumes_its_columns_of_the_global_ramp() {
 		.font(Font::Tiny)
 		.next("B")
 		.font(Font::Tiny)
-		.colors(vec![Color::System])
+		.colors(vec![Color::SYSTEM])
 		.next("C")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -454,7 +454,7 @@ fn a_lone_blocks_own_ramp_and_the_global_ramp_are_the_same_ramp() {
 			.spaceless()
 			.line_height(0)
 	};
-	let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 	let own: Options = compose().colors(gradient.clone()).into();
 	let global: Options = compose().global_colors(gradient).into();
 	let overrides =
@@ -474,10 +474,10 @@ fn an_independent_ramp_spans_each_rows_own_ramped_columns() {
 		.line_height(0)
 		.next("C")
 		.font(Font::Tiny)
-		.colors(vec![Color::White])
+		.colors(vec![Color::WHITE])
 		.valign(Valign::Top)
 		.spaceless()
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.independent_gradient()
 		.into();
 
@@ -510,7 +510,7 @@ fn an_independent_composition_anchors_its_ramps_at_the_aligned_column() {
 			.spaceless()
 			.line_height(0)
 	};
-	let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 	let own: Options = compose().colors(gradient.clone()).independent_gradient().into();
 	let global: Options = compose().global_colors(gradient).independent_gradient().into();
 	let overrides =
@@ -527,7 +527,7 @@ fn an_independent_composition_anchors_its_ramps_at_the_aligned_column() {
 fn a_block_with_its_own_ramp_does_not_stretch_the_global_ramp() {
 	// only blocks that paint from the global ramp span it, so beside a block ramping
 	// on its own the global block walks the whole ramp over its own three columns
-	let gradient = || GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let gradient = || GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 	let ramp = ramp_from(&["#ff0000", "#00ff00", "#0000ff"]);
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 	let expected: Vec<String> = plain_rows("A")
@@ -566,11 +566,11 @@ fn a_wrapped_block_ramp_keeps_its_absolute_columns_beside_other_blocks() {
 	// the ramp's tail and the second its head, as a global ramp does over wrapped lines
 	let options: Options = Cfonts::text("AAAA")
 		.font(Font::Tiny)
-		.colors(vec![Color::Red])
+		.colors(vec![Color::RED])
 		.next(format!("B{NEW_LINE_CHAR}BB"))
 		.font(Font::Tiny)
 		.line_height(0)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.valign(Valign::Top)
 		.spaceless()
 		.into();
@@ -595,12 +595,12 @@ fn valign_padding_consumes_the_ramp_columns_of_the_short_block() {
 	// block samples the same ramp colors on every row, padded or not
 	let options: Options = Cfonts::text("A")
 		.font(Font::Tiny)
-		.colors(vec![Color::System])
+		.colors(vec![Color::SYSTEM])
 		.next("B")
 		.font(Font::Block)
 		.valign(Valign::Top)
 		.spaceless()
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -627,7 +627,7 @@ fn slanted_buffer_seams_consume_the_ramp_columns_they_cover() {
 		.font(Font::Font3D)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -651,7 +651,7 @@ fn gradients_level_down_per_column() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let basic = render_with(
@@ -701,7 +701,7 @@ fn the_browser_and_console_paint_gradients_per_column() {
 #[test]
 fn the_browser_paints_named_colors_as_their_rgb_spans() {
 	let rendered = render_with(
-		&tiny("A", vec![Color::Red]),
+		&tiny("A", vec![Color::RED]),
 		&BrowserEnv,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
@@ -720,7 +720,7 @@ fn the_browser_paints_named_colors_as_their_rgb_spans() {
 #[test]
 fn the_browser_paints_named_colors_the_same_at_every_level() {
 	// a named color's table value is a palette entry already, only RGB values level down
-	let options = tiny("A", vec![Color::Red]);
+	let options = tiny("A", vec![Color::RED]);
 
 	let basic =
 		render_with(&options, &BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)))
@@ -744,9 +744,9 @@ fn the_browser_paints_nothing_without_a_level_or_for_system() {
 	)
 	.text;
 
-	let unleveled = render_with(&tiny("A", vec![Color::Red]), &BrowserEnv, RenderOverrides::default()).text;
+	let unleveled = render_with(&tiny("A", vec![Color::RED]), &BrowserEnv, RenderOverrides::default()).text;
 	let system = render_with(
-		&tiny("A", vec![Color::System]),
+		&tiny("A", vec![Color::SYSTEM]),
 		&BrowserEnv,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
@@ -761,7 +761,7 @@ fn the_browser_paints_nothing_without_a_level_or_for_system() {
 #[test]
 fn the_console_pairs_markers_with_styles_in_order() {
 	let rendered = render_with(
-		&tiny("A", vec![Color::Red]),
+		&tiny("A", vec![Color::RED]),
 		&BrowserConsoleEnv,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
@@ -777,13 +777,13 @@ fn the_console_pairs_markers_with_styles_in_order() {
 fn only_the_console_fills_styles() {
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
-	assert!(render_with(&tiny("A", vec![Color::Red]), &CliEnv::default(), overrides).styles.is_empty());
-	assert!(render_with(&tiny("A", vec![Color::Red]), &BrowserEnv, overrides).styles.is_empty());
+	assert!(render_with(&tiny("A", vec![Color::RED]), &CliEnv::default(), overrides).styles.is_empty());
+	assert!(render_with(&tiny("A", vec![Color::RED]), &BrowserEnv, overrides).styles.is_empty());
 }
 
 #[test]
 fn the_console_paints_nothing_without_a_level_or_for_system() {
-	let unleveled = render_with(&tiny("A", vec![Color::Red]), &BrowserConsoleEnv, RenderOverrides::default());
+	let unleveled = render_with(&tiny("A", vec![Color::RED]), &BrowserConsoleEnv, RenderOverrides::default());
 	assert_eq!(unleveled.text, "▄▀█\n█▀█");
 	assert!(unleveled.styles.is_empty());
 
@@ -793,7 +793,7 @@ fn the_console_paints_nothing_without_a_level_or_for_system() {
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 	let system = render_with(
-		&tiny("A", vec![Color::System]),
+		&tiny("A", vec![Color::SYSTEM]),
 		&BrowserConsoleEnv,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
@@ -807,7 +807,7 @@ fn a_resolved_color_that_paints_no_segment_does_not_escape_percent() {
 	// but covers no segment; the percent in the console font's art must survive
 	let options: Options = Cfonts::text(" ")
 		.font(Font::Block)
-		.colors(vec![Color::Red])
+		.colors(vec![Color::RED])
 		.next("%")
 		.font(Font::Console)
 		.valign(Valign::Top)
@@ -833,7 +833,7 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let overrides =
@@ -868,7 +868,7 @@ fn empty_lines_do_not_anchor_the_fixed_ramp() {
 			.valign(Valign::Top)
 			.spaceless()
 			.line_height(0)
-			.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+			.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 			.into()
 	};
 
@@ -888,10 +888,10 @@ fn empty_lines_do_not_anchor_the_fixed_ramp() {
 fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 	let options: Options = Cfonts::text("A")
 		.font(Font::Tiny)
-		.colors(vec![Color::Red])
+		.colors(vec![Color::RED])
 		.next("B")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.valign(Valign::Top)
 		.spaceless()
 		.into();
@@ -925,7 +925,7 @@ fn a_wrapped_block_gradient_fixes_its_ramp_across_every_row() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -949,7 +949,7 @@ fn an_independent_global_gradient_ramps_each_line() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.independent_gradient()
 		.into();
 
@@ -971,7 +971,7 @@ fn one_flag_restarts_the_block_and_the_global_ramp_on_every_line() {
 	// the first block owns a ramp and the second rides the global one; independent,
 	// both restart per line so every row ends on blue, while fixed ramps span their
 	// columns across every row and leave the first and the last row short of it
-	let ramp = || GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let ramp = || GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 	let compose = || {
 		Cfonts::text(format!("A{NEW_LINE_CHAR}AB"))
 			.font(Font::Tiny)
@@ -1006,7 +1006,7 @@ fn leading_space_glyphs_consume_the_ramp() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -1032,7 +1032,7 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 		.valign(Valign::Top)
 		.spaceless()
 		.line_height(0)
-		.global_colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.into();
 
 	let rendered = render_with(
@@ -1065,7 +1065,7 @@ fn plated(background: impl Into<BackgroundOption>) -> Options {
 #[test]
 fn a_fixed_background_bands_every_row_padding_rows_included() {
 	let rendered = render_with(
-		&plated(Color::Blue),
+		&plated(Color::BLUE),
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
@@ -1082,7 +1082,7 @@ fn a_fixed_background_bands_every_row_padding_rows_included() {
 #[test]
 fn an_empty_composition_still_bands_its_bare_row() {
 	// empty text prints one bare row between the paddings, and that row is banded like the rest
-	let options: Options = Cfonts::text("").background(Color::Blue).into();
+	let options: Options = Cfonts::text("").background(Color::BLUE).into();
 	let rendered = render_with(
 		&options,
 		&CliEnv::default(),
@@ -1097,7 +1097,7 @@ fn an_empty_composition_still_bands_its_bare_row() {
 #[test]
 fn spaceless_drops_the_padding_bands() {
 	let options: Options =
-		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::Blue).into();
+		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::BLUE).into();
 	let rendered = render_with(
 		&options,
 		&CliEnv::default(),
@@ -1110,7 +1110,7 @@ fn spaceless_drops_the_padding_bands() {
 
 #[test]
 fn a_background_gradient_ramps_from_the_top_row_to_the_bottom_row() {
-	let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 	let options: Options =
 		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(gradient.clone()).into();
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
@@ -1134,7 +1134,7 @@ fn a_background_gradient_ramps_from_the_top_row_to_the_bottom_row() {
 #[test]
 fn the_independent_flag_leaves_the_background_ramp_alone() {
 	// the flag restarts foreground gradients per line, a background ramps once over every row
-	let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+	let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 	let options: Options = Cfonts::text(format!("A{NEW_LINE_CHAR}A"))
 		.font(Font::Tiny)
 		.line_height(0)
@@ -1164,7 +1164,7 @@ fn alignment_padding_sits_inside_the_band() {
 		.valign(Valign::Top)
 		.spaceless()
 		.align(Align::Right)
-		.background(Color::Blue)
+		.background(Color::BLUE)
 		.into();
 	let overrides = RenderOverrides::default().with_canvas_width(7).with_color(ColorOverride::Level(ColorLevel::Basic));
 
@@ -1180,8 +1180,8 @@ fn a_background_and_font_colors_are_separate_layers() {
 		.font(Font::Tiny)
 		.valign(Valign::Top)
 		.spaceless()
-		.colors(vec![Color::Red])
-		.background(Color::Blue)
+		.colors(vec![Color::RED])
+		.background(Color::BLUE)
 		.into();
 	let rendered = render_with(
 		&options,
@@ -1199,7 +1199,7 @@ fn a_background_and_font_colors_are_separate_layers() {
 
 #[test]
 fn a_hex_background_levels_down_the_chain() {
-	let orange = Color::Rgb(Rgb { red: 255, green: 136, blue: 0 });
+	let orange = Color::from(Rgb { red: 255, green: 136, blue: 0 });
 	let options: Options = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(orange).into();
 	let first_row = |level: ColorLevel| {
 		render_with(&options, &CliEnv::default(), RenderOverrides::default().with_color(ColorOverride::Level(level)))
@@ -1216,7 +1216,7 @@ fn a_hex_background_levels_down_the_chain() {
 
 #[test]
 fn the_browser_and_console_carry_the_band() {
-	let options = plated(Color::Blue);
+	let options = plated(Color::BLUE);
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
 	// every one of the six output rows is a block on the band, inside the scroll wide block
@@ -1232,11 +1232,10 @@ fn the_browser_and_console_carry_the_band() {
 
 #[test]
 fn system_candy_and_no_color_level_paint_no_band() {
-	let plain = render_with(&plated(Color::System), &CliEnv::default(), RenderOverrides::default()).text;
+	let plain = render_with(&plated(Color::SYSTEM), &CliEnv::default(), RenderOverrides::default()).text;
 	assert_eq!(plain, "\n\n▄▀█\n█▀█\n\n");
 
 	let level = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic));
-	assert_eq!(render_with(&plated(Color::System), &CliEnv::default(), level).text, plain);
-	assert_eq!(render_with(&plated(Color::Candy), &CliEnv::default(), level).text, plain);
-	assert_eq!(render_with(&plated(Color::Blue), &CliEnv::default(), RenderOverrides::default()).text, plain);
+	assert_eq!(render_with(&plated(Color::SYSTEM), &CliEnv::default(), level).text, plain);
+	assert_eq!(render_with(&plated(Color::BLUE), &CliEnv::default(), RenderOverrides::default()).text, plain);
 }

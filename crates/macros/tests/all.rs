@@ -106,23 +106,6 @@ fn list_holds_the_lowercased_variant_names() {
 }
 
 #[test]
-fn skip_marked_variants_are_left_out_of_all_and_list() {
-	#[derive(Debug, PartialEq, All)]
-	enum Color {
-		/// The terminal's own foreground
-		System,
-		Candy,
-		/// Any RGB color
-		#[all(skip)]
-		#[allow(dead_code)]
-		Rgb(u8),
-	}
-
-	assert_eq!(Color::ALL, [Color::System, Color::Candy]);
-	assert_eq!(Color::LIST, "system, candy");
-}
-
-#[test]
 fn rename_marked_variants_change_list_but_not_all() {
 	#[derive(Debug, PartialEq, All)]
 	enum Font {

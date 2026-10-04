@@ -34,8 +34,7 @@ mod glyph;
 ///
 /// Variants appear in declaration order
 /// Attributes, doc comments, and explicit discriminants on variants are allowed and skipped
-/// Variants marked `#[all(skip)]` are left out of ALL, NAMES and LIST
-/// Unmarked data-carrying variants and generic enums are rejected
+/// Data-carrying variants and generic enums are rejected
 /// Invalid input turns into a `compile_error!` at the call site
 #[proc_macro_derive(All, attributes(all))]
 pub fn all(input: TokenStream) -> TokenStream {

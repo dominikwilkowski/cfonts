@@ -36,7 +36,7 @@ fn overrides_carry_color_and_seed() {
 #[test]
 fn without_a_host_auto_means_off() {
 	// nothing detects here: no color paints and candy rolls from the zero seed, so two renders agree
-	let candy = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::Candy]);
+	let candy = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::CANDY]);
 	let plain = candy.render_with(&CliEnv::default(), RenderOverrides::default());
 	assert!(!plain.text.contains('\u{1b}'));
 

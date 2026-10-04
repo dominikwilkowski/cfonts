@@ -4,9 +4,9 @@ use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
 	Align as CoreAlign, BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv,
-	Color as CoreColor, ColorLevel as CoreColorLevel, ColorOverride, Font as CoreFont, GradientOption,
-	GradientPreset as CoreGradientPreset, GradientStop, Options, RenderOverrides, Rgb, TransitionStops,
-	Valign as CoreValign, render_with,
+	Color as CoreColor, ColorLevel as CoreColorLevel, ColorOverride, Font as CoreFont, Gradient, GradientOption,
+	GradientPreset as CoreGradientPreset, Options, RenderOverrides, Rgb, Text, TransitionStops, Valign as CoreValign,
+	render_with,
 };
 use cfonts_wasm::{
 	Align, BrowserHost, Cfonts, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, entropy,
@@ -348,11 +348,8 @@ fn the_background_option_spells_what_the_shapes_build() {
 	let mut preset = wrapping_banner();
 	preset.background_option("pride".to_owned()).expect("a preset spelling");
 
-	assert_eq!(boundary(&color), core(CoreColor::Red.into()));
-	assert_eq!(
-		boundary(&two_stop),
-		core(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }.into())
-	);
+	assert_eq!(boundary(&color), core(CoreColor::RED.into()));
+	assert_eq!(boundary(&two_stop), core(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE }.into()));
 	assert_eq!(boundary(&preset), core(CoreGradientPreset::Pride.into()));
 	assert_ne!(boundary(&color), boundary(&two_stop));
 }
@@ -460,7 +457,7 @@ fn the_independent_gradient_crosses_the_boundary() {
 	let expected = CoreCfonts::text("A|AB")
 		.font(CoreFont::Tiny)
 		.line_height(0)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE })
 		.independent_gradient()
 		.render_with(
 			&CliEnv::default(),
@@ -506,7 +503,7 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
-	let expected = CoreCfonts::text("A").font(CoreFont::Tiny).spaceless().background(CoreColor::Blue).render_with(
+	let expected = CoreCfonts::text("A").font(CoreFont::Tiny).spaceless().background(CoreColor::BLUE).render_with(
 		&CliEnv::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(CoreColorLevel::Basic)),
 	);
@@ -565,17 +562,14 @@ fn every_background_gradient_shape_matches_the_core_builder() {
 	preset.background_gradient_preset(GradientPreset::Pride).expect("a fresh slot");
 
 	let stops =
-		|names: &[GradientStop]| TransitionStops::try_from(names.to_vec()).expect("three stops make a transition");
-	let gray = GradientStop::Rgb(Rgb { red: 136, green: 153, blue: 221 });
+		|names: &[CoreColor<Gradient>]| TransitionStops::try_from(names.to_vec()).expect("three stops make a transition");
+	let gray = CoreColor::from(Rgb { red: 136, green: 153, blue: 221 });
 
 	assert!(boundary(&two_stop).starts_with("\u{1b}[48;2;255;0;0m"));
-	assert_eq!(
-		boundary(&two_stop),
-		core(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }.into())
-	);
+	assert_eq!(boundary(&two_stop), core(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE }.into()));
 	assert_eq!(
 		boundary(&transition),
-		core(GradientOption::Transition(stops(&[GradientStop::Red, gray, GradientStop::Blue])).into())
+		core(GradientOption::Transition(stops(&[CoreColor::RED, gray, CoreColor::BLUE])).into())
 	);
 	assert_eq!(boundary(&preset), core(CoreGradientPreset::Pride.into()));
 	assert_ne!(boundary(&preset), boundary(&two_stop));
@@ -590,13 +584,14 @@ fn hex_values_convert_into_channel_values() {
 }
 
 #[wasm_bindgen_test]
-fn every_bridge_lists_the_variants_in_the_core_order() {
-	// the TypeScript enums list the variants in the bridge's order and the framework pages fill their pickers
+fn every_enum_lists_the_variants_in_the_core_order() {
+	// the TypeScript enums list the variants in the wasm crate's order and the framework pages fill their pickers
 	// from the core, so every picker built from either side agrees only while the two orders match
 	assert_eq!(Align::ALL.map(CoreAlign::from).as_slice(), CoreAlign::ALL.as_slice(), "Align");
 	assert_eq!(Valign::ALL.map(CoreValign::from).as_slice(), CoreValign::ALL.as_slice(), "Valign");
 	assert_eq!(ColorLevel::ALL.map(CoreColorLevel::from).as_slice(), CoreColorLevel::ALL.as_slice(), "ColorLevel");
-	assert_eq!(Color::ALL.map(CoreColor::from).as_slice(), CoreColor::ALL.as_slice(), "Color");
+	// the color list is plain names on both sides, system first and candy last like the text colors
+	assert_eq!(Color::NAMES, CoreColor::<Text>::NAMES, "Color");
 	assert_eq!(
 		GradientPreset::ALL.map(CoreGradientPreset::from).as_slice(),
 		CoreGradientPreset::ALL.as_slice(),

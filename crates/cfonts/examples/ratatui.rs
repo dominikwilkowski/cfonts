@@ -17,8 +17,8 @@ use ratatui::{
 };
 
 use cfonts::{
-	Align, Cfonts, CfontsWidget, Color, ColorOption, Font, GradientOption, GradientPreset, GradientStop, Options,
-	RenderOverrides, RustHost,
+	Align, Cfonts, CfontsWidget, Color, ColorOption, Font, GradientOption, GradientPreset, Options, RenderOverrides,
+	RustHost,
 };
 
 /// One entry of the picker, the label with its configuration, so adding a choice needs one entry
@@ -42,18 +42,18 @@ struct App {
 impl App {
 	fn new() -> Self {
 		let choices = vec![
-			Choice { label: "Red", colors: vec![Color::Red].into(), rolling: false },
-			Choice { label: "Candy Fixed", colors: vec![Color::Candy].into(), rolling: false },
-			Choice { label: "Candy Random", colors: vec![Color::Candy].into(), rolling: true },
-			Choice { label: "Cyan,Magenta", colors: vec![Color::Cyan, Color::Magenta].into(), rolling: false },
+			Choice { label: "Red", colors: vec![Color::RED].into(), rolling: false },
+			Choice { label: "Candy Fixed", colors: vec![Color::CANDY].into(), rolling: false },
+			Choice { label: "Candy Random", colors: vec![Color::CANDY].into(), rolling: true },
+			Choice { label: "Cyan,Magenta", colors: vec![Color::CYAN, Color::MAGENTA].into(), rolling: false },
 			Choice {
 				label: "Red-blue",
-				colors: GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }.into(),
+				colors: GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }.into(),
 				rolling: false,
 			},
 			Choice {
 				label: "Green-magenta",
-				colors: GradientOption::TwoStop { start: GradientStop::Green, end: GradientStop::Magenta }.into(),
+				colors: GradientOption::TwoStop { start: Color::GREEN, end: Color::MAGENTA }.into(),
 				rolling: false,
 			},
 			Choice { label: "Nonbinary", colors: GradientPreset::Nonbinary.into(), rolling: false },

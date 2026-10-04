@@ -2,8 +2,7 @@ use std::io::{self, Write};
 
 use cfonts::{
 	Align, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, GradientOption,
-	GradientPreset, GradientStop, Host, Options, RenderOverrides, Rendered, Rgb, RustHost, TransitionStops, Valign,
-	render_with,
+	GradientPreset, Host, Options, RenderOverrides, Rendered, Rgb, RustHost, TransitionStops, Valign, render_with,
 };
 
 fn main() -> io::Result<()> {
@@ -40,8 +39,8 @@ fn main() -> io::Result<()> {
 		RustHost::from_overrides(RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)));
 	Cfonts::text("serial")
 		.colors(GradientOption::TwoStop {
-			start: GradientStop::Rgb(Rgb { red: 255, green: 136, blue: 0 }),
-			end: GradientStop::Rgb(Rgb { red: 136, green: 0, blue: 255 }),
+			start: Color::from(Rgb { red: 255, green: 136, blue: 0 }),
+			end: Color::from(Rgb { red: 136, green: 0, blue: 255 }),
 		})
 		.say(&serial_host, &cli)?;
 
@@ -49,18 +48,18 @@ fn main() -> io::Result<()> {
 	let seeded_host = RustHost::from_overrides(RenderOverrides::default().with_seed(42));
 	Cfonts::text("same")
 		.font(Font::Chrome)
-		.colors(vec![Color::Candy, Color::Candy])
+		.colors(vec![Color::CANDY, Color::CANDY])
 		.spaceless()
 		.say(&seeded_host, &cli)?;
 	Cfonts::text("same")
 		.font(Font::Chrome)
-		.colors(vec![Color::Candy, Color::Candy])
+		.colors(vec![Color::CANDY, Color::CANDY])
 		.spaceless()
 		.say(&seeded_host, &cli)?; // the same picks again
 
 	// A seed rolled by the host does the same and stays repeatable for as long as it is kept
 	let rolled = RustHost::from_overrides(RenderOverrides::default().with_seed(RustHost::entropy()));
-	let party = Cfonts::text("party").font(Font::Chrome).colors(vec![Color::Candy, Color::Candy]);
+	let party = Cfonts::text("party").font(Font::Chrome).colors(vec![Color::CANDY, Color::CANDY]);
 	assert_eq!(party.render(&rolled, &cli), party.render(&rolled, &cli)); // nothing printed, the picks differ per run
 
 	// A terminal in raw mode, the way TUIs set it, needs a carriage return before every line feed
@@ -77,7 +76,7 @@ fn main() -> io::Result<()> {
 	// The browser console form pairs every `%c` marker in the text with one entry of styles
 	let devtools = Cfonts::text("devtools")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop { start: GradientStop::Cyan, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::CYAN, end: Color::BLUE })
 		.render_with(
 			&BrowserConsoleEnv,
 			RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
@@ -103,20 +102,18 @@ fn main() -> io::Result<()> {
 	println!("{}", emulator.text);
 
 	// Colors paint through the host's resolved support level, one per font color slot
-	Cfonts::text("colors").colors(vec![Color::Red, Color::Yellow]).say(&host, &cli)?;
+	Cfonts::text("colors").colors(vec![Color::RED, Color::YELLOW]).say(&host, &cli)?;
 
 	// A gradient ramps between two colors the long way around the color wheel, one color per column
-	Cfonts::text("rainbow")
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
-		.say(&host, &cli)?;
+	Cfonts::text("rainbow").colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }).say(&host, &cli)?;
 
 	// A transition travels straight to each color, two or more stops make one
 	Cfonts::text("sunset")
 		.colors(GradientOption::Transition(
 			TransitionStops::try_from(vec![
-				GradientStop::Yellow,
-				GradientStop::Rgb(Rgb { red: 255, green: 136, blue: 0 }),
-				GradientStop::Magenta,
+				Color::YELLOW,
+				Color::from(Rgb { red: 255, green: 136, blue: 0 }),
+				Color::MAGENTA,
 			])
 			.expect("two or more stops"),
 		))
@@ -125,20 +122,20 @@ fn main() -> io::Result<()> {
 	// Design tokens come as hex values, `Rgb::from_hex` turns one into channels
 	let brand = Rgb::from_hex("#f08").expect("a valid hex value");
 	Cfonts::text("brand")
-		.colors(vec![Color::Rgb(brand), Color::Rgb(Rgb { red: 255, green: 255, blue: 255 })]) // colors can also be set directly from `Rgb`
+		.colors(vec![Color::from(brand), Color::from(Rgb { red: 255, green: 255, blue: 255 })]) // colors can also be set directly from `Rgb`
 		.say(&host, &cli)?;
 
 	// System keeps the terminal's own text color, here for the fill while only the frame is painted
 	// So the first color works on dark mode and light mode and any other terminal themes
-	Cfonts::text(" theme ").font(Font::Shade).colors(vec![Color::System, Color::Yellow]).say(&host, &cli)?;
+	Cfonts::text(" theme ").font(Font::Shade).colors(vec![Color::SYSTEM, Color::YELLOW]).say(&host, &cli)?;
 
 	// Blocks share one line, each with its own font and colors
 	Cfonts::text("say ")
 		.font(Font::Tiny)
-		.colors(GradientOption::TwoStop { start: GradientStop::Green, end: GradientStop::Magenta })
+		.colors(GradientOption::TwoStop { start: Color::GREEN, end: Color::MAGENTA })
 		.next("fire")
 		.font(Font::Tiny)
-		.colors(vec![Color::YellowBright])
+		.colors(vec![Color::YELLOW_BRIGHT])
 		.say(&host, &cli)?;
 
 	// Global colors cover every block and can be set anywhere while color setters have to be set within the current block
@@ -148,8 +145,8 @@ fn main() -> io::Result<()> {
 		.font(Font::Tiny)
 		.next("two ")
 		.font(Font::Tiny)
-		.colors(vec![Color::White])
-		.global_colors(vec![Color::Yellow]) // this could also be a gradient just like any `.colors()` setter
+		.colors(vec![Color::WHITE])
+		.global_colors(vec![Color::YELLOW]) // this could also be a gradient just like any `.colors()` setter
 		.next("three")
 		.font(Font::Tiny)
 		// no color set in this block
@@ -168,25 +165,25 @@ fn main() -> io::Result<()> {
 	Cfonts::text("All you need is|Love")
 		.font(Font::Braille)
 		.align(Align::Center)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.say(&host, &cli)?;
 	Cfonts::text("All you need is|Love")
 		.font(Font::Braille)
 		.align(Align::Center)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 		.independent_gradient()
 		.say(&host, &cli)?;
 
 	// You can set a static background for your output which will include the padding (which can be disabled with `.spaceless()`)
-	Cfonts::text(" Banner ").colors(vec![Color::White, Color::Yellow]).background(Color::Blue).say(&host, &cli)?;
+	Cfonts::text(" Banner ").colors(vec![Color::WHITE, Color::YELLOW]).background(Color::BLUE).say(&host, &cli)?;
 
 	println!(); // Adding some space between examples
 
 	// A background gradient ramps from the top row down, the long way around the color wheel like font gradients do
 	Cfonts::text(" Right ")
 		.align(Align::Right)
-		.colors(vec![Color::Black, Color::Black])
-		.background(GradientOption::TwoStop { start: GradientStop::Blue, end: GradientStop::Magenta })
+		.colors(vec![Color::BLACK, Color::BLACK])
+		.background(GradientOption::TwoStop { start: Color::BLUE, end: Color::MAGENTA })
 		.font(Font::Huge)
 		.say(&host, &cli)?;
 
@@ -196,10 +193,9 @@ fn main() -> io::Result<()> {
 	Cfonts::text("neon")
 		.align(Align::Center)
 		.font(Font::Chrome)
-		.colors(vec![Color::Rgb(brand); 3])
+		.colors(vec![Color::from(brand); 3])
 		.background(GradientOption::Transition(
-			TransitionStops::try_from(vec![GradientStop::Magenta, GradientStop::Cyan, GradientStop::Magenta])
-				.expect("two or more stops"),
+			TransitionStops::try_from(vec![Color::MAGENTA, Color::CYAN, Color::MAGENTA]).expect("two or more stops"),
 		))
 		.say(&host, &cli)?;
 
@@ -214,12 +210,12 @@ fn main() -> io::Result<()> {
 	// Align within the width of the terminal is global and affects all blocks
 	Cfonts::text("cfonts")
 		.font(Font::Dense)
-		.colors(vec![Color::Rgb(brand); 3])
+		.colors(vec![Color::from(brand); 3])
 		.next(" v4")
 		.font(Font::Console)
-		.colors(vec![Color::White])
+		.colors(vec![Color::WHITE])
 		.valign(Valign::Bottom)
-		.background(Color::Gray)
+		.background(Color::GRAY)
 		.align(Align::Center)
 		.say(&host, &cli)?;
 
@@ -228,9 +224,9 @@ fn main() -> io::Result<()> {
 	// Spaceless drops the padding (two empty lines above and below) for tight stacks
 	Cfonts::text("Neat")
 		.font(Font::Neat)
-		.colors(vec![Color::White])
+		.colors(vec![Color::WHITE])
 		.spaceless()
-		.background(Color::Red)
+		.background(Color::RED)
 		.say(&host, &cli)?;
 
 	// Max length breaks a line after this many glyphs (it means max characters)
@@ -238,12 +234,12 @@ fn main() -> io::Result<()> {
 	Cfonts::text("wrap whole words")
 		.font(Font::Retro)
 		.max_length(8)
-		.colors(GradientOption::TwoStop { start: GradientStop::Rgb(brand), end: GradientStop::Rgb(brand) })
+		.colors(GradientOption::TwoStop { start: Color::from(brand), end: Color::from(brand) })
 		.say(&host, &cli)?;
 	Cfonts::text("wrap whole words")
 		.font(Font::Retro)
 		.max_length(8)
-		.colors(GradientOption::TwoStop { start: GradientStop::Rgb(brand), end: GradientStop::Rgb(brand) })
+		.colors(GradientOption::TwoStop { start: Color::from(brand), end: Color::from(brand) })
 		.word_wrap()
 		.say(&host, &cli)?;
 
@@ -253,10 +249,10 @@ fn main() -> io::Result<()> {
 
 	// Put together: a startup banner with a logo and a status line
 	Cfonts::text("Bronzies")
-		.colors(vec![Color::Red, Color::Rgb(Rgb::from_hex("#ff0").expect("a valid hex color"))])
+		.colors(vec![Color::RED, Color::from(Rgb::from_hex("#ff0").expect("a valid hex color"))])
 		.next("|Bronzies-RESTful-API listening at http://0.0.0.0:5555")
 		.font(Font::Console)
-		.colors(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::White })
+		.colors(GradientOption::TwoStop { start: Color::RED, end: Color::WHITE })
 		.spaceless()
 		.align(Align::Center)
 		.say(&host, &cli)?;
@@ -266,11 +262,11 @@ fn main() -> io::Result<()> {
 	// A host is any type that implements Host, it answers what it can show and owns the output
 	// This custom host prefixes every line for a build log
 	let build_log = BuildLog;
-	Cfonts::text("step 3").font(Font::Tiny).colors(vec![Color::Green]).spaceless().say(&build_log, &cli)?;
+	Cfonts::text("step 3").font(Font::Tiny).colors(vec![Color::GREEN]).spaceless().say(&build_log, &cli)?;
 	Cfonts::text("failed")
 		.font(Font::Tiny)
-		.colors(vec![Color::White])
-		.background(Color::Red)
+		.colors(vec![Color::WHITE])
+		.background(Color::RED)
 		.spaceless()
 		.align(Align::Center)
 		.say(&build_log, &cli)?;

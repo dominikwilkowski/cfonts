@@ -9,7 +9,7 @@ use ::ratatui::{
 };
 
 use crate::{
-	color::{Color, ColorLevel, Rgb},
+	color::{Background, Color, ColorLevel, Rgb, Text, Value},
 	environments::RowEvent,
 	hosts::entropy,
 	layout::Layout,
@@ -55,41 +55,41 @@ fn terminal_rgb(rgb: Rgb, level: ColorLevel) -> TerminalColor {
 	}
 }
 
-/// One cfonts color as the terminal's own color
+/// One cfonts color value as the terminal's own color
 ///
 /// Named colors stay semantic so the terminal's palette applies,
 /// only RGB values pin channels, as many as the level allows
-fn terminal_color(color: Color, level: ColorLevel) -> Option<TerminalColor> {
-	Some(match color {
-		Color::System | Color::Candy => return None,
-		Color::Black => TerminalColor::Black,
-		Color::Red => TerminalColor::Red,
-		Color::Green => TerminalColor::Green,
-		Color::Yellow => TerminalColor::Yellow,
-		Color::Blue => TerminalColor::Blue,
-		Color::Magenta => TerminalColor::Magenta,
-		Color::Cyan => TerminalColor::Cyan,
-		Color::White => TerminalColor::Gray,
-		Color::Gray => TerminalColor::DarkGray,
-		Color::RedBright => TerminalColor::LightRed,
-		Color::GreenBright => TerminalColor::LightGreen,
-		Color::YellowBright => TerminalColor::LightYellow,
-		Color::BlueBright => TerminalColor::LightBlue,
-		Color::MagentaBright => TerminalColor::LightMagenta,
-		Color::CyanBright => TerminalColor::LightCyan,
-		Color::WhiteBright => TerminalColor::White,
-		Color::Rgb(rgb) => terminal_rgb(rgb, level),
+fn terminal_color(value: Value, level: ColorLevel) -> Option<TerminalColor> {
+	Some(match value {
+		Value::System | Value::Candy => return None,
+		Value::Black => TerminalColor::Black,
+		Value::Red => TerminalColor::Red,
+		Value::Green => TerminalColor::Green,
+		Value::Yellow => TerminalColor::Yellow,
+		Value::Blue => TerminalColor::Blue,
+		Value::Magenta => TerminalColor::Magenta,
+		Value::Cyan => TerminalColor::Cyan,
+		Value::White => TerminalColor::Gray,
+		Value::Gray => TerminalColor::DarkGray,
+		Value::RedBright => TerminalColor::LightRed,
+		Value::GreenBright => TerminalColor::LightGreen,
+		Value::YellowBright => TerminalColor::LightYellow,
+		Value::BlueBright => TerminalColor::LightBlue,
+		Value::MagentaBright => TerminalColor::LightMagenta,
+		Value::CyanBright => TerminalColor::LightCyan,
+		Value::WhiteBright => TerminalColor::White,
+		Value::Rgb(rgb) => terminal_rgb(rgb, level),
 	})
 }
 
-/// One cfonts color as a foreground style
-fn style_for(color: Color, level: ColorLevel) -> Option<Style> {
-	terminal_color(color, level).map(|color| Style::default().fg(color))
+/// One cfonts text color as a foreground style
+fn style_for(color: Color<Text>, level: ColorLevel) -> Option<Style> {
+	terminal_color(color.value, level).map(|color| Style::default().fg(color))
 }
 
-/// One cfonts color as the background style of a band
-fn band_style_for(color: Color, level: ColorLevel) -> Option<Style> {
-	terminal_color(color, level).map(|color| Style::default().bg(color))
+/// One cfonts background color as the background style of a band
+fn band_style_for(color: Color<Background>, level: ColorLevel) -> Option<Style> {
+	terminal_color(color.value, level).map(|color| Style::default().bg(color))
 }
 
 impl Widget for &CfontsWidget<'_> {
@@ -197,7 +197,7 @@ mod tests {
 	use ::ratatui::{Terminal, backend::TestBackend};
 
 	use crate::{
-		BackgroundOption, ColorOption, ColorOverride, GradientOption, GradientStop,
+		BackgroundOption, ColorOption, ColorOverride, GradientOption,
 		fonts::Font,
 		options::{Align, Valign},
 		tests::{block, options},
@@ -311,10 +311,10 @@ mod tests {
 	#[test]
 	fn the_distinctive_semantic_mappings_hold() {
 		// the terminal's palette names shift against the cfonts names exactly here
-		assert_eq!(style_for(Color::White, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::Gray));
-		assert_eq!(style_for(Color::Gray, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::DarkGray));
-		assert_eq!(style_for(Color::RedBright, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::LightRed));
-		assert_eq!(style_for(Color::WhiteBright, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::White));
+		assert_eq!(style_for(Color::WHITE, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::Gray));
+		assert_eq!(style_for(Color::GRAY, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::DarkGray));
+		assert_eq!(style_for(Color::RED_BRIGHT, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::LightRed));
+		assert_eq!(style_for(Color::WHITE_BRIGHT, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::White));
 	}
 
 	#[test]
@@ -326,7 +326,7 @@ mod tests {
 		assert_eq!(terminal_rgb(red, ColorLevel::Ansi256), TerminalColor::Indexed(196));
 		assert_eq!(terminal_rgb(red, ColorLevel::Basic), TerminalColor::LightRed);
 		// named colors ignore the level
-		assert_eq!(terminal_color(Color::Red, ColorLevel::Basic), Some(TerminalColor::Red));
+		assert_eq!(terminal_color(Value::Red, ColorLevel::Basic), Some(TerminalColor::Red));
 	}
 
 	/// The foreground of every cell in a one row Tiny "A" painted with one color at one level
@@ -344,7 +344,7 @@ mod tests {
 
 	#[test]
 	fn widget_levels_hex_colors_down_in_the_slots() {
-		let red = Color::Rgb(Rgb { red: 255, green: 0, blue: 0 });
+		let red = Color::rgb(255, 0, 0);
 
 		assert!(leveled_foregrounds(red, ColorLevel::Basic).iter().all(|color| *color == TerminalColor::LightRed));
 		assert!(leveled_foregrounds(red, ColorLevel::Ansi256).iter().all(|color| *color == TerminalColor::Indexed(196)));
@@ -356,7 +356,7 @@ mod tests {
 	#[test]
 	fn widget_levels_the_band_down() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.background = Some(BackgroundOption::Color(Color::Rgb(Rgb { red: 255, green: 0, blue: 0 })));
+		options.background = Some(BackgroundOption::Color(Color::rgb(255, 0, 0)));
 		let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic));
 		let widget = CfontsWidget { options: &options, overrides };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
@@ -370,7 +370,7 @@ mod tests {
 	fn widget_levels_gradient_columns_down() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.blocks[0].colors =
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
 		let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic));
 		let widget = CfontsWidget { options: &options, overrides };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
@@ -386,8 +386,8 @@ mod tests {
 	#[test]
 	fn widget_paints_nothing_with_color_disabled() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red]));
-		options.background = Some(BackgroundOption::Color(Color::Blue));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::RED]));
+		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let overrides = RenderOverrides::default().with_color(ColorOverride::Disabled);
 		let widget = CfontsWidget { options: &options, overrides };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
@@ -402,7 +402,7 @@ mod tests {
 	#[test]
 	fn widget_paints_named_colors_as_the_terminals_own() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Block, false)]);
-		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red, Color::Blue]));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::RED, Color::BLUE]));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(12, 6)).unwrap();
 
@@ -425,7 +425,7 @@ mod tests {
 	fn widget_ramps_gradients_per_cell() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.blocks[0].colors =
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
@@ -441,9 +441,9 @@ mod tests {
 		// the red block claims its three columns whole, so the global ramp spans only
 		// the second block and starts on red at the fourth cell
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red]));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::RED]));
 		options.global_colors =
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(6, 2)).unwrap();
 
@@ -460,9 +460,9 @@ mod tests {
 		// the Tiny block pads with blanks under the Block font, and the tall block's
 		// cells keep their ramp colors on the padded rows
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B", Font::Block, false)]);
-		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::System]));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::SYSTEM]));
 		options.global_colors =
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(11, 6)).unwrap();
 
@@ -479,16 +479,15 @@ mod tests {
 
 	#[test]
 	fn a_band_is_the_terminals_own_background() {
-		assert_eq!(band_style_for(Color::Blue, ColorLevel::TrueColor).unwrap().bg, Some(TerminalColor::Blue));
-		assert_eq!(band_style_for(Color::Blue, ColorLevel::TrueColor).unwrap().fg, None);
-		assert!(band_style_for(Color::System, ColorLevel::TrueColor).is_none());
-		assert!(band_style_for(Color::Candy, ColorLevel::TrueColor).is_none());
+		assert_eq!(band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().bg, Some(TerminalColor::Blue));
+		assert_eq!(band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().fg, None);
+		assert!(band_style_for(Color::SYSTEM, ColorLevel::TrueColor).is_none());
 	}
 
 	#[test]
 	fn widget_bands_every_visible_row_across_the_area() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.background = Some(BackgroundOption::Color(Color::Blue));
+		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(5, 3)).unwrap();
 
@@ -510,7 +509,7 @@ mod tests {
 	fn widget_ramps_the_background_over_its_rows() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.background =
-			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
@@ -525,8 +524,8 @@ mod tests {
 	#[test]
 	fn widget_keeps_font_colors_on_the_band() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Red]));
-		options.background = Some(BackgroundOption::Color(Color::Blue));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::RED]));
+		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
@@ -541,7 +540,7 @@ mod tests {
 	fn widget_keeps_the_band_inside_a_sub_area() {
 		// Tiny is two rows tall but the area shows one, and the area sits inside a larger frame
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.background = Some(BackgroundOption::Color(Color::Blue));
+		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(6, 4)).unwrap();
 
@@ -561,8 +560,8 @@ mod tests {
 	fn widget_keeps_the_band_under_gradient_glyphs() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.blocks[0].colors =
-			Some(ColorOption::Gradient(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }));
-		options.background = Some(BackgroundOption::Color(Color::Green));
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
+		options.background = Some(BackgroundOption::Color(Color::GREEN));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
@@ -576,7 +575,7 @@ mod tests {
 	#[test]
 	fn widget_bands_the_first_row_of_an_empty_composition() {
 		let mut options = options(Valign::Top, None, vec![block("", Font::Tiny, false)]);
-		options.background = Some(BackgroundOption::Color(Color::Blue));
+		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
 		let mut terminal = Terminal::new(TestBackend::new(3, 2)).unwrap();
 
@@ -591,7 +590,7 @@ mod tests {
 	fn widget_candy_is_deterministic_for_a_seed() {
 		// five glyphs on two rows roll enough picks that two fresh seeds never draw the same assortment
 		let mut options = options(Valign::Top, None, vec![block("CANDY", Font::Tiny, false)]);
-		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::Candy]));
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::CANDY]));
 
 		let draw = |overrides: RenderOverrides| {
 			let widget = CfontsWidget { options: &options, overrides };

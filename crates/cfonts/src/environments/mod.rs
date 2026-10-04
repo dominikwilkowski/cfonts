@@ -13,7 +13,7 @@ pub use cli::CliEnv;
 use std::{array, borrow::Cow, iter};
 
 use crate::{
-	color::{Color, Rgb},
+	color::{Background, Color, Kind, Rgb, Text, Value},
 	layout::{LayoutRow, RowEntry},
 	options::Options,
 	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext},
@@ -62,11 +62,11 @@ impl Default for ColorTokens {
 /// The browser shows any value, so a level below full support paints the palette entry's own value:
 /// a named color's table value is a palette entry already, an RGB value takes the entry its level allows
 /// Nothing paints without a level, and `System` and `Candy` never paint from here
-pub(crate) fn leveled_rgb(color: Color, context: &RenderContext) -> Option<Rgb> {
+pub(crate) fn leveled_rgb<K: Kind>(color: Color<K>, context: &RenderContext) -> Option<Rgb> {
 	let level = context.color_level()?;
 
-	match color {
-		Color::Rgb(rgb) => Some(rgb.at_level(level)),
+	match color.value {
+		Value::Rgb(rgb) => Some(rgb.at_level(level)),
 		named => named.to_rgb(),
 	}
 }
@@ -173,7 +173,7 @@ pub trait Environment {
 	///
 	/// Resolved once per configured color per render through the paint plan, never per glyph
 	/// The default paints nothing so monochrome environments need no color code
-	fn color_tokens(&self, _color: Color, _context: &RenderContext) -> ColorTokens {
+	fn color_tokens(&self, _color: Color<Text>, _context: &RenderContext) -> ColorTokens {
 		ColorTokens::default()
 	}
 
@@ -181,7 +181,7 @@ pub trait Environment {
 	///
 	/// Resolved once per band per render through the backdrop, never per row
 	/// The default paints nothing so environments without backgrounds need no code
-	fn background_tokens(&self, _color: Color, _context: &RenderContext) -> ColorTokens {
+	fn background_tokens(&self, _color: Color<Background>, _context: &RenderContext) -> ColorTokens {
 		ColorTokens::default()
 	}
 
@@ -393,7 +393,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 mod tests {
 	use super::*;
 	use crate::{
-		BackgroundOption, Cfonts, ColorLevel, GradientOption, GradientStop, RenderOverrides,
+		BackgroundOption, Cfonts, ColorLevel, GradientOption, RenderOverrides,
 		fonts::Font,
 		layout::Layout,
 		options::Valign,
@@ -550,10 +550,10 @@ mod tests {
 		// a custom environment that writes each band it is handed, padding rows first
 		struct BandEnv;
 		impl Environment for BandEnv {
-			fn background_tokens(&self, color: Color, _context: &RenderContext) -> ColorTokens {
-				match color {
-					Color::Rgb(rgb) => ColorTokens { start: Cow::Owned(format!("<{}>", rgb.red)), end: Cow::Borrowed("|") },
-					_ => ColorTokens::default(),
+			fn background_tokens(&self, color: Color<Background>, _context: &RenderContext) -> ColorTokens {
+				match color.to_rgb() {
+					Some(rgb) => ColorTokens { start: Cow::Owned(format!("<{}>", rgb.red)), end: Cow::Borrowed("|") },
+					None => ColorTokens::default(),
 				}
 			}
 			fn top_padding(&self, bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
@@ -568,7 +568,7 @@ mod tests {
 			}
 		}
 
-		let gradient = GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue };
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.background = Some(BackgroundOption::Gradient(gradient));
 		let layout = Layout::build(&options, None);
@@ -588,7 +588,7 @@ mod tests {
 		// a custom environment that writes the flag it is handed at both ends
 		struct FlagEnv;
 		impl Environment for FlagEnv {
-			fn background_tokens(&self, _color: Color, _context: &RenderContext) -> ColorTokens {
+			fn background_tokens(&self, _color: Color<Background>, _context: &RenderContext) -> ColorTokens {
 				ColorTokens { start: Cow::Borrowed("["), end: Cow::Borrowed("]") }
 			}
 			fn wrapper_start(&self, _options: &Options, banded: bool, out: &mut Rendered) {
@@ -609,7 +609,7 @@ mod tests {
 		};
 		assert!(plain.starts_with("plain:") && plain.ends_with(":plain"), "{plain:?}");
 
-		options.background = Some(BackgroundOption::Color(Color::Blue));
+		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let layout = Layout::build(&options, None);
 		let banded = FlagEnv.render_rows(&layout.output, &options, &context).text;
 		assert!(banded.starts_with("banded:[") && banded.ends_with("]:banded"), "{banded:?}");
