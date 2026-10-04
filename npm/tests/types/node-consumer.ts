@@ -32,6 +32,7 @@ const colorful = Cfonts.text("colors")
 	.independentGradient();
 
 colorful.colors({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff00"] });
+colorful.colors("red-blue"); // the command line spelling
 colorful.colors({ start: Color.Red, end: hexToRgb("#0000ff") });
 colorful.colors({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
 

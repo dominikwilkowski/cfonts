@@ -1,5 +1,5 @@
 use tsify::Ts;
-use wasm_bindgen::JsError;
+use wasm_bindgen::{JsError, JsValue};
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
@@ -9,12 +9,18 @@ use cfonts::{
 	Valign as CoreValign, render_with,
 };
 use cfonts_wasm::{
-	Align, Cfonts, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb,
+	Align, BrowserHost, Cfonts, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, entropy,
+	hex_to_rgb, line_end,
 };
 
 /// The artifact as the boundary hands it to JavaScript, read back into Rust
 fn rendered(crossed: Result<Ts<Rendered>, JsError>) -> Rendered {
 	crossed.expect("the render cannot fail").to_rust().expect("the artifact reads back")
+}
+
+/// The sentence a refused call throws, read the way JavaScript reads it
+fn message(refused: Result<(), JsError>) -> String {
+	String::from(js_sys::Error::from(JsValue::from(refused.expect_err("the call is refused"))).message())
 }
 
 /// The same render through the core directly, the boundary's oracle
@@ -82,7 +88,7 @@ fn a_fixed_width_is_forwarded_to_every_environment() {
 fn browser_console_render_returns_an_artifact() {
 	let rendered = rendered(wrapping_banner().render(EnvironmentKind::BrowserConsole, None, None, None, false));
 
-	// Logging belongs to BrowserHost in TypeScript so the raw binding only returns data
+	// Logging belongs to the page host so the raw binding only returns data
 	assert_eq!(rendered.text, "▄▀█ ▄▀█\n█▀█ █▀█",);
 }
 
@@ -126,14 +132,14 @@ fn each_global_setting_can_be_configured_once() {
 	assert!(banner.spaceless().is_ok());
 	assert!(banner.max_length(10).is_ok());
 	assert!(banner.independent_gradient().is_ok());
-	assert!(banner.background("blue".to_owned()).is_ok());
+	assert!(banner.background_option("blue".to_owned()).is_ok());
 
 	assert!(banner.align(Align::Right).is_err());
 	assert!(banner.valign(Valign::Top).is_err());
 	assert!(banner.spaceless().is_err());
 	assert!(banner.max_length(20).is_err());
 	assert!(banner.independent_gradient().is_err());
-	assert!(banner.background("red".to_owned()).is_err());
+	assert!(banner.background_option("red".to_owned()).is_err());
 }
 
 #[wasm_bindgen_test]
@@ -269,6 +275,112 @@ fn a_failed_global_color_does_not_claim_the_slot() {
 }
 
 #[wasm_bindgen_test]
+fn a_failed_global_color_option_does_not_claim_the_slot() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	assert!(banner.global_color_option("red-blue-green".to_owned()).is_err());
+	assert!(banner.global_color_option("reed".to_owned()).is_err());
+	assert!(banner.global_color_option("red-blue".to_owned()).is_ok());
+	assert!(banner.global_colors(vec!["red".to_owned()]).is_err()); // the claimed slot blocks the list shape too
+	assert!(banner.global_color_option("red".to_owned()).is_err());
+}
+
+#[wasm_bindgen_test]
+fn the_color_option_spells_what_the_shapes_build() {
+	let boundary = |banner: &Cfonts| {
+		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false)).text
+	};
+	// a font with two color slots, so a list reaches past its first color
+	let banner = || {
+		let mut banner = Cfonts::text("A".to_owned());
+		banner.font(Font::Block);
+
+		banner
+	};
+
+	let mut spelled = banner();
+	spelled.color_option("red-blue".to_owned()).expect("a gradient spelling");
+	let mut shaped = banner();
+	shaped.gradient("red".to_owned(), "blue".to_owned()).expect("valid stops");
+	assert_eq!(boundary(&spelled), boundary(&shaped));
+
+	let mut spelled = banner();
+	spelled.color_option("red:yellow:green".to_owned()).expect("a transition spelling");
+	let mut shaped = banner();
+	shaped.transition(vec!["red".to_owned(), "yellow".to_owned(), "green".to_owned()]).expect("valid stops");
+	assert_eq!(boundary(&spelled), boundary(&shaped));
+
+	let mut spelled = banner();
+	spelled.color_option("pride".to_owned()).expect("a preset spelling");
+	let mut shaped = banner();
+	shaped.gradient_preset(GradientPreset::Pride);
+	assert_eq!(boundary(&spelled), boundary(&shaped));
+
+	let mut spelled = banner();
+	spelled.global_color_option("red,#f80".to_owned()).expect("a list spelling");
+	let mut shaped = banner();
+	shaped.global_colors(vec!["red".to_owned(), "#f80".to_owned()]).expect("valid colors");
+	assert_eq!(boundary(&spelled), boundary(&shaped));
+	assert_ne!(boundary(&spelled), boundary(&banner())); // the spelling paints
+}
+
+#[wasm_bindgen_test]
+fn the_background_option_spells_what_the_shapes_build() {
+	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(CoreColorLevel::TrueColor));
+	// the core twin of wrapping_banner with the background applied
+	let core = |background: BackgroundOption| {
+		CoreCfonts::text("AA")
+			.font(CoreFont::Tiny)
+			.line_height(0)
+			.spaceless()
+			.background(background)
+			.render_with(&CliEnv::default(), overrides)
+			.text
+	};
+	let boundary = |banner: &Cfonts| {
+		rendered(banner.render(EnvironmentKind::Cli, None, Some(ColorLevel::TrueColor), None, false)).text
+	};
+
+	let mut color = wrapping_banner();
+	color.background_option("red".to_owned()).expect("a color spelling");
+	let mut two_stop = wrapping_banner();
+	two_stop.background_option("red-blue".to_owned()).expect("a gradient spelling");
+	let mut preset = wrapping_banner();
+	preset.background_option("pride".to_owned()).expect("a preset spelling");
+
+	assert_eq!(boundary(&color), core(CoreColor::Red.into()));
+	assert_eq!(
+		boundary(&two_stop),
+		core(GradientOption::TwoStop { start: GradientStop::Red, end: GradientStop::Blue }.into())
+	);
+	assert_eq!(boundary(&preset), core(CoreGradientPreset::Pride.into()));
+	assert_ne!(boundary(&color), boundary(&two_stop));
+}
+
+#[wasm_bindgen_test]
+fn a_refused_spelling_carries_the_cores_sentence() {
+	let mut banner = Cfonts::text("A".to_owned());
+
+	assert_eq!(
+		message(banner.color_option("red-blue-green".to_owned())),
+		"\"red-blue-green\": A gradient holds exactly two colors, this one holds 3"
+	);
+	assert_eq!(
+		message(banner.global_color_option("red-blue-green".to_owned())),
+		"\"red-blue-green\": A gradient holds exactly two colors, this one holds 3"
+	);
+	assert_eq!(
+		message(banner.background_option("red,blue".to_owned())),
+		"\"red,blue\": A background takes one color, a gradient or a preset, not a list"
+	);
+	// candy rolls per segment and cannot fill a row, refused like an unknown name
+	assert_eq!(
+		message(banner.background_option("candy".to_owned())),
+		"\"candy\": A color is either a color name or a hex value like #ff8800"
+	);
+}
+
+#[wasm_bindgen_test]
 fn a_color_level_paints_the_configured_colors() {
 	let mut banner = Cfonts::text("A".to_owned());
 	banner.font(Font::Tiny);
@@ -365,8 +477,8 @@ fn the_background_can_be_configured_once_across_all_shapes() {
 
 	// the background has a slot of its own beside the global color
 	assert!(banner.global_colors(vec!["red".to_owned()]).is_ok());
-	assert!(banner.background("blue".to_owned()).is_ok());
-	assert!(banner.background("red".to_owned()).is_err());
+	assert!(banner.background_option("blue".to_owned()).is_ok());
+	assert!(banner.background_option("red".to_owned()).is_err());
 	assert!(banner.background_gradient("red".to_owned(), "blue".to_owned()).is_err());
 	assert!(banner.background_transition(vec!["red".to_owned(), "blue".to_owned()]).is_err());
 	assert!(banner.background_gradient_preset(GradientPreset::Pride).is_err());
@@ -376,8 +488,9 @@ fn the_background_can_be_configured_once_across_all_shapes() {
 fn a_failed_background_does_not_claim_the_slot() {
 	let mut banner = Cfonts::text("A".to_owned());
 
-	assert!(banner.background("reed".to_owned()).is_err());
-	assert!(banner.background("candy".to_owned()).is_err()); // candy rolls per segment and cannot fill a row
+	assert!(banner.background_option("reed".to_owned()).is_err());
+	assert!(banner.background_option("candy".to_owned()).is_err()); // candy rolls per segment and cannot fill a row
+	assert!(banner.background_option("red,blue".to_owned()).is_err()); // a list fills no rows
 	assert!(banner.background_gradient("red".to_owned(), "system".to_owned()).is_err()); // system is not a stop
 	assert!(banner.background_transition(vec!["red".to_owned()]).is_err()); // one stop is not a transition
 	assert!(banner.background_gradient_preset(GradientPreset::Pride).is_ok());
@@ -388,7 +501,7 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 	let mut banner = Cfonts::text("A".to_owned());
 	banner.font(Font::Tiny);
 	banner.spaceless().expect("first spaceless call");
-	banner.background("blue".to_owned()).expect("a valid background");
+	banner.background_option("blue".to_owned()).expect("a valid background");
 
 	let plain = rendered(banner.render(EnvironmentKind::Cli, None, None, None, false));
 	assert!(!plain.text.contains("\u{1b}["));
@@ -414,7 +527,7 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 fn a_system_background_is_accepted_and_paints_nothing() {
 	let plain = wrapping_banner();
 	let mut system = wrapping_banner();
-	system.background("system".to_owned()).expect("system leaves the environment's own background");
+	system.background_option("system".to_owned()).expect("system leaves the environment's own background");
 
 	for environment in EnvironmentKind::ALL {
 		assert_eq!(
@@ -562,4 +675,102 @@ fn raw_mode_means_nothing_to_the_browser_environments() {
 			"{environment:?}"
 		);
 	}
+}
+
+#[wasm_bindgen_test]
+fn the_page_host_pins_what_a_page_render_takes_as_given() {
+	// candy makes the seed count and a color makes the level count
+	let mut banner = Cfonts::text("AB".to_owned());
+	banner.font(Font::Tiny);
+	banner.colors(vec!["candy".to_owned()]).expect("valid colors");
+	let seed = entropy();
+	let host = BrowserHost::from_overrides(None, false, None, Some(seed));
+
+	for environment in EnvironmentKind::ALL {
+		assert_eq!(
+			rendered(host.render(&banner, environment, false)).text,
+			rendered(banner.render(environment, Some(0), Some(ColorLevel::TrueColor), Some(seed), false)).text,
+			"{environment:?}",
+		);
+	}
+
+	// the raw flag reaches the terminal environment through the host
+	let raw = rendered(host.render(&banner, EnvironmentKind::Cli, true)).text;
+	assert!(raw.contains("\r\n"));
+	assert!(raw.split("\r\n").eq(rendered(host.render(&banner, EnvironmentKind::Cli, false)).text.split('\n')));
+}
+
+#[wasm_bindgen_test]
+fn only_a_column_override_wraps_the_page() {
+	let banner = wrapping_banner();
+	let narrow = BrowserHost::from_overrides(Some(3), false, None, None);
+	let unlimited = BrowserHost::from_overrides(None, false, None, None);
+
+	assert_eq!(
+		rendered(narrow.render(&banner, EnvironmentKind::Browser, false)).text,
+		render_core(EnvironmentKind::Browser, Some(3))
+	);
+	assert_eq!(
+		rendered(unlimited.render(&banner, EnvironmentKind::Browser, false)).text,
+		render_core(EnvironmentKind::Browser, None)
+	);
+	assert_ne!(
+		rendered(narrow.render(&banner, EnvironmentKind::Browser, false)).text,
+		rendered(unlimited.render(&banner, EnvironmentKind::Browser, false)).text
+	);
+}
+
+#[wasm_bindgen_test]
+fn the_page_host_paints_in_true_color_unless_told_otherwise() {
+	let mut banner = Cfonts::text("A".to_owned());
+	banner.font(Font::Tiny);
+	banner.colors(vec!["red".to_owned()]).expect("valid colors");
+	let painted = BrowserHost::from_overrides(None, false, None, None);
+	let disabled = BrowserHost::from_overrides(None, true, None, None);
+	let basic = BrowserHost::from_overrides(None, false, Some(ColorLevel::Basic), None);
+
+	assert!(
+		rendered(painted.render(&banner, EnvironmentKind::Browser, false))
+			.text
+			.contains(r##"<span style="color:#ea3223">"##)
+	);
+	assert!(!rendered(disabled.render(&banner, EnvironmentKind::Browser, false)).text.contains("<span"));
+	assert!(rendered(basic.render(&banner, EnvironmentKind::Cli, false)).text.contains("\u{1b}[31m"));
+}
+
+#[wasm_bindgen_test]
+fn the_page_host_rolls_a_fresh_seed_unless_one_is_pinned() {
+	let mut banner = Cfonts::text("AB".to_owned());
+	banner.font(Font::Tiny);
+	banner.colors(vec!["candy".to_owned()]).expect("valid colors");
+	let pinned = BrowserHost::from_overrides(None, false, None, Some(42));
+	let rolling = BrowserHost::from_overrides(None, false, None, None);
+
+	assert_eq!(
+		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text,
+		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text
+	);
+	assert_ne!(
+		rendered(rolling.render(&banner, EnvironmentKind::Cli, false)).text,
+		rendered(rolling.render(&banner, EnvironmentKind::Cli, false)).text
+	);
+	assert_ne!(entropy(), entropy());
+}
+
+#[wasm_bindgen_test]
+fn the_line_ending_crosses_as_the_environment_answers_it() {
+	assert_eq!(line_end(EnvironmentKind::Cli, false), "\n");
+	assert_eq!(line_end(EnvironmentKind::Cli, true), "\r\n");
+	assert_eq!(line_end(EnvironmentKind::Browser, false), "");
+	assert_eq!(line_end(EnvironmentKind::BrowserConsole, true), "");
+}
+
+#[wasm_bindgen_test]
+fn the_page_host_say_cannot_fail() {
+	// the write cannot fail, the node test runner has a console so it lands in the test output
+	let mut banner = Cfonts::text("A".to_owned());
+	banner.font(Font::Tiny);
+	banner.spaceless().expect("first spaceless call");
+
+	BrowserHost::from_overrides(None, false, None, None).say(&banner, EnvironmentKind::BrowserConsole, false);
 }

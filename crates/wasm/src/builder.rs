@@ -4,12 +4,15 @@ use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor, ColorError,
-	ColorOption, ColorOverride, GradientOption, GradientPreset as CoreGradientPreset, GradientStop, Options,
-	RenderOverrides, TransitionStops, options::BlockOptions,
+	BackgroundOption, Cfonts as CoreCfonts, Color as CoreColor, ColorOption, ColorOverride, GradientOption,
+	GradientPreset as CoreGradientPreset, GradientStop, Options, RenderOverrides, TransitionStops, options::BlockOptions,
+	render_with,
 };
 
-use crate::{Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, types::color_error};
+use crate::{
+	Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign,
+	types::{color_error, with_environment},
+};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
@@ -29,6 +32,11 @@ pub struct Cfonts {
 }
 
 impl Cfonts {
+	/// The composition as the core renders it, read by the page host behind the boundary
+	pub(crate) fn options(&self) -> &Options {
+		&self.options
+	}
+
 	/// Returns the block targeted by local setters
 	fn current_block_mut(&mut self) -> &mut BlockOptions {
 		self.options.blocks.last_mut().expect("Cfonts always contains one block")
@@ -126,6 +134,17 @@ impl Cfonts {
 		self.current_block_mut().colors = Some(CoreGradientPreset::from(preset).into());
 	}
 
+	/// Sets the colors for the current block from the command line spelling of the whole option
+	///
+	/// One spelling, the command line's, parsed by the core's parser,
+	/// so a refused value carries the core's sentence, the one the framework pages print
+	#[wasm_bindgen(js_name = colorOption)]
+	pub fn color_option(&mut self, value: String) -> Result<(), JsError> {
+		let colors = value.parse::<ColorOption>().map_err(|error| color_error(&value, error))?;
+		self.current_block_mut().colors = Some(colors);
+		Ok(())
+	}
+
 	/// Sets the global horizontal alignment
 	pub fn align(&mut self, align: Align) -> Result<(), JsError> {
 		self.set_global(ALIGN_SET, "align")?;
@@ -195,6 +214,18 @@ impl Cfonts {
 		Ok(())
 	}
 
+	/// Sets the colors across the whole composition from the command line spelling of the whole option
+	///
+	/// One spelling, the command line's, parsed by the core's parser before the one global
+	/// color slot is claimed, so a refused spelling carries the core's sentence and leaves the builder unchanged
+	#[wasm_bindgen(js_name = globalColorOption)]
+	pub fn global_color_option(&mut self, value: String) -> Result<(), JsError> {
+		let colors = value.parse::<ColorOption>().map_err(|error| color_error(&value, error))?;
+		self.set_global_colors()?;
+		self.options.global_colors = Some(colors);
+		Ok(())
+	}
+
 	/// Restarts every gradient on each line instead of ramping once across every line
 	#[wasm_bindgen(js_name = independentGradient)]
 	pub fn independent_gradient(&mut self) -> Result<(), JsError> {
@@ -203,14 +234,16 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Paints one color behind every row of the composition, the padding rows included
+	/// Paints the background from the command line spelling of the whole option
 	///
-	/// The four background shapes share one slot behind the one JavaScript method,
-	/// parsing happens before the slot is claimed, so a failed call leaves the builder unchanged
-	pub fn background(&mut self, color: String) -> Result<(), JsError> {
-		let color = parse_background(&color)?;
+	/// One spelling, the command line's, parsed by the core's parser: one color fills every row,
+	/// a gradient or a preset ramps down the rows, a comma list and candy are refused with the core's
+	/// sentence, and the parse runs before the slot is claimed, so a refused spelling leaves the builder unchanged
+	#[wasm_bindgen(js_name = backgroundOption)]
+	pub fn background_option(&mut self, value: String) -> Result<(), JsError> {
+		let background = value.parse::<BackgroundOption>().map_err(|error| color_error(&value, error))?;
 		self.set_global(BACKGROUND_SET, "background")?;
-		self.options.background = Some(BackgroundOption::Color(color));
+		self.options.background = Some(background);
 		Ok(())
 	}
 
@@ -260,15 +293,8 @@ impl Cfonts {
 			.with_canvas_width(canvas_width.unwrap_or(0))
 			.with_color(color_level.map_or(ColorOverride::Disabled, |level| ColorOverride::Level(level.into())))
 			.with_seed(seed.map_or(0, u64::from));
-		let rendered: Rendered = match environment {
-			EnvironmentKind::Cli => {
-				let environment = if raw_mode { CliEnv::default().raw_mode() } else { CliEnv::default() };
-
-				cfonts::render_with(&self.options, &environment, overrides).into()
-			}
-			EnvironmentKind::Browser => cfonts::render_with(&self.options, &BrowserEnv, overrides).into(),
-			EnvironmentKind::BrowserConsole => cfonts::render_with(&self.options, &BrowserConsoleEnv, overrides).into(),
-		};
+		let rendered: Rendered =
+			with_environment!(environment, raw_mode, |env| render_with(&self.options, &env, overrides).into());
 
 		Ok(rendered.into_ts()?)
 	}
@@ -277,15 +303,6 @@ impl Cfonts {
 /// Parses a boundary color through the core name-or-hex parser
 fn parse_color(input: &str) -> Result<CoreColor, JsError> {
 	input.parse().map_err(|error| color_error(input, error))
-}
-
-/// Parses a boundary background color, candy rolls per segment and cannot fill a row,
-/// so it is refused as an unknown color, the way the core and the command line refuse it
-fn parse_background(input: &str) -> Result<CoreColor, JsError> {
-	match parse_color(input)? {
-		CoreColor::Candy => Err(color_error(input, ColorError::UnknownColor)),
-		color => Ok(color),
-	}
 }
 
 /// Parses a boundary gradient stop through the core name-or-hex parser

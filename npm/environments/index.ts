@@ -1,4 +1,9 @@
-import { EnvironmentKind, type Rendered, type Cfonts as WasmCfonts } from "../../pkg/cfonts_wasm.js";
+import {
+	EnvironmentKind,
+	type Rendered,
+	type Cfonts as WasmCfonts,
+	lineEnd as wasmLineEnd,
+} from "../../pkg/cfonts_wasm.js";
 
 import type { RenderOverrides } from "../render-context.js";
 
@@ -56,14 +61,10 @@ export const CliEnv: TerminalEnvironment = Object.freeze({
 /**
  * The line ending a host writes after an artifact, the one the environment ends its rows with
  *
- * Only the terminal ends its artifact, a page or a console ends its own output
+ * The environment answers it behind the boundary, TypeScript carries the value to the write
  */
 export function lineEnd(environment: Environment): string {
-	if (environment[environmentKind] !== EnvironmentKind.Cli) {
-		return "";
-	}
-
-	return environment[rawMode] ? "\r\n" : "\n";
+	return wasmLineEnd(...environmentArguments(environment, "say"));
 }
 
 /** Formats a self-contained HTML fragment */
@@ -76,21 +77,40 @@ export const BrowserEnv = defineEnvironment(EnvironmentKind.Browser);
 export const BrowserConsoleEnv = defineEnvironment(EnvironmentKind.BrowserConsole);
 
 /**
- * Renders through the boundary with every override pinned: an override left out is off,
- * no canvas limit, no color, the zero seed
+ * The two values an environment crosses the boundary as, its kind and its raw flag
+ *
+ * The check names the calling method, so `renderWith()` and the package hosts refuse a stray value in the same words
  */
-export function renderEnvironment(builder: WasmCfonts, environment: Environment, overrides: RenderOverrides): Rendered {
+export function environmentArguments(
+	environment: Environment,
+	method: string,
+): [kind: EnvironmentKind, rawMode: boolean] {
 	const kind = environment?.[environmentKind];
 
 	if (typeof kind !== "number" || !Object.hasOwn(EnvironmentKind, kind)) {
-		throw new TypeError("`renderWith()` expects a cfonts environment");
+		throw new TypeError(`\`${method}()\` expects a cfonts environment`);
 	}
+
+	return [kind, environment[rawMode] === true];
+}
+
+/**
+ * Renders through the boundary with every override pinned: an override left out is off,
+ * no canvas limit, no color, the zero seed
+ */
+export function renderEnvironment(
+	builder: WasmCfonts,
+	environment: Environment,
+	overrides: RenderOverrides,
+	method: string,
+): Rendered {
+	const [kind, raw] = environmentArguments(environment, method);
 
 	return builder.render(
 		kind,
 		overrides.canvasWidth,
 		overrides.color === false ? undefined : overrides.color,
 		overrides.seed,
-		environment[rawMode] === true,
+		raw,
 	);
 }

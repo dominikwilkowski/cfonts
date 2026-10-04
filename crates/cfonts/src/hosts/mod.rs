@@ -38,7 +38,7 @@ pub(crate) fn entropy() -> u64 {
 /// The browser keys the standard library's hasher from memory addresses, identical on every
 /// page load, so the seed asks the page instead: two draws of `Math.random`, one per half
 ///
-/// Only the browser host and the widget render in the browser from Rust, the wasm package seeds from its own host
+/// The browser host, the widget and the wasm package behind the npm hosts all roll here
 #[cfg(all(target_family = "wasm", target_os = "unknown", any(feature = "web", feature = "ratatui")))]
 pub(crate) fn entropy() -> u64 {
 	let half = || (js_sys::Math::random() * f64::from(u32::MAX)) as u64;

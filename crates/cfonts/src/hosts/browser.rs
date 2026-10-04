@@ -69,7 +69,7 @@ impl Host for BrowserHost {
 		self.overrides.seed().unwrap_or_else(Self::entropy)
 	}
 
-	/// Spreads the style values into the page console, exactly like the TypeScript host's say
+	/// Spreads the style values into the page console, the one write of the npm browser host as well
 	#[cfg(all(target_family = "wasm", target_os = "unknown"))]
 	fn write(&self, rendered: &Rendered, _line_end: &str) -> Result<(), Self::Error> {
 		let arguments = js_sys::Array::new();

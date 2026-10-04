@@ -143,6 +143,25 @@ test("a value the command line refuses shows its error in the terminal", async (
 	await expect(canvas).not.toContainText("ERROR");
 	await expect(colors).toHaveJSProperty("validity.valid", true);
 
+	// a dash gradient holds two colors, every page prints the core's sentence for one that does not
+	await colors.fill("red-blue-green");
+	await expect(canvas).toContainText('"red-blue-green": A gradient holds exactly two colors, this one holds 3');
+	await expect(colors).toHaveJSProperty("validity.valid", false);
+
+	await colors.fill("cyan");
+
+	// a comma list fills no rows, so the background refuses it, and the command stops at the refused option
+	const background = page.locator("#configurator").getByLabel("background");
+	await background.fill("red,blue");
+	await expect(canvas).toContainText('"red,blue": A background takes one color, a gradient or a preset, not a list');
+	await expect(page.locator("#command")).toContainText("--colors cyan");
+	await expect(page.locator("#command")).not.toContainText("--background");
+	await expect(background).toHaveJSProperty("validity.valid", false);
+
+	await background.fill("system");
+	await expect(canvas).not.toContainText("ERROR");
+	await expect(background).toHaveJSProperty("validity.valid", true);
+
 	expect(errors.map((error) => error.message)).toEqual([]);
 });
 

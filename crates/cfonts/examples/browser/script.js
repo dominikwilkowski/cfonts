@@ -1,4 +1,4 @@
-import { Align, BrowserConsoleEnv, BrowserEnv, BrowserHost, Cfonts, Font, GradientPreset, Valign } from "cfonts";
+import { Align, BrowserConsoleEnv, BrowserEnv, BrowserHost, Cfonts, Font, Valign } from "cfonts";
 
 // The page is an eighty column terminal, so long text wraps the way it would there
 const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
@@ -105,46 +105,6 @@ for (const [select, chosen] of [
 	select.value = chosen;
 }
 
-const presets = new Map(
-	Object.keys(GradientPreset)
-		.filter((key) => Number.isNaN(Number(key)))
-		.map((name) => [name.toLowerCase(), GradientPreset[name]]),
-);
-
-// The colors the command line spells: `red,blue` one per slot, `red-blue` a gradient, `red:blue:green` a transition, or a preset
-function colorsOf(value) {
-	if (presets.has(value)) {
-		return { preset: presets.get(value) };
-	}
-
-	if (value.includes(":")) {
-		return { transition: value.split(":") };
-	}
-
-	if (value.includes("-")) {
-		const stops = value.split("-");
-
-		if (stops.length !== 2) {
-			throw new Error(`A gradient holds exactly two colors, "${value}" holds ${stops.length}`);
-		}
-
-		return { start: stops[0], end: stops[1] };
-	}
-
-	return value.split(",");
-}
-
-// A background is one color, a gradient or a preset
-function backgroundOf(value) {
-	if (value.includes(",")) {
-		throw new Error(`A background takes one color, a gradient or a preset, not "${value}"`);
-	}
-
-	const colors = colorsOf(value);
-
-	return Array.isArray(colors) ? colors[0] : colors;
-}
-
 // A word of the command line in quotes, the way a text is passed
 function quoted(value) {
 	return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
@@ -171,13 +131,8 @@ const options = [
 	},
 	{ name: "line-height", flag: "--line-height", unset: "", apply: (cfonts, value) => cfonts.lineHeight(Number(value)) },
 	{ name: "word-wrap", flag: "--word-wrap", unset: "", apply: (cfonts) => cfonts.wordWrap() },
-	{ name: "colors", flag: "--colors", unset: "system", apply: (cfonts, value) => cfonts.globalColors(colorsOf(value)) },
-	{
-		name: "background",
-		flag: "--background",
-		unset: "system",
-		apply: (cfonts, value) => cfonts.background(backgroundOf(value)),
-	},
+	{ name: "colors", flag: "--colors", unset: "system", apply: (cfonts, value) => cfonts.globalColors(value) },
+	{ name: "background", flag: "--background", unset: "system", apply: (cfonts, value) => cfonts.background(value) },
 	{
 		name: "independent-gradient",
 		flag: "--independent-gradient",

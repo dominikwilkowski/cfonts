@@ -8,6 +8,7 @@ import {
 	Valign,
 	Cfonts as WasmCfonts,
 } from "../pkg/cfonts_wasm.js";
+import { inner } from "./boundary.js";
 import {
 	type BackgroundColor,
 	type BackgroundInput,
@@ -52,6 +53,13 @@ export class Cfonts {
 
 	private constructor(inner: WasmCfonts) {
 		this.#inner = inner;
+	}
+
+	/**
+	 * The boundary builder behind this composition, for the package's own hosts
+	 */
+	[inner](): WasmCfonts {
+		return this.#inner;
 	}
 
 	/**
@@ -116,10 +124,16 @@ export class Cfonts {
 	/**
 	 * Sets the colors for the current text block: one color per font color slot, or a gradient
 	 *
+	 * A string is the command line spelling, `"red,blue"` one color per slot, `"red-blue"` a gradient,
+	 * `"red:yellow:green"` a transition or a preset name, parsed where the command line parses it
+	 *
 	 * A gradient ramps one color per column, its stops take any color but system and candy,
 	 * hex values, or channel values from `hexToRgb()`
 	 *
 	 * Any configured value overrides the global colors for this block
+	 *
+	 * @example
+	 * Cfonts.text("hello").colors("red-blue");
 	 *
 	 * @example
 	 * Cfonts.text("hello").font(Font.Block).colors([Color.Red, Color.Blue]);
@@ -143,6 +157,9 @@ export class Cfonts {
 		const normalized = normalizeColors(colors, "colors");
 
 		switch (normalized.kind) {
+			case "option":
+				this.#inner.colorOption(normalized.value);
+				break;
 			case "list":
 				this.#inner.colors(normalized.colors);
 				break;
@@ -199,7 +216,13 @@ export class Cfonts {
 	 * Blocks with their own colors override it for their columns, a gradient ramps over every
 	 * other column and resumes after such a block
 	 *
+	 * A string is the command line spelling, `"red,blue"` one color per slot, `"red-blue"` a gradient,
+	 * `"red:yellow:green"` a transition or a preset name, parsed where the command line parses it
+	 *
 	 * A gradient's stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
+	 *
+	 * @example
+	 * Cfonts.text("hello ").next("world").globalColors("red,#8899dd");
 	 *
 	 * @example
 	 * Cfonts.text("hello ").next("world").globalColors([Color.Red, "#8899dd"]);
@@ -217,6 +240,9 @@ export class Cfonts {
 		const normalized = normalizeColors(colors, "globalColors");
 
 		switch (normalized.kind) {
+			case "option":
+				this.#inner.globalColorOption(normalized.value);
+				break;
 			case "list":
 				this.#inner.globalColors(normalized.colors);
 				break;
@@ -251,7 +277,13 @@ export class Cfonts {
 	 * One color fills every row, a gradient ramps from the top row down,
 	 * `Color.System` paints nothing and `Color.Candy` is refused, it rolls per segment and cannot fill a row
 	 *
+	 * A string is the command line spelling, one color, `"red-blue"` a gradient, `"red:yellow:green"`
+	 * a transition or a preset name, parsed where the command line parses it
+	 *
 	 * A preset goes in its object form, a bare `GradientPreset` value would read as a `Color`
+	 *
+	 * @example
+	 * Cfonts.text("hello").background("red-blue");
 	 *
 	 * @example
 	 * Cfonts.text("hello").background(Color.Blue);
@@ -266,8 +298,8 @@ export class Cfonts {
 		const normalized = normalizeBackground(background, "background");
 
 		switch (normalized.kind) {
-			case "color":
-				this.#inner.background(normalized.color);
+			case "option":
+				this.#inner.backgroundOption(normalized.value);
 				break;
 			case "preset":
 				this.#inner.backgroundGradientPreset(normalized.preset);
@@ -322,6 +354,7 @@ export class Cfonts {
 			this.#inner,
 			environment,
 			normalizeRenderOverrides(overrides === undefined ? {} : overrides, "renderWith"),
+			"renderWith",
 		);
 	}
 

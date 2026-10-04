@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as packageExports from "cfonts";
+// the Node entry seals the browser host away, the built module answers for it here
+import { BrowserHost } from "../../dist/hosts/browser.js";
 import { detectColorSupport } from "../../pkg/cfonts_wasm.js";
 
 const {
@@ -685,8 +687,42 @@ test("colors accepts enums hex values and channel objects", () => {
 	assert.equal(empty, plain); // an empty list is still a configured color
 });
 
+test("a string is the command line spelling, parsed where the command line parses it", () => {
+	const context = { color: ColorLevel.TrueColor };
+	// a font with two color slots, so a list reaches past its first color
+	const render = (banner) => banner.font(Font.Block).renderWith(CliEnv, context).text;
+
+	assert.equal(
+		render(Cfonts.text("A").colors("red-blue")),
+		render(Cfonts.text("A").colors({ start: "red", end: "blue" })),
+	);
+	assert.equal(
+		render(Cfonts.text("A").globalColors("red,#8899dd")),
+		render(Cfonts.text("A").globalColors(["red", "#8899dd"])),
+	);
+	assert.equal(
+		render(Cfonts.text("A").background("red-blue")),
+		render(Cfonts.text("A").background({ start: "red", end: "blue" })),
+	);
+	assert.equal(
+		render(Cfonts.text("A").colors("pride")),
+		render(Cfonts.text("A").colors({ preset: GradientPreset.Pride })),
+	);
+	assert.notEqual(render(Cfonts.text("A").colors("pride")), render(Cfonts.text("A"))); // the spelling paints
+
+	// a refused spelling carries the core's sentence, the one every page prints
+	assert.throws(() => Cfonts.text("A").colors("red-blue-green"), {
+		message: '"red-blue-green": A gradient holds exactly two colors, this one holds 3',
+	});
+	assert.throws(() => Cfonts.text("A").globalColors("red-blue-green"), {
+		message: '"red-blue-green": A gradient holds exactly two colors, this one holds 3',
+	});
+	assert.throws(() => Cfonts.text("A").background("red,blue"), {
+		message: '"red,blue": A background takes one color, a gradient or a preset, not a list',
+	});
+});
+
 test("colors validates its input", () => {
-	assert.throws(() => Cfonts.text("A").colors("red"), TypeError); // not an array
 	assert.throws(() => Cfonts.text("A").colors([99]), TypeError); // not a Color
 	assert.throws(() => Cfonts.text("A").colors([{ red: 256, green: 0, blue: 0 }]), TypeError); // not a channel value
 	assert.throws(() => Cfonts.text("A").colors([true]), TypeError);
@@ -817,7 +853,7 @@ test("globalColors accepts colors and paints nothing without a color level", () 
 	const global = Cfonts.text("A").globalColors([Color.Red, "#ff8800"]).renderWith(CliEnv).text;
 
 	assert.equal(global, plain);
-	assert.throws(() => Cfonts.text("A").globalColors("red"), TypeError); // neither a list nor a gradient shape
+	assert.throws(() => Cfonts.text("A").globalColors(true), TypeError); // neither a spelling, a list nor a gradient shape
 	assert.throws(() => Cfonts.text("A").globalColors(["reed"]), Error); // unknown name, rejected in Rust
 });
 
@@ -1138,6 +1174,56 @@ test("the host rolls a fresh seed that keeps candy repeatable while it is kept",
 		party.render(rolled, CliEnv).text,
 		party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor }), CliEnv).text,
 	);
+});
+
+test("the browser host decides behind the boundary and writes to the console", () => {
+	const banner = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]);
+
+	// a page paints in true color unless told otherwise, and only a column count wraps it
+	assert.ok(banner.render(new BrowserHost(), BrowserEnv).text.includes('<span style="color:#ea3223">'));
+	assert.ok(!banner.render(BrowserHost.fromOverrides({ color: false }), BrowserEnv).text.includes("<span"));
+	assert.notEqual(
+		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserEnv).text,
+		wrappingBanner().render(new BrowserHost(), BrowserEnv).text,
+	);
+
+	// say spreads the text and the styles into console.log, once
+	const host = new BrowserHost();
+	const expected = banner.render(host, BrowserConsoleEnv);
+	const calls = captureConsoleLogs(() => banner.say(host, BrowserConsoleEnv));
+	assert.deepEqual(calls, [[expected.text, ...expected.styles]]);
+	assert.ok(expected.styles.length > 0);
+
+	// every render rolls its own candy unless a seed is pinned
+	const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
+	assert.notEqual(party.render(new BrowserHost(), BrowserEnv).text, party.render(new BrowserHost(), BrowserEnv).text);
+	const pinned = BrowserHost.fromOverrides({ seed: BrowserHost.entropy() });
+	assert.equal(party.render(pinned, BrowserEnv).text, party.render(pinned, BrowserEnv).text);
+
+	assert.throws(() => banner.render(new BrowserHost(), {}), {
+		name: "TypeError",
+		message: "`render()` expects a cfonts environment",
+	});
+	assert.throws(() => banner.say(new BrowserHost(), {}), {
+		name: "TypeError",
+		message: "`say()` expects a cfonts environment",
+	});
+});
+
+test("the package hosts refuse a stray environment in the same words", () => {
+	const banner = Cfonts.text("A").font(Font.Tiny);
+
+	for (const host of [new NodeHost(), new BrowserHost()]) {
+		assert.throws(() => banner.render(host, {}), {
+			name: "TypeError",
+			message: "`render()` expects a cfonts environment",
+		});
+		assert.throws(() => banner.say(host, {}), { name: "TypeError", message: "`say()` expects a cfonts environment" });
+	}
+	assert.throws(() => banner.renderWith({}), {
+		name: "TypeError",
+		message: "`renderWith()` expects a cfonts environment",
+	});
 });
 
 test("candy seeds are deterministic through renderWith", () => {

@@ -48,14 +48,21 @@ export type GradientInput =
 	| { transition: GradientStops; preset?: never; start?: never; end?: never };
 
 /**
- * The colors of a text block or of the whole composition: one color per font color slot, or a gradient
+ * The colors of a text block or of the whole composition: the command line spelling,
+ * one color per font color slot, or a gradient
+ *
+ * The string is the command line's: `"red,blue"` one color per slot, `"red-blue"` a gradient,
+ * `"red:yellow:green"` a transition, or a preset name such as `"pride"`
  */
-export type ColorInput = readonly ColorSlotInput[] | GradientInput;
+export type ColorInput = string | readonly ColorSlotInput[] | GradientInput;
 
 /**
- * The colors shapes after validation, one color list or one gradient shape
+ * The colors shapes after validation, the command line spelling, one color list or one gradient shape
  */
-export type NormalizedColors = { kind: "list"; colors: string[] } | NormalizedGradient;
+export type NormalizedColors =
+	| { kind: "option"; value: string }
+	| { kind: "list"; colors: string[] }
+	| NormalizedGradient;
 
 /**
  * The gradient shapes after validation, each mapping to one boundary call
@@ -73,7 +80,10 @@ export type NormalizedGradient =
 export type BackgroundColor = Exclude<Color, Color.Candy>;
 
 /**
- * A background: one color behind every row, or a gradient from the top row down
+ * A background: the command line spelling, one color behind every row, or a gradient from the top row down
+ *
+ * The string is the command line's: one color such as `"blue"` or `"#222"`, `"red-blue"` a gradient,
+ * `"red:yellow:green"` a transition, or a preset name such as `"pride"`
  */
 export type BackgroundInput =
 	| BackgroundColor
@@ -82,9 +92,11 @@ export type BackgroundInput =
 	| GradientInput;
 
 /**
- * The background shapes after validation, one color or one gradient shape
+ * The background shapes after validation, the command line spelling or one gradient shape
+ *
+ * A `Color` value and channel values cross as the spelling too, their name and their hex value
  */
-export type NormalizedBackground = { kind: "color"; color: string } | NormalizedGradient;
+export type NormalizedBackground = { kind: "option"; value: string } | NormalizedGradient;
 
 /**
  * Converts a hex value into RGB channel values
@@ -147,9 +159,13 @@ export function normalizeColor(input: ColorSlotInput, method: string): string {
 /**
  * Validates a colors input's shape and picks the boundary call it maps to
  *
- * An array is one color per slot, any gradient shape is a gradient
+ * A string is the command line spelling, an array is one color per slot, any gradient shape is a gradient
  */
 export function normalizeColors(input: ColorInput, method: string): NormalizedColors {
+	if (typeof input === "string") {
+		return { kind: "option", value: input };
+	}
+
 	if (Array.isArray(input)) {
 		return { kind: "list", colors: input.map((color: ColorSlotInput) => normalizeColor(color, method)) };
 	}
@@ -192,16 +208,18 @@ function stopColorError(method: string): TypeError {
 
 function backgroundShapeError(method: string): TypeError {
 	return new TypeError(
-		`\`${method}()\` expects a background as a Color value, a name, a hex value, {red, green, blue} channels, ` +
-			`or a gradient shape such as {start: Color.Red, end: Color.Blue} or {preset: GradientPreset.Pride}`,
+		`\`${method}()\` expects a background as a Color value, the command line spelling such as "red-blue", ` +
+			`{red, green, blue} channels, or a gradient shape such as {start: Color.Red, end: Color.Blue} ` +
+			`or {preset: GradientPreset.Pride}`,
 	);
 }
 
 function colorsShapeError(method: string): TypeError {
 	return new TypeError(
 		`\`${method}()\` expects an array of colors such as [Color.Red, "#8899dd"], ` +
-			`or exactly one gradient shape such as {start: Color.Red, end: Color.Blue}, ` +
-			`{transition: [Color.Red, "#8899dd", Color.Blue]} or {preset: GradientPreset.Pride}`,
+			`exactly one gradient shape such as {start: Color.Red, end: Color.Blue}, ` +
+			`{transition: [Color.Red, "#8899dd", Color.Blue]} or {preset: GradientPreset.Pride}, ` +
+			`or the command line spelling such as "red-blue"`,
 	);
 }
 
@@ -257,12 +275,12 @@ export function normalizeGradient(
 /**
  * Validates a background's shape and picks the boundary call it maps to
  *
- * A number or a string is one color, channels are one color, any gradient shape is a gradient,
- * which colors may fill a row is decided once, in Rust
+ * A string is the command line spelling, a number and channels cross as their spelling,
+ * any gradient shape is a gradient, which values may fill a row is decided once, in Rust
  */
 export function normalizeBackground(input: BackgroundInput, method: string): NormalizedBackground {
 	if (typeof input === "number" || typeof input === "string") {
-		return { kind: "color", color: normalizeColorLike(input, method, backgroundShapeError) };
+		return { kind: "option", value: normalizeColorLike(input, method, backgroundShapeError) };
 	}
 
 	if (input === null || typeof input !== "object") {
@@ -281,7 +299,7 @@ export function normalizeBackground(input: BackgroundInput, method: string): Nor
 	}
 
 	if (channels) {
-		return { kind: "color", color: encodeRgb(input, method) };
+		return { kind: "option", value: encodeRgb(input, method) };
 	}
 
 	return normalizeGradient(input, method, backgroundShapeError);

@@ -8,6 +8,7 @@ banner.say(host, BrowserConsoleEnv);
 
 banner
 	.colors([Color.RedBright, "#f80"])
+	.colors("red-blue")
 	.globalColors({ preset: GradientPreset.Bisexual })
 	.background({ start: Color.Red, end: Color.Blue });
 

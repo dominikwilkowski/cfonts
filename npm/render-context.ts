@@ -43,8 +43,3 @@ export function normalizeRenderOverrides(overrides: RenderOverrides, method: str
 
 	return Object.freeze({ canvasWidth, color, seed });
 }
-
-/** Fresh entropy for candy colors */
-export function randomSeed(): number {
-	return Math.floor(Math.random() * 0x1_0000_0000);
-}

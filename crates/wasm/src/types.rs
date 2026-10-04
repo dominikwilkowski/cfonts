@@ -141,6 +141,33 @@ pub enum EnvironmentKind {
 	BrowserConsole,
 }
 
+/// Binds the environment a kind and the raw flag name to the given identifier and evaluates the body with it, once per arm
+///
+/// The three environments are three types and the Environment trait is too wide to delegate through
+/// an enum, so the one match that turns a kind into a value is a macro the builder and the host both expand
+macro_rules! with_environment {
+	($kind:expr, $raw_mode:expr, |$environment:ident| $body:expr) => {
+		match $kind {
+			$crate::EnvironmentKind::Cli => {
+				let $environment = if $raw_mode { cfonts::CliEnv::default().raw_mode() } else { cfonts::CliEnv::default() };
+
+				$body
+			}
+			$crate::EnvironmentKind::Browser => {
+				let $environment = cfonts::BrowserEnv;
+
+				$body
+			}
+			$crate::EnvironmentKind::BrowserConsole => {
+				let $environment = cfonts::BrowserConsoleEnv;
+
+				$body
+			}
+		}
+	};
+}
+pub(crate) use with_environment;
+
 /// The rendered output returned to JavaScript
 ///
 /// It crosses as a plain object through [`Ts`](tsify::Ts) and reads back for the boundary tests

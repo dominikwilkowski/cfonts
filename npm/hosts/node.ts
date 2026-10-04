@@ -1,9 +1,10 @@
 import { release } from "node:os";
 
-import { type ColorLevel, detectCanvasWidth, detectColorSupport } from "../../pkg/cfonts_wasm.js";
-import { type Environment, lineEnd } from "../environments/index.js";
+import { type ColorLevel, detectCanvasWidth, detectColorSupport, entropy } from "../../pkg/cfonts_wasm.js";
+import { inner } from "../boundary.js";
+import { type Environment, lineEnd, renderEnvironment } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
-import { normalizeRenderOverrides, type RenderOverrides, randomSeed } from "../render-context.js";
+import { normalizeRenderOverrides, type RenderOverrides } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**
@@ -68,7 +69,7 @@ export class NodeHost implements Host {
 	 * const host = NodeHost.fromOverrides({ seed });
 	 */
 	static entropy(): number {
-		return randomSeed();
+		return entropy();
 	}
 
 	/**
@@ -89,11 +90,11 @@ export class NodeHost implements Host {
 	}
 
 	render(composition: Cfonts, environment: Environment): Rendered {
-		return composition.renderWith(environment, this.#resolve());
+		return renderEnvironment(composition[inner](), environment, this.#resolve(), "render");
 	}
 
 	say(composition: Cfonts, environment: Environment): void {
-		const rendered = composition.renderWith(environment, this.#resolve());
+		const rendered = renderEnvironment(composition[inner](), environment, this.#resolve(), "say");
 
 		process.stdout.write(`${rendered.text}${lineEnd(environment)}`);
 	}
@@ -107,7 +108,7 @@ export class NodeHost implements Host {
 		return Object.freeze({
 			canvasWidth: this.#resolveCanvasWidth(names, values),
 			color: this.#resolveColorLevel(names, values),
-			seed: this.#overrides.seed ?? randomSeed(),
+			seed: this.#overrides.seed ?? entropy(),
 		});
 	}
 
