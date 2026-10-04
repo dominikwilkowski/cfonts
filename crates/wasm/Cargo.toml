@@ -1,0 +1,20 @@
+[package]
+name = "cfonts-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cfonts = { path = "../cfonts", features = ["web"] }
+cfonts-macros.workspace = true
+serde = { version = "1", features = ["derive"] }
+tsify = { version = "0.5", features = ["js"] }
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+js-sys = "0.3"
+wasm-bindgen-test = "0.3"

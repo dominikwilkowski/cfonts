@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="color-scheme" content="dark">
+		<title>cfonts, sexy ANSI fonts for the console</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap">
+		<link media="all" rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="page">
+			<header class="hero">
+				<h1 class="visually-hidden">cfonts</h1>
+				<div id="logo" role="img" aria-label="cfonts, drawn in the block font with a red to blue gradient that slowly moves"></div>
+				<p class="tagline">Sexy fonts for the console<span class="cursor" aria-hidden="true">█</span></p>
+				<p class="lede">
+					A few ASCII fonts with colors, gradients and backgrounds, rendered by one Rust core
+					for your terminal, node, the browser, the browser console and any Rust apps.
+				</p>
+				<pre class="shell"><span class="prompt" aria-hidden="true">$ </span>cfonts "cfonts" -f block -c red-blue</pre>
+				<h2 class="tree-heading">Install</h2>
+				<ul class="tree">
+					<li><span class="key">macos</span><code><span class="prompt" aria-hidden="true">$ </span>brew install cfonts</code></li>
+					<li><span class="key">arch</span><code><span class="prompt" aria-hidden="true">$ </span>yay -S cfonts</code></li>
+					<li><span class="key">fedora</span><code><span class="prompt" aria-hidden="true">$ </span>sudo dnf install cfonts</code></li>
+					<li><span class="key">nixos</span><code><span class="prompt" aria-hidden="true">$ </span>nix-env -iA nixos.cfonts</code></li>
+					<li><span class="key">macports</span><code><span class="prompt" aria-hidden="true">$ </span>sudo port install cfonts</code></li>
+					<li><span class="key">rust</span><code><span class="prompt" aria-hidden="true">$ </span>cargo install cfonts</code></li>
+					<li><span class="key">node</span><code><span class="prompt" aria-hidden="true">$ </span>npm install cfonts</code></li>
+				</ul>
+			</header>
+			<main>
+				<form id="configurator" class="frame" aria-labelledby="configurator_title">
+					<h2 class="frame-title" id="configurator_title">Configure</h2>
+					<p class="intro">
+						Every option of the command line. The terminal below runs the command as you pick.
+					</p>
+					<fieldset class="group">
+						<legend class="visually-hidden">output</legend>
+						<label class="radio"><input type="radio" name="env" value="browser" checked>browser</label>
+						<label class="radio"><input type="radio" name="env" value="console">browser console</label>
+						<button type="submit" class="run">run</button>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">text</legend>
+						<label class="field">text<input type="text" name="text" value="How are you?" enterkeyhint="go" autocomplete="off" spellcheck="false" placeholder="hello world"></label>
+						<label class="field select">font<select name="font"></select></label>
+						<label class="field">letter spacing<input type="number" name="letter-spacing" value="1" min="0" max="20" placeholder="1"></label>
+						<label class="field">line height<input type="number" name="line-height" min="0" max="20" placeholder="1"></label>
+						<label class="check"><input type="checkbox" name="word-wrap" checked>word wrap</label>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">colors</legend>
+						<label class="field">colors<input type="text" name="colors" value="red-blue" list="color_grammar" autocomplete="off" spellcheck="false" placeholder="red-blue"></label>
+						<label class="field">background<input type="text" name="background" value="system" list="background_grammar" autocomplete="off" spellcheck="false" placeholder="blue"></label>
+						<label class="check"><input type="checkbox" name="independent-gradient">independent gradient</label>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">layout</legend>
+						<fieldset class="choice">
+							<legend>align</legend>
+							<label class="radio"><input type="radio" name="align" value="left" checked>left</label>
+							<label class="radio"><input type="radio" name="align" value="center">center</label>
+							<label class="radio"><input type="radio" name="align" value="right">right</label>
+						</fieldset>
+						<label class="field">max length<input type="number" name="max-length" value="0" min="0"></label>
+						<label class="check"><input type="checkbox" name="spaceless">spaceless</label>
+					</fieldset>
+					<fieldset class="group">
+						<legend class="visually-hidden">next text block</legend>
+						<label class="field">next<input type="text" name="next" placeholder="next text block" enterkeyhint="go" autocomplete="off" spellcheck="false"></label>
+						<label class="field select">font<select name="next-font"></select></label>
+					</fieldset>
+					<fieldset class="choice">
+						<legend>valign</legend>
+						<label class="radio"><input type="radio" name="valign" value="top">top</label>
+						<label class="radio"><input type="radio" name="valign" value="middle" checked>middle</label>
+						<label class="radio"><input type="radio" name="valign" value="bottom">bottom</label>
+					</fieldset>
+				</form>
+				<datalist id="color_grammar">
+					<option value="red-blue">a gradient</option>
+					<option value="red:yellow:green">a transition</option>
+					<option value="red,blue">one color per font slot</option>
+					<option value="#ff8800">a hex value</option>
+					<option value="candy"></option>
+					<option value="system"></option>
+					<option value="black"></option>
+					<option value="red"></option>
+					<option value="green"></option>
+					<option value="yellow"></option>
+					<option value="blue"></option>
+					<option value="magenta"></option>
+					<option value="cyan"></option>
+					<option value="white"></option>
+					<option value="gray"></option>
+					<option value="redbright"></option>
+					<option value="greenbright"></option>
+					<option value="yellowbright"></option>
+					<option value="bluebright"></option>
+					<option value="magentabright"></option>
+					<option value="cyanbright"></option>
+					<option value="whitebright"></option>
+					<option value="pride"></option>
+					<option value="agender"></option>
+					<option value="aromantic"></option>
+					<option value="asexual"></option>
+					<option value="bisexual"></option>
+					<option value="genderfluid"></option>
+					<option value="genderqueer"></option>
+					<option value="intersex"></option>
+					<option value="lesbian"></option>
+					<option value="nonbinary"></option>
+					<option value="pansexual"></option>
+					<option value="polysexual"></option>
+					<option value="transgender"></option>
+				</datalist>
+				<datalist id="background_grammar">
+					<option value="system">paints nothing</option>
+					<option value="red-blue">a gradient from the top down</option>
+					<option value="red:yellow:green">a transition</option>
+					<option value="#222222">a hex value</option>
+					<option value="black"></option>
+					<option value="red"></option>
+					<option value="green"></option>
+					<option value="yellow"></option>
+					<option value="blue"></option>
+					<option value="magenta"></option>
+					<option value="cyan"></option>
+					<option value="white"></option>
+					<option value="gray"></option>
+					<option value="pride"></option>
+					<option value="transgender"></option>
+				</datalist>
+				<section class="terminal frame" aria-labelledby="terminal_title">
+					<h3 class="visually-hidden" id="terminal_title">Terminal</h3>
+					<p class="titlebar" aria-hidden="true">
+						<span class="dot"></span><span class="dot"></span><span class="dot"></span>
+						<span class="title">console</span>
+					</p>
+					<pre><span class="prompt" aria-hidden="true">$ </span><kbd id="command"></kbd></pre>
+					<samp id="canvas" role="img"></samp>
+				</section>
+				<p class="note">
+					Open the devtools console, every pick prints the banner there and a typed text prints on enter.
+				</p>
+			</main>
+			<footer class="statusline">
+				<span class="name">cfonts</span>
+				<span>GPL-3.0-or-later</span>
+				<span class="spacer"></span>
+				<a href="https://github.com/dominikwilkowski/cfonts" target="_blank">github</a>
+			</footer>
+		</div>
+		<script type="module" src="./script.js"></script>
+	</body>
+</html>

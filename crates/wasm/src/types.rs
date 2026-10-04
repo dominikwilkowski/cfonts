@@ -1,0 +1,206 @@
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
+use wasm_bindgen::prelude::*;
+
+use cfonts::{
+	Align as CoreAlign, Color as CoreColor, ColorError, ColorLevel as CoreColorLevel, Font as CoreFont,
+	GradientPreset as CoreGradientPreset, Rendered as CoreRendered, Rgb, Valign as CoreValign,
+};
+use cfonts_macros::All;
+
+macro_rules! bridge_enum {
+	// A one way bridge for core enums whose data carrying variants cannot cross the boundary
+	($wasm:ident -> $core:ident {
+		$($variant:ident),+ $(,)?
+	}) => {
+		#[wasm_bindgen]
+		#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
+		pub enum $wasm {
+			$($variant),+
+		}
+
+		impl From<$wasm> for $core {
+			fn from(value: $wasm) -> Self {
+				match value {
+					$($wasm::$variant => $core::$variant),+
+				}
+			}
+		}
+	};
+	// A two way bridge for core enums that cross the boundary whole
+	($wasm:ident => $core:ident {
+		$($variant:ident),+ $(,)?
+	}) => {
+		bridge_enum!($wasm -> $core {
+			$($variant),+
+		});
+
+		impl From<$core> for $wasm {
+			fn from(value: $core) -> Self {
+				match value {
+					$($core::$variant => $wasm::$variant),+
+				}
+			}
+		}
+	};
+}
+
+bridge_enum!(Align => CoreAlign {
+	Left,
+	Center,
+	Right,
+});
+
+bridge_enum!(Valign => CoreValign {
+	Top,
+	Middle,
+	Bottom,
+});
+
+bridge_enum!(ColorLevel => CoreColorLevel {
+	Basic,
+	Ansi256,
+	TrueColor,
+});
+
+// Rgb colors cross as hex values, so the boundary enum only carries the named variants
+bridge_enum!(Color -> CoreColor {
+	System,
+	Black,
+	Red,
+	Green,
+	Yellow,
+	Blue,
+	Magenta,
+	Cyan,
+	White,
+	Gray,
+	RedBright,
+	GreenBright,
+	YellowBright,
+	BlueBright,
+	MagentaBright,
+	CyanBright,
+	WhiteBright,
+	Candy,
+});
+
+bridge_enum!(GradientPreset => CoreGradientPreset {
+	Pride,
+	Agender,
+	Aromantic,
+	Asexual,
+	Bisexual,
+	Genderfluid,
+	Genderqueer,
+	Intersex,
+	Lesbian,
+	Nonbinary,
+	Pansexual,
+	Polysexual,
+	Transgender,
+});
+
+bridge_enum!(Font => CoreFont {
+	Block,
+	Board,
+	Braille,
+	Bridge,
+	Bubble,
+	Chrome,
+	Dense,
+	Depth,
+	Edge,
+	Font3D,
+	Frost,
+	Grid,
+	Huge,
+	Neat,
+	Pallet,
+	Retro,
+	Shade,
+	Simple,
+	SimpleBlock,
+	Slick,
+	Thin,
+	Tiny,
+	Vision,
+	Wire,
+	Console,
+});
+
+/// The closed set of render environments the boundary can ask for
+///
+/// JavaScript cannot implement environments: formatting runs inside the wasm,
+/// and custom runtimes implement the open Host interface instead
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
+pub enum EnvironmentKind {
+	Cli,
+	Browser,
+	BrowserConsole,
+}
+
+/// Binds the environment a kind and the raw flag name to the given identifier and evaluates the body with it, once per arm
+///
+/// The three environments are three types and the Environment trait is too wide to delegate through
+/// an enum, so the one match that turns a kind into a value is a macro the builder and the host both expand
+macro_rules! with_environment {
+	($kind:expr, $raw_mode:expr, |$environment:ident| $body:expr) => {
+		match $kind {
+			$crate::EnvironmentKind::Cli => {
+				let $environment = if $raw_mode { cfonts::CliEnv::default().raw_mode() } else { cfonts::CliEnv::default() };
+
+				$body
+			}
+			$crate::EnvironmentKind::Browser => {
+				let $environment = cfonts::BrowserEnv;
+
+				$body
+			}
+			$crate::EnvironmentKind::BrowserConsole => {
+				let $environment = cfonts::BrowserConsoleEnv;
+
+				$body
+			}
+		}
+	};
+}
+pub(crate) use with_environment;
+
+/// The rendered output returned to JavaScript
+///
+/// It crosses as a plain object through [`Ts`](tsify::Ts) and reads back for the boundary tests
+#[derive(Debug, Deserialize, Serialize, Tsify)]
+pub struct Rendered {
+	pub text: String,
+
+	/// Style values consumed by the text's format markers, in marker order
+	pub styles: Vec<String>,
+}
+
+impl From<CoreRendered> for Rendered {
+	fn from(rendered: CoreRendered) -> Self {
+		Self { text: rendered.text, styles: rendered.styles }
+	}
+}
+
+/// Parses a hex value such as `#ff8800` into RGB channel values
+///
+/// The channels cross the boundary as `[red, green, blue]`,
+/// TypeScript reshapes them into its `{red, green, blue}` object
+/// so hex parsing has exactly one home in Rust
+#[wasm_bindgen(js_name = hexToRgb)]
+pub fn hex_to_rgb(hex: &str) -> Result<Vec<u8>, JsError> {
+	let rgb = Rgb::from_hex(hex).map_err(|error| color_error(hex, error))?;
+
+	Ok(vec![rgb.red, rgb.green, rgb.blue])
+}
+
+/// Names the refused input in front of the core's sentence
+///
+/// The boundary relays the core instead of wording color errors itself,
+/// so the browser page prints the one sentence the framework pages and the command line print
+pub(crate) fn color_error(input: &str, error: ColorError) -> JsError {
+	JsError::new(&format!("\"{input}\": {error}"))
+}
