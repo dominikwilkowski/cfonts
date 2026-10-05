@@ -24,7 +24,7 @@ Cfonts.text("hello cfonts").say(host, CliEnv);
 // Get the instance and do something with it later
 const composition = Cfonts.text("hello world").font(Font.Tiny);
 
-// Render manually and write the artifact wherever a stream goes, say adds the line end for you, here you add it
+// Render manually and write the artifact wherever a stream goes, `say` adds the line end for you, here you add it
 const terminal = composition.render(host, CliEnv);
 process.stderr.write(`stderr: ${terminal.text}\n`); // stderr keeps stdout clean for piping
 const buffer = Buffer.from(`buffer: ${terminal.text}\n`); // or collect the bytes for a file, a socket or a log sink

@@ -16,7 +16,7 @@ fn main() -> io::Result<()> {
 	// Get the instance and do something with it later
 	let composition = Cfonts::text("hello world").font(Font::Tiny);
 
-	// Render manually and write the artifact wherever a `Write` goes, say adds the line end for you, here you add it
+	// Render manually and write the artifact wherever a `Write` goes, `say` adds the line end for you, here you add it
 	let terminal = composition.render(&host, &cli);
 	writeln!(io::stderr(), "stderr: {}", terminal.text)?; // stderr keeps stdout clean for piping
 	let mut buffer = Vec::new(); // or collect the bytes for a file, a socket or a log sink
