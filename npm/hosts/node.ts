@@ -1,62 +1,35 @@
 import { release } from "node:os";
 
-import { type ColorLevel, detectCanvasWidth, detectColorSupport, entropy } from "../../pkg/cfonts_wasm.js";
+import { entropy, type RenderOverrides, type Terminal, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
 import { inner } from "../boundary.js";
-import { type Environment, lineEnd, renderEnvironment } from "../environments/index.js";
+import { type Environment, environmentArguments, lineEnd } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
-import { normalizeRenderOverrides, type RenderOverrides } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**
- * The Windows build number, which dates the console's palette
+ * The Rust Node host behind the boundary: it resolves the terminal width and the color support
+ * from the facts of the process and writes artifacts to stdout
  *
- * Node's runtime switches escape processing on at startup, so the build is the
- * only console fact the classifier needs
- */
-function windowsBuild(): number | undefined {
-	if (process.platform !== "win32") {
-		return undefined;
-	}
-
-	const build = Number(release().split(".")[2]);
-	return Number.isInteger(build) && build >= 0 ? build : 0;
-}
-
-/**
- * The environment as parallel name/value arrays, the shape the boundary takes
- */
-function environmentEntries(): [names: string[], values: string[]] {
-	const names: string[] = [];
-	const values: string[] = [];
-	for (const [name, value] of Object.entries(process.env)) {
-		if (value !== undefined) {
-			names.push(name);
-			values.push(value);
-		}
-	}
-
-	return [names, values];
-}
-
-/**
- * The measured width of the stream still attached to a terminal: stdout, else
- * stderr — a zero-width stream measures nothing, matching the native probe
- */
-function measuredColumns(): number | undefined {
-	for (const stream of [process.stdout, process.stderr]) {
-		if (typeof stream.columns === "number" && stream.columns > 0) {
-			return stream.columns;
-		}
-	}
-
-	return undefined;
-}
-
-/**
- * Resolves Node terminal capabilities and writes artifacts to stdout
+ * TypeScript gathers the facts Rust cannot read in Node and keeps the one write, the decisions live in the core
  */
 export class NodeHost implements Host {
-	#overrides: RenderOverrides = Object.freeze({});
+	readonly #inner: WasmNodeHost;
+
+	/**
+	 * Creates the Node host that detects everything from the terminal, or one with explicit capability overrides
+	 *
+	 * FORCE_SIZE, FORCE_COLOR and NO_COLOR still take precedence over the overrides,
+	 * the object crosses the boundary as it is, the core reads it
+	 *
+	 * @example
+	 * new NodeHost();
+	 *
+	 * @example
+	 * new NodeHost({ canvasWidth: 40, color: ColorLevel.Basic });
+	 */
+	constructor(overrides?: RenderOverrides) {
+		this.#inner = WasmNodeHost.fromOverrides(overrides);
+	}
 
 	/**
 	 * A fresh seed for candy colors, the one a render rolls when no seed override is given
@@ -73,7 +46,7 @@ export class NodeHost implements Host {
 	}
 
 	/**
-	 * Creates a Node host with explicit capability overrides
+	 * Creates a Node host with explicit capability overrides, the constructor with its object
 	 *
 	 * FORCE_SIZE, FORCE_COLOR and NO_COLOR still take precedence over these values
 	 *
@@ -84,50 +57,37 @@ export class NodeHost implements Host {
 	 * NodeHost.fromOverrides({ color: false }); // paints nothing
 	 */
 	static fromOverrides(overrides: RenderOverrides): NodeHost {
-		const host = new NodeHost();
-		host.#overrides = normalizeRenderOverrides(overrides, "fromOverrides");
-		return host;
+		return new NodeHost(overrides);
 	}
 
 	render(composition: Cfonts, environment: Environment): Rendered {
-		return renderEnvironment(composition[inner](), environment, this.#resolve(), "render");
+		return this.#inner.render(composition[inner](), ...environmentArguments(environment, "render"), this.#terminal());
 	}
 
 	say(composition: Cfonts, environment: Environment): void {
-		const rendered = renderEnvironment(composition[inner](), environment, this.#resolve(), "say");
+		const rendered = this.#inner.render(
+			composition[inner](),
+			...environmentArguments(environment, "say"),
+			this.#terminal(),
+		);
 
 		process.stdout.write(`${rendered.text}${lineEnd(environment)}`);
 	}
 
 	/**
-	 * The three answers of this host, pinned so the render decides nothing
+	 * The facts of the process the resolution reads, gathered at every render so a resized terminal is seen
+	 *
+	 * Node keeps every variable a string, the index signature of `process.env` alone says otherwise
 	 */
-	#resolve(): RenderOverrides {
-		const [names, values] = environmentEntries();
-
-		return Object.freeze({
-			canvasWidth: this.#resolveCanvasWidth(names, values),
-			color: this.#resolveColorLevel(names, values),
-			seed: this.#overrides.seed ?? entropy(),
-		});
-	}
-
-	#resolveCanvasWidth(names: string[], values: string[]): number | undefined {
-		// the whole decision lives behind the boundary: FORCE_SIZE, the API
-		// override, the measured width and the eighty-column fallback
-		return detectCanvasWidth(measuredColumns(), names, values, this.#overrides.canvasWidth);
-	}
-
-	#resolveColorLevel(names: string[], values: string[]): ColorLevel | undefined {
-		// the chain and the cascade both live behind the boundary: the
-		// environment crosses whole, FORCE_COLOR and NO_COLOR included
-		return detectColorSupport(
-			process.stdout.isTTY === true,
-			names,
-			values,
-			windowsBuild(),
-			this.#overrides.color === false,
-			this.#overrides.color === false ? undefined : this.#overrides.color,
-		);
+	#terminal(): Terminal {
+		return {
+			stdoutColumns: process.stdout.columns,
+			stderrColumns: process.stderr.columns,
+			attached: process.stdout.isTTY === true,
+			platform: process.platform,
+			release: release(),
+			names: Object.keys(process.env),
+			values: Object.values(process.env) as string[],
+		};
 	}
 }

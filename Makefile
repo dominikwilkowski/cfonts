@@ -59,11 +59,13 @@ test: wasm32
 	cargo check --locked -p cfonts --features ratatui
 	cargo check --locked -p cfonts --features leptos
 	cargo check --locked -p cfonts --features dioxus
+	cargo check --locked -p cfonts --features wasm
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features web
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features ratatui
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features leptos
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
+	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features wasm
 	pnpm test
 
 # The framework examples compile for the browser, add the target with `rustup target add wasm32-unknown-unknown`

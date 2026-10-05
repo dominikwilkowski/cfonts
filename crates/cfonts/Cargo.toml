@@ -29,6 +29,7 @@ dioxus = { version = "0.7", optional = true, default-features = false, features 
 ] }
 leptos = { version = "0.8", optional = true, default-features = false }
 ratatui = { version = "0.30", optional = true, default-features = false }
+wasm-bindgen = { version = "0.2", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -52,6 +53,8 @@ windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32
 dioxus = ["dep:dioxus", "web"]
 leptos = ["dep:leptos", "web"]
 ratatui = ["dep:ratatui", "dep:js-sys"]
+# the plain enums cross the JavaScript boundary as they are, the wasm crate turns this on
+wasm = ["dep:wasm-bindgen"]
 web = ["dep:js-sys", "dep:web-sys"]
 
 [[example]]

@@ -1,4 +1,4 @@
-import { Align, BrowserConsoleEnv, BrowserEnv, BrowserHost, Cfonts, Font, Valign } from "cfonts";
+import { BrowserConsoleEnv, BrowserEnv, BrowserHost, Cfonts, fontNames } from "cfonts";
 
 // The page is an eighty column terminal, so long text wraps the way it would there
 const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
@@ -88,18 +88,12 @@ const form = document.getElementById("configurator");
 const command = document.getElementById("command");
 const canvas = document.getElementById("canvas");
 
-// The fonts by their command line names, 3d is the one name the enum spells differently
-const fonts = new Map(
-	Object.keys(Font)
-		.filter((key) => Number.isNaN(Number(key)))
-		.map((name) => [name === "Font3D" ? "3d" : name.toLowerCase(), Font[name]]),
-);
-
+// The font pickers list the command line names of the core, the pick goes back to cfonts by name
 for (const [select, chosen] of [
 	[form.elements.font, "neat"],
 	[form.elements["next-font"], "tiny"],
 ]) {
-	for (const name of fonts.keys()) {
+	for (const name of fontNames()) {
 		select.add(new Option(name, name));
 	}
 	select.value = chosen;
@@ -115,6 +109,17 @@ function shellWord(value) {
 	return /^[\w,:-]+$/.test(value) ? value : quoted(value);
 }
 
+// One whole number, or the value that is none, the sentence the framework pages print for it
+//
+// The framework pages count in usize, 32 bits on wasm32, so a larger number is none on every page
+function wholeNumber(value) {
+	if (!/^\d+$/.test(value) || Number(value) > 4294967295) {
+		throw new Error(`"${value}" is not a whole number`);
+	}
+
+	return Number(value);
+}
+
 /*
  * The options in the order the command line takes them, each with the flag it prints, the value
  * the command line assumes when it is left out, and the builder call it makes
@@ -122,14 +127,19 @@ function shellWord(value) {
  * A flag option prints its flag alone, a next-font applies only once a next block exists
  */
 const options = [
-	{ name: "font", flag: "--font", unset: "block", apply: (cfonts, value) => cfonts.font(fonts.get(value)) },
+	{ name: "font", flag: "--font", unset: "block", apply: (cfonts, value) => cfonts.font(value) },
 	{
 		name: "letter-spacing",
 		flag: "--letter-spacing",
 		unset: "1",
-		apply: (cfonts, value) => cfonts.letterSpacing(Number(value)),
+		apply: (cfonts, value) => cfonts.letterSpacing(wholeNumber(value)),
 	},
-	{ name: "line-height", flag: "--line-height", unset: "", apply: (cfonts, value) => cfonts.lineHeight(Number(value)) },
+	{
+		name: "line-height",
+		flag: "--line-height",
+		unset: "",
+		apply: (cfonts, value) => cfonts.lineHeight(wholeNumber(value)),
+	},
 	{ name: "word-wrap", flag: "--word-wrap", unset: "", apply: (cfonts) => cfonts.wordWrap() },
 	{ name: "colors", flag: "--colors", unset: "system", apply: (cfonts, value) => cfonts.globalColors(value) },
 	{ name: "background", flag: "--background", unset: "system", apply: (cfonts, value) => cfonts.background(value) },
@@ -139,22 +149,17 @@ const options = [
 		unset: "",
 		apply: (cfonts) => cfonts.independentGradient(),
 	},
+	{ name: "align", flag: "--align", unset: "left", apply: (cfonts, value) => cfonts.align(value) },
+	{ name: "valign", flag: "--valign", unset: "middle", apply: (cfonts, value) => cfonts.valign(value) },
 	{
-		name: "align",
-		flag: "--align",
-		unset: "left",
-		apply: (cfonts, value) => cfonts.align(Align[value[0].toUpperCase() + value.slice(1)]),
+		name: "max-length",
+		flag: "--max-length",
+		unset: "0",
+		apply: (cfonts, value) => cfonts.maxLength(wholeNumber(value)),
 	},
-	{
-		name: "valign",
-		flag: "--valign",
-		unset: "middle",
-		apply: (cfonts, value) => cfonts.valign(Valign[value[0].toUpperCase() + value.slice(1)]),
-	},
-	{ name: "max-length", flag: "--max-length", unset: "0", apply: (cfonts, value) => cfonts.maxLength(Number(value)) },
 	{ name: "spaceless", flag: "--spaceless", unset: "", apply: (cfonts) => cfonts.spaceless() },
 	{ name: "next", flag: "--next", unset: "", quoted: true, apply: (cfonts, value) => cfonts.next(value) },
-	{ name: "next-font", flag: "--font", unset: "block", apply: (cfonts, value) => cfonts.font(fonts.get(value)) },
+	{ name: "next-font", flag: "--font", unset: "block", apply: (cfonts, value) => cfonts.font(value) },
 ];
 
 // The composition the form describes and the command line that describes it, or the option the command line would refuse

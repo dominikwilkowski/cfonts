@@ -73,6 +73,7 @@ jobs:
           cargo check --locked -p cfonts --features ratatui
           cargo check --locked -p cfonts --features leptos
           cargo check --locked -p cfonts --features dioxus
+          cargo check --locked -p cfonts --features wasm
 
       - name: Check the framework examples
         run: make check
@@ -141,6 +142,9 @@ jobs:
 
       - name: Check the dioxus feature on the WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
+
+      - name: Check the wasm feature on the WASM target
+        run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features wasm
 
   package:
     name: Package

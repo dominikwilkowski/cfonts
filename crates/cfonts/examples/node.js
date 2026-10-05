@@ -10,8 +10,8 @@ import {
 	ColorLevel,
 	Font,
 	GradientPreset,
-	hexToRgb,
 	NodeHost,
+	Rgb,
 	Valign,
 } from "cfonts";
 
@@ -99,8 +99,8 @@ Cfonts.text("sunset")
 	.colors({ transition: [Color.Yellow, "#ff8800", Color.Magenta] })
 	.say(host, CliEnv);
 
-// Design tokens come as channels, hexToRgb turns a hex value into that shape
-const brand = hexToRgb("#f08");
+// Design tokens come as channels, Rgb.fromHex turns a hex value into that shape
+const brand = Rgb.fromHex("#f08");
 Cfonts.text("brand")
 	.colors([brand, { red: 255, green: 255, blue: 255 }]) // colors can also be set as objects
 	.say(host, CliEnv);

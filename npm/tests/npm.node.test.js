@@ -3,22 +3,50 @@ import test from "node:test";
 import * as packageExports from "cfonts";
 // the Node entry seals the browser host away, the built module answers for it here
 import { BrowserHost } from "../../dist/hosts/browser.js";
-import { detectColorSupport } from "../../pkg/cfonts_wasm.js";
+// the raw boundary takes the terminal facts as one object, so a test can hand it a terminal this process is not
+import { EnvironmentKind, Cfonts as WasmCfonts, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
 
 const {
 	Align,
+	alignNames,
+	backgroundColorNames,
 	BrowserConsoleEnv,
 	BrowserEnv,
 	Cfonts,
 	CliEnv,
 	Color,
 	ColorLevel,
+	colorNames,
 	Font,
+	fontNames,
 	GradientPreset,
-	hexToRgb,
+	gradientColorNames,
+	gradientPresetNames,
 	NodeHost,
+	Rgb,
 	Valign,
+	valignNames,
 } = packageExports;
+
+// the names a gradient stop takes, the stop vocabulary the leptos page lists between system and candy
+const GRADIENT_COLOR_NAMES = [
+	"black",
+	"red",
+	"green",
+	"yellow",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+	"gray",
+	"redbright",
+	"greenbright",
+	"yellowbright",
+	"bluebright",
+	"magentabright",
+	"cyanbright",
+	"whitebright",
+];
 
 const INVALID_STRINGS = [0, true, null, undefined, {}, []];
 
@@ -36,7 +64,8 @@ const INVALID_U32_VALUES = [
 	1n,
 ];
 
-const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, "0", "Block", true, null, undefined];
+// a string is a name and gets the name sentence, every other value is no enum member
+const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, true, null, undefined];
 
 // helpers
 
@@ -207,12 +236,12 @@ for (const [method, invoke] of u32Setters) {
 }
 
 const enumSetters = [
-	["font", Font, (banner, value) => banner.font(value)],
-	["align", Align, (banner, value) => banner.align(value)],
-	["valign", Valign, (banner, value) => banner.valign(value)],
+	["font", Font, fontNames, "font", (banner, value) => banner.font(value)],
+	["align", Align, alignNames, "alignment", (banner, value) => banner.align(value)],
+	["valign", Valign, valignNames, "vertical alignment", (banner, value) => banner.valign(value)],
 ];
 
-for (const [method, enumeration, invoke] of enumSetters) {
+for (const [method, enumeration, names, what, invoke] of enumSetters) {
 	test(`${method} rejects unsupported enum values`, () => {
 		assertTypeErrors(
 			INVALID_ENUM_VALUES,
@@ -228,7 +257,134 @@ for (const [method, enumeration, invoke] of enumSetters) {
 			}
 		}
 	});
+
+	test(`${method} accepts every name in any case and refuses an unknown name with its sentence`, () => {
+		for (const name of names()) {
+			invoke(Cfonts.text("A"), name);
+			invoke(Cfonts.text("A"), name.toUpperCase());
+		}
+
+		// an unknown name is a refused value, a plain Error, where a wrong type is a TypeError
+		for (const name of ["nope", "0", ""]) {
+			assert.throws(() => invoke(Cfonts.text("A"), name), {
+				name: "Error",
+				message: `There is no ${what} called "${name}"`,
+			});
+		}
+	});
 }
+
+test("a name picks the same variant as the enum", () => {
+	const context = { color: ColorLevel.TrueColor };
+	const render = (banner) => banner.renderWith(CliEnv, context).text;
+
+	assert.equal(render(Cfonts.text("A").font("3d")), render(Cfonts.text("A").font(Font.Font3D)));
+	assert.equal(render(Cfonts.text("A").font("Tiny")), render(Cfonts.text("A").font(Font.Tiny)));
+	assert.notEqual(render(Cfonts.text("A").font("tiny")), render(Cfonts.text("A").font("3d")));
+
+	const wide = { canvasWidth: 40 };
+	assert.equal(
+		Cfonts.text("A").align("center").renderWith(CliEnv, wide).text,
+		Cfonts.text("A").align(Align.Center).renderWith(CliEnv, wide).text,
+	);
+	assert.notEqual(
+		Cfonts.text("A").align("center").renderWith(CliEnv, wide).text,
+		Cfonts.text("A").align("left").renderWith(CliEnv, wide).text,
+	);
+
+	const mixed = (valign) =>
+		Cfonts.text("A").font(Font.Huge).next("B").font(Font.Tiny).valign(valign).renderWith(CliEnv).text;
+	assert.equal(mixed("bottom"), mixed(Valign.Bottom));
+	assert.notEqual(mixed("bottom"), mixed("top"));
+});
+
+test("the names come from the core in its order, one list per picker", () => {
+	// the framework pages fill their pickers from the core's names, the enum keys spell every font but 3d the same way
+	const fromEnum = Object.keys(Font)
+		.filter((key) => Number.isNaN(Number(key)))
+		.map((name) => (name === "Font3D" ? "3d" : name.toLowerCase()));
+	assert.deepEqual(fontNames(), fromEnum);
+	assert.ok(fontNames().includes("3d"));
+
+	assert.deepEqual(alignNames(), ["left", "center", "right"]);
+	assert.deepEqual(valignNames(), ["top", "middle", "bottom"]);
+	assert.equal(gradientPresetNames()[0], "pride");
+	assert.equal(gradientPresetNames().length, Object.keys(GradientPreset).length / 2);
+
+	// a slot takes system and candy, a background takes system alone, both lists are the help's order
+	assert.equal(colorNames()[0], "system");
+	assert.equal(colorNames().at(-1), "candy");
+	assert.equal(colorNames().length, Object.keys(Color).length / 2);
+	assert.deepEqual(backgroundColorNames(), colorNames().slice(0, -1));
+
+	// a gradient stop takes neither, the sixteen names the leptos page lists where a background drops system
+	assert.deepEqual(gradientColorNames(), GRADIENT_COLOR_NAMES);
+	assert.deepEqual(
+		gradientColorNames(),
+		backgroundColorNames().filter((name) => name !== "system"),
+	);
+
+	// every name is a value the setters take
+	for (const name of gradientPresetNames()) {
+		Cfonts.text("A").colors(name);
+	}
+	for (const name of colorNames()) {
+		Cfonts.text("A").colors([name]);
+	}
+	for (const name of backgroundColorNames()) {
+		Cfonts.text("A").background(name);
+	}
+	for (const name of gradientColorNames()) {
+		Cfonts.text("A").colors({ start: name, end: "blue" });
+		Cfonts.text("A").background({ transition: [name, "blue"] });
+	}
+});
+
+test("a wrong shape is a TypeError and a refused value a plain Error", () => {
+	// the shape sentences name the method, the value sentences are the core's
+	assert.throws(() => Cfonts.text("A").colors([true]), {
+		name: "TypeError",
+		message: "`colors()` expects colors as Color values, names, hex values, or {red, green, blue} channels",
+	});
+	assert.throws(() => Cfonts.text("A").colors([{ red: 256, green: 0, blue: 0 }]), {
+		name: "TypeError",
+		message: "`colors()` expects RGB channel values as integers between 0 and 255",
+	});
+	assert.throws(() => Cfonts.text("A").colors({ start: true, end: "blue" }), {
+		name: "TypeError",
+		message:
+			'`colors()` gradient stops take any Color but Color.System and Color.Candy, a stop name such as "red", ' +
+			'a hex value such as "#ff8800", or {red, green, blue} channels from Rgb.fromHex()',
+	});
+	assert.throws(() => Cfonts.text("A").background(true), {
+		name: "TypeError",
+		message:
+			'`background()` expects a background as a Color value, the command line spelling such as "red-blue", ' +
+			"{red, green, blue} channels, or a gradient shape such as {start: Color.Red, end: Color.Blue} " +
+			"or {preset: GradientPreset.Pride}",
+	});
+	assert.throws(() => Cfonts.text("A").globalColors(true), {
+		name: "TypeError",
+		message:
+			'`globalColors()` expects an array of colors such as [Color.Red, "#8899dd"], ' +
+			"exactly one gradient shape such as {start: Color.Red, end: Color.Blue}, " +
+			'{transition: [Color.Red, "#8899dd", Color.Blue]} or {preset: GradientPreset.Pride}, ' +
+			'or the command line spelling such as "red-blue"',
+	});
+
+	assert.throws(() => Cfonts.text("A").colors(["reed"]), {
+		name: "Error",
+		message: '"reed": A color is either a color name or a hex value like #ff8800',
+	});
+	assert.throws(() => Cfonts.text("A").colors({ transition: [] }), {
+		name: "Error",
+		message: "A transition gradient holds at least two stops, this one holds 0",
+	});
+	assert.throws(() => Cfonts.text("A").background({ red: 1, green: 2, blue: 3 }).background("blue"), {
+		name: "Error",
+		message: "`background()` has already been set",
+	});
+});
 
 test("the Node entry exports NodeHost but not BrowserHost", () => {
 	assert.equal(typeof packageExports.NodeHost, "function");
@@ -366,12 +522,27 @@ test("say rejects values without a say method", () => {
 });
 
 test("NodeHost validates override objects", () => {
-	for (const overrides of [undefined, null, 0, true, "", [], () => {}]) {
+	for (const overrides of [null, 0, true, "", [], () => {}]) {
 		assert.throws(() => NodeHost.fromOverrides(overrides), {
 			name: "TypeError",
 			message: "`fromOverrides()` expects an overrides object",
 		});
+		assert.throws(() => new NodeHost(overrides), {
+			name: "TypeError",
+			message: "`fromOverrides()` expects an overrides object",
+		});
 	}
+});
+
+test("the constructor takes the overrides object fromOverrides takes", () => {
+	const banner = Cfonts.text("AAAA");
+	const render = (host) => withTerminal(120, undefined, () => banner.render(host, CliEnv).text);
+
+	// no object and undefined build the detecting host, an object pins what it names either way
+	assert.equal(render(new NodeHost(undefined)), render(new NodeHost()));
+	assert.equal(render(NodeHost.fromOverrides(undefined)), render(new NodeHost()));
+	assert.equal(render(new NodeHost({ canvasWidth: 13 })), render(NodeHost.fromOverrides({ canvasWidth: 13 })));
+	assert.notEqual(render(new NodeHost({ canvasWidth: 13 })), render(new NodeHost()));
 });
 
 test("NodeHost validates override widths", () => {
@@ -810,18 +981,20 @@ test("gradient shape errors teach the shapes", () => {
 	});
 });
 
-test("hexToRgb converts hex values into channels", () => {
-	assert.deepEqual(hexToRgb("#ff8800"), { red: 255, green: 136, blue: 0 });
-	assert.deepEqual(hexToRgb("f80"), { red: 255, green: 136, blue: 0 });
-	assert.ok(Object.isFrozen(hexToRgb("#ff8800")));
+test("Rgb.fromHex converts hex values into channels", () => {
+	assert.deepEqual(Rgb.fromHex("#ff8800"), { red: 255, green: 136, blue: 0 });
+	assert.deepEqual(Rgb.fromHex("f80"), { red: 255, green: 136, blue: 0 });
+	assert.ok(Object.isFrozen(Rgb.fromHex("#ff8800")));
+	assert.ok(Object.isFrozen(Rgb)); // the one method hangs off a value nobody can reshape
+	assert.equal("rgbFromHex" in packageExports, false); // the raw boundary function stays behind the method
 
-	assert.throws(() => hexToRgb("#ff88"), Error); // four digits are invalid
-	assert.throws(() => hexToRgb("teal"), Error); // names are not hex values
-	assert.throws(() => hexToRgb(42), TypeError);
+	assert.throws(() => Rgb.fromHex("#ff88"), Error); // four digits are invalid
+	assert.throws(() => Rgb.fromHex("teal"), Error); // names are not hex values
+	assert.throws(() => Rgb.fromHex(42), { name: "TypeError", message: "`Rgb.fromHex()` expects a string" });
 
 	const context = { color: ColorLevel.TrueColor };
 	const channeled = Cfonts.text("A")
-		.colors({ start: hexToRgb("#ff8800"), end: Color.Blue })
+		.colors({ start: Rgb.fromHex("#ff8800"), end: Color.Blue })
 		.renderWith(CliEnv, context).text;
 	const spelled = Cfonts.text("A").colors({ start: "#ff8800", end: "blue" }).renderWith(CliEnv, context).text;
 	assert.equal(channeled, spelled);
@@ -950,7 +1123,11 @@ test("background validates its input", () => {
 		/expects a background/,
 	); // two gradient shapes teach the background shapes
 	assert.throws(() => Cfonts.text("A").background("reed"), /"reed": A color is either a color name/); // unknown name, rejected in Rust
-	assert.throws(() => Cfonts.text("A").background(Color.Candy), /A color is either a color name/); // candy cannot fill a row, refused like an unknown name
+	// candy cannot fill a row, refused like an unknown name and echoed by its command line name, the core's spelling
+	assert.throws(() => Cfonts.text("A").background(Color.Candy), {
+		name: "Error",
+		message: '"candy": A color is either a color name or a hex value like #ff8800',
+	});
 	assert.throws(() => Cfonts.text("A").background({ start: "system", end: "blue" }), /except system and candy/);
 });
 
@@ -1105,34 +1282,68 @@ test("detection runs the shared cascade", { skip: process.platform === "win32" }
 	}
 });
 
-test("the chain crosses the boundary with the environment", () => {
+/**
+ * The color banner rendered by the raw Node host under the given terminal facts, the stream unlimited
+ * so only the color decision shows
+ */
+function rawRender(terminal, overrides = {}) {
+	const banner = WasmCfonts.text("AB");
+	banner.font(Font.Tiny);
+	banner.colors(["#ff8800"]);
+
+	return WasmNodeHost.fromOverrides({ canvasWidth: 0, ...overrides }).render(banner, EnvironmentKind.Cli, false, {
+		stdoutColumns: 80,
+		attached: true,
+		platform: "darwin",
+		release: "25.6.0",
+		names: [],
+		values: [],
+		...terminal,
+	}).text;
+}
+
+test("the chain crosses the boundary with the terminal facts", () => {
 	// FORCE_COLOR wins over everything the cascade would say
 	assert.equal(
-		detectColorSupport(true, ["TERM", "FORCE_COLOR"], ["xterm-256color", "3"], undefined, false, undefined),
-		ColorLevel.TrueColor,
+		rawRender({ names: ["TERM", "FORCE_COLOR"], values: ["xterm-256color", "3"] }),
+		reference(ColorLevel.TrueColor),
 	);
 
 	// NO_COLOR silences an otherwise colorful terminal
-	assert.equal(
-		detectColorSupport(true, ["TERM", "NO_COLOR"], ["xterm-256color", "1"], undefined, false, undefined),
-		undefined,
-	);
+	assert.equal(rawRender({ names: ["TERM", "NO_COLOR"], values: ["xterm-256color", "1"] }), reference(undefined));
 
 	// an empty NO_COLOR is not set: the cascade answers
 	assert.equal(
-		detectColorSupport(true, ["TERM", "NO_COLOR"], ["xterm-256color", ""], undefined, false, undefined),
-		ColorLevel.Ansi256,
+		rawRender({ names: ["TERM", "NO_COLOR"], values: ["xterm-256color", ""] }),
+		reference(ColorLevel.Ansi256),
 	);
+
+	// a terminal the facts describe as detached has no terminal to ask and falls back to full color
+	assert.equal(rawRender({ attached: false, names: ["TERM"], values: ["ansi"] }), reference(ColorLevel.TrueColor));
+	assert.equal(rawRender({ names: ["TERM"], values: ["ansi"] }), reference(ColorLevel.Basic));
+
+	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type
+	const banner = WasmCfonts.text("A");
+	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, []), {
+		name: "TypeError",
+		message: "`render()` expects the terminal facts",
+	});
+	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, {}), {
+		name: "TypeError",
+		message: "`render()` expects a boolean",
+	});
 });
 
-test("the boundary answers the windows console by build", () => {
-	assert.equal(detectColorSupport(true, [], [], 22631, false, undefined), ColorLevel.TrueColor);
-	assert.equal(detectColorSupport(true, [], [], 10586, false, undefined), ColorLevel.Ansi256);
-	assert.equal(detectColorSupport(true, [], [], 9600, false, undefined), ColorLevel.Basic);
+test("the boundary answers the windows console by the build of the release", () => {
+	const windows = (release, terminal = {}) => rawRender({ platform: "win32", release, ...terminal });
+
+	assert.equal(windows("10.0.22631"), reference(ColorLevel.TrueColor));
+	assert.equal(windows("10.0.10586"), reference(ColorLevel.Ansi256));
+	assert.equal(windows("6.3.9600"), reference(ColorLevel.Basic));
 
 	// a detached stream still paints the render fallback, a disabled override never paints
-	assert.equal(detectColorSupport(false, [], [], 22631, false, undefined), ColorLevel.TrueColor);
-	assert.equal(detectColorSupport(true, [], [], 22631, true, undefined), undefined);
+	assert.equal(windows("10.0.22631", { attached: false }), reference(ColorLevel.TrueColor));
+	assert.equal(rawRender({ platform: "win32", release: "10.0.22631" }, { color: false }), reference(undefined));
 });
 
 test("piped output has no terminal to ask and falls back to full color", () => {
@@ -1185,6 +1396,10 @@ test("the browser host decides behind the boundary and writes to the console", (
 	assert.notEqual(
 		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserEnv).text,
 		wrappingBanner().render(new BrowserHost(), BrowserEnv).text,
+	);
+	assert.equal(
+		wrappingBanner().render(new BrowserHost({ canvasWidth: 3 }), BrowserEnv).text,
+		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserEnv).text,
 	);
 
 	// say spreads the text and the styles into console.log, once

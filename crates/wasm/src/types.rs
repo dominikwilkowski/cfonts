@@ -1,72 +1,20 @@
+use js_sys::{Object, Reflect};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	Align as CoreAlign, ColorError, ColorLevel as CoreColorLevel, Font as CoreFont, GradientPreset as CoreGradientPreset,
-	Rendered as CoreRendered, Rgb, Valign as CoreValign,
+	Align, Background, Color as CoreColor, ColorError, Font, Gradient, GradientPreset, Rendered as CoreRendered, Rgb,
+	Text, Valign,
 };
 use cfonts_macros::All;
 
-macro_rules! bridge_enum {
-	// A one way bridge for core enums whose data carrying variants cannot cross the boundary
-	($wasm:ident -> $core:ident {
-		$($variant:ident),+ $(,)?
-	}) => {
-		#[wasm_bindgen]
-		#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
-		pub enum $wasm {
-			$($variant),+
-		}
-
-		impl From<$wasm> for $core {
-			fn from(value: $wasm) -> Self {
-				match value {
-					$($wasm::$variant => $core::$variant),+
-				}
-			}
-		}
-	};
-	// A two way bridge for core enums that cross the boundary whole
-	($wasm:ident => $core:ident {
-		$($variant:ident),+ $(,)?
-	}) => {
-		bridge_enum!($wasm -> $core {
-			$($variant),+
-		});
-
-		impl From<$core> for $wasm {
-			fn from(value: $core) -> Self {
-				match value {
-					$($core::$variant => $wasm::$variant),+
-				}
-			}
-		}
-	};
-}
-
-bridge_enum!(Align => CoreAlign {
-	Left,
-	Center,
-	Right,
-});
-
-bridge_enum!(Valign => CoreValign {
-	Top,
-	Middle,
-	Bottom,
-});
-
-bridge_enum!(ColorLevel => CoreColorLevel {
-	Basic,
-	Ansi256,
-	TrueColor,
-});
+use crate::input::expect_string;
 
 /// The named colors JavaScript picks from, the text color names in the core's order
 ///
 /// A pick crosses as its name and the core parses it into the kind the setter takes,
-/// so TypeScript keeps system and candy out of gradients and candy out of backgrounds on its side
+/// so the core keeps system and candy out of gradients and candy out of backgrounds,
 /// and Rgb colors cross as hex values, which is why no bridge into the core exists
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
@@ -91,50 +39,6 @@ pub enum Color {
 	Candy,
 }
 
-bridge_enum!(GradientPreset => CoreGradientPreset {
-	Pride,
-	Agender,
-	Aromantic,
-	Asexual,
-	Bisexual,
-	Genderfluid,
-	Genderqueer,
-	Intersex,
-	Lesbian,
-	Nonbinary,
-	Pansexual,
-	Polysexual,
-	Transgender,
-});
-
-bridge_enum!(Font => CoreFont {
-	Block,
-	Board,
-	Braille,
-	Bridge,
-	Bubble,
-	Chrome,
-	Dense,
-	Depth,
-	Edge,
-	Font3D,
-	Frost,
-	Grid,
-	Huge,
-	Neat,
-	Pallet,
-	Retro,
-	Shade,
-	Simple,
-	SimpleBlock,
-	Slick,
-	Thin,
-	Tiny,
-	Vision,
-	Wire,
-	Console,
-});
-
 /// The closed set of render environments the boundary can ask for
 ///
 /// JavaScript cannot implement environments: formatting runs inside the wasm,
@@ -150,7 +54,7 @@ pub enum EnvironmentKind {
 /// Binds the environment a kind and the raw flag name to the given identifier and evaluates the body with it, once per arm
 ///
 /// The three environments are three types and the Environment trait is too wide to delegate through
-/// an enum, so the one match that turns a kind into a value is a macro the builder and the host both expand
+/// an enum, so the one match that turns a kind into a value is a macro the builder and the hosts all expand
 macro_rules! with_environment {
 	($kind:expr, $raw_mode:expr, |$environment:ident| $body:expr) => {
 		match $kind {
@@ -191,16 +95,68 @@ impl From<CoreRendered> for Rendered {
 	}
 }
 
+/// The names as JavaScript takes them, one owned string per name
+fn owned(names: &[&str]) -> Vec<String> {
+	names.iter().map(|name| (*name).to_owned()).collect()
+}
+
+/// The command line names of every font in the core's order, `3d` spelled the way the command line spells it
+#[wasm_bindgen(js_name = fontNames)]
+pub fn font_names() -> Vec<String> {
+	owned(&Font::NAMES)
+}
+
+/// The names of the horizontal alignments in the core's order
+#[wasm_bindgen(js_name = alignNames)]
+pub fn align_names() -> Vec<String> {
+	owned(&Align::NAMES)
+}
+
+/// The names of the vertical alignments in the core's order
+#[wasm_bindgen(js_name = valignNames)]
+pub fn valign_names() -> Vec<String> {
+	owned(&Valign::NAMES)
+}
+
+/// The names of the gradient presets in the core's order
+#[wasm_bindgen(js_name = gradientPresetNames)]
+pub fn gradient_preset_names() -> Vec<String> {
+	owned(&GradientPreset::NAMES)
+}
+
+/// The names a font color slot takes in the core's order, system first and candy last
+#[wasm_bindgen(js_name = colorNames)]
+pub fn color_names() -> Vec<String> {
+	owned(&CoreColor::<Text>::NAMES)
+}
+
+/// The names a background takes in the core's order, system first and no candy
+#[wasm_bindgen(js_name = backgroundColorNames)]
+pub fn background_color_names() -> Vec<String> {
+	owned(&CoreColor::<Background>::NAMES)
+}
+
+/// The names a gradient stop takes in the core's order, no system and no candy
+#[wasm_bindgen(js_name = gradientColorNames)]
+pub fn gradient_color_names() -> Vec<String> {
+	owned(&CoreColor::<Gradient>::NAMES)
+}
+
 /// Parses a hex value such as `#ff8800` into RGB channel values
 ///
-/// The channels cross the boundary as `[red, green, blue]`,
-/// TypeScript reshapes them into its `{red, green, blue}` object
-/// so hex parsing has exactly one home in Rust
-#[wasm_bindgen(js_name = hexToRgb)]
-pub fn hex_to_rgb(hex: &str) -> Result<Vec<u8>, JsError> {
-	let rgb = Rgb::from_hex(hex).map_err(|error| color_error(hex, error))?;
+/// The channels cross the boundary as a frozen `{red, green, blue}` object,
+/// so hex parsing has exactly one home in Rust and the result plugs into every color place,
+/// `Rgb.fromHex()` is the method a consumer calls, so the sentence names it
+#[wasm_bindgen(js_name = rgbFromHex, unchecked_return_type = "Rgb")]
+pub fn rgb_from_hex(#[wasm_bindgen(unchecked_param_type = "string")] hex: JsValue) -> Result<JsValue, JsValue> {
+	let hex = expect_string(&hex, "Rgb.fromHex")?;
+	let rgb = Rgb::from_hex(&hex).map_err(|error| color_error(&hex, error))?;
+	let channels = Object::new();
+	for (channel, value) in [("red", rgb.red), ("green", rgb.green), ("blue", rgb.blue)] {
+		Reflect::set(&channels, &JsValue::from_str(channel), &value.into())?;
+	}
 
-	Ok(vec![rgb.red, rgb.green, rgb.blue])
+	Ok(Object::freeze(&channels).into())
 }
 
 /// Names the refused input in front of the core's sentence

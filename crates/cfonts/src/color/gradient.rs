@@ -8,6 +8,8 @@ use std::f64::consts::{PI, TAU};
 use crate::color::{GradientOption, Rgb};
 
 use cfonts_macros::All;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 /// Hue in degrees, saturation and value in percent
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -230,6 +232,7 @@ impl GradientColors {
 /// The bundled transition gradient presets
 ///
 /// ![The gradient option and its output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/transition-gradient.png)
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
 pub enum GradientPreset {
 	Pride,

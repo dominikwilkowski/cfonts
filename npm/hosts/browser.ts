@@ -1,18 +1,32 @@
-import { entropy, BrowserHost as WasmBrowserHost } from "../../pkg/cfonts_wasm.js";
+import { entropy, type RenderOverrides, BrowserHost as WasmBrowserHost } from "../../pkg/cfonts_wasm.js";
 import { inner } from "../boundary.js";
 import { type Environment, environmentArguments } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
-import { normalizeRenderOverrides, type RenderOverrides } from "../render-context.js";
 import type { Host } from "./types.js";
 
 /**
  * The Rust page host behind the boundary: it decides instead of detecting, a page has no
  * terminal to ask, and writes artifacts through the page console
  *
- * TypeScript validates and forwards, the decisions and the console write live in the core
+ * TypeScript forwards, the decisions and the console write live in the core
  */
 export class BrowserHost implements Host {
-	#inner = WasmBrowserHost.fromOverrides(undefined, false, undefined, undefined);
+	readonly #inner: WasmBrowserHost;
+
+	/**
+	 * Creates the page host that decides everything itself, or one with explicit capability overrides
+	 *
+	 * The overrides object crosses the boundary as it is, the core reads it
+	 *
+	 * @example
+	 * new BrowserHost();
+	 *
+	 * @example
+	 * new BrowserHost({ canvasWidth: 80, seed: 42 });
+	 */
+	constructor(overrides?: RenderOverrides) {
+		this.#inner = WasmBrowserHost.fromOverrides(overrides);
+	}
 
 	/**
 	 * A fresh seed for candy colors, the one a render rolls when no seed override is given
@@ -29,19 +43,10 @@ export class BrowserHost implements Host {
 	}
 
 	/**
-	 * Creates a browser host with explicit capability overrides
+	 * Creates a browser host with explicit capability overrides, the constructor with its object
 	 */
 	static fromOverrides(overrides: RenderOverrides): BrowserHost {
-		const { canvasWidth, color, seed } = normalizeRenderOverrides(overrides, "fromOverrides");
-		const host = new BrowserHost();
-		host.#inner.free();
-		host.#inner = WasmBrowserHost.fromOverrides(
-			canvasWidth,
-			color === false,
-			color === false ? undefined : color,
-			seed,
-		);
-		return host;
+		return new BrowserHost(overrides);
 	}
 
 	render(composition: Cfonts, environment: Environment): Rendered {

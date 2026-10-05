@@ -52,6 +52,8 @@ mod wire;
 pub use wire::FONT_WIRE;
 
 use cfonts_macros::All;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 /// One segment within a GlyphRow that tells us what parts are color and with what color
 #[derive(Debug, PartialEq, Eq)]
@@ -128,6 +130,7 @@ pub trait FontData {
 }
 
 /// The cfonts font enum for config
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, All)]
 pub enum Font {
 	#[default]

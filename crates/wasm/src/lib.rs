@@ -1,12 +1,15 @@
 mod builder;
-mod environment;
 mod host;
-mod terminal_canvas_width;
-mod terminal_color_support;
+mod input;
 mod types;
 
 pub use builder::Cfonts;
-pub use host::{BrowserHost, entropy, line_end};
-pub use terminal_canvas_width::detect_canvas_width;
-pub use terminal_color_support::detect_color_support;
-pub use types::{Align, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign, hex_to_rgb};
+pub use cfonts::{Align, ColorLevel, Font, GradientPreset, Valign};
+pub use host::{BrowserHost, NodeHost, Terminal, entropy, line_end};
+pub use input::{
+	BackgroundOption, ColorOption, GradientOption, Preset, RenderOverrides, Rgb, TextColor, Transition, TwoStop,
+};
+pub use types::{
+	Color, EnvironmentKind, Rendered, align_names, background_color_names, color_names, font_names, gradient_color_names,
+	gradient_preset_names, rgb_from_hex, valign_names,
+};

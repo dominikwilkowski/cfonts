@@ -1,10 +1,8 @@
 import { type ConsoleMessage, expect, type Locator, type Page, test } from "@playwright/test";
-import { Font } from "cfonts";
+import { fontNames } from "cfonts";
 
-/** The names the page fills its font pickers with, the command line spelling of every font of the enum */
-const FONT_NAMES = Object.keys(Font)
-	.filter((key) => Number.isNaN(Number(key)))
-	.map((name) => (name === "Font3D" ? "3d" : name.toLowerCase()));
+/** The names the page fills its font pickers with, the command line spelling of every font of the core */
+const FONT_NAMES = fontNames();
 
 function captureMessages(page: Page, type: string): ConsoleMessage[] {
 	const messages: ConsoleMessage[] = [];
@@ -57,7 +55,9 @@ function bands(canvas: Locator): Promise<string[]> {
 		.evaluateAll((rows) => rows.map((row) => (row as HTMLElement).style.background));
 }
 
-test("the page runs the command line in the terminal and fills the font pickers from the enum", async ({ page }) => {
+test("the page runs the command line in the terminal and fills the font pickers from the core's names", async ({
+	page,
+}) => {
 	const messages = captureMessages(page, "log");
 	const errors = capturePageErrors(page);
 
@@ -161,6 +161,20 @@ test("a value the command line refuses shows its error in the terminal", async (
 	await background.fill("system");
 	await expect(canvas).not.toContainText("ERROR");
 	await expect(background).toHaveJSProperty("validity.valid", true);
+
+	// a count takes a whole number, every page prints the same sentence for a value that is none
+	// and the command stops at the refused option, letter spacing comes right after the font
+	const letterSpacing = page.locator("#configurator").getByLabel("letter spacing");
+	await letterSpacing.fill("1e1");
+	await expect(canvas).toContainText('"1e1" is not a whole number');
+	await expect(letterSpacing).toHaveJSProperty("validity.valid", false);
+	await expect(page.locator("#command")).not.toContainText("--letter-spacing");
+	await expect(page.locator("#command")).not.toContainText("--colors");
+
+	await letterSpacing.fill("2");
+	await expect(canvas).not.toContainText("ERROR");
+	await expect(letterSpacing).toHaveJSProperty("validity.valid", true);
+	await expect(page.locator("#command")).toContainText("--letter-spacing 2 --word-wrap --colors cyan");
 
 	expect(errors.map((error) => error.message)).toEqual([]);
 });

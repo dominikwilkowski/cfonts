@@ -1,49 +1,88 @@
 import {
 	Align,
+	alignNames,
+	type BackgroundColor,
+	type BackgroundOption,
+	backgroundColorNames,
 	Color,
 	ColorLevel,
+	type ColorOption,
+	colorNames,
 	Font,
+	fontNames,
+	type GradientColor,
+	type GradientOption,
 	GradientPreset,
+	gradientColorNames,
+	gradientPresetNames,
+	type Preset,
 	type Rendered,
+	type RenderOverrides,
+	rgbFromHex,
+	type TextColor,
+	type Transition,
+	type TransitionStops,
+	type TwoStop,
 	Valign,
+	valignNames,
 	Cfonts as WasmCfonts,
+	type Rgb as WasmRgb,
 } from "../pkg/cfonts_wasm.js";
 import { inner } from "./boundary.js";
-import {
-	type BackgroundColor,
-	type BackgroundInput,
-	type ColorInput,
-	type ColorSlotInput,
-	type GradientColor,
-	type GradientInput,
-	type GradientStopInput,
-	type GradientStops,
-	hexToRgb,
-	normalizeBackground,
-	normalizeColors,
-	type RgbInput,
-} from "./color-input.js";
-import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, renderEnvironment } from "./environments/index.js";
+import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, environmentArguments } from "./environments/index.js";
 import type { Host } from "./hosts/types.js";
-import { normalizeRenderOverrides, type RenderOverrides } from "./render-context.js";
-import { expectEnum, expectString, expectU32 } from "./validation.js";
 
 export type {
 	BackgroundColor,
-	BackgroundInput,
-	ColorInput,
-	ColorSlotInput,
+	BackgroundOption,
+	ColorOption,
 	Environment,
 	GradientColor,
-	GradientInput,
-	GradientStopInput,
-	GradientStops,
+	GradientOption,
 	Host,
+	Preset,
 	Rendered,
 	RenderOverrides,
-	RgbInput,
+	TextColor,
+	Transition,
+	TransitionStops,
+	TwoStop,
 };
-export { Align, BrowserConsoleEnv, BrowserEnv, CliEnv, Color, ColorLevel, Font, GradientPreset, hexToRgb, Valign };
+export {
+	Align,
+	alignNames,
+	BrowserConsoleEnv,
+	BrowserEnv,
+	backgroundColorNames,
+	CliEnv,
+	Color,
+	ColorLevel,
+	colorNames,
+	Font,
+	fontNames,
+	GradientPreset,
+	gradientColorNames,
+	gradientPresetNames,
+	Valign,
+	valignNames,
+};
+
+/**
+ * An RGB color as channel values, the shape every color place takes beside a `Color` value and a hex value
+ */
+export type Rgb = WasmRgb;
+
+/**
+ * The channel values of a hex value, `fromHex` parses three or six hex digits with an optional leading `#`
+ * where the core parses every hex value and returns a frozen `{ red, green, blue }` object
+ *
+ * @example
+ * Rgb.fromHex("#ff8800"); // { red: 255, green: 136, blue: 0 }
+ *
+ * @example
+ * Cfonts.text("hello").colors({ start: Rgb.fromHex("#ff8800"), end: Color.Blue });
+ */
+export const Rgb = Object.freeze({ fromHex: rgbFromHex });
 
 /**
  * A fluent cfonts composition builder
@@ -74,7 +113,7 @@ export class Cfonts {
 	 * Cfonts.text("hello|world"); // two lines
 	 */
 	static text(input: string): Cfonts {
-		return new Cfonts(WasmCfonts.text(expectString(input, "text")));
+		return new Cfonts(WasmCfonts.text(input));
 	}
 
 	/**
@@ -84,18 +123,21 @@ export class Cfonts {
 	 * Cfonts.text("hello ").font(Font.Block).next("world").font(Font.Tiny);
 	 */
 	next(input: string): this {
-		this.#inner.next(expectString(input, "next"));
+		this.#inner.next(input);
 		return this;
 	}
 
 	/**
-	 * Sets the font for the current text block
+	 * Sets the font for the current text block, from the enum or by its command line name
 	 *
 	 * @example
 	 * Cfonts.text("hello").font(Font.Block);
+	 *
+	 * @example
+	 * Cfonts.text("hello").font("3d");
 	 */
-	font(font: Font): this {
-		this.#inner.font(expectEnum<Font>(font, Font, "font"));
+	font(font: Font | string): this {
+		this.#inner.font(font);
 		return this;
 	}
 
@@ -106,7 +148,7 @@ export class Cfonts {
 	 * Cfonts.text("hello").letterSpacing(2);
 	 */
 	letterSpacing(letterSpacing: number): this {
-		this.#inner.letterSpacing(expectU32(letterSpacing, "letterSpacing"));
+		this.#inner.letterSpacing(letterSpacing);
 		return this;
 	}
 
@@ -117,7 +159,7 @@ export class Cfonts {
 	 * Cfonts.text("hello|world").lineHeight(0); // lines touch
 	 */
 	lineHeight(lineHeight: number): this {
-		this.#inner.lineHeight(expectU32(lineHeight, "lineHeight"));
+		this.#inner.lineHeight(lineHeight);
 		return this;
 	}
 
@@ -128,7 +170,7 @@ export class Cfonts {
 	 * `"red:yellow:green"` a transition or a preset name, parsed where the command line parses it
 	 *
 	 * A gradient ramps one color per column, its stops take any color but system and candy,
-	 * hex values, or channel values from `hexToRgb()`
+	 * hex values, or channel values from `Rgb.fromHex()`
 	 *
 	 * Any configured value overrides the global colors for this block
 	 *
@@ -148,65 +190,52 @@ export class Cfonts {
 	 * Cfonts.text("hello").colors({ start: Color.Red, end: Color.Blue });
 	 *
 	 * @example
-	 * Cfonts.text("hello").colors({ transition: [Color.Red, "#8899dd", hexToRgb("#00ff00")] });
+	 * Cfonts.text("hello").colors({ transition: [Color.Red, "#8899dd", Rgb.fromHex("#00ff00")] });
 	 *
 	 * @example
 	 * Cfonts.text("hello").colors({ preset: GradientPreset.Pride });
 	 */
-	colors(colors: ColorInput): this {
-		const normalized = normalizeColors(colors, "colors");
-
-		switch (normalized.kind) {
-			case "option":
-				this.#inner.colorOption(normalized.value);
-				break;
-			case "list":
-				this.#inner.colors(normalized.colors);
-				break;
-			case "preset":
-				this.#inner.gradientPreset(normalized.preset);
-				break;
-			case "twoStop":
-				this.#inner.gradient(normalized.start, normalized.end);
-				break;
-			case "transition":
-				this.#inner.transition(normalized.stops);
-				break;
-		}
-
+	colors(colors: ColorOption): this {
+		this.#inner.colors(colors);
 		return this;
 	}
 
 	/**
-	 * Sets the horizontal alignment for the whole composition
+	 * Sets the horizontal alignment for the whole composition, from the enum or by its name
 	 *
 	 * @example
 	 * Cfonts.text("hello").align(Align.Center);
+	 *
+	 * @example
+	 * Cfonts.text("hello").align("center");
 	 */
-	align(align: Align): this {
-		this.#inner.align(expectEnum<Align>(align, Align, "align"));
+	align(align: Align | string): this {
+		this.#inner.align(align);
 		return this;
 	}
 
 	/**
-	 * Sets the vertical alignment of fonts with different heights on one line
+	 * Sets the vertical alignment of fonts with different heights on one line, from the enum or by its name
 	 *
 	 * @example
 	 * Cfonts.text("hello ").font(Font.Block).next("world").font(Font.Tiny).valign(Valign.Bottom);
+	 *
+	 * @example
+	 * Cfonts.text("hello ").font(Font.Block).next("world").font(Font.Tiny).valign("bottom");
 	 */
-	valign(valign: Valign): this {
-		this.#inner.valign(expectEnum<Valign>(valign, Valign, "valign"));
+	valign(valign: Valign | string): this {
+		this.#inner.valign(valign);
 		return this;
 	}
 
 	/**
-	 * Sets the maximum glyph count per line; zero disables the limit
+	 * Sets the maximum glyph count per line, zero disables the limit
 	 *
 	 * @example
 	 * Cfonts.text("hello world").maxLength(8);
 	 */
 	maxLength(maxLength: number): this {
-		this.#inner.maxLength(expectU32(maxLength, "maxLength"));
+		this.#inner.maxLength(maxLength);
 		return this;
 	}
 
@@ -219,7 +248,7 @@ export class Cfonts {
 	 * A string is the command line spelling, `"red,blue"` one color per slot, `"red-blue"` a gradient,
 	 * `"red:yellow:green"` a transition or a preset name, parsed where the command line parses it
 	 *
-	 * A gradient's stops take any color but system and candy, hex values, or channel values from `hexToRgb()`
+	 * A gradient's stops take any color but system and candy, hex values, or channel values from `Rgb.fromHex()`
 	 *
 	 * @example
 	 * Cfonts.text("hello ").next("world").globalColors("red,#8899dd");
@@ -231,32 +260,13 @@ export class Cfonts {
 	 * Cfonts.text("hello").globalColors({ start: Color.Red, end: Color.Blue });
 	 *
 	 * @example
-	 * Cfonts.text("hello").globalColors({ transition: [Color.Red, hexToRgb("#ff8800"), Color.Yellow] });
+	 * Cfonts.text("hello").globalColors({ transition: [Color.Red, Rgb.fromHex("#ff8800"), Color.Yellow] });
 	 *
 	 * @example
 	 * Cfonts.text("hello").globalColors({ preset: GradientPreset.Transgender });
 	 */
-	globalColors(colors: ColorInput): this {
-		const normalized = normalizeColors(colors, "globalColors");
-
-		switch (normalized.kind) {
-			case "option":
-				this.#inner.globalColorOption(normalized.value);
-				break;
-			case "list":
-				this.#inner.globalColors(normalized.colors);
-				break;
-			case "preset":
-				this.#inner.globalGradientPreset(normalized.preset);
-				break;
-			case "twoStop":
-				this.#inner.globalGradient(normalized.start, normalized.end);
-				break;
-			case "transition":
-				this.#inner.globalTransition(normalized.stops);
-				break;
-		}
-
+	globalColors(colors: ColorOption): this {
+		this.#inner.globalColors(colors);
 		return this;
 	}
 
@@ -294,24 +304,8 @@ export class Cfonts {
 	 * @example
 	 * Cfonts.text("hello").background({ preset: GradientPreset.Pride });
 	 */
-	background(background: BackgroundInput): this {
-		const normalized = normalizeBackground(background, "background");
-
-		switch (normalized.kind) {
-			case "option":
-				this.#inner.backgroundOption(normalized.value);
-				break;
-			case "preset":
-				this.#inner.backgroundGradientPreset(normalized.preset);
-				break;
-			case "twoStop":
-				this.#inner.backgroundGradient(normalized.start, normalized.end);
-				break;
-			case "transition":
-				this.#inner.backgroundTransition(normalized.stops);
-				break;
-		}
-
+	background(background: BackgroundOption): this {
+		this.#inner.background(background);
 		return this;
 	}
 
@@ -350,12 +344,7 @@ export class Cfonts {
 	 * Cfonts.text("hello").renderWith(BrowserEnv, { color: ColorLevel.TrueColor });
 	 */
 	renderWith(environment: Environment, overrides?: RenderOverrides): Rendered {
-		return renderEnvironment(
-			this.#inner,
-			environment,
-			normalizeRenderOverrides(overrides === undefined ? {} : overrides, "renderWith"),
-			"renderWith",
-		);
+		return this.#inner.render(overrides, ...environmentArguments(environment, "renderWith"));
 	}
 
 	/**

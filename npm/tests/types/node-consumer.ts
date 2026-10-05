@@ -1,4 +1,33 @@
-import { BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, Font, GradientPreset, hexToRgb, NodeHost } from "cfonts";
+import {
+	Align,
+	alignNames,
+	type BackgroundColor,
+	type BackgroundOption,
+	BrowserConsoleEnv,
+	BrowserEnv,
+	backgroundColorNames,
+	Cfonts,
+	CliEnv,
+	Color,
+	type ColorOption,
+	colorNames,
+	Font,
+	fontNames,
+	type GradientColor,
+	type GradientOption,
+	GradientPreset,
+	gradientColorNames,
+	gradientPresetNames,
+	NodeHost,
+	type Preset,
+	Rgb,
+	type TextColor,
+	type Transition,
+	type TransitionStops,
+	type TwoStop,
+	Valign,
+	valignNames,
+} from "cfonts";
 
 const banner = Cfonts.text("hello").font(Font.Block);
 const host = NodeHost.fromOverrides({ canvasWidth: 80 });
@@ -7,6 +36,8 @@ const rendered = banner.render(host, CliEnv);
 banner.say(host, CliEnv);
 
 banner.say(NodeHost.fromOverrides({ seed: NodeHost.entropy() }), CliEnv);
+banner.say(new NodeHost(), CliEnv);
+banner.say(new NodeHost({ canvasWidth: 80 }), CliEnv);
 
 banner.say(host, CliEnv.rawMode());
 const raw = banner.renderWith(CliEnv.rawMode(), { canvasWidth: 80 });
@@ -25,6 +56,19 @@ const artifact = banner.renderWith(BrowserConsoleEnv, {
 // @ts-expect-error the overrides take a color, not a resolved level
 banner.renderWith(BrowserConsoleEnv, { colorLevel: 3 });
 
+// the enums and their command line names both pick, the names come from the core
+banner.font("3d").align("center").valign("bottom").align(Align.Center).valign(Valign.Bottom);
+const names: string[] = [
+	...fontNames(),
+	...alignNames(),
+	...valignNames(),
+	...gradientPresetNames(),
+	...colorNames(),
+	...backgroundColorNames(),
+	...gradientColorNames(),
+];
+console.log(names.length);
+
 const colorful = Cfonts.text("colors")
 	.colors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }])
 	.colors({ preset: GradientPreset.Pride })
@@ -33,20 +77,41 @@ const colorful = Cfonts.text("colors")
 
 colorful.colors({ transition: ["red", { red: 0, green: 0, blue: 255 }, "#00ff00"] });
 colorful.colors("red-blue"); // the command line spelling
-colorful.colors({ start: Color.Red, end: hexToRgb("#0000ff") });
-colorful.colors({ transition: [Color.Red, Color.Gray, hexToRgb("#8899dd")] });
+colorful.colors({ start: Color.Red, end: Rgb.fromHex("#0000ff") });
+colorful.colors({ transition: [Color.Red, Color.Gray, Rgb.fromHex("#8899dd")] });
 
-const channels: { red: number; green: number; blue: number } = hexToRgb("#ff8800");
-console.log(channels.red);
+// Rgb is the type of the channels and the value that parses them
+const channels: Rgb = Rgb.fromHex("#ff8800");
+const structural: { red: number; green: number; blue: number } = channels;
+console.log(structural.red);
 colorful.colors({ preset: GradientPreset.Lesbian });
 colorful.render(host, CliEnv);
+
+// the types carry the Rust names, a consumer holds one of each
+const stops: TransitionStops = [Color.Red, "#8899dd", channels];
+const transition: Transition = { transition: stops };
+const twoStop: TwoStop = { start: Color.RedBright, end: channels };
+const preset: Preset = { preset: GradientPreset.Pride };
+const gradient: GradientOption = twoStop;
+const gradientColor: GradientColor = Color.Yellow;
+const textColor: TextColor = Color.Candy;
+const option: ColorOption = [textColor, "#ff8800", channels];
+const backgroundColor: BackgroundColor = Color.System;
+const background: BackgroundOption = gradient;
+Cfonts.text("typed")
+	.colors(option)
+	.colors(transition)
+	.colors(preset)
+	.colors({ start: gradientColor, end: twoStop.end });
+Cfonts.text("typed").globalColors(gradient).background(background);
+Cfonts.text("typed").background(backgroundColor);
 
 Cfonts.text("global").globalColors([Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }]);
 
 Cfonts.text("banded").background(Color.Blue);
 Cfonts.text("banded").background(Color.System);
 Cfonts.text("banded").background("#222");
-Cfonts.text("banded").background(hexToRgb("#222222"));
+Cfonts.text("banded").background(Rgb.fromHex("#222222"));
 Cfonts.text("banded").background({ start: Color.Red, end: "#0000ff" });
 Cfonts.text("banded").background({ transition: [Color.Red, Color.WhiteBright] });
 Cfonts.text("banded").background({ preset: GradientPreset.Pride });
@@ -56,9 +121,6 @@ Cfonts.text("banded").background(Color.Candy);
 
 // @ts-expect-error a bare preset would read as a Color, presets go in their object form
 Cfonts.text("banded").background(GradientPreset.Pride);
-
-// @ts-expect-error channels and a gradient are two backgrounds
-Cfonts.text("banded").background({ red: 1, green: 2, blue: 3, start: Color.Red, end: Color.Blue });
 
 // @ts-expect-error an empty object is not a gradient
 banner.colors({});
@@ -90,9 +152,6 @@ colorful.colors({ transition: [Color.Red, Color.WhiteBright] });
 
 // @ts-expect-error a transition holds at least two stops
 colorful.colors({ transition: [Color.Red] });
-
-// @ts-expect-error a gradient takes exactly one shape
-colorful.colors({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
 
 // @ts-expect-error the independent flag is a builder setting, not a gradient field
 colorful.colors({ start: Color.Red, end: Color.Blue, independentGradient: true });

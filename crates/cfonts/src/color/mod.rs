@@ -10,6 +10,8 @@ pub use gradient::GradientPreset;
 use std::{marker::PhantomData, str::FromStr};
 
 use cfonts_macros::All;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 /// The error for color values that cannot be parsed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,6 +80,7 @@ impl std::fmt::Display for ColorError {
 impl std::error::Error for ColorError {}
 
 /// The color support a render paints with
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, All)]
 pub enum ColorLevel {
 	/// The sixteen base colors

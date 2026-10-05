@@ -3,16 +3,9 @@ use std::num::NonZeroUsize;
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
-use cfonts::{
-	BackgroundOption, Cfonts as CoreCfonts, Color as CoreColor, ColorOption, ColorOverride, Gradient, GradientOption,
-	GradientPreset as CoreGradientPreset, Options, RenderOverrides, Text, TransitionStops, options::BlockOptions,
-	render_with,
-};
+use cfonts::{Align, Cfonts as CoreCfonts, Font, Options, Valign, options::BlockOptions, render_with};
 
-use crate::{
-	Align, ColorLevel, EnvironmentKind, Font, GradientPreset, Rendered, Valign,
-	types::{color_error, with_environment},
-};
+use crate::{EnvironmentKind, Rendered, input, types::with_environment};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
@@ -24,7 +17,8 @@ const BACKGROUND_SET: u8 = 1 << 6;
 
 /// The mutable WASM-facing builder
 ///
-/// TypeScript wraps this class to provide fluent method chaining
+/// TypeScript wraps this class to provide fluent method chaining, every input crosses as JavaScript spells it
+/// and is read behind the boundary, so a wrong shape and a refused value get their sentences from here
 #[wasm_bindgen]
 pub struct Cfonts {
 	options: Options,
@@ -32,7 +26,7 @@ pub struct Cfonts {
 }
 
 impl Cfonts {
-	/// The composition as the core renders it, read by the page host behind the boundary
+	/// The composition as the core renders it, read by the hosts behind the boundary
 	pub(crate) fn options(&self) -> &Options {
 		&self.options
 	}
@@ -71,26 +65,32 @@ impl Cfonts {
 #[wasm_bindgen]
 impl Cfonts {
 	/// Starts a composition with its first text block
-	pub fn text(input: String) -> Self {
-		let options: Options = CoreCfonts::text(input).into();
+	pub fn text(#[wasm_bindgen(unchecked_param_type = "string")] input: JsValue) -> Result<Cfonts, JsValue> {
+		let options: Options = CoreCfonts::text(input::expect_string(&input, "text")?).into();
 
-		Self { options, configured_globals: 0 }
+		Ok(Self { options, configured_globals: 0 })
 	}
 
 	/// Starts the next text block
-	pub fn next(&mut self, input: String) {
-		self.options.blocks.push(BlockOptions::new(input));
+	pub fn next(&mut self, #[wasm_bindgen(unchecked_param_type = "string")] input: JsValue) -> Result<(), JsValue> {
+		self.options.blocks.push(BlockOptions::new(input::expect_string(&input, "next")?));
+		Ok(())
 	}
 
-	/// Sets the font for the current block
-	pub fn font(&mut self, font: Font) {
-		self.current_block_mut().font = font.into();
+	/// Sets the font for the current block, from the enum or its command line name
+	pub fn font(&mut self, #[wasm_bindgen(unchecked_param_type = "Font | string")] font: JsValue) -> Result<(), JsValue> {
+		self.current_block_mut().font = input::expect_named(&font, &Font::ALL, Font::from_name, "font", "font")?;
+		Ok(())
 	}
 
 	/// Sets the letter spacing for the current block
 	#[wasm_bindgen(js_name = letterSpacing)]
-	pub fn letter_spacing(&mut self, letter_spacing: u32) {
-		self.current_block_mut().letter_spacing = letter_spacing as usize;
+	pub fn letter_spacing(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "number")] letter_spacing: JsValue,
+	) -> Result<(), JsValue> {
+		self.current_block_mut().letter_spacing = input::expect_u32(&letter_spacing, "letterSpacing")? as usize;
+		Ok(())
 	}
 
 	/// Enables word-aware wrapping for the current block
@@ -101,61 +101,44 @@ impl Cfonts {
 
 	/// Sets the line height for the current block
 	#[wasm_bindgen(js_name = lineHeight)]
-	pub fn line_height(&mut self, line_height: u32) {
-		self.current_block_mut().line_height = Some(line_height as usize);
+	pub fn line_height(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "number")] line_height: JsValue,
+	) -> Result<(), JsValue> {
+		self.current_block_mut().line_height = Some(input::expect_u32(&line_height, "lineHeight")? as usize);
+		Ok(())
 	}
 
-	/// Sets the colors for the current block
+	/// Sets the colors for the current block: the command line spelling, one color per slot, or a gradient shape
 	///
-	/// Each entry is a color name or hex value; TypeScript feeds enum selections through as names
-	pub fn colors(&mut self, colors: Vec<String>) -> Result<(), JsError> {
-		let colors = colors.iter().map(|color| parse_color(color)).collect::<Result<Vec<CoreColor>, JsError>>()?;
-		self.current_block_mut().colors = Some(ColorOption::Colors(colors));
+	/// A wrong shape throws a `TypeError` that teaches the shapes, a refused value carries the core's sentence
+	pub fn colors(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "ColorOption")] input: JsValue,
+	) -> Result<(), JsValue> {
+		self.current_block_mut().colors = Some(input::colors(&input, "colors")?);
 		Ok(())
 	}
 
-	/// Sets a two stop gradient for the current block
-	pub fn gradient(&mut self, start: String, end: String) -> Result<(), JsError> {
-		let gradient = two_stop(&start, &end)?;
-		self.current_block_mut().colors = Some(gradient.into());
-		Ok(())
-	}
-
-	/// Sets a transition gradient for the current block
-	pub fn transition(&mut self, stops: Vec<String>) -> Result<(), JsError> {
-		let gradient = transition(&stops)?;
-		self.current_block_mut().colors = Some(gradient.into());
-		Ok(())
-	}
-
-	/// Sets a preset gradient for the current block
-	#[wasm_bindgen(js_name = gradientPreset)]
-	pub fn gradient_preset(&mut self, preset: GradientPreset) {
-		self.current_block_mut().colors = Some(CoreGradientPreset::from(preset).into());
-	}
-
-	/// Sets the colors for the current block from the command line spelling of the whole option
-	///
-	/// One spelling, the command line's, parsed by the core's parser,
-	/// so a refused value carries the core's sentence, the one the framework pages print
-	#[wasm_bindgen(js_name = colorOption)]
-	pub fn color_option(&mut self, value: String) -> Result<(), JsError> {
-		let colors = value.parse::<ColorOption>().map_err(|error| color_error(&value, error))?;
-		self.current_block_mut().colors = Some(colors);
-		Ok(())
-	}
-
-	/// Sets the global horizontal alignment
-	pub fn align(&mut self, align: Align) -> Result<(), JsError> {
+	/// Sets the global horizontal alignment, from the enum or its name
+	pub fn align(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "Align | string")] align: JsValue,
+	) -> Result<(), JsValue> {
+		let align = input::expect_named(&align, &Align::ALL, Align::from_name, "align", "alignment")?;
 		self.set_global(ALIGN_SET, "align")?;
-		self.options.align = align.into();
+		self.options.align = align;
 		Ok(())
 	}
 
-	/// Sets the global vertical alignment
-	pub fn valign(&mut self, valign: Valign) -> Result<(), JsError> {
+	/// Sets the global vertical alignment, from the enum or its name
+	pub fn valign(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "Valign | string")] valign: JsValue,
+	) -> Result<(), JsValue> {
+		let valign = input::expect_named(&valign, &Valign::ALL, Valign::from_name, "valign", "vertical alignment")?;
 		self.set_global(VALIGN_SET, "valign")?;
-		self.options.valign = valign.into();
+		self.options.valign = valign;
 		Ok(())
 	}
 
@@ -170,57 +153,26 @@ impl Cfonts {
 	///
 	/// A value of zero disables the limit
 	#[wasm_bindgen(js_name = maxLength)]
-	pub fn max_length(&mut self, max_length: u32) -> Result<(), JsError> {
-		self.set_global(MAX_LENGTH_SET, "maxLength")?; // The javascript name instead of the rust spelling
+	pub fn max_length(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "number")] max_length: JsValue,
+	) -> Result<(), JsValue> {
+		let max_length = input::expect_u32(&max_length, "maxLength")?; // The javascript name instead of the rust spelling
+		self.set_global(MAX_LENGTH_SET, "maxLength")?;
 		self.options.max_length = NonZeroUsize::new(max_length as usize);
 		Ok(())
 	}
 
-	/// Sets the colors across the whole composition
+	/// Sets the colors across the whole composition: the command line spelling, one color per slot, or a gradient shape
 	///
-	/// Shares the one global color slot with the global gradient shapes,
-	/// parsing happens before the slot is claimed, so a failed call leaves the builder unchanged
+	/// Every shape claims the one global color slot, reading happens before the slot is claimed,
+	/// so a failed call leaves the builder unchanged
 	#[wasm_bindgen(js_name = globalColors)]
-	pub fn global_colors(&mut self, colors: Vec<String>) -> Result<(), JsError> {
-		let colors = colors.iter().map(|color| parse_color(color)).collect::<Result<Vec<CoreColor>, JsError>>()?;
-		self.set_global_colors()?;
-		self.options.global_colors = Some(ColorOption::Colors(colors));
-		Ok(())
-	}
-
-	/// Sets a two stop gradient across the whole composition
-	#[wasm_bindgen(js_name = globalGradient)]
-	pub fn global_gradient(&mut self, start: String, end: String) -> Result<(), JsError> {
-		let gradient = two_stop(&start, &end)?;
-		self.set_global_colors()?;
-		self.options.global_colors = Some(gradient.into());
-		Ok(())
-	}
-
-	/// Sets a transition gradient across the whole composition
-	#[wasm_bindgen(js_name = globalTransition)]
-	pub fn global_transition(&mut self, stops: Vec<String>) -> Result<(), JsError> {
-		let gradient = transition(&stops)?;
-		self.set_global_colors()?;
-		self.options.global_colors = Some(gradient.into());
-		Ok(())
-	}
-
-	/// Sets a preset gradient across the whole composition
-	#[wasm_bindgen(js_name = globalGradientPreset)]
-	pub fn global_gradient_preset(&mut self, preset: GradientPreset) -> Result<(), JsError> {
-		self.set_global_colors()?;
-		self.options.global_colors = Some(CoreGradientPreset::from(preset).into());
-		Ok(())
-	}
-
-	/// Sets the colors across the whole composition from the command line spelling of the whole option
-	///
-	/// One spelling, the command line's, parsed by the core's parser before the one global
-	/// color slot is claimed, so a refused spelling carries the core's sentence and leaves the builder unchanged
-	#[wasm_bindgen(js_name = globalColorOption)]
-	pub fn global_color_option(&mut self, value: String) -> Result<(), JsError> {
-		let colors = value.parse::<ColorOption>().map_err(|error| color_error(&value, error))?;
+	pub fn global_colors(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "ColorOption")] input: JsValue,
+	) -> Result<(), JsValue> {
+		let colors = input::colors(&input, "globalColors")?;
 		self.set_global_colors()?;
 		self.options.global_colors = Some(colors);
 		Ok(())
@@ -234,90 +186,37 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Paints the background from the command line spelling of the whole option
+	/// Paints the background: one color behind every row, or a gradient shape from the top row down
 	///
-	/// One spelling, the command line's, parsed by the core's parser: one color fills every row,
-	/// a gradient or a preset ramps down the rows, a comma list and candy are refused with the core's
-	/// sentence, and the parse runs before the slot is claimed, so a refused spelling leaves the builder unchanged
-	#[wasm_bindgen(js_name = backgroundOption)]
-	pub fn background_option(&mut self, value: String) -> Result<(), JsError> {
-		let background = value.parse::<BackgroundOption>().map_err(|error| color_error(&value, error))?;
+	/// A `Color` value, channel values and the command line spelling parse through the core's parser,
+	/// which refuses a comma list and candy with its own sentence, the read runs before the slot is claimed,
+	/// so a refused background leaves the builder unchanged
+	pub fn background(
+		&mut self,
+		#[wasm_bindgen(unchecked_param_type = "BackgroundOption")] input: JsValue,
+	) -> Result<(), JsValue> {
+		let background = input::background(&input, "background")?;
 		self.set_global(BACKGROUND_SET, "background")?;
 		self.options.background = Some(background);
 		Ok(())
 	}
 
-	/// Ramps a two stop gradient behind the rows, from the top row down
-	#[wasm_bindgen(js_name = backgroundGradient)]
-	pub fn background_gradient(&mut self, start: String, end: String) -> Result<(), JsError> {
-		let gradient = two_stop(&start, &end)?;
-		self.set_global(BACKGROUND_SET, "background")?;
-		self.options.background = Some(gradient.into());
-		Ok(())
-	}
-
-	/// Ramps a transition gradient behind the rows, from the top row down
-	#[wasm_bindgen(js_name = backgroundTransition)]
-	pub fn background_transition(&mut self, stops: Vec<String>) -> Result<(), JsError> {
-		let gradient = transition(&stops)?;
-		self.set_global(BACKGROUND_SET, "background")?;
-		self.options.background = Some(gradient.into());
-		Ok(())
-	}
-
-	/// Ramps a preset gradient behind the rows, from the top row down
-	#[wasm_bindgen(js_name = backgroundGradientPreset)]
-	pub fn background_gradient_preset(&mut self, preset: GradientPreset) -> Result<(), JsError> {
-		self.set_global(BACKGROUND_SET, "background")?;
-		self.options.background = Some(CoreGradientPreset::from(preset).into());
-		Ok(())
-	}
-
-	/// Renders one artifact through the core Rust library
+	/// Renders one artifact through the core Rust library without a host
 	///
-	/// The JavaScript host passes the environment it selected and the capabilities
-	/// it has already resolved, so every override crosses pinned: `None` and zero
-	/// width mean unlimited, no color level paints nothing, raw mode ends terminal
-	/// rows with `\r\n` and means nothing to the browser environments
+	/// Nothing is detected here, so an override left out is off: no canvas limit, no color, the zero seed,
+	/// raw mode ends terminal rows with `\r\n` and means nothing to the browser environments
 	///
 	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(
 		&self,
+		#[wasm_bindgen(unchecked_param_type = "RenderOverrides | undefined")] overrides: JsValue,
 		environment: EnvironmentKind,
-		canvas_width: Option<usize>,
-		color_level: Option<ColorLevel>,
-		seed: Option<u32>,
 		raw_mode: bool,
-	) -> Result<Ts<Rendered>, JsError> {
-		let overrides = RenderOverrides::default()
-			.with_canvas_width(canvas_width.unwrap_or(0))
-			.with_color(color_level.map_or(ColorOverride::Disabled, |level| ColorOverride::Level(level.into())))
-			.with_seed(seed.map_or(0, u64::from));
+	) -> Result<Ts<Rendered>, JsValue> {
+		let overrides = input::overrides(&overrides, "renderWith")?;
 		let rendered: Rendered =
 			with_environment!(environment, raw_mode, |env| render_with(&self.options, &env, overrides).into());
 
-		Ok(rendered.into_ts()?)
+		Ok(rendered.into_ts().map_err(JsError::from)?)
 	}
-}
-
-/// Parses a boundary slot color through the core name-or-hex parser
-fn parse_color(input: &str) -> Result<CoreColor<Text>, JsError> {
-	input.parse().map_err(|error| color_error(input, error))
-}
-
-/// Parses a boundary gradient stop through the core name-or-hex parser, the kind refuses system and candy
-fn parse_stop(input: &str) -> Result<CoreColor<Gradient>, JsError> {
-	input.parse().map_err(|error| color_error(input, error))
-}
-
-/// Builds the two stop boundary gradient from its stop strings
-fn two_stop(start: &str, end: &str) -> Result<GradientOption, JsError> {
-	Ok(GradientOption::TwoStop { start: parse_stop(start)?, end: parse_stop(end)? })
-}
-
-/// Builds the transition boundary gradient from its stop strings
-fn transition(stops: &[String]) -> Result<GradientOption, JsError> {
-	let stops = stops.iter().map(|stop| parse_stop(stop)).collect::<Result<Vec<CoreColor<Gradient>>, JsError>>()?;
-
-	Ok(GradientOption::Transition(TransitionStops::try_from(stops).map_err(|error| JsError::new(&error.to_string()))?))
 }

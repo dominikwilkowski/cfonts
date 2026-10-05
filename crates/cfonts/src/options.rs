@@ -7,8 +7,11 @@ use crate::{
 	fonts::Font,
 };
 use cfonts_macros::All;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 /// The supported vertical alignment modes for mixed-height font blocks
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, All)]
 pub enum Valign {
 	/// Align shorter font blocks to the top of the tallest line
@@ -46,6 +49,7 @@ impl Valign {
 /// The supported horizontal alignment modes
 ///
 /// ![The align option and its output with cfonts](https://raw.githubusercontent.com/dominikwilkowski/cfonts/released/img/align.png)
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, All)]
 pub enum Align {
 	#[default]
