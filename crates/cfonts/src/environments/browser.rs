@@ -8,9 +8,11 @@ use crate::{
 	render::RenderContext,
 };
 
-/// The scrolling wrapper around every render
-const WRAPPER_START: &str =
-	r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#;
+/// The wrapper around every render, scrolling only when a row is wider than it
+///
+/// The family is a stack because the bare `monospace` keyword makes browsers render at their 13px default
+/// instead of the page's size, the named entries are the system monospace fonts of the three platforms
+const WRAPPER_START: &str = r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">"#;
 
 /// A block at least as wide as the widest row, so the row blocks inside it span the whole scroll width
 /// instead of stopping at the visible width of the wrapper
@@ -333,7 +335,7 @@ mod tests {
 		assert_eq!(
 			rendered.text,
 			concat!(
-				r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#,
+				r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">"#,
 				r#"<div style="min-height:1lh"></div><div style="min-height:1lh"></div>"#,
 				"▄▀█<br>█▀█",
 				r#"<div style="min-height:1lh"></div><div style="min-height:1lh"></div>"#,
@@ -353,7 +355,7 @@ mod tests {
 			.render_with(&BrowserEnv, RenderOverrides::default());
 		assert_eq!(
 			rendered.text,
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█<br>█▀█</div>"#,
+			r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">▄▀█<br>█▀█</div>"#,
 		);
 	}
 
@@ -378,7 +380,7 @@ mod tests {
 			plated(Color::BLUE).text,
 			format!(
 				concat!(
-					r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#,
+					r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">"#,
 					r#"<div style="min-width:max-content">"#,
 					"{band}</div>{band}</div>{band}▄▀█</div>{band}█▀█</div>{band}</div>{band}</div>",
 					"</div></div>",
@@ -439,7 +441,7 @@ mod tests {
 		assert_eq!(
 			rendered,
 			concat!(
-				r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#,
+				r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">"#,
 				r#"<div style="min-width:max-content">"#,
 				r#"<div style="background:#0020f5;min-height:1lh">▄▀█</div><div style="background:#0020f5;min-height:1lh">█▀█</div>"#,
 				"</div></div>",

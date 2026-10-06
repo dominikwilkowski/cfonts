@@ -34,6 +34,30 @@ banner.font(picker[0]);
 const stops: string[] = gradientColorNames();
 banner.colors({ start: stops[0], end: stops[1] });
 
+// the parsed channels are frozen and the declaration says so, the value still goes everywhere an Rgb goes
+const rgb: Rgb = Rgb.fromHex("#f80");
+banner.colors([rgb]).colors({ start: rgb, end: Color.Blue }).background(rgb);
+// @ts-expect-error the channels of Rgb.fromHex are frozen
+Rgb.fromHex("#f80").red = 1;
+
+// every single gradient shape and the channel shape compile, two shapes in one object do not
+banner.colors({ preset: GradientPreset.Pride }).colors({ start: Color.Red, end: Color.Blue });
+banner.colors({ transition: [Color.Red, Color.Blue] }).background({ red: 1, green: 2, blue: 3 });
+// @ts-expect-error a preset beside a start and an end is two gradient shapes
+banner.colors({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
+// @ts-expect-error a preset beside a transition is two gradient shapes
+banner.colors({ transition: [Color.Red, Color.Blue], preset: GradientPreset.Pride });
+// @ts-expect-error channels beside a preset are two background shapes
+banner.background({ red: 1, green: 2, blue: 3, preset: GradientPreset.Pride });
+
+// a value spelling two shapes is refused like the literal, through the never members alone
+const presetAndStops = { preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue } as const;
+const channelsAndPreset = { red: 1, green: 2, blue: 3, preset: GradientPreset.Pride } as const;
+// @ts-expect-error a preset beside a start and an end is two gradient shapes
+banner.colors(presetAndStops);
+// @ts-expect-error channels beside a preset are two background shapes
+banner.background(channelsAndPreset);
+
 const consoleArtifact = banner.renderWith(BrowserConsoleEnv);
 const terminal = banner.renderWith(CliEnv.rawMode()); // for a terminal emulator in the page
 

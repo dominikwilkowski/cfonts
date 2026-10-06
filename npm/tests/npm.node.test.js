@@ -134,6 +134,17 @@ function assertTypeErrors(values, invoke, message) {
 	}
 }
 
+// how many unseeded draws a freshness check takes: a seed is a u32 and a candy render of "AB" makes
+// six picks from eleven colors, so eight draws agree only at 2^-224 or 11^-42, bounds no run meets,
+// and the roll is guarded without a seam into the entropy source
+const FRESH_DRAWS = 8;
+
+function assertFresh(draw) {
+	const draws = Array.from({ length: FRESH_DRAWS }, draw);
+
+	assert.ok(new Set(draws).size > 1, "all draws agree");
+}
+
 function overrideProperty(target, property, value) {
 	const descriptor = Object.getOwnPropertyDescriptor(target, property);
 
@@ -340,6 +351,321 @@ test("the names come from the core in its order, one list per picker", () => {
 	}
 });
 
+test("a throwing array getter or proxy trap crosses back as itself and leaves the builder usable", () => {
+	// a getter on the first entry of a colors list throws, the builder takes settings and renders afterwards
+	const banner = Cfonts.text("A");
+	const colors = [Color.Red];
+	Object.defineProperty(colors, "0", {
+		get() {
+			throw new RangeError("array getter");
+		},
+	});
+	assert.throws(() => banner.colors(colors), { name: "RangeError", message: "array getter" });
+	assert.equal(banner.font(Font.Tiny), banner);
+	assert.equal(banner.renderWith(CliEnv).text, Cfonts.text("A").font(Font.Tiny).renderWith(CliEnv).text);
+
+	const thrown = new RangeError("the consumer's own");
+	const same = (error) => error === thrown;
+	const expected = Cfonts.text("A").font(Font.Tiny).renderWith(CliEnv).text;
+	const lists = [
+		[
+			"a throwing getter on an entry",
+			() =>
+				Object.defineProperty([Color.Red, Color.Blue], "0", {
+					get() {
+						throw thrown;
+					},
+				}),
+		],
+		[
+			"a proxy with throwing get, has and ownKeys traps",
+			() =>
+				new Proxy([Color.Red, Color.Blue], {
+					get() {
+						throw thrown;
+					},
+					has() {
+						throw thrown;
+					},
+					ownKeys() {
+						throw thrown;
+					},
+				}),
+		],
+	];
+	const places = [
+		["colors", (banner, list) => banner.colors(list)],
+		["globalColors", (banner, list) => banner.globalColors(list)],
+		["colors transition", (banner, list) => banner.colors({ transition: list })],
+		["globalColors transition", (banner, list) => banner.globalColors({ transition: list })],
+		["background transition", (banner, list) => banner.background({ transition: list })],
+	];
+	for (const [what, list] of lists) {
+		for (const [place, call] of places) {
+			const banner = Cfonts.text("A");
+			// the exception is the consumer's own object, and it crosses as a result, so the borrow of the builder
+			// releases and every later call works
+			assert.throws(() => call(banner, list()), same, `${place} with ${what}`);
+			assert.equal(banner.font(Font.Tiny), banner, `${place} with ${what}`);
+			assert.equal(banner.renderWith(CliEnv).text, expected, `${place} with ${what}`);
+		}
+	}
+
+	// a throwing getter on a member of the gradient object crosses the same way
+	const members = [
+		[
+			"colors start",
+			(banner) =>
+				banner.colors({
+					get start() {
+						throw thrown;
+					},
+					end: Color.Blue,
+				}),
+		],
+		[
+			"colors end",
+			(banner) =>
+				banner.colors({
+					start: Color.Red,
+					get end() {
+						throw thrown;
+					},
+				}),
+		],
+		[
+			"colors transition",
+			(banner) =>
+				banner.colors({
+					get transition() {
+						throw thrown;
+					},
+				}),
+		],
+		[
+			"background start",
+			(banner) =>
+				banner.background({
+					get start() {
+						throw thrown;
+					},
+					end: Color.Blue,
+				}),
+		],
+		[
+			"background transition",
+			(banner) =>
+				banner.background({
+					get transition() {
+						throw thrown;
+					},
+				}),
+		],
+	];
+	for (const [place, call] of members) {
+		const banner = Cfonts.text("A");
+		assert.throws(() => call(banner), same, place);
+		assert.equal(banner.font(Font.Tiny), banner, place);
+		assert.equal(banner.renderWith(CliEnv).text, expected, place);
+	}
+
+	// the iterator of a list is never invoked, so a throwing one changes nothing, nor do a has or an ownKeys trap alone
+	const iterator = () =>
+		Object.defineProperty([Color.Red, Color.Blue], Symbol.iterator, {
+			value() {
+				throw thrown;
+			},
+		});
+	const untouched = () =>
+		new Proxy([Color.Red, Color.Blue], {
+			has() {
+				throw thrown;
+			},
+			ownKeys() {
+				throw thrown;
+			},
+		});
+	for (const [place, call] of places) {
+		assert.equal(call(Cfonts.text("A").font(Font.Tiny), iterator()).renderWith(CliEnv).text, expected, place);
+		assert.equal(call(Cfonts.text("A").font(Font.Tiny), untouched()).renderWith(CliEnv).text, expected, place);
+	}
+
+	// a proxy answering no number for its length reads as zero entries, no index is read and the string "2"
+	// is not read as two, so a transition over it holds zero stops
+	const reads = { index: 0 };
+	const unnumbered = new Proxy([Color.Red, Color.Blue], {
+		get(target, key, receiver) {
+			if (key === "length") {
+				return "2";
+			}
+			if (typeof key === "string") {
+				reads.index += 1;
+			}
+			return Reflect.get(target, key, receiver);
+		},
+	});
+	assert.equal(Cfonts.text("A").font(Font.Tiny).colors(unnumbered).renderWith(CliEnv).text, expected);
+	assert.throws(() => Cfonts.text("A").colors({ transition: unnumbered }), {
+		name: "Error",
+		message: "A transition gradient holds at least two stops, this one holds 0",
+	});
+	assert.equal(reads.index, 0);
+
+	// a revoked proxy makes Array.isArray itself throw, the engine's TypeError crosses the same way
+	const revoked = () => {
+		const { proxy, revoke } = Proxy.revocable([Color.Red], {});
+		revoke();
+		return proxy;
+	};
+	for (const call of [(banner) => banner.colors(revoked()), (banner) => banner.renderWith(CliEnv, revoked())]) {
+		const banner = Cfonts.text("A");
+		assert.throws(() => call(banner), { name: "TypeError" });
+		assert.equal(banner.font(Font.Tiny), banner);
+		assert.equal(banner.renderWith(CliEnv).text, expected);
+	}
+});
+
+test("colors and background read every member of an object once", () => {
+	// an object whose getters answer the given values and count their reads
+	const counting = (keys, values) => {
+		const counts = {};
+		const object = {};
+		for (const key of keys) {
+			counts[key] = 0;
+			Object.defineProperty(object, key, {
+				enumerable: true,
+				get() {
+					counts[key] += 1;
+					return values[key];
+				},
+			});
+		}
+		return [object, counts];
+	};
+	const once = (counts, what) => {
+		for (const [key, count] of Object.entries(counts)) {
+			assert.equal(count, 1, `${what} reads ${key} ${count} times`);
+		}
+	};
+	const GRADIENT = ["preset", "start", "end", "transition"];
+	const CHANNELS = ["red", "green", "blue"];
+	const readers = [
+		["colors", (object) => Cfonts.text("A").colors(object)],
+		["globalColors", (object) => Cfonts.text("A").globalColors(object)],
+		["background", (object) => Cfonts.text("A").background(object)],
+	];
+
+	// a gradient shape, where every gradient member is read to tell the shapes apart
+	for (const shape of [
+		{ preset: GradientPreset.Pride },
+		{ start: Color.Red, end: Color.Blue },
+		{ transition: [Color.Red, Color.Blue] },
+	]) {
+		for (const [method, read] of readers) {
+			const [object, counts] = counting(GRADIENT, shape);
+			read(object);
+			once(counts, `${method}({${Object.keys(shape)}})`);
+		}
+	}
+
+	// channels as a background, where the four gradient members are read to tell the shapes apart
+	const [channels, counts] = counting([...CHANNELS, ...GRADIENT], { red: 1, green: 2, blue: 3 });
+	Cfonts.text("A").background(channels);
+	once(counts, "background(channels)");
+
+	// channels in a slot list, as a stop and in a transition
+	for (const [place, wrap] of [
+		["a slot", (object) => [object]],
+		["a start", (object) => ({ start: object, end: Color.Blue })],
+		["an end", (object) => ({ start: Color.Red, end: object })],
+		["a transition stop", (object) => ({ transition: [object, Color.Blue] })],
+	]) {
+		for (const [method, read] of readers.slice(0, 2)) {
+			const [object, counts] = counting(CHANNELS, { red: 1, green: 2, blue: 3 });
+			read(wrap(object));
+			once(counts, `${method} with channels as ${place}`);
+		}
+	}
+});
+
+test("a shape error in any position wins over a refused value in any position, the first of each in order", () => {
+	const enumSentence = (method) => ({ name: "TypeError", message: `\`${method}()\` expects a supported enum value` });
+	const channelSentence = (method) => ({
+		name: "TypeError",
+		message: `\`${method}()\` expects RGB channel values as integers between 0 and 255`,
+	});
+	const unknown = (input) => ({
+		name: "Error",
+		message: `"${input}": A color is either a color name or a hex value like #ff8800`,
+	});
+	const notAStop = (input) => ({
+		name: "Error",
+		message: `"${input}": A gradient stop is any color name or a hex value like #ff8800 except system and candy`,
+	});
+
+	// a list: the shape of every entry is checked before any value is parsed
+	assert.throws(() => Cfonts.text("A").colors(["nonsense", 42e9]), enumSentence("colors"));
+	assert.throws(() => Cfonts.text("A").colors([{ red: 1 }, "red"]), channelSentence("colors"));
+	assert.throws(() => Cfonts.text("A").colors([{ red: 1 }, 42e9]), channelSentence("colors")); // the first shape error
+	assert.throws(() => Cfonts.text("A").colors([42e9, { red: 1 }]), enumSentence("colors"));
+	assert.throws(() => Cfonts.text("A").colors(["nonsense", "#zz"]), unknown("nonsense")); // the first refused value
+	assert.throws(() => Cfonts.text("A").colors(["#zz", "nonsense"]), {
+		name: "Error",
+		message: '"#zz": A hex color can only hold hex digits 0-9 and A-F',
+	});
+	assert.throws(() => Cfonts.text("A").colors([{ red: 1, green: 2, blue: 3 }, "nonsense"]), unknown("nonsense"));
+	assert.throws(() => Cfonts.text("A").globalColors(["nonsense", 42e9]), enumSentence("globalColors"));
+
+	// two stops: both shapes are checked before either value is parsed
+	assert.throws(() => Cfonts.text("A").colors({ start: "nonsense", end: 42e9 }), enumSentence("colors"));
+	assert.throws(() => Cfonts.text("A").colors({ start: "nonsense", end: { red: 1 } }), channelSentence("colors"));
+	assert.throws(() => Cfonts.text("A").colors({ start: Color.Candy, end: "nonsense" }), notAStop("candy"));
+	assert.throws(() => Cfonts.text("A").colors({ start: "nonsense", end: Color.Candy }), unknown("nonsense"));
+	assert.throws(() => Cfonts.text("A").background({ start: 42e9, end: "nonsense" }), enumSentence("background"));
+	assert.throws(() => Cfonts.text("A").background({ start: Color.System, end: "red" }), notAStop("system"));
+
+	// a transition: every stop is parsed before the count is checked
+	assert.throws(() => Cfonts.text("A").colors({ transition: ["nonsense", 42e9] }), enumSentence("colors"));
+	assert.throws(() => Cfonts.text("A").colors({ transition: [Color.Candy, "nonsense"] }), notAStop("candy"));
+	assert.throws(() => Cfonts.text("A").colors({ transition: ["nonsense"] }), unknown("nonsense"));
+	assert.throws(() => Cfonts.text("A").colors({ transition: [{ red: 1, green: 2, blue: 3 }] }), {
+		name: "Error",
+		message: "A transition gradient holds at least two stops, this one holds 1",
+	});
+	assert.throws(
+		() => Cfonts.text("A").colors({ transition: [Color.System, { red: 1, green: 2, blue: 3 }] }),
+		notAStop("system"),
+	);
+
+	// a background: one color by its value or its spelling, channels, or a gradient shape
+	assert.throws(() => Cfonts.text("A").background(Color.Candy), unknown("candy"));
+	assert.throws(() => Cfonts.text("A").background(42e9), enumSentence("background"));
+	assert.throws(() => Cfonts.text("A").background({ red: 1, green: 2, blue: 3, preset: 0 }), {
+		name: "TypeError",
+		message: /^`background\(\)` expects a background as a Color value/,
+	});
+	assert.throws(() => Cfonts.text("A").background({ red: 1 }), channelSentence("background"));
+	Cfonts.text("A").background(Color.System);
+});
+
+test("channel values build what the hex spelling builds in every place", () => {
+	// the channels convert without a spelling
+	const context = { color: ColorLevel.TrueColor };
+	const render = (banner) => banner.renderWith(CliEnv, context).text;
+	const channels = { red: 1, green: 2, blue: 3 };
+	assert.equal(render(Cfonts.text("A").colors([channels])), render(Cfonts.text("A").colors(["#010203"])));
+	assert.equal(render(Cfonts.text("A").background(channels)), render(Cfonts.text("A").background("#010203")));
+	assert.equal(
+		render(Cfonts.text("A").colors({ start: channels, end: Color.Blue })),
+		render(Cfonts.text("A").colors({ start: "#010203", end: Color.Blue })),
+	);
+	assert.equal(
+		render(Cfonts.text("A").colors({ transition: [Color.Red, channels] })),
+		render(Cfonts.text("A").colors({ transition: [Color.Red, "#010203"] })),
+	);
+	assert.notEqual(render(Cfonts.text("A").background(channels)), render(Cfonts.text("A"))); // the channels paint
+});
+
 test("a wrong shape is a TypeError and a refused value a plain Error", () => {
 	// the shape sentences name the method, the value sentences are the core's
 	assert.throws(() => Cfonts.text("A").colors([true]), {
@@ -398,7 +724,7 @@ test("renderWith selects each environment", () => {
 	assert.equal(banner.renderWith(BrowserConsoleEnv).text, "▄▀█ ▄▀█\n█▀█ █▀█");
 	assert.equal(
 		banner.renderWith(BrowserEnv).text,
-		'<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█ ▄▀█<br>█▀█ █▀█</div>',
+		'<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">▄▀█ ▄▀█<br>█▀█ █▀█</div>',
 	);
 });
 
@@ -1266,6 +1592,8 @@ test("detection runs the shared cascade", { skip: process.platform === "win32" }
 		[{ COLORTERM: "truecolor" }, ColorLevel.TrueColor],
 		// an undetectable terminal still gets full color
 		[{ TERM: "fail" }, ColorLevel.TrueColor],
+		// a terminal that refuses escape codes stays plain, the fallback paints only an undetected one
+		[{ TERM: "dumb" }, undefined],
 	]) {
 		const restoreTty = overrideProperty(process.stdout, "isTTY", true);
 
@@ -1282,6 +1610,40 @@ test("detection runs the shared cascade", { skip: process.platform === "win32" }
 	}
 });
 
+test("a dumb terminal carries no ANSI through the Node host", { skip: process.platform === "win32" }, () => {
+	const restoreTty = overrideProperty(process.stdout, "isTTY", true);
+
+	try {
+		// FORCE_SIZE precedes the width override, so the shell's value is cleared for the comparisons
+		withEnv("FORCE_SIZE", undefined, () =>
+			withColorEnv(undefined, undefined, () => {
+				// the terminal refuses escape codes, so the render fallback never paints it
+				const dumb = withDetectionEnv({ TERM: "dumb" }, () =>
+					new NodeHost({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+				);
+				assert.ok(!dumb.text.includes("\u001b["));
+				assert.equal(dumb.text, reference(undefined));
+
+				// an unset or unknown TERM leaves the terminal undetected and the fallback paints it
+				for (const vars of [{}, { TERM: "fail" }]) {
+					const painted = withDetectionEnv(vars, () => new NodeHost({ canvasWidth: 0 }).render(colorBanner(), CliEnv));
+					assert.ok(painted.text.includes("\u001b[38;2;"), JSON.stringify(vars));
+					assert.equal(painted.text, reference(ColorLevel.TrueColor), JSON.stringify(vars));
+				}
+			}),
+		);
+	} finally {
+		restoreTty();
+	}
+});
+
+/**
+ * A lookup over the given variables, the function member of the terminal facts
+ */
+function lookup(variables) {
+	return (name) => (Object.hasOwn(variables, name) ? variables[name] : undefined);
+}
+
 /**
  * The color banner rendered by the raw Node host under the given terminal facts, the stream unlimited
  * so only the color decision shows
@@ -1296,8 +1658,7 @@ function rawRender(terminal, overrides = {}) {
 		attached: true,
 		platform: "darwin",
 		release: "25.6.0",
-		names: [],
-		values: [],
+		environment: lookup({}),
 		...terminal,
 	}).text;
 }
@@ -1305,24 +1666,34 @@ function rawRender(terminal, overrides = {}) {
 test("the chain crosses the boundary with the terminal facts", () => {
 	// FORCE_COLOR wins over everything the cascade would say
 	assert.equal(
-		rawRender({ names: ["TERM", "FORCE_COLOR"], values: ["xterm-256color", "3"] }),
+		rawRender({ environment: lookup({ TERM: "xterm-256color", FORCE_COLOR: "3" }) }),
 		reference(ColorLevel.TrueColor),
 	);
 
 	// NO_COLOR silences an otherwise colorful terminal
-	assert.equal(rawRender({ names: ["TERM", "NO_COLOR"], values: ["xterm-256color", "1"] }), reference(undefined));
+	assert.equal(rawRender({ environment: lookup({ TERM: "xterm-256color", NO_COLOR: "1" }) }), reference(undefined));
 
 	// an empty NO_COLOR is not set: the cascade answers
 	assert.equal(
-		rawRender({ names: ["TERM", "NO_COLOR"], values: ["xterm-256color", ""] }),
+		rawRender({ environment: lookup({ TERM: "xterm-256color", NO_COLOR: "" }) }),
 		reference(ColorLevel.Ansi256),
 	);
 
 	// a terminal the facts describe as detached has no terminal to ask and falls back to full color
-	assert.equal(rawRender({ attached: false, names: ["TERM"], values: ["ansi"] }), reference(ColorLevel.TrueColor));
-	assert.equal(rawRender({ names: ["TERM"], values: ["ansi"] }), reference(ColorLevel.Basic));
+	assert.equal(rawRender({ attached: false, environment: lookup({ TERM: "ansi" }) }), reference(ColorLevel.TrueColor));
+	assert.equal(rawRender({ environment: lookup({ TERM: "ansi" }) }), reference(ColorLevel.Basic));
 
-	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type
+	// a terminal that refuses escape codes takes no fallback
+	assert.equal(rawRender({ environment: lookup({ TERM: "dumb" }) }), reference(undefined));
+
+	// an answer that is no string reads as absent, NO_COLOR answered as a number silences nothing
+	assert.equal(
+		rawRender({ environment: (name) => (name === "NO_COLOR" ? 1 : undefined) }),
+		reference(ColorLevel.TrueColor),
+	);
+
+	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type,
+	// a lookup that is no function with the sentence of the facts
 	const banner = WasmCfonts.text("A");
 	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, []), {
 		name: "TypeError",
@@ -1332,6 +1703,19 @@ test("the chain crosses the boundary with the terminal facts", () => {
 		name: "TypeError",
 		message: "`render()` expects a boolean",
 	});
+	for (const environment of [undefined, "TERM", ["TERM"], {}]) {
+		assert.throws(
+			() =>
+				WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, {
+					attached: true,
+					platform: "darwin",
+					release: "25.6.0",
+					environment,
+				}),
+			{ name: "TypeError", message: "`render()` expects the terminal facts" },
+			`environment ${JSON.stringify(environment)}`,
+		);
+	}
 });
 
 test("the boundary answers the windows console by the build of the release", () => {
@@ -1359,6 +1743,112 @@ test("piped output has no terminal to ask and falls back to full color", () => {
 	}
 });
 
+/**
+ * Runs the operation with `process.env` replaced by the given object, the process environment restored after
+ */
+function withProcessEnv(replacement, operation) {
+	const original = process.env;
+	process.env = replacement;
+
+	try {
+		return operation();
+	} finally {
+		process.env = original;
+	}
+}
+
+test("a variable is read through the runtime's own lookup on process.env", () => {
+	// a store that answers case insensitively, the way a Windows main thread answers, on every platform:
+	// only a lowercase no_color is set, so NO_COLOR silences the render only when the read is process.env's own,
+	// and the color override keeps the cascade out so the test holds on every platform
+	const store = { no_color: "1" };
+	const caseless = new Proxy(store, {
+		get(target, key) {
+			if (typeof key !== "string") {
+				return Reflect.get(target, key);
+			}
+			const match = Object.keys(target).find((candidate) => candidate.toLowerCase() === key.toLowerCase());
+			return match === undefined ? undefined : target[match];
+		},
+	});
+	const host = NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic });
+
+	// NO_COLOR precedes the override, so the caseless read silences the render
+	assert.equal(
+		withProcessEnv(caseless, () => host.render(colorBanner(), CliEnv).text),
+		reference(undefined),
+	);
+	// the same store read exactly leaves no_color unread and the override paints
+	assert.equal(
+		withProcessEnv(store, () => host.render(colorBanner(), CliEnv).text),
+		reference(ColorLevel.Basic),
+	);
+});
+
+test("a lowercase no_color silences the render on a windows main thread alone, the runtime's rule", () => {
+	// the package job runs on Linux, so the win32 branch runs only on a Windows machine
+	const restoreTty = overrideProperty(process.stdout, "isTTY", true);
+
+	try {
+		withDetectionEnv({ TERM: "xterm-256color" }, () =>
+			withColorEnv(undefined, undefined, () => {
+				const render = () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv).text;
+				const painted = render();
+				assert.notEqual(painted, reference(undefined));
+
+				const lowercase = withEnv("no_color", "1", render);
+				if (process.platform === "win32") {
+					assert.equal(lowercase, reference(undefined));
+				} else {
+					assert.equal(lowercase, painted);
+				}
+			}),
+		);
+	} finally {
+		restoreTty();
+	}
+});
+
+test("an exception thrown while a variable is read crosses back as itself once and leaves the host usable", () => {
+	// FORCE_SIZE precedes the width override, so the shell's value is cleared for the comparisons
+	withEnv("FORCE_SIZE", undefined, () => {
+		const thrown = new RangeError("the consumer's own");
+		let reads = 0;
+		const throwing = new Proxy(
+			{},
+			{
+				get(target, key) {
+					if (typeof key !== "string") {
+						return Reflect.get(target, key);
+					}
+					reads += 1;
+					throw thrown;
+				},
+			},
+		);
+		const host = NodeHost.fromOverrides({ canvasWidth: 0 });
+		const expected = withColorEnv(undefined, undefined, () => host.render(colorBanner(), CliEnv).text);
+
+		// the render throws the very object in place of an artifact resolved over facts it failed to read,
+		// and asks for no variable after the first failure
+		assert.throws(
+			() => withProcessEnv(throwing, () => host.render(colorBanner(), CliEnv)),
+			(error) => error === thrown,
+		);
+		assert.equal(reads, 1);
+
+		// the same host renders again, and a variable set between two of its renders is seen
+		assert.equal(
+			withColorEnv(undefined, undefined, () => host.render(colorBanner(), CliEnv).text),
+			expected,
+		);
+		assert.equal(
+			withColorEnv(undefined, "1", () => host.render(colorBanner(), CliEnv).text),
+			reference(undefined),
+		);
+	});
+});
+
 test("console styles pair with their markers through renderWith", () => {
 	const unstyled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleEnv);
 	assert.ok(!unstyled.text.includes("%c"));
@@ -1372,19 +1862,31 @@ test("console styles pair with their markers through renderWith", () => {
 	assert.ok(styled.styles.includes(""));
 });
 
-test("the host rolls a fresh seed that keeps candy repeatable while it is kept", () => {
-	const seed = NodeHost.entropy();
+test("a kept seed repeats candy through the node host and another seed draws differently", () => {
+	// FORCE_COLOR and NO_COLOR precede the override, so the shell's values are cleared for the painted comparison
+	withColorEnv(undefined, undefined, () => {
+		const seed = NodeHost.entropy();
+		assert.ok(Number.isInteger(seed) && seed >= 0 && seed <= 0xffff_ffff); // the boundary's seed type
 
-	assert.ok(Number.isInteger(seed) && seed >= 0 && seed <= 0xffff_ffff); // the boundary's seed type
-	assert.notEqual(seed, NodeHost.entropy()); // a roll per call
+		const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
+		const pinned = NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed });
+		assert.equal(party.render(pinned, CliEnv).text, party.render(pinned, CliEnv).text);
 
-	const rolled = NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed });
-	const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
-	assert.equal(party.render(rolled, CliEnv).text, party.render(rolled, CliEnv).text);
-	assert.notEqual(
-		party.render(rolled, CliEnv).text,
-		party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor }), CliEnv).text,
-	);
+		// the pair is fixed because the core's roll is deterministic per seed: 42 and 43 draw different assortments
+		assert.notEqual(
+			party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 42 }), CliEnv).text,
+			party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 43 }), CliEnv).text,
+		);
+	});
+});
+
+test("the node host rolls a fresh seed per render", () => {
+	withColorEnv(undefined, undefined, () => {
+		assertFresh(() => NodeHost.entropy());
+
+		const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
+		assertFresh(() => party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor }), CliEnv).text);
+	});
 });
 
 test("the browser host decides behind the boundary and writes to the console", () => {
@@ -1409,11 +1911,16 @@ test("the browser host decides behind the boundary and writes to the console", (
 	assert.deepEqual(calls, [[expected.text, ...expected.styles]]);
 	assert.ok(expected.styles.length > 0);
 
-	// every render rolls its own candy unless a seed is pinned
+	// every render rolls its own candy unless a seed is pinned, and the pinned pair is fixed because
+	// the core's roll is deterministic per seed: 42 and 43 draw different assortments
 	const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
-	assert.notEqual(party.render(new BrowserHost(), BrowserEnv).text, party.render(new BrowserHost(), BrowserEnv).text);
+	assertFresh(() => party.render(new BrowserHost(), BrowserEnv).text);
 	const pinned = BrowserHost.fromOverrides({ seed: BrowserHost.entropy() });
 	assert.equal(party.render(pinned, BrowserEnv).text, party.render(pinned, BrowserEnv).text);
+	assert.notEqual(
+		party.render(BrowserHost.fromOverrides({ seed: 42 }), BrowserEnv).text,
+		party.render(BrowserHost.fromOverrides({ seed: 43 }), BrowserEnv).text,
+	);
 
 	assert.throws(() => banner.render(new BrowserHost(), {}), {
 		name: "TypeError",

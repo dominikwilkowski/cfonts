@@ -5,39 +5,34 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::{
 	Align, Background, Color as CoreColor, ColorError, Font, Gradient, GradientPreset, Rendered as CoreRendered, Rgb,
-	Text, Valign,
+	Text, Valign, named_colors,
 };
 use cfonts_macros::All;
 
 use crate::input::expect_string;
 
-/// The named colors JavaScript picks from, the text color names in the core's order
-///
-/// A pick crosses as its name and the core parses it into the kind the setter takes,
-/// so the core keeps system and candy out of gradients and candy out of backgrounds,
-/// and Rgb colors cross as hex values, which is why no bridge into the core exists
-#[wasm_bindgen]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
-pub enum Color {
-	System,
-	Black,
-	Red,
-	Green,
-	Yellow,
-	Blue,
-	Magenta,
-	Cyan,
-	White,
-	Gray,
-	RedBright,
-	GreenBright,
-	YellowBright,
-	BlueBright,
-	MagentaBright,
-	CyanBright,
-	WhiteBright,
-	Candy,
+/// Expands the core's vocabulary into the `Color` enum, the three groups in the core's order and the names left to the core
+macro_rules! color_enum {
+	(
+		system: [$system:ident => $_system_name:literal],
+		named: [$($variant:ident => $_name:literal),* $(,)?],
+		candy: [$candy:ident => $_candy_name:literal] $(,)?
+	) => {
+		/// The named colors JavaScript picks from, the text color names in the core's order
+		///
+		/// A pick crosses as its name and the core parses it into the kind the setter takes,
+		/// so the core keeps system and candy out of gradients and candy out of backgrounds,
+		/// and channel values convert through the core's `From<Rgb>`, which is why no bridge into the core exists
+		#[wasm_bindgen]
+		#[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
+		pub enum Color {
+			$system,
+			$($variant,)*
+			$candy,
+		}
+	};
 }
+named_colors!(color_enum);
 
 /// The closed set of render environments the boundary can ask for
 ///
@@ -144,10 +139,10 @@ pub fn gradient_color_names() -> Vec<String> {
 
 /// Parses a hex value such as `#ff8800` into RGB channel values
 ///
-/// The channels cross the boundary as a frozen `{red, green, blue}` object,
+/// The channels cross the boundary as a frozen `{red, green, blue}` object and the declaration says so,
 /// so hex parsing has exactly one home in Rust and the result plugs into every color place,
 /// `Rgb.fromHex()` is the method a consumer calls, so the sentence names it
-#[wasm_bindgen(js_name = rgbFromHex, unchecked_return_type = "Rgb")]
+#[wasm_bindgen(js_name = rgbFromHex, unchecked_return_type = "Readonly<Rgb>")]
 pub fn rgb_from_hex(#[wasm_bindgen(unchecked_param_type = "string")] hex: JsValue) -> Result<JsValue, JsValue> {
 	let hex = expect_string(&hex, "Rgb.fromHex")?;
 	let rgb = Rgb::from_hex(&hex).map_err(|error| color_error(&hex, error))?;

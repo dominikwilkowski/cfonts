@@ -124,6 +124,23 @@ fn undetectable_terminals_get_the_declared_fallback() {
 	});
 }
 
+#[test]
+fn a_dumb_terminal_stays_plain_whatever_the_fallback() {
+	with_environment(&[("TERM", "dumb")], || {
+		// the terminal refuses escape codes, so neither stream's fallback applies
+		assert_eq!(attached(ColorOverride::Auto, Some(ColorLevel::TrueColor)), None);
+		assert_eq!(attached(ColorOverride::Auto, None), None);
+
+		// the override resolves before the cascade and still paints it
+		assert_eq!(attached(ColorOverride::Level(ColorLevel::Basic), Some(ColorLevel::TrueColor)), Some(ColorLevel::Basic));
+	});
+
+	// FORCE_COLOR resolves before the cascade and still paints it
+	with_environment(&[("TERM", "dumb"), ("FORCE_COLOR", "3")], || {
+		assert_eq!(attached(ColorOverride::Auto, Some(ColorLevel::TrueColor)), Some(ColorLevel::TrueColor));
+	});
+}
+
 // the one-shot binding over the real environment
 
 #[test]

@@ -710,7 +710,7 @@ fn the_browser_paints_named_colors_as_their_rgb_spans() {
 	assert_eq!(
 		rendered,
 		concat!(
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">"#,
+			r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">"#,
 			r##"<span style="color:#ea3223">▄▀█</span><br><span style="color:#ea3223">█▀█</span>"##,
 			"</div>",
 		)

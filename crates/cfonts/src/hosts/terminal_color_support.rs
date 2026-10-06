@@ -1,10 +1,14 @@
 //! Terminal color support: one home for the whole decision
 //!
 //! FORCE_COLOR, then NO_COLOR, then the API override, then the capability
-//! cascade of an attached terminal — the cascade is a port of the classifier
-//! behind Node's `getColorDepth` (lib/internal/tty.js), shared by every host:
-//! the native host binds real streams, the npm host ships its facts across
-//! the wasm boundary
+//! cascade of an attached terminal, a port of the classifier behind Node's
+//! `getColorDepth` (lib/internal/tty.js), shared by every host: the native
+//! host binds real streams, the npm host ships its facts across the wasm
+//! boundary
+//!
+//! The cascade answers in three states: a terminal that refuses escape codes
+//! stays plain whatever the fallback, an undetected terminal paints at the
+//! fallback its stream declares, and a named level paints at that level
 
 use std::{
 	env,
@@ -21,7 +25,7 @@ use crate::{ColorLevel, ColorOverride};
 
 /// What the Windows console reports, resolved before classifying
 ///
-/// Node inherits both facts from its runtime; a native binary asks the console
+/// Node inherits both facts from its runtime, a native binary asks the console
 /// itself and switches escape processing on along the way
 #[derive(Debug, Clone, Copy)]
 pub struct WindowsConsole {
@@ -37,6 +41,24 @@ pub struct WindowsConsole {
 pub enum Stream {
 	Stdout,
 	Stderr,
+}
+
+/// What the capability cascade reads from the facts of an attached terminal
+///
+/// The three states keep a refusal apart from a gap in the facts: only the
+/// gap takes the fallback a stream declares
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Classification {
+	/// The terminal declares that it rejects escape codes, so it stays plain
+	/// whatever the fallback: `TERM=dumb`, or a Windows console that refuses
+	/// escape processing
+	Refused,
+
+	/// The facts name no level, so the fallback of the stream decides
+	Undetected,
+
+	/// The level the facts name
+	Level(ColorLevel),
 }
 
 /// CI vendors and the level their logs display
@@ -74,7 +96,7 @@ const TERM_LEVELS: &[(&str, ColorLevel)] = &[
 
 /// Everything one color resolution reads, gathered before any decision
 ///
-/// [`detect`](Self::detect) gathers the real facts of a stream in one shot;
+/// [`detect`](Self::detect) gathers the real facts of a stream in one shot,
 /// tests and boundary hosts fill the struct literally and call
 /// [`resolve`](Self::resolve)
 pub struct TerminalColorSupport<'a> {
@@ -84,13 +106,13 @@ pub struct TerminalColorSupport<'a> {
 	/// The environment both the chain and the cascade read
 	pub environment: &'a dyn Fn(&str) -> Option<String>,
 
-	/// What the Windows console reports, `None` off Windows
+	/// What the Windows console reports, `None` off Windows or where the stream is no console
 	pub windows_console: Option<WindowsConsole>,
 
 	/// The API override, applied after FORCE_COLOR and NO_COLOR
 	pub override_color: ColorOverride,
 
-	/// The level an undetectable terminal still paints; the error stream
+	/// The level an undetectable terminal still paints, the error stream
 	/// carries `None` so piped stderr stays plain
 	pub fallback: Option<ColorLevel>,
 }
@@ -98,7 +120,7 @@ pub struct TerminalColorSupport<'a> {
 impl TerminalColorSupport<'_> {
 	/// Detects the color support of one real output stream in one shot
 	///
-	/// `override_color` applies after FORCE_COLOR and NO_COLOR; `fallback` is
+	/// `override_color` applies after FORCE_COLOR and NO_COLOR, `fallback` is
 	/// the level an undetectable terminal still paints
 	#[must_use]
 	pub fn detect(stream: Stream, override_color: ColorOverride, fallback: Option<ColorLevel>) -> Option<ColorLevel> {
@@ -117,6 +139,10 @@ impl TerminalColorSupport<'_> {
 
 	/// Resolves the gathered facts: FORCE_COLOR, then NO_COLOR, then the API
 	/// override, then the capability cascade of an attached terminal
+	///
+	/// A terminal that refuses escape codes stays plain whatever the fallback,
+	/// the fallback paints a detached stream or a terminal the cascade leaves
+	/// undetected
 	#[must_use]
 	pub fn resolve(&self) -> Option<ColorLevel> {
 		let environment = self.environment;
@@ -136,18 +162,25 @@ impl TerminalColorSupport<'_> {
 			ColorOverride::Disabled => None,
 			ColorOverride::Level(level) => Some(level),
 			ColorOverride::Auto => {
-				let detected = if self.attached { self.classify() } else { None };
+				// a detached stream has no terminal to ask, so nothing is detected
+				let classification = if self.attached { self.classify() } else { Classification::Undetected };
 
-				detected.or(self.fallback)
+				match classification {
+					Classification::Refused => None,
+					Classification::Undetected => self.fallback,
+					Classification::Level(level) => Some(level),
+				}
 			}
 		}
 	}
 
 	/// The level a present FORCE_COLOR value forces, total over every possible value
 	///
-	/// `true`, the empty string and `1` force basic; `false` and `0` force no color;
-	/// `2` and `3` force their levels; every number above three clamps to full color;
-	/// anything else forces basic
+	/// - `true`, the empty string and `1` force basic
+	/// - `false` and `0` force no color
+	/// - `2` and `3` force their levels
+	/// - every number above three clamps to full color
+	/// - anything else forces basic
 	fn forced_color_level(forced: &str) -> Option<ColorLevel> {
 		match forced {
 			"false" => None,
@@ -170,24 +203,24 @@ impl TerminalColorSupport<'_> {
 	}
 
 	/// The capability cascade over the gathered facts
-	fn classify(&self) -> Option<ColorLevel> {
+	fn classify(&self) -> Classification {
 		let environment = self.environment;
 		let present = |name: &str| environment(name).is_some();
 		let non_empty = |name: &str| environment(name).is_some_and(|value| !value.is_empty());
 
 		// The "dumb" terminal rejects escape codes no matter what else is set
 		if environment("TERM").as_deref() == Some("dumb") {
-			return None;
+			return Classification::Refused;
 		}
 
 		// The Windows console answers for itself: no escape processing means no color,
 		// otherwise the build dates the palette
 		if let Some(console) = self.windows_console {
 			if !console.ansi_enabled {
-				return None;
+				return Classification::Refused;
 			}
 
-			return Some(match console.build {
+			return Classification::Level(match console.build {
 				14931.. => ColorLevel::TrueColor,
 				10586.. => ColorLevel::Ansi256,
 				_ => ColorLevel::Basic,
@@ -195,30 +228,35 @@ impl TerminalColorSupport<'_> {
 		}
 
 		if non_empty("TMUX") {
-			return Some(ColorLevel::TrueColor);
+			return Classification::Level(ColorLevel::TrueColor);
 		}
 
 		// Azure DevOps sets no CI variable but paints basic colors
 		if present("TF_BUILD") && present("AGENT_NAME") {
-			return Some(ColorLevel::Basic);
+			return Classification::Level(ColorLevel::Basic);
 		}
 
 		if present("CI") {
 			for (vendor, level) in CI_LEVELS {
 				if present(vendor) {
-					return Some(*level);
+					return Classification::Level(*level);
 				}
 			}
 
 			if environment("CI_NAME").as_deref() == Some("codeship") {
-				return Some(ColorLevel::Ansi256);
+				return Classification::Level(ColorLevel::Ansi256);
 			}
 
-			return None;
+			// an unknown vendor names no level
+			return Classification::Undetected;
 		}
 
 		if let Some(version) = environment("TEAMCITY_VERSION") {
-			return Self::teamcity_paints(&version).then_some(ColorLevel::Basic);
+			return if Self::teamcity_paints(&version) {
+				Classification::Level(ColorLevel::Basic)
+			} else {
+				Classification::Undetected
+			};
 		}
 
 		match environment("TERM_PROGRAM").as_deref() {
@@ -229,42 +267,42 @@ impl TerminalColorSupport<'_> {
 						|| (matches!(version.as_bytes().first(), Some(b'0'..=b'2')) && version.as_bytes().get(1) == Some(&b'.'))
 				});
 
-				return Some(if old { ColorLevel::Ansi256 } else { ColorLevel::TrueColor });
+				return Classification::Level(if old { ColorLevel::Ansi256 } else { ColorLevel::TrueColor });
 			}
-			Some("HyperTerm" | "MacTerm") => return Some(ColorLevel::TrueColor),
-			Some("Apple_Terminal") => return Some(ColorLevel::Ansi256),
+			Some("HyperTerm" | "MacTerm") => return Classification::Level(ColorLevel::TrueColor),
+			Some("Apple_Terminal") => return Classification::Level(ColorLevel::Ansi256),
 			_ => {}
 		}
 
 		if matches!(environment("COLORTERM").as_deref(), Some("truecolor" | "24bit")) {
-			return Some(ColorLevel::TrueColor);
+			return Classification::Level(ColorLevel::TrueColor);
 		}
 
 		if let Some(term) = environment("TERM").filter(|term| !term.is_empty()) {
 			if term.contains("truecolor") {
-				return Some(ColorLevel::TrueColor);
+				return Classification::Level(ColorLevel::TrueColor);
 			}
 
 			if term.starts_with("xterm-256") {
-				return Some(ColorLevel::Ansi256);
+				return Classification::Level(ColorLevel::Ansi256);
 			}
 
 			let term = term.to_lowercase();
 			if let Some((_, level)) = TERM_LEVELS.iter().find(|(name, _)| *name == term) {
-				return Some(*level);
+				return Classification::Level(*level);
 			}
 
 			if Self::hints_basic(&term) {
-				return Some(ColorLevel::Basic);
+				return Classification::Level(ColorLevel::Basic);
 			}
 		}
 
 		// any other non-empty COLORTERM still promises basic color
 		if non_empty("COLORTERM") {
-			return Some(ColorLevel::Basic);
+			return Classification::Level(ColorLevel::Basic);
 		}
 
-		None
+		Classification::Undetected
 	}
 
 	/// The process environment as the resolution reads it: presence survives
@@ -317,19 +355,24 @@ impl TerminalColorSupport<'_> {
 	///
 	/// Escape processing is requested up front, the way Node's runtime does at
 	/// startup: a console that refuses would print escape codes as garbage
+	///
+	/// A stream that is no console, a pipe or the pty of an MSYS or Cygwin
+	/// terminal, carries no console facts, so the cascade reads its environment
+	/// the way it does on unix
 	#[cfg(windows)]
 	fn windows_console(stream: Stream) -> Option<WindowsConsole> {
-		let ansi_enabled = unsafe {
-			let handle = GetStdHandle(match stream {
+		let handle = unsafe {
+			GetStdHandle(match stream {
 				Stream::Stdout => STD_OUTPUT_HANDLE,
 				Stream::Stderr => STD_ERROR_HANDLE,
-			});
-			let mut mode: CONSOLE_MODE = 0;
-
-			GetConsoleMode(handle, &mut mode) != 0
-				&& (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING != 0
-					|| SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0)
+			})
 		};
+		let mut mode: CONSOLE_MODE = 0;
+		if unsafe { GetConsoleMode(handle, &mut mode) } == 0 {
+			return None;
+		}
+		let ansi_enabled = mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING != 0
+			|| unsafe { SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING) } != 0;
 
 		Some(WindowsConsole { ansi_enabled, build: windows_version::OsVersion::current().build })
 	}
@@ -351,26 +394,44 @@ mod tests {
 
 	/// An attached terminal over fixed variables, resolved without a fallback
 	fn classify_vars(vars: &[(&str, &str)]) -> Option<ColorLevel> {
-		resolve_over(vars, None)
+		resolve_over(vars, None, None)
 	}
 
 	/// An attached terminal over fixed variables and console facts, resolved without a fallback
 	fn classify_windows(vars: &[(&str, &str)], console: WindowsConsole) -> Option<ColorLevel> {
-		resolve_over(vars, Some(console))
+		resolve_over(vars, Some(console), None)
 	}
 
-	/// The resolution over fixed variables: the one home of the slice-backed environment
-	fn resolve_over(vars: &[(&str, &str)], windows_console: Option<WindowsConsole>) -> Option<ColorLevel> {
+	/// The resolution over fixed variables and console facts with the given fallback
+	fn resolve_over(
+		vars: &[(&str, &str)],
+		windows_console: Option<WindowsConsole>,
+		fallback: Option<ColorLevel>,
+	) -> Option<ColorLevel> {
+		with_support(vars, windows_console, fallback, |support| support.resolve())
+	}
+
+	/// The cascade alone over fixed variables and console facts, before any fallback applies
+	fn classify_over(vars: &[(&str, &str)], windows_console: Option<WindowsConsole>) -> Classification {
+		with_support(vars, windows_console, None, |support| support.classify())
+	}
+
+	/// The facts of an attached terminal over fixed variables: the one home of the slice-backed environment
+	fn with_support<T>(
+		vars: &[(&str, &str)],
+		windows_console: Option<WindowsConsole>,
+		fallback: Option<ColorLevel>,
+		operation: impl FnOnce(&TerminalColorSupport<'_>) -> T,
+	) -> T {
 		let environment = |name: &str| vars.iter().find(|(key, _)| *key == name).map(|(_, value)| String::from(*value));
 
-		TerminalColorSupport {
+		operation(&TerminalColorSupport {
 			attached: true,
 			environment: &environment,
 			windows_console,
 			override_color: ColorOverride::Auto,
-			fallback: None,
-		}
-		.resolve()
+			fallback,
+		})
 	}
 
 	/// A chain-only resolution: reading any cascade variable is a test failure
@@ -467,9 +528,47 @@ mod tests {
 	}
 
 	#[test]
+	fn a_terminal_that_refuses_escape_codes_never_takes_the_fallback() {
+		let refusing = WindowsConsole { ansi_enabled: false, build: 22631 };
+
+		// the render stream's fallback paints an undetected terminal, never a refusing one
+		assert_eq!(resolve_over(&[("TERM", "dumb")], None, Some(ColorLevel::TrueColor)), None);
+		assert_eq!(resolve_over(&[("TERM", "dumb"), ("COLORTERM", "truecolor")], None, Some(ColorLevel::TrueColor)), None);
+		assert_eq!(resolve_over(&[], Some(refusing), Some(ColorLevel::TrueColor)), None);
+		assert_eq!(resolve_over(&[("TERM", "fail")], None, Some(ColorLevel::TrueColor)), Some(ColorLevel::TrueColor));
+
+		// without a fallback both stay plain
+		assert_eq!(resolve_over(&[("TERM", "dumb")], None, None), None);
+		assert_eq!(resolve_over(&[("TERM", "fail")], None, None), None);
+	}
+
+	#[test]
+	fn the_cascade_tells_a_refusal_from_an_undetected_terminal() {
+		let refusing = WindowsConsole { ansi_enabled: false, build: 22631 };
+		let processing = WindowsConsole { ansi_enabled: true, build: 22631 };
+
+		// a terminal that declares it rejects escape codes is refused, whatever else is set
+		assert_eq!(classify_over(&[("TERM", "dumb")], None), Classification::Refused);
+		assert_eq!(classify_over(&[("TERM", "dumb"), ("COLORTERM", "truecolor")], None), Classification::Refused);
+		assert_eq!(classify_over(&[("TERM", "dumb")], Some(processing)), Classification::Refused);
+		assert_eq!(classify_over(&[("COLORTERM", "truecolor")], Some(refusing)), Classification::Refused);
+
+		// facts that name no level leave the terminal undetected
+		assert_eq!(classify_over(&[], None), Classification::Undetected);
+		assert_eq!(classify_over(&[("TERM", "fail")], None), Classification::Undetected);
+		assert_eq!(classify_over(&[("CI", "1")], None), Classification::Undetected);
+		assert_eq!(classify_over(&[("TEAMCITY_VERSION", "1.0.0")], None), Classification::Undetected);
+
+		// facts that name a level answer it
+		assert_eq!(classify_over(&[("TERM", "xterm-256color")], None), Classification::Level(ColorLevel::Ansi256));
+		assert_eq!(classify_over(&[("TEAMCITY_VERSION", "9.1.0")], None), Classification::Level(ColorLevel::Basic));
+		assert_eq!(classify_over(&[], Some(processing)), Classification::Level(ColorLevel::TrueColor));
+	}
+
+	#[test]
 	fn the_environment_matrix_matches_the_node_classifier() {
 		// the rows mirror Node's test-tty-color-support.js, minus the
-		// FORCE_COLOR/NO_COLOR rows he chain resolves before the cascade
+		// FORCE_COLOR and NO_COLOR rows the chain resolves before the cascade
 		let rows: &[Row] = &[
 			(&[("COLORTERM", "1")], Some(ColorLevel::Basic)),
 			(&[("COLORTERM", "truecolor")], Some(ColorLevel::TrueColor)),
@@ -546,7 +645,7 @@ mod tests {
 
 	#[test]
 	fn the_real_bindings_run_on_both_streams() {
-		// what the facts hold depends on the real terminal; the pure layers pin
+		// what the facts hold depends on the real terminal, the pure layers pin
 		// the semantics, this pins that the bindings execute
 		let _ = TerminalColorSupport::detect(Stream::Stdout, ColorOverride::Auto, None);
 		let _ = TerminalColorSupport::detect(Stream::Stderr, ColorOverride::Auto, None);

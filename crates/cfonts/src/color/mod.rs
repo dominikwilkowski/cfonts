@@ -396,34 +396,83 @@ impl TakesSystem for Text {}
 impl TakesSystem for Background {}
 impl TakesCandy for Text {}
 
-/// What a color is, apart from where it goes
+/// Calls the given macro with the named color vocabulary, one `Variant => "name"` pair per color in the help's order
 ///
-/// The crate's internals match on this, the public [`Color`] wraps it with its kind
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Value {
-	/// The terminal's or page's own color, paints nothing
-	System,
-	Black,
-	Red,
-	Green,
-	Yellow,
-	Blue,
-	Magenta,
-	Cyan,
-	White,
-	Gray,
-	RedBright,
-	GreenBright,
-	YellowBright,
-	BlueBright,
-	MagentaBright,
-	CyanBright,
-	WhiteBright,
-	/// A random pick from the candy assortment, re-rolled per painted segment
-	Candy,
-	/// Any RGB color, leveled down wherever the render's color level supports less
-	Rgb(Rgb),
+/// The two slot only colors come as groups of their own, `system` first and `candy` last, between them the sixteen
+/// names every kind takes, so a caller keeps the kind rules without spelling a single name itself
+///
+/// Hidden from the docs, it exists for the boundary crate: its JavaScript enum expands from this list too,
+/// so a `Color` number from JavaScript indexes `Color::<Text>::NAMES` by construction
+#[doc(hidden)]
+#[macro_export]
+macro_rules! named_colors {
+	($callback:ident) => {
+		$callback! {
+			system: [System => "system"],
+			named: [
+				Black => "black",
+				Red => "red",
+				Green => "green",
+				Yellow => "yellow",
+				Blue => "blue",
+				Magenta => "magenta",
+				Cyan => "cyan",
+				White => "white",
+				Gray => "gray",
+				RedBright => "redbright",
+				GreenBright => "greenbright",
+				YellowBright => "yellowbright",
+				BlueBright => "bluebright",
+				MagentaBright => "magentabright",
+				CyanBright => "cyanbright",
+				WhiteBright => "whitebright",
+			],
+			candy: [Candy => "candy"],
+		}
+	};
 }
+
+/// Expands the vocabulary into the [`Value`] enum, the name tables the kinds assemble their names from
+/// and the lookup of the sixteen names the parser reads
+macro_rules! vocabulary {
+	(
+		system: [$system:ident => $system_name:literal],
+		named: [$($variant:ident => $name:literal),* $(,)?],
+		candy: [$candy:ident => $candy_name:literal] $(,)?
+	) => {
+		/// What a color is, apart from where it goes
+		///
+		/// The crate's internals match on this, the public [`Color`] wraps it with its kind
+		#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+		pub(crate) enum Value {
+			/// The terminal's or page's own color, paints nothing
+			$system,
+			$($variant,)*
+			/// A random pick from the candy assortment, re-rolled per painted segment
+			$candy,
+			/// Any RGB color, leveled down wherever the render's color level supports less
+			Rgb(Rgb),
+		}
+
+		/// The name of the system color, the first name of every kind that takes it
+		const SYSTEM_NAME: &str = $system_name;
+
+		/// The sixteen names every kind takes, in the order the help lists them
+		const NAMED: &[&str] = &[$($name),*];
+
+		/// The name of the candy color, the last name of every kind that takes it
+		const CANDY_NAME: &str = $candy_name;
+
+		/// The value of one of the sixteen names every kind takes, as the list spells it in lowercase
+		fn named_value(name: &str) -> Option<Value> {
+			match name {
+				$($name => Some(Value::$variant),)*
+				_ => None,
+			}
+		}
+	};
+}
+named_colors!(vocabulary);
 
 impl Value {
 	/// The RGB value this color paints, from the painted table where red is `#ea3223`
@@ -505,26 +554,6 @@ impl Value {
 	}
 }
 
-/// The sixteen names every kind takes, in the order the help lists them
-const NAMED: [&str; 16] = [
-	"black",
-	"red",
-	"green",
-	"yellow",
-	"blue",
-	"magenta",
-	"cyan",
-	"white",
-	"gray",
-	"redbright",
-	"greenbright",
-	"yellowbright",
-	"bluebright",
-	"magentabright",
-	"cyanbright",
-	"whitebright",
-];
-
 /// The names of one kind in the order the help lists them: `system` first and `candy` last where the kind takes them
 ///
 /// `COUNT` is the kind's name count, a wrong count stops the build
@@ -533,7 +562,7 @@ const fn names<K: Kind, const COUNT: usize>() -> [&'static str; COUNT] {
 	let mut index = 0;
 
 	if K::TAKES_SYSTEM {
-		names[index] = "system";
+		names[index] = SYSTEM_NAME;
 		index += 1;
 	}
 	let mut named = 0;
@@ -543,7 +572,7 @@ const fn names<K: Kind, const COUNT: usize>() -> [&'static str; COUNT] {
 		named += 1;
 	}
 	if K::TAKES_CANDY {
-		names[index] = "candy";
+		names[index] = CANDY_NAME;
 		index += 1;
 	}
 	assert!(index == COUNT, "every name of the kind has its slot");
@@ -613,29 +642,14 @@ impl<K: Kind> Color<K> {
 
 	/// Looks up a color of this kind by its name, case insensitively
 	///
-	/// `system` and `candy` are names only where the kind takes them,
+	/// `system` and `candy` are names only where the kind takes them, `grey` spells `gray` too,
 	/// hex values are not names: they go through [`Rgb::from_hex`]
 	pub fn from_name(name: &str) -> Option<Self> {
 		let value = match name.to_ascii_lowercase().as_str() {
-			"system" if K::TAKES_SYSTEM => Value::System,
-			"black" => Value::Black,
-			"red" => Value::Red,
-			"green" => Value::Green,
-			"yellow" => Value::Yellow,
-			"blue" => Value::Blue,
-			"magenta" => Value::Magenta,
-			"cyan" => Value::Cyan,
-			"white" => Value::White,
-			"gray" | "grey" => Value::Gray,
-			"redbright" => Value::RedBright,
-			"greenbright" => Value::GreenBright,
-			"yellowbright" => Value::YellowBright,
-			"bluebright" => Value::BlueBright,
-			"magentabright" => Value::MagentaBright,
-			"cyanbright" => Value::CyanBright,
-			"whitebright" => Value::WhiteBright,
-			"candy" if K::TAKES_CANDY => Value::Candy,
-			_ => return None,
+			SYSTEM_NAME if K::TAKES_SYSTEM => Value::System,
+			"grey" => Value::Gray,
+			CANDY_NAME if K::TAKES_CANDY => Value::Candy,
+			named => named_value(named)?,
 		};
 
 		Some(Self::new(value))
@@ -1331,6 +1345,30 @@ mod tests {
 		assert_eq!(Color::<Text>::NAMES[17], "candy");
 		assert_eq!(Color::<Background>::NAMES, Color::<Text>::NAMES[..17]);
 		assert_eq!(Color::<Gradient>::NAMES, Color::<Text>::NAMES[1..17]);
+	}
+
+	/// The vocabulary as `(value, name)` pairs in list order, the shape the text names and the parser are checked against
+	macro_rules! vocabulary_pairs {
+		(
+			system: [$system:ident => $system_name:literal],
+			named: [$($variant:ident => $name:literal),* $(,)?],
+			candy: [$candy:ident => $candy_name:literal] $(,)?
+		) => {
+			[(Value::$system, $system_name), $((Value::$variant, $name),)* (Value::$candy, $candy_name)]
+		};
+	}
+
+	#[test]
+	fn the_text_names_and_their_values_are_the_one_vocabulary_in_its_order() {
+		// the kinds assemble their names from the list's three groups and from_name reads the two slot only names from
+		// the list's constants and the sixteen through its lookup, so both are held to the list: the text names are its
+		// pairs in its order and every name parses to its own variant
+		let pairs = named_colors!(vocabulary_pairs);
+
+		assert_eq!(pairs.map(|(_, name)| name), Color::<Text>::NAMES);
+		for (value, name) in pairs {
+			assert_eq!(Color::<Text>::from_name(name).map(|color| color.value), Some(value), "{name}");
+		}
 	}
 
 	// Color::from_name

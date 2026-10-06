@@ -1,4 +1,4 @@
-use js_sys::{Error, Function, JSON, Object, RangeError, Reflect, TypeError};
+use js_sys::{Array, Error, Function, JSON, Object, RangeError, Reflect, TypeError};
 use tsify::Ts;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_test::wasm_bindgen_test;
@@ -58,6 +58,40 @@ fn is_type_error(refused: Result<(), JsValue>) -> bool {
 	refused.expect_err("the call is refused").is_instance_of::<TypeError>()
 }
 
+/// Asserts that unseeded draws differ among themselves, the freshness check of a roll without a seam into the
+/// entropy source: a seed is a u32 and a candy render of "AB" makes six picks from eleven colors, so eight draws
+/// agree only at 2^-224 or 11^-42, bounds no run meets
+fn assert_fresh<T: PartialEq>(mut draw: impl FnMut() -> T) {
+	let first = draw();
+
+	assert!((1..8).any(|_| draw() != first), "all draws agree");
+}
+
+/// An object whose getters answer the given values and count their reads, with the counts beside it
+///
+/// A getter is defined for every key listed, a key without a value answers `undefined` the way an absent member does
+fn counting(keys: &[&str], values: &str) -> (JsValue, JsValue) {
+	let keys: Array = keys.iter().map(|key| JsValue::from_str(key)).collect();
+	let pair = Function::new_with_args(
+		"keys, values",
+		concat!(
+			"const counts = {}; const object = {}; ",
+			"for (const key of keys) { counts[key] = 0; ",
+			"Object.defineProperty(object, key, { enumerable: true, get() { counts[key] += 1; return values[key] } }) } ",
+			"return [object, counts]"
+		),
+	)
+	.call2(&JsValue::UNDEFINED, &keys, &js(values))
+	.expect("the test builds the object");
+
+	(Reflect::get_u32(&pair, 0).expect("the object"), Reflect::get_u32(&pair, 1).expect("the counts"))
+}
+
+/// The read count of one member of a counting object
+fn reads(counts: &JsValue, key: &str) -> f64 {
+	Reflect::get(counts, &JsValue::from_str(key)).expect("a count").as_f64().expect("a number")
+}
+
 /// The same render through the core directly, the boundary's oracle
 fn render_core(environment: EnvironmentKind, canvas_width: Option<usize>) -> String {
 	let options: Options = CoreCfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
@@ -80,17 +114,29 @@ fn wrapping_banner() -> Cfonts {
 	banner
 }
 
-/// The terminal facts of a darwin terminal, the way the Node host gathers them
+/// A lookup over the given variables, the function member of the terminal facts
+fn lookup(variables: &[(&str, &str)]) -> JsValue {
+	let entries: Array =
+		variables.iter().map(|(name, value)| Array::of2(&JsValue::from_str(name), &JsValue::from_str(value))).collect();
+
+	Function::new_with_args("entries", "const variables = new Map(entries); return (name) => variables.get(name)")
+		.call1(&JsValue::UNDEFINED, &entries)
+		.expect("the test builds the lookup")
+}
+
+/// Terminal facts spelled as JSON with a lookup over the given variables attached, JSON carries no function
+fn facts(json: &str, variables: &[(&str, &str)]) -> JsValue {
+	let facts = js(json);
+	Reflect::set(&facts, &JsValue::from_str("environment"), &lookup(variables)).expect("an object takes a member");
+
+	facts
+}
+
+/// The terminal facts of a darwin terminal, the way the Node host gathers them, the variables behind the lookup
 fn terminal(stdout: Option<u32>, variables: &[(&str, &str)]) -> JsValue {
-	let names: Vec<String> = variables.iter().map(|(name, _)| format!("{name:?}")).collect();
-	let values: Vec<String> = variables.iter().map(|(_, value)| format!("{value:?}")).collect();
 	let stdout = stdout.map_or(String::new(), |columns| format!("\"stdoutColumns\": {columns}, "));
 
-	js(&format!(
-		"{{ {stdout}\"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\", \"names\": [{}], \"values\": [{}] }}",
-		names.join(", "),
-		values.join(", ")
-	))
+	facts(&format!("{{ {stdout}\"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\" }}"), variables)
 }
 
 #[wasm_bindgen_test]
@@ -470,6 +516,171 @@ fn a_throwing_getter_or_trap_surfaces_as_the_consumers_own_exception() {
 }
 
 #[wasm_bindgen_test]
+fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_builder_usable() {
+	let mut banner = text("A");
+	let thrown = RangeError::new("the consumer's own");
+	let throwing = |body: &str| {
+		Function::new_with_args("error", body).call1(&JsValue::UNDEFINED, &thrown).expect("the test builds the value")
+	};
+	let mut plain = text("A");
+	plain.font("tiny".into()).expect("a font name");
+	let expected = rendered(plain.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text;
+
+	// a list whose getter or proxy trap throws while its length or an index is read
+	let lists = [
+		"return Object.defineProperty([2, 5], '0', { get() { throw error } })",
+		"return new Proxy([2, 5], { get() { throw error } })",
+		"return new Proxy([2, 5], { get() { throw error }, has() { throw error }, ownKeys() { throw error } })",
+	];
+	for list in lists {
+		let transition = format!("const list = (() => {{ {list} }})(); return {{ transition: list }}");
+
+		// the exception is the consumer's own object, not a copy
+		assert_eq!(banner.colors(throwing(list)).expect_err("the list throws"), JsValue::from(thrown.clone()));
+		assert_eq!(banner.global_colors(throwing(list)).expect_err("the list throws"), JsValue::from(thrown.clone()));
+		assert_eq!(banner.colors(throwing(&transition)).expect_err("the list throws"), JsValue::from(thrown.clone()));
+		assert_eq!(
+			banner.global_colors(throwing(&transition)).expect_err("the list throws"),
+			JsValue::from(thrown.clone())
+		);
+		assert_eq!(banner.background(throwing(&transition)).expect_err("the list throws"), JsValue::from(thrown.clone()));
+
+		// the exception crosses as a result, so the borrow of the builder releases and it keeps taking settings
+		banner.font("tiny".into()).expect("a font name");
+		assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+	}
+
+	// the iterator of a list is never invoked, so a throwing one changes nothing
+	let iterator = "return Object.defineProperty([2, 5], Symbol.iterator, { value() { throw error } })";
+	let transition = format!("const list = (() => {{ {iterator} }})(); return {{ transition: list }}");
+	banner.colors(throwing(iterator)).expect("the iterator is not invoked");
+	banner.colors(throwing(&transition)).expect("the iterator is not invoked");
+	text("A").global_colors(throwing(iterator)).expect("the iterator is not invoked");
+	text("A").background(throwing(&transition)).expect("the iterator is not invoked");
+	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+
+	// a proxy answering no number for its length reads as zero entries, no index is read and the string "2"
+	// is not read as two, so a transition over it holds zero stops
+	let triple = Function::new_no_args(concat!(
+		"const reads = { index: 0 }; ",
+		"const list = new Proxy([2, 5], { get(target, key, receiver) { ",
+		"if (key === 'length') { return '2' } ",
+		"if (typeof key === 'string') { reads.index += 1 } ",
+		"return Reflect.get(target, key, receiver) } }); ",
+		"return [list, { transition: list }, reads]"
+	))
+	.call0(&JsValue::UNDEFINED)
+	.expect("the test builds the list");
+	let unnumbered = Reflect::get_u32(&triple, 0).expect("the list");
+	let transition = Reflect::get_u32(&triple, 1).expect("the transition");
+	let counts = Reflect::get_u32(&triple, 2).expect("the counts");
+	banner.colors(unnumbered).expect("zero entries are a list");
+	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+	assert_eq!(message(banner.colors(transition)), "A transition gradient holds at least two stops, this one holds 0");
+	assert_eq!(reads(&counts, "index"), 0.0);
+
+	// a revoked proxy makes `Array.isArray` itself throw, the engine's `TypeError` crosses the same way
+	let revoked = "const { proxy, revoke } = Proxy.revocable([2, 5], {}); revoke(); return proxy";
+	assert!(banner.colors(throwing(revoked)).expect_err("the revoked proxy throws").is_instance_of::<TypeError>());
+	assert!(
+		banner
+			.render(throwing(revoked), EnvironmentKind::Cli, false)
+			.map(|_| ())
+			.expect_err("the revoked proxy throws")
+			.is_instance_of::<TypeError>()
+	);
+	banner.font("tiny".into()).expect("a font name");
+	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+}
+
+#[wasm_bindgen_test]
+fn a_throwing_lookup_crosses_as_the_consumers_own_exception_once_and_leaves_the_host_usable() {
+	let mut banner = text("A");
+	banner.font("tiny".into()).expect("a font name");
+	let thrown = RangeError::new("the consumer's own");
+	let host = NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
+	let expected = rendered(host.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text;
+	// terminal facts whose lookup throws at every call and counts its calls beside the facts
+	let pair = Function::new_with_args(
+		"error",
+		concat!(
+			"const counts = { calls: 0 }; ",
+			"const facts = { attached: true, platform: 'darwin', release: '25.6.0', ",
+			"environment: () => { counts.calls += 1; throw error } }; ",
+			"return [facts, counts]"
+		),
+	)
+	.call1(&JsValue::UNDEFINED, &thrown)
+	.expect("the test builds the facts");
+	let facts = Reflect::get_u32(&pair, 0).expect("the facts");
+	let counts = Reflect::get_u32(&pair, 1).expect("the counts");
+
+	// the render returns the very exception in place of an artifact resolved over facts the lookup failed to answer,
+	// and asks for no name after the first failure
+	assert_eq!(
+		host.render(&banner, EnvironmentKind::Cli, false, facts).map(|_| ()).expect_err("the lookup throws"),
+		JsValue::from(thrown)
+	);
+	assert_eq!(reads(&counts, "calls"), 1.0);
+
+	// the exception crosses as a result, so the host and the builder keep working, the padding rows go
+	assert_eq!(rendered(host.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text, expected);
+	banner.spaceless().expect("first spaceless call");
+	assert_eq!(
+		rendered(host.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text,
+		expected.trim_matches('\n')
+	);
+}
+
+#[wasm_bindgen_test]
+fn colors_and_background_read_every_member_of_an_object_once() {
+	const GRADIENT: [&str; 4] = ["preset", "start", "end", "transition"];
+	const CHANNELS: [&str; 3] = ["red", "green", "blue"];
+	let shapes =
+		["{ \"preset\": 0 }", "{ \"start\": \"red\", \"end\": \"blue\" }", "{ \"transition\": [\"red\", \"blue\"] }"];
+
+	// a gradient shape, read by the colors reader and by the background reader
+	for shape in shapes {
+		let (object, counts) = counting(&GRADIENT, shape);
+		text("A").colors(object).expect("a gradient shape");
+		for key in GRADIENT {
+			assert_eq!(reads(&counts, key), 1.0, "colors({shape}) reads {key}");
+		}
+
+		let (object, counts) = counting(&GRADIENT, shape);
+		text("A").background(object).expect("a gradient shape");
+		for key in GRADIENT {
+			assert_eq!(reads(&counts, key), 1.0, "background({shape}) reads {key}");
+		}
+	}
+
+	// channels as a background, where the four gradient members are read to tell the shapes apart
+	let all: Vec<&str> = CHANNELS.iter().chain(GRADIENT.iter()).copied().collect();
+	let (object, counts) = counting(&all, "{ \"red\": 1, \"green\": 2, \"blue\": 3 }");
+	text("A").background(object).expect("channel values");
+	for key in all {
+		assert_eq!(reads(&counts, key), 1.0, "background(channels) reads {key}");
+	}
+
+	// channels in a slot list, as a stop and in a transition
+	let wrap = |body: &str, object: &JsValue| {
+		Function::new_with_args("object", body).call1(&JsValue::UNDEFINED, object).expect("the test builds the value")
+	};
+	for (place, body) in [
+		("a slot", "return [object]"),
+		("a start", "return { start: object, end: 'blue' }"),
+		("an end", "return { start: 'red', end: object }"),
+		("a transition stop", "return { transition: [object, 'blue'] }"),
+	] {
+		let (object, counts) = counting(&CHANNELS, "{ \"red\": 1, \"green\": 2, \"blue\": 3 }");
+		text("A").colors(wrap(body, &object)).expect("channel values");
+		for key in CHANNELS {
+			assert_eq!(reads(&counts, key), 1.0, "colors with channels as {place} reads {key}");
+		}
+	}
+}
+
+#[wasm_bindgen_test]
 fn the_global_color_can_be_configured_once_across_all_shapes() {
 	let mut banner = text("A");
 
@@ -837,8 +1048,9 @@ fn hex_values_convert_into_frozen_channel_values() {
 
 #[wasm_bindgen_test]
 fn the_color_values_list_the_text_names_in_the_core_order() {
-	// JavaScript picks a Color by its number and the boundary resolves it through the core's text names,
-	// so the two lists agree only while the orders match, system first and candy last
+	// JavaScript picks a Color by its number and the boundary resolves it through the core's text names, the enum
+	// expands from the core's list so the orders cannot drift apart, what can is the literal beside an identifier in
+	// that list, which the All derive's lowercased identifiers hold to the core's names
 	assert_eq!(Color::NAMES, CoreColor::<Text>::NAMES);
 }
 
@@ -936,17 +1148,20 @@ fn the_page_host_rolls_a_fresh_seed_unless_one_is_pinned() {
 	banner.font("tiny".into()).expect("a font name");
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 	let pinned = BrowserHost::from_overrides(overrides(None, None, Some(42))).expect("valid overrides");
+	let other = BrowserHost::from_overrides(overrides(None, None, Some(43))).expect("valid overrides");
 	let rolling = BrowserHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 
 	assert_eq!(
 		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text,
 		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text
 	);
+	// the pair is fixed because the core's roll is deterministic per seed: 42 and 43 draw different assortments
 	assert_ne!(
-		rendered(rolling.render(&banner, EnvironmentKind::Cli, false)).text,
-		rendered(rolling.render(&banner, EnvironmentKind::Cli, false)).text
+		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text,
+		rendered(other.render(&banner, EnvironmentKind::Cli, false)).text
 	);
-	assert_ne!(entropy(), entropy());
+	assert_fresh(|| rendered(rolling.render(&banner, EnvironmentKind::Cli, false)).text);
+	assert_fresh(entropy);
 }
 
 #[wasm_bindgen_test]
@@ -998,8 +1213,9 @@ fn the_node_host_resolves_the_width_from_the_terminal_facts() {
 	assert_eq!(
 		width(
 			&detecting,
-			js(
-				"{ \"stdoutColumns\": 0, \"stderrColumns\": 13, \"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\", \"names\": [], \"values\": [] }"
+			facts(
+				"{ \"stdoutColumns\": 0, \"stderrColumns\": 13, \"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\" }",
+				&[]
 			)
 		),
 		narrow
@@ -1028,6 +1244,15 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 	);
 	assert_eq!(level(terminal(Some(80), &[("TERM", "ansi")])), reference(Some(ColorLevel::Basic)));
 
+	// an answer that is no string reads as absent, NO_COLOR answered as a number silences nothing
+	let numeric = Function::new_no_args(concat!(
+		"return { stdoutColumns: 80, attached: true, platform: 'darwin', release: '25.6.0', ",
+		"environment: (name) => name === 'NO_COLOR' ? 1 : undefined }"
+	))
+	.call0(&JsValue::UNDEFINED)
+	.expect("the test builds the facts");
+	assert_eq!(level(numeric), reference(Some(ColorLevel::TrueColor)));
+
 	// a disabled override paints nothing, FORCE_COLOR still wins over it
 	let disabled = NodeHost::from_overrides(js("{ \"canvasWidth\": 0, \"color\": false }")).expect("valid overrides");
 	assert_eq!(
@@ -1041,15 +1266,17 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 
 	// the windows console answers by the build of its release
 	let windows = |release: &str| {
-		level(js(&format!(
-			"{{ \"stdoutColumns\": 80, \"attached\": true, \"platform\": \"win32\", \"release\": {release:?}, \"names\": [], \"values\": [] }}"
-		)))
+		level(facts(
+			&format!("{{ \"stdoutColumns\": 80, \"attached\": true, \"platform\": \"win32\", \"release\": {release:?} }}"),
+			&[],
+		))
 	};
 	assert_eq!(windows("10.0.22631"), reference(Some(ColorLevel::TrueColor)));
 	assert_eq!(windows("10.0.10586"), reference(Some(ColorLevel::Ansi256)));
 	assert_eq!(windows("6.3.9600"), reference(Some(ColorLevel::Basic)));
 
-	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type
+	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type,
+	// a lookup that is no function with the sentence of the facts
 	let refused = |facts: JsValue| message(unlimited.render(&banner, EnvironmentKind::Cli, false, facts).map(|_| ()));
 	for facts in [JsValue::NULL, 1.into(), js("[]")] {
 		assert_eq!(refused(facts), "`render()` expects the terminal facts");
@@ -1057,16 +1284,12 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 	assert_eq!(refused(js("{}")), "`render()` expects a boolean");
 	assert_eq!(refused(js("{ \"stdoutColumns\": -1 }")), "`render()` expects an unsigned 32-bit integer");
 	assert_eq!(refused(js("{ \"attached\": true, \"platform\": 1 }")), "`render()` expects a string");
-	assert_eq!(
-		refused(js("{ \"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\", \"names\": \"TERM\" }")),
-		"`render()` expects an array of strings"
-	);
-	assert_eq!(
-		refused(js(
-			"{ \"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\", \"names\": [1], \"values\": [] }"
-		)),
-		"`render()` expects a string"
-	);
+	for environment in ["", ", \"environment\": \"TERM\"", ", \"environment\": [\"TERM\"]", ", \"environment\": {}"] {
+		assert_eq!(
+			refused(js(&format!("{{ \"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\"{environment} }}"))),
+			"`render()` expects the terminal facts"
+		);
+	}
 }
 
 #[wasm_bindgen_test]
@@ -1076,16 +1299,19 @@ fn the_node_host_seeds_candy_from_the_override_or_a_fresh_roll() {
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 	let facts = || terminal(Some(80), &[("FORCE_COLOR", "3")]);
 	let pinned = NodeHost::from_overrides(overrides(None, None, Some(42))).expect("valid overrides");
+	let other = NodeHost::from_overrides(overrides(None, None, Some(43))).expect("valid overrides");
 	let rolling = NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 
 	assert_eq!(
 		rendered(pinned.render(&banner, EnvironmentKind::Cli, false, facts())).text,
 		rendered(pinned.render(&banner, EnvironmentKind::Cli, false, facts())).text
 	);
+	// the pair is fixed because the core's roll is deterministic per seed: 42 and 43 draw different assortments
 	assert_ne!(
-		rendered(rolling.render(&banner, EnvironmentKind::Cli, false, facts())).text,
-		rendered(rolling.render(&banner, EnvironmentKind::Cli, false, facts())).text
+		rendered(pinned.render(&banner, EnvironmentKind::Cli, false, facts())).text,
+		rendered(other.render(&banner, EnvironmentKind::Cli, false, facts())).text
 	);
+	assert_fresh(|| rendered(rolling.render(&banner, EnvironmentKind::Cli, false, facts())).text);
 }
 
 #[wasm_bindgen_test]

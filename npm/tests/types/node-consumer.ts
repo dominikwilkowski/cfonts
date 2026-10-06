@@ -84,6 +84,13 @@ colorful.colors({ transition: [Color.Red, Color.Gray, Rgb.fromHex("#8899dd")] })
 const channels: Rgb = Rgb.fromHex("#ff8800");
 const structural: { red: number; green: number; blue: number } = channels;
 console.log(structural.red);
+
+// the parsed channels are frozen and the declaration says so, the value still goes everywhere an Rgb goes
+const rgb: Rgb = Rgb.fromHex("#f80");
+colorful.colors([rgb]).colors({ start: rgb, end: Color.Blue }).background(rgb);
+// @ts-expect-error the channels of Rgb.fromHex are frozen
+Rgb.fromHex("#f80").red = 1;
+
 colorful.colors({ preset: GradientPreset.Lesbian });
 colorful.render(host, CliEnv);
 
@@ -155,6 +162,31 @@ colorful.colors({ transition: [Color.Red] });
 
 // @ts-expect-error the independent flag is a builder setting, not a gradient field
 colorful.colors({ start: Color.Red, end: Color.Blue, independentGradient: true });
+
+// every single gradient shape and the channel shape compile, two shapes in one object do not
+colorful.colors({ preset: GradientPreset.Pride }).colors({ start: Color.Red, end: Color.Blue });
+colorful.colors({ transition: [Color.Red, Color.Blue] }).background({ red: 1, green: 2, blue: 3 });
+// @ts-expect-error a preset beside a start and an end is two gradient shapes
+colorful.colors({ preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue });
+// @ts-expect-error a preset beside a transition is two gradient shapes
+colorful.colors({ transition: [Color.Red, Color.Blue], preset: GradientPreset.Pride });
+// @ts-expect-error channels beside a preset are two background shapes
+Cfonts.text("banded").background({ red: 1, green: 2, blue: 3, preset: GradientPreset.Pride });
+
+// a value spelling two shapes is refused like the literal, through the never members alone
+const presetAndStops = { preset: GradientPreset.Pride, start: Color.Red, end: Color.Blue } as const;
+const channelsAndPreset = { red: 1, green: 2, blue: 3, preset: GradientPreset.Pride } as const;
+// @ts-expect-error a preset beside a start and an end is two gradient shapes
+colorful.colors(presetAndStops);
+// @ts-expect-error channels beside a preset are two background shapes
+Cfonts.text("banded").background(channelsAndPreset);
+
+// a stored shape narrows by its member, every shape declares every key so `in` keeps every shape
+const storedGradient: GradientOption = { preset: GradientPreset.Pride };
+if (storedGradient.preset !== undefined) {
+	const narrowed: GradientPreset = storedGradient.preset;
+	console.log(narrowed);
+}
 
 // readonly color lists are accepted: the methods only read them
 const readonlyColors = [Color.Red, "#ff8800", { red: 1, green: 2, blue: 3 }] as const;

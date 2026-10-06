@@ -503,7 +503,7 @@ mod tests {
 
 		assert_eq!(
 			rendered.text,
-			r#"<div style="font-family:monospace;white-space:pre;text-align:left;max-width:100%;overflow:scroll">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
+			r#"<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">▄▀█<br>█▀█<br>▄▀█<br>█▀█</div>"#,
 		);
 	}
 

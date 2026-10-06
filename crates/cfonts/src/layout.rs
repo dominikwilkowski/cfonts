@@ -247,6 +247,8 @@ impl<'a> Layout<'a> {
 		// Now we iterate each character in this block
 		for ch in block.text().chars() {
 			// `|` forces a logical line break, including empty lines
+			// The line flushes without the font's buffer_end:
+			// a slanted font keeps its staircase of trailing spaces here, which nothing but a band drawn cell by cell can show
 			if ch == NEW_LINE_CHAR {
 				self.commit_block();
 				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
@@ -285,7 +287,8 @@ impl<'a> Layout<'a> {
 			return;
 		}
 
-		// Close the block with its buffer_end, mirroring the buffer_start that opened it, so lines ending in a slanted font keep uniform row widths
+		// Close the block with its buffer_end, mirroring the buffer_start that opened it,
+		// so a block that follows on the same line starts at one column on every row
 		self.push_glyph(LayoutGlyph {
 			glyph: GlyphRef {
 				rows: font.buffer_end().rows,
@@ -690,8 +693,9 @@ mod tests {
 	}
 
 	#[test]
-	fn lines_ending_in_a_slanted_font_square_off_their_actual_columns() {
-		// the closing buffer_end must square the line off, or align would shear the slant
+	fn a_block_ending_in_a_slanted_font_squares_off_its_actual_columns() {
+		// the closing buffer_end squares the block off, so its actual columns equal its nominal width on every row
+		// (align never depends on this, its offset is one per line from the nominal width)
 		let options = options(Valign::Top, None, vec![block("X", Font::Font3D, false)]);
 		let layout = Layout::build(&options, None);
 

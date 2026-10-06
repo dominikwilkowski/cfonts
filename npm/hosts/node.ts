@@ -77,7 +77,9 @@ export class NodeHost implements Host {
 	/**
 	 * The facts of the process the resolution reads, gathered at every render so a resized terminal is seen
 	 *
-	 * Node keeps every variable a string, the index signature of `process.env` alone says otherwise
+	 * A variable is read through `process.env` itself at the moment the resolution asks for it, so the lookup
+	 * carries Node's own rule, case insensitive on a Windows main thread and exact elsewhere, and no name list
+	 * lives here
 	 */
 	#terminal(): Terminal {
 		return {
@@ -86,8 +88,7 @@ export class NodeHost implements Host {
 			attached: process.stdout.isTTY === true,
 			platform: process.platform,
 			release: release(),
-			names: Object.keys(process.env),
-			values: Object.values(process.env) as string[],
+			environment: (name) => process.env[name],
 		};
 	}
 }

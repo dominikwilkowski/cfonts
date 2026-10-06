@@ -1,6 +1,7 @@
 import {
 	Align,
 	alignNames,
+	type BackgroundChannels,
 	type BackgroundColor,
 	type BackgroundOption,
 	backgroundColorNames,
@@ -33,6 +34,7 @@ import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, environmentArg
 import type { Host } from "./hosts/types.js";
 
 export type {
+	BackgroundChannels,
 	BackgroundColor,
 	BackgroundOption,
 	ColorOption,

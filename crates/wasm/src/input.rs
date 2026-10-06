@@ -4,25 +4,29 @@
 //! and refuse a wrong shape with a `TypeError` that names the method,
 //! a value the core refuses carries the core's own sentence as a plain `Error`
 
-use std::str::FromStr;
+use std::{convert::Infallible, str::FromStr};
 
-use js_sys::{Array, Reflect, TypeError};
+use js_sys::{Function, Reflect, TypeError};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	BackgroundOption as CoreBackgroundOption, Color as CoreColor, ColorError, ColorLevel, ColorOption as CoreColorOption,
-	ColorOverride, Gradient, GradientOption as CoreGradientOption, GradientPreset,
+	Background, BackgroundOption as CoreBackgroundOption, Color as CoreColor, ColorError, ColorLevel,
+	ColorOption as CoreColorOption, ColorOverride, Gradient, GradientOption as CoreGradientOption, GradientPreset, Kind,
 	RenderOverrides as CoreRenderOverrides, Rgb as CoreRgb, Text, TransitionStops,
 };
 
-use crate::{host::Terminal, types::color_error};
+use crate::{
+	host::{Lookup, Terminal},
+	types::color_error,
+};
 
 /// The names TypeScript holds for the colors each place takes, emitted into the declaration so TypeScript holds
 /// no color, override or terminal types of its own
 ///
 /// `Color.System` has no color to blend and `Color.Candy` rolls per segment, so neither is a gradient color,
-/// and candy cannot fill a row, so it is no background color, the core refuses the same values at runtime
+/// and candy cannot fill a row, so it is no background color, the core refuses the same values at runtime,
+/// the channel shape of a background carries no gradient member, the way the gradient shapes carry no channel
 #[wasm_bindgen(typescript_custom_section)]
 const COLOR_PLACE_TYPES: &str = r#"
 /**
@@ -33,11 +37,20 @@ const COLOR_PLACE_TYPES: &str = r#"
 export type GradientColor = Exclude<Color, Color.System | Color.Candy> | string | Rgb;
 
 /**
+ * Channel values as a background, with no gradient member beside them
+ *
+ * A `red` key spells channels and a gradient member spells a gradient, one object spells one of the two,
+ * the `never` members refuse the other at compile time where the reader refuses it at runtime, and a stored
+ * background narrows to channels by `background.red !== undefined`, `"red" in background` narrows nothing
+ */
+export type BackgroundChannels = Rgb & { preset?: never; start?: never; end?: never; transition?: never };
+
+/**
  * One background color: any named `Color` but Candy, a name, a hex value, or channel values
  *
  * Candy rolls per segment and cannot fill a row, System paints nothing
  */
-export type BackgroundColor = Exclude<Color, Color.Candy> | string | Rgb;
+export type BackgroundColor = Exclude<Color, Color.Candy> | string | BackgroundChannels;
 
 /**
  * Two or more gradient colors, with the minimum count part of the type
@@ -67,32 +80,66 @@ pub enum TextColor {
 }
 
 /// A bundled preset, the enum's number at runtime and its TypeScript name in the types
+///
+/// The members of the other gradient shapes and `red`, the key that spells channels, are declared `never`,
+/// so an object spelling a second shape fails to type check where the readers refuse it at runtime,
+/// the struct is a declaration and is never deserialized, so the Rust types of those members carry nothing
 #[derive(Tsify)]
 pub struct Preset {
 	#[tsify(type = "GradientPreset")]
 	pub preset: u32,
+	#[tsify(optional, type = "never")]
+	pub start: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub end: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub transition: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub red: Option<Infallible>,
 }
 
 /// A gradient between two colors
+///
+/// The members of the other gradient shapes and `red` are declared `never`, the way `Preset` declares them
 #[derive(Tsify)]
 pub struct TwoStop {
 	#[tsify(type = "GradientColor")]
 	pub start: TextColor,
 	#[tsify(type = "GradientColor")]
 	pub end: TextColor,
+	#[tsify(optional, type = "never")]
+	pub preset: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub transition: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub red: Option<Infallible>,
 }
 
 /// A transition across two or more colors
+///
+/// The members of the other gradient shapes and `red` are declared `never`, the way `Preset` declares them
 #[derive(Tsify)]
 pub struct Transition {
 	#[tsify(type = "TransitionStops")]
 	pub transition: Vec<TextColor>,
+	#[tsify(optional, type = "never")]
+	pub preset: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub start: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub end: Option<Infallible>,
+	#[tsify(optional, type = "never")]
+	pub red: Option<Infallible>,
 }
 
 /// A gradient: a preset, two colors, or a transition across two or more colors
 ///
 /// A preset goes in its object form, `{ preset: GradientPreset.Pride }`, a bare enum value is a number
-/// and would read as a `Color`, exactly one shape is set and a member left `undefined` is no shape
+/// and would read as a `Color`, exactly one shape is set, each shape declares the members of the other two
+/// as `never` so a second shape fails to type check, and a member left `undefined` still reads as absent
+///
+/// A stored value narrows to its shape by its member, `gradient.preset !== undefined`, because every shape
+/// declares every key, so `"preset" in gradient` keeps every shape and narrows nothing
 #[derive(Tsify)]
 #[serde(untagged)]
 pub enum GradientOption {
@@ -151,6 +198,16 @@ pub struct RenderOverrides {
 	pub seed: Option<u32>,
 }
 
+#[wasm_bindgen]
+extern "C" {
+	/// `Array.isArray` as a `catch` import, the one array check of a consumer's value
+	///
+	/// The js-sys import is plain and the check throws on a revoked proxy,
+	/// `entries` states why every read of a consumer's value crosses through a `catch` import
+	#[wasm_bindgen(js_namespace = Array, js_name = isArray, catch)]
+	fn is_array(value: &JsValue) -> Result<bool, JsValue>;
+}
+
 /// The `TypeError` a wrong shape throws
 fn type_error(message: String) -> JsValue {
 	TypeError::new(&message).into()
@@ -162,6 +219,26 @@ fn type_error(message: String) -> JsValue {
 /// so it crosses back as it is instead of ending in a panic
 fn member(object: &JsValue, key: &str) -> Result<JsValue, JsValue> {
 	Reflect::get(object, &JsValue::from_str(key))
+}
+
+/// The entries of a consumer's array, the length and each index read through `Reflect.get`
+///
+/// Every read of a consumer's value crosses through a `catch` import, `Reflect.get`, `Reflect.has` and the
+/// `is_array` declared above, because a JavaScript exception crossing a Rust frame runs no destructors:
+/// a plain import that throws while a builder method holds its `&mut self` borrow leaves the borrow flag of
+/// the builder's cell set and every later call on that builder fails with wasm-bindgen's aliasing message,
+/// where a `catch` import hands the exception back as an `Err`, the `?` unwinds the frame the ordinary way,
+/// the borrow guard drops and the glue rethrows the consumer's own exception
+///
+/// The array's iterator is never invoked, so a getter, a proxy trap or a revoked proxy is the only consumer
+/// code a read runs, and a length that is no whole number within an array's range, as only a proxy answers,
+/// counts as zero
+fn entries(list: &JsValue) -> Result<Vec<JsValue>, JsValue> {
+	let length = whole_number(&member(list, "length")?)
+		.filter(|count| *count <= f64::from(u32::MAX))
+		.map_or(0, |count| count as u32);
+
+	(0..length).map(|index| Reflect::get_u32(list, index)).collect()
 }
 
 /// A non negative whole number, as JavaScript spells one
@@ -197,13 +274,18 @@ fn expect_bool(value: &JsValue, method: &str) -> Result<bool, JsValue> {
 	value.as_bool().ok_or_else(|| type_error(format!("`{method}()` expects a boolean")))
 }
 
-/// An array of strings, the shape the environment's names and values cross in
-fn expect_strings(value: &JsValue, method: &str) -> Result<Vec<String>, JsValue> {
-	if !Array::is_array(value) {
-		return Err(type_error(format!("`{method}()` expects an array of strings")));
+/// The lookup the terminal facts carry, the function JavaScript hands over, called per name through a `catch`
+/// import so an exception it throws comes back as the `Err`
+///
+/// A function member has no sentence of its type, anything else in its place is refused as the facts are,
+/// and an answer that is no string reads as absent, `process.env` holds nothing but strings
+fn expect_lookup(value: &JsValue, method: &str) -> Result<Lookup, JsValue> {
+	if !value.is_function() {
+		return Err(type_error(format!("`{method}()` expects the terminal facts")));
 	}
+	let function: Function = value.clone().unchecked_into();
 
-	Array::from(value).iter().map(|entry| expect_string(&entry, method)).collect()
+	Ok(Box::new(move |name| function.call1(&JsValue::UNDEFINED, &JsValue::from_str(name)).map(|value| value.as_string())))
 }
 
 /// A channel value, an integer between 0 and 255
@@ -282,53 +364,117 @@ fn background_shape_error(method: &str) -> JsValue {
 	))
 }
 
-/// Channel values as the hex spelling the core parses
-fn channels(object: &JsValue, method: &str) -> Result<String, JsValue> {
-	let rgb = CoreRgb {
+/// Channel values as the `Rgb` the core takes, read in red, green, blue order
+fn channels(object: &JsValue, method: &str) -> Result<CoreRgb, JsValue> {
+	Ok(CoreRgb {
 		red: expect_u8(&member(object, "red")?, method)?,
 		green: expect_u8(&member(object, "green")?, method)?,
 		blue: expect_u8(&member(object, "blue")?, method)?,
-	};
-
-	Ok(rgb.to_hex())
+	})
 }
 
-/// One color as the spelling the core parses: a `Color` value by its name, a string as it is, channels as hex
+/// One color as JavaScript spells it, its shape checked and its value left for the place it goes
+///
+/// A `Color` value is its name from the core's list, a string is the text as it is, and channel values
+/// are the `Rgb` the core takes, so no value crosses through a hex spelling and back
+enum Spelling {
+	Name(&'static str),
+	Text(String),
+	Channels(CoreRgb),
+}
+
+impl Spelling {
+	/// The color in the kind of its place
+	///
+	/// A name and a text parse through the core, so it keeps refusing system in a gradient and candy
+	/// in a background with its own sentence, channels convert through the core's `From<Rgb>`
+	fn color<K: Kind>(&self) -> Result<CoreColor<K>, JsValue> {
+		match self {
+			Self::Name(name) => parse(name),
+			Self::Text(text) => parse(text),
+			Self::Channels(rgb) => Ok(CoreColor::from(*rgb)),
+		}
+	}
+
+	/// The background one color spells
+	///
+	/// A name and a text parse as the command line spelling, so a comma list and candy carry the core's sentence
+	fn background(&self) -> Result<CoreBackgroundOption, JsValue> {
+		match self {
+			Self::Name(name) => parse(name),
+			Self::Text(text) => parse(text),
+			Self::Channels(rgb) => Ok(CoreColor::<Background>::from(*rgb).into()),
+		}
+	}
+}
+
+/// One color by its shape: a `Color` value as its name, a string as it is, an object as channels
 ///
 /// `shape_error` is the sentence of the place the color goes, a slot, a stop or the background
-fn spelling(value: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> Result<String, JsValue> {
+fn spelling(value: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> Result<Spelling, JsValue> {
 	if value.as_f64().is_some() {
-		return expect_variant(value, &CoreColor::<Text>::NAMES, method).map(str::to_owned);
+		return expect_variant(value, &CoreColor::<Text>::NAMES, method).map(Spelling::Name);
 	}
 
 	if let Some(text) = value.as_string() {
-		return Ok(text);
+		return Ok(Spelling::Text(text));
 	}
 
 	if !value.is_object() {
 		return Err(shape_error(method));
 	}
 
-	channels(value, method)
+	channels(value, method).map(Spelling::Channels)
 }
 
-/// The spellings of every entry of a list, the shape of every entry checked before any value is parsed
-fn spellings(list: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> Result<Vec<String>, JsValue> {
-	Array::from(list).iter().map(|entry| spelling(&entry, method, shape_error)).collect()
+/// The colors of a list in the kind of its place, the shape of every entry checked before any value is parsed
+fn list_colors<K: Kind>(
+	list: &JsValue,
+	method: &str,
+	shape_error: fn(&str) -> JsValue,
+) -> Result<Vec<CoreColor<K>>, JsValue> {
+	let spellings = entries(list)?
+		.iter()
+		.map(|entry| spelling(entry, method, shape_error))
+		.collect::<Result<Vec<Spelling>, JsValue>>()?;
+
+	spellings.iter().map(Spelling::color).collect()
 }
 
-/// The gradient one object spells, exactly one of the three shapes
+/// The four gradient members of one object, each read once and shared by every reader of the object
+struct GradientMembers {
+	preset: JsValue,
+	start: JsValue,
+	end: JsValue,
+	transition: JsValue,
+}
+
+impl GradientMembers {
+	/// Reads the members in their declared order, a getter of the consumer's object runs once
+	fn read(object: &JsValue) -> Result<Self, JsValue> {
+		Ok(Self {
+			preset: member(object, "preset")?,
+			start: member(object, "start")?,
+			end: member(object, "end")?,
+			transition: member(object, "transition")?,
+		})
+	}
+
+	/// Whether any member spells a gradient, a member left `undefined` is no shape
+	fn any_set(&self) -> bool {
+		[&self.preset, &self.start, &self.end, &self.transition].into_iter().any(|member| !member.is_undefined())
+	}
+}
+
+/// The gradient the members of one object spell, exactly one of the three shapes
 ///
 /// A member left `undefined` is no shape, so an object with absent members reads as its one set shape
-fn gradient(value: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> Result<CoreGradientOption, JsValue> {
-	if !value.is_object() {
-		return Err(shape_error(method));
-	}
-
-	let preset = member(value, "preset")?;
-	let start = member(value, "start")?;
-	let end = member(value, "end")?;
-	let transition = member(value, "transition")?;
+fn gradient(
+	members: &GradientMembers,
+	method: &str,
+	shape_error: fn(&str) -> JsValue,
+) -> Result<CoreGradientOption, JsValue> {
+	let GradientMembers { preset, start, end, transition } = members;
 	let shapes = [!preset.is_undefined(), !start.is_undefined() || !end.is_undefined(), !transition.is_undefined()]
 		.into_iter()
 		.filter(|set| *set)
@@ -338,11 +484,11 @@ fn gradient(value: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> 
 	}
 
 	if !preset.is_undefined() {
-		return Ok(expect_variant(&preset, &GradientPreset::ALL, method)?.into());
+		return Ok(expect_variant(preset, &GradientPreset::ALL, method)?.into());
 	}
 
 	if !transition.is_undefined() {
-		if !Array::is_array(&transition) {
+		if !is_array(transition)? {
 			return Err(type_error(format!(
 				concat!(
 					"`{method}()` expects transition stops as an array of two or more colors, ",
@@ -351,10 +497,7 @@ fn gradient(value: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> 
 				method = method
 			)));
 		}
-		let stops = spellings(&transition, method, stop_shape_error)?
-			.iter()
-			.map(|stop| parse::<CoreColor<Gradient>>(stop))
-			.collect::<Result<Vec<CoreColor<Gradient>>, JsValue>>()?;
+		let stops = list_colors::<Gradient>(transition, method, stop_shape_error)?;
 
 		return Ok(CoreGradientOption::Transition(
 			TransitionStops::try_from(stops).map_err(|error| JsError::new(&error.to_string()))?,
@@ -366,10 +509,10 @@ fn gradient(value: &JsValue, method: &str, shape_error: fn(&str) -> JsValue) -> 
 			"`{method}()` expects a gradient with both start and end, such as {{start: Color.Red, end: \"#8899dd\"}}"
 		)));
 	}
-	let start = spelling(&start, method, stop_shape_error)?;
-	let end = spelling(&end, method, stop_shape_error)?;
+	let start = spelling(start, method, stop_shape_error)?;
+	let end = spelling(end, method, stop_shape_error)?;
 
-	Ok(CoreGradientOption::TwoStop { start: parse(&start)?, end: parse(&end)? })
+	Ok(CoreGradientOption::TwoStop { start: start.color()?, end: end.color()? })
 }
 
 /// The colors one input spells: the command line spelling, one color per slot, or a gradient shape
@@ -378,43 +521,36 @@ pub(crate) fn colors(input: &JsValue, method: &str) -> Result<CoreColorOption, J
 		return parse(&text);
 	}
 
-	if Array::is_array(input) {
-		let colors = spellings(input, method, slot_shape_error)?
-			.iter()
-			.map(|color| parse::<CoreColor<Text>>(color))
-			.collect::<Result<Vec<CoreColor<Text>>, JsValue>>()?;
-
-		return Ok(CoreColorOption::Colors(colors));
+	if is_array(input)? {
+		return Ok(CoreColorOption::Colors(list_colors::<Text>(input, method, slot_shape_error)?));
 	}
 
-	gradient(input, method, colors_shape_error).map(CoreColorOption::Gradient)
+	if !input.is_object() {
+		return Err(colors_shape_error(method));
+	}
+
+	gradient(&GradientMembers::read(input)?, method, colors_shape_error).map(CoreColorOption::Gradient)
 }
 
 /// The background one input spells: one color as a `Color` value, the spelling or channel values, or a gradient shape
 pub(crate) fn background(input: &JsValue, method: &str) -> Result<CoreBackgroundOption, JsValue> {
-	if input.as_f64().is_some() || input.as_string().is_some() {
-		return parse(&spelling(input, method, background_shape_error)?);
-	}
-
+	// anything but an object is one color by its name or its spelling, or a wrong shape
 	if !input.is_object() {
-		return Err(background_shape_error(method));
+		return spelling(input, method, background_shape_error)?.background();
 	}
 
 	// a `red` key spells channels and a gradient member spells a gradient, one or the other
 	let channel_shape = Reflect::has(input, &JsValue::from_str("red"))?;
-	let mut gradient_shape = false;
-	for key in ["preset", "start", "end", "transition"] {
-		gradient_shape |= !member(input, key)?.is_undefined();
-	}
-	if channel_shape == gradient_shape {
+	let members = GradientMembers::read(input)?;
+	if channel_shape == members.any_set() {
 		return Err(background_shape_error(method));
 	}
 
 	if channel_shape {
-		return parse(&channels(input, method)?);
+		return spelling(input, method, background_shape_error)?.background();
 	}
 
-	gradient(input, method, background_shape_error).map(CoreBackgroundOption::Gradient)
+	gradient(&members, method, background_shape_error).map(CoreBackgroundOption::Gradient)
 }
 
 /// The overrides one object spells, a member left out leaves the decision to the host
@@ -426,7 +562,7 @@ pub(crate) fn overrides(input: &JsValue, method: &str) -> Result<CoreRenderOverr
 		return Ok(CoreRenderOverrides::default());
 	}
 
-	if !input.is_object() || Array::is_array(input) {
+	if !input.is_object() || is_array(input)? {
 		return Err(type_error(format!("`{method}()` expects an overrides object")));
 	}
 
@@ -453,9 +589,9 @@ pub(crate) fn overrides(input: &JsValue, method: &str) -> Result<CoreRenderOverr
 /// The terminal facts one object spells, the shape the Node host gathers per render
 ///
 /// The column counts are optional, a redirected stream measures none, every other member is read
-/// with the sentence of its type
+/// with the sentence of its type, the lookup with the sentence of the facts
 pub(crate) fn terminal(input: &JsValue, method: &str) -> Result<Terminal, JsValue> {
-	if !input.is_object() || Array::is_array(input) {
+	if !input.is_object() || is_array(input)? {
 		return Err(type_error(format!("`{method}()` expects the terminal facts")));
 	}
 
@@ -465,7 +601,6 @@ pub(crate) fn terminal(input: &JsValue, method: &str) -> Result<Terminal, JsValu
 		attached: expect_bool(&member(input, "attached")?, method)?,
 		platform: expect_string(&member(input, "platform")?, method)?,
 		release: expect_string(&member(input, "release")?, method)?,
-		names: expect_strings(&member(input, "names")?, method)?,
-		values: expect_strings(&member(input, "values")?, method)?,
+		environment: expect_lookup(&member(input, "environment")?, method)?,
 	})
 }

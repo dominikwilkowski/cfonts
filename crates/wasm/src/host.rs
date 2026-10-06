@@ -1,7 +1,7 @@
 //! The two hosts of the npm package behind the boundary: the decisions run here, TypeScript gathers the facts
 //! a page or a Node process alone can read and keeps the one write to its own stream or console
 
-use std::{convert::Infallible, num::NonZeroUsize};
+use std::{cell::OnceCell, convert::Infallible, num::NonZeroUsize};
 
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
@@ -65,12 +65,20 @@ impl BrowserHost {
 	}
 }
 
+/// One lookup of an environment variable by its name, absent where the variable is unset
+///
+/// JavaScript hands the resolution a function it calls per name, so a variable is read through Node's own
+/// property read on `process.env` and carries the runtime's rule on every platform, case insensitive on a
+/// Windows main thread and exact elsewhere, while the names the resolution asks for live in the core alone,
+/// the native tests hand a map, and an exception the function throws is the `Err`
+pub(crate) type Lookup = Box<dyn Fn(&str) -> Result<Option<String>, JsValue>>;
+
 /// The terminal facts a Node process alone can read, gathered by TypeScript per render and crossed as one object
 ///
-/// The column counts are the streams' own, absent where a stream is redirected, the environment crosses whole
-/// as parallel name and value arrays so the resolution reads `FORCE_SIZE`, `FORCE_COLOR`, `NO_COLOR` and the
-/// detection variables here
-#[derive(Debug, Tsify)]
+/// The column counts are the streams' own, absent where a stream is redirected, the environment crosses as a
+/// lookup the resolution calls per name, so `FORCE_SIZE`, `FORCE_COLOR`, `NO_COLOR` and the detection variables
+/// are read here, each through the runtime's own property read at the moment of the render
+#[derive(Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct Terminal {
 	#[tsify(optional)]
@@ -80,8 +88,8 @@ pub struct Terminal {
 	pub attached: bool,
 	pub platform: String,
 	pub release: String,
-	pub names: Vec<String>,
-	pub values: Vec<String>,
+	#[tsify(type = "(name: string) => string | undefined")]
+	pub environment: Lookup,
 }
 
 impl Terminal {
@@ -104,13 +112,6 @@ impl Terminal {
 			ansi_enabled: true,
 			build: self.release.split('.').nth(2).and_then(|build| build.parse().ok()).unwrap_or(0),
 		})
-	}
-
-	/// A lookup over the parallel name and value arrays
-	fn environment(&self) -> impl Fn(&str) -> Option<String> + '_ {
-		move |name: &str| {
-			self.names.iter().position(|candidate| candidate == name).and_then(|index| self.values.get(index).cloned())
-		}
 	}
 }
 
@@ -146,9 +147,15 @@ impl NodeHost {
 		#[wasm_bindgen(unchecked_param_type = "Terminal")] terminal: JsValue,
 	) -> Result<Ts<Rendered>, JsValue> {
 		let terminal = input::terminal(&terminal, "render")?;
-		let host = TerminalHost { overrides: self.overrides, terminal: &terminal };
+		let host = TerminalHost::new(self.overrides, &terminal);
 		let rendered: Rendered =
 			with_environment!(environment, raw_mode, |env| host.render(&env, composition.options())).into();
+
+		// the artifact of a render whose lookup threw rests on facts the consumer never answered,
+		// so the consumer's own exception comes back in its place
+		if let Some(exception) = host.thrown.into_inner() {
+			return Err(exception);
+		}
 
 		Ok(rendered.into_ts().map_err(JsError::from)?)
 	}
@@ -158,6 +165,32 @@ impl NodeHost {
 struct TerminalHost<'a> {
 	overrides: RenderOverrides,
 	terminal: &'a Terminal,
+	/// The first exception the lookup threw in this render, which the render returns in place of its artifact
+	thrown: OnceCell<JsValue>,
+}
+
+impl<'a> TerminalHost<'a> {
+	fn new(overrides: RenderOverrides, terminal: &'a Terminal) -> Self {
+		Self { overrides, terminal, thrown: OnceCell::new() }
+	}
+
+	/// The environment the resolution reads, the lookup of the terminal facts called per name
+	///
+	/// An exception the lookup throws is the consumer's own: the first one is kept for the render to return,
+	/// and every later name reads as absent without a call, so no consumer code runs after its own failure
+	fn environment(&self) -> impl Fn(&str) -> Option<String> + '_ {
+		move |name: &str| {
+			if self.thrown.get().is_some() {
+				return None;
+			}
+
+			(self.terminal.environment)(name).unwrap_or_else(|exception| {
+				self.thrown.get_or_init(|| exception);
+
+				None
+			})
+		}
+	}
 }
 
 impl Host for TerminalHost<'_> {
@@ -165,7 +198,7 @@ impl Host for TerminalHost<'_> {
 
 	/// `FORCE_SIZE`, then the API override, then the measured width, then the eighty column fallback
 	fn canvas_width(&self) -> Option<usize> {
-		let environment = self.terminal.environment();
+		let environment = self.environment();
 
 		TerminalCanvasWidth {
 			measured: self.terminal.measured(),
@@ -180,7 +213,7 @@ impl Host for TerminalHost<'_> {
 	///
 	/// An undetectable attached terminal falls back to full color, matching the native render stream
 	fn color_level(&self) -> Option<ColorLevel> {
-		let environment = self.terminal.environment();
+		let environment = self.environment();
 
 		TerminalColorSupport {
 			attached: self.terminal.attached,
@@ -221,45 +254,63 @@ pub fn entropy() -> u32 {
 
 #[cfg(test)]
 mod tests {
+	use std::{cell::Cell, collections::HashMap, rc::Rc};
+
 	use super::*;
 	use cfonts::ColorOverride;
 
-	/// A darwin terminal with the given columns and variables
+	/// A darwin terminal with the given columns and variables, the variables behind a map backed lookup
 	fn terminal(stdout: Option<u32>, stderr: Option<u32>, variables: &[(&str, &str)]) -> Terminal {
+		let variables: HashMap<String, String> =
+			variables.iter().map(|(name, value)| (String::from(*name), String::from(*value))).collect();
+
 		Terminal {
 			stdout_columns: stdout,
 			stderr_columns: stderr,
 			attached: true,
 			platform: String::from("darwin"),
 			release: String::from("25.6.0"),
-			names: variables.iter().map(|(name, _)| String::from(*name)).collect(),
-			values: variables.iter().map(|(_, value)| String::from(*value)).collect(),
+			environment: Box::new(move |name| Ok(variables.get(name).cloned())),
 		}
 	}
 
 	#[test]
-	fn the_lookup_pairs_names_with_values_by_position() {
+	fn the_resolution_reads_through_the_lookup_and_an_unset_name_reads_as_absent() {
 		let terminal = terminal(None, None, &[("FORCE_SIZE", "12"), ("TERM", "xterm")]);
-		let environment = terminal.environment();
+		let host = TerminalHost::new(RenderOverrides::default(), &terminal);
+		let environment = host.environment();
 
 		assert_eq!(environment("FORCE_SIZE"), Some(String::from("12")));
 		assert_eq!(environment("TERM"), Some(String::from("xterm")));
 		assert_eq!(environment("NO_COLOR"), None);
+		assert!(host.thrown.get().is_none());
 	}
 
 	#[test]
-	fn a_name_without_a_value_reads_as_absent() {
-		let mut terminal = terminal(None, None, &[("FORCE_SIZE", "12")]);
-		terminal.values.clear();
+	fn the_first_exception_of_the_lookup_is_kept_and_no_name_is_asked_after_it() {
+		let asked = Rc::new(Cell::new(0));
+		let counting = Rc::clone(&asked);
+		let mut terminal = terminal(Some(120), None, &[]);
+		terminal.environment = Box::new(move |_| {
+			counting.set(counting.get() + 1);
 
-		assert_eq!(terminal.environment()("FORCE_SIZE"), None);
+			Err(JsValue::NULL)
+		});
+		let host = TerminalHost::new(RenderOverrides::default(), &terminal);
+
+		// the width asks for FORCE_SIZE and the color would ask for FORCE_COLOR: one call, every later name
+		// reads as absent, and the render carries the exception out in place of the facts resolved this way
+		assert_eq!(host.canvas_width(), Some(120));
+		assert_eq!(host.color_level(), Some(ColorLevel::TrueColor));
+		assert_eq!(asked.get(), 1);
+		assert!(host.thrown.into_inner().is_some());
 	}
 
 	#[test]
 	fn stdout_answers_before_stderr_and_a_zero_width_measures_nothing() {
 		let host = |stdout, stderr| {
 			let terminal = terminal(stdout, stderr, &[]);
-			TerminalHost { overrides: RenderOverrides::default(), terminal: &terminal }.canvas_width()
+			TerminalHost::new(RenderOverrides::default(), &terminal).canvas_width()
 		};
 
 		assert_eq!(host(Some(120), Some(13)), Some(120));
@@ -273,27 +324,17 @@ mod tests {
 		let forced = terminal(Some(120), None, &[("FORCE_SIZE", "12")]);
 		let measured = terminal(Some(120), None, &[]);
 
-		assert_eq!(TerminalHost { overrides: RenderOverrides::default(), terminal: &forced }.canvas_width(), Some(12));
-		assert_eq!(
-			TerminalHost { overrides: RenderOverrides::default().with_canvas_width(42), terminal: &forced }.canvas_width(),
-			Some(12)
-		);
-		assert_eq!(
-			TerminalHost { overrides: RenderOverrides::default().with_canvas_width(42), terminal: &measured }.canvas_width(),
-			Some(42)
-		);
-		assert_eq!(
-			TerminalHost { overrides: RenderOverrides::default().with_canvas_width(0), terminal: &measured }.canvas_width(),
-			None
-		);
+		assert_eq!(TerminalHost::new(RenderOverrides::default(), &forced).canvas_width(), Some(12));
+		assert_eq!(TerminalHost::new(RenderOverrides::default().with_canvas_width(42), &forced).canvas_width(), Some(12));
+		assert_eq!(TerminalHost::new(RenderOverrides::default().with_canvas_width(42), &measured).canvas_width(), Some(42));
+		assert_eq!(TerminalHost::new(RenderOverrides::default().with_canvas_width(0), &measured).canvas_width(), None);
 	}
 
 	#[test]
 	fn the_color_resolves_the_chain_then_the_override_then_the_cascade() {
 		let level = |variables: &[(&str, &str)], override_color| {
 			let terminal = terminal(Some(80), None, variables);
-			TerminalHost { overrides: RenderOverrides::default().with_color(override_color), terminal: &terminal }
-				.color_level()
+			TerminalHost::new(RenderOverrides::default().with_color(override_color), &terminal).color_level()
 		};
 
 		// FORCE_COLOR wins over the cascade and over a disabled override, NO_COLOR silences the terminal
@@ -309,6 +350,9 @@ mod tests {
 		assert_eq!(level(&[("TERM", "ansi")], ColorOverride::Auto), Some(ColorLevel::Basic));
 		assert_eq!(level(&[("TERM", "xterm-256color")], ColorOverride::Auto), Some(ColorLevel::Ansi256));
 		assert_eq!(level(&[], ColorOverride::Auto), Some(ColorLevel::TrueColor));
+
+		// a terminal that refuses escape codes stays plain, the fallback paints only an undetected one
+		assert_eq!(level(&[("TERM", "dumb")], ColorOverride::Auto), None);
 	}
 
 	#[test]
@@ -316,10 +360,7 @@ mod tests {
 		let mut terminal = terminal(None, None, &[("TERM", "xterm-256color")]);
 		terminal.attached = false;
 
-		assert_eq!(
-			TerminalHost { overrides: RenderOverrides::default(), terminal: &terminal }.color_level(),
-			Some(ColorLevel::TrueColor)
-		);
+		assert_eq!(TerminalHost::new(RenderOverrides::default(), &terminal).color_level(), Some(ColorLevel::TrueColor));
 	}
 
 	#[test]
@@ -328,7 +369,7 @@ mod tests {
 			let mut terminal = terminal(Some(80), None, &[]);
 			terminal.platform = String::from("win32");
 			terminal.release = String::from(release);
-			TerminalHost { overrides: RenderOverrides::default(), terminal: &terminal }.color_level()
+			TerminalHost::new(RenderOverrides::default(), &terminal).color_level()
 		};
 
 		assert_eq!(windows("10.0.22631"), Some(ColorLevel::TrueColor));
@@ -342,11 +383,12 @@ mod tests {
 	#[test]
 	fn the_seed_is_the_override_or_a_fresh_roll() {
 		let terminal = terminal(None, None, &[]);
+		let rolling = || TerminalHost::new(RenderOverrides::default(), &terminal);
 
-		assert_eq!(TerminalHost { overrides: RenderOverrides::default().with_seed(42), terminal: &terminal }.seed(), 42);
-		assert_ne!(
-			TerminalHost { overrides: RenderOverrides::default(), terminal: &terminal }.seed(),
-			TerminalHost { overrides: RenderOverrides::default(), terminal: &terminal }.seed()
-		);
+		assert_eq!(TerminalHost::new(RenderOverrides::default().with_seed(42), &terminal).seed(), 42);
+		// eight u64 rolls agree only at 2^-448, a bound no run meets, so the roll is guarded
+		// without a seam into the entropy source
+		let rolls: Vec<u64> = (0..8).map(|_| rolling().seed()).collect();
+		assert!(rolls.iter().any(|roll| *roll != rolls[0]), "all rolls agree");
 	}
 }
