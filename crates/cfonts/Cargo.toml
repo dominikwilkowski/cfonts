@@ -43,7 +43,6 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_
 windows-version = "0.100"
 
 [dev-dependencies]
-ratatui = { version = "0.30", features = ["crossterm"] }
 temp-env = "0.3"
 
 [target.'cfg(windows)'.dev-dependencies]
@@ -56,7 +55,3 @@ ratatui = ["dep:ratatui", "dep:js-sys"]
 # the plain enums cross the JavaScript boundary as they are, the wasm crate turns this on
 wasm = ["dep:wasm-bindgen"]
 web = ["dep:js-sys", "dep:web-sys"]
-
-[[example]]
-name = "ratatui"
-required-features = ["ratatui"]

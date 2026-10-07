@@ -9,6 +9,7 @@
 use std::{
 	path::Path,
 	process::{Command, Output, Stdio},
+	sync::{Mutex, PoisonError},
 };
 
 use cfonts::ColorLevel;
@@ -19,10 +20,20 @@ use common::hermetic_command;
 /// The workspace root, where both examples resolve their paths from
 const WORKSPACE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 
+/// One comparison at a time: every row runs the cli example through `cargo run`, which copies the example
+/// binary into place on every run, and on macOS a sibling that executes the path during that copy is killed
+/// by the code signature check
+static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
+
 /// Runs one example from the workspace root and demands a clean exit
 fn run(mut command: Command) -> Output {
 	let output = command.current_dir(WORKSPACE).stdin(Stdio::null()).output().expect("the example must spawn");
-	assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+	assert!(
+		output.status.success(),
+		"{command:?} ended with {} and said: {}",
+		output.status,
+		String::from_utf8_lossy(&output.stderr)
+	);
 
 	output
 }
@@ -30,6 +41,7 @@ fn run(mut command: Command) -> Output {
 /// Runs both examples under a fixed width and one color decision from the environment,
 /// checks that the decision reached the hosts as `level`, and compares the streams
 fn compare(variables: &[(&str, &str)], level: Option<ColorLevel>) {
+	let _one_at_a_time = ONE_AT_A_TIME.lock().unwrap_or_else(PoisonError::into_inner);
 	assert!(Path::new(WORKSPACE).join("dist/node.js").exists(), "the npm package is not built, run pnpm run build first");
 
 	let cargo = ["run", "--quiet", "--locked", "-p", "cfonts", "--example", "cli"];

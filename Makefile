@@ -19,7 +19,7 @@ help:
 	@echo "make browser   the browser example, served by vite"
 	@echo "               or: pnpm run example:browser"
 	@echo "make bundle    the browser, leptos and dioxus pages the smoke test serves, after pnpm run build"
-	@echo "make check     compiles the leptos and dioxus examples"
+	@echo "make check     compiles the ratatui, leptos and dioxus examples"
 	@echo "make test      the whole gate, every check and every test"
 
 cli:
@@ -29,7 +29,7 @@ node: package
 	node crates/cfonts/examples/node.js
 
 ratatui:
-	cargo run --locked -p cfonts --example ratatui --features ratatui
+	cargo run --locked --manifest-path crates/cfonts/examples/ratatui/Cargo.toml
 
 leptos: trunk
 	cd crates/cfonts/examples/leptos && trunk serve
@@ -51,6 +51,7 @@ bundle: trunk
 	cd crates/cfonts/examples/dioxus && trunk build --locked --dist ../../../../target/dioxus-example
 
 check: wasm32
+	cargo check --locked --manifest-path crates/cfonts/examples/ratatui/Cargo.toml
 	cargo check --locked --manifest-path crates/cfonts/examples/leptos/Cargo.toml --target wasm32-unknown-unknown
 	cargo check --locked --manifest-path crates/cfonts/examples/dioxus/Cargo.toml --target wasm32-unknown-unknown
 

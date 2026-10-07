@@ -1,8 +1,10 @@
 //! A cfonts banner with a small color picker
 //!
-//! Run with:
+//! This package stands on its own, the workspace never builds it. Run it from the repository root with
+//! `make ratatui`, or with the command behind it:
+//!
 //! ```sh
-//! cargo run --example ratatui --features ratatui
+//! cargo run --manifest-path crates/cfonts/examples/ratatui/Cargo.toml
 //! ```
 
 use std::io;

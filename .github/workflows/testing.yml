@@ -44,6 +44,7 @@ jobs:
           cache: true
           cache-workspaces: |
             . -> target
+            crates/cfonts/examples/ratatui -> target
             crates/cfonts/examples/leptos -> target
             crates/cfonts/examples/dioxus -> target
           cache-targets: true
@@ -145,6 +146,9 @@ jobs:
 
       - name: Check the wasm feature on the WASM target
         run: cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features wasm
+
+      - name: Check the ratatui example
+        run: cargo check --locked --manifest-path crates/cfonts/examples/ratatui/Cargo.toml
 
   package:
     name: Package

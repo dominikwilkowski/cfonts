@@ -8,10 +8,6 @@ publish = false
 # standalone on purpose: normal workspace builds stay topcoat-free
 [workspace]
 
-[[bin]]
-name = "topcoat"
-path = "topcoat.rs"
-
 [dependencies]
 cfonts = { path = "../..", default-features = false, features = ["web"] }
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread"] }
