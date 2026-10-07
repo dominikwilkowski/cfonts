@@ -2,10 +2,11 @@
 #
 # The Rust examples need cargo alone
 # the two framework examples add trunk and the wasm32 target
+# the topcoat site is a standalone package, cargo alone on Rust 1.98
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus node browser bundle check test
+.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test
 
 help:
 	@echo "make cli       the Rust API tour, printed to the terminal"
@@ -14,6 +15,7 @@ help:
 	@echo "make ratatui   the ratatui widget, an interactive terminal app"
 	@echo "make leptos    the leptos site, served by trunk"
 	@echo "make dioxus    the dioxus site, served by trunk"
+	@echo "make topcoat   the topcoat site, served by its own binary"
 	@echo "make browser   the browser example, served by vite"
 	@echo "               or: pnpm run example:browser"
 	@echo "make bundle    the browser, leptos and dioxus pages the smoke test serves, after pnpm run build"
@@ -34,6 +36,9 @@ leptos: trunk
 
 dioxus: trunk
 	cd crates/cfonts/examples/dioxus && trunk serve
+
+topcoat:
+	cargo run --locked --manifest-path crates/cfonts/examples/topcoat/Cargo.toml
 
 browser: package
 	pnpm exec vite crates/cfonts/examples/browser
