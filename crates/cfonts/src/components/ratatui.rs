@@ -28,6 +28,8 @@ use crate::{
 /// wraps there, even past the area, where the rows clip at its edge exactly
 /// like a terminal narrower than `FORCE_SIZE` clips the command line
 ///
+/// An area reaching past the buffer counts as its part inside it, the way ratatui's Block and Paragraph clip
+///
 /// Named colors stay the terminal's own at every level, RGB values level down
 /// the way the command line does: to a palette index, then to the nearest named color
 ///
@@ -94,7 +96,9 @@ fn band_style_for(color: Color<Background>, level: ColorLevel) -> Option<Style> 
 
 impl Widget for &CfontsWidget<'_> {
 	fn render(self, area: Rect, buffer: &mut Buffer) {
-		// An empty area can show nothing; building the layout for it would be pure waste
+		// Only the part of the area inside the buffer can show anything, so the widget clips to it the way
+		// ratatui's Block and Paragraph do, and an empty part builds no layout at all
+		let area = area.intersection(buffer.area);
 		if area.is_empty() {
 			return;
 		}
@@ -118,31 +122,32 @@ impl Widget for &CfontsWidget<'_> {
 		});
 		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
 
-		// The shared traversal visits every row; rows below the area paint nothing
+		// Rows below the area can show nothing, so the painting traversal stops at the area's height
+		// The gradient plans and the backdrop above saw every row: a fixed ramp spans the columns of hidden
+		// rows and the backdrop spans the hidden rows exactly as in a taller area, so the visible rows keep
+		// the colors of the whole composition
+		let shown = &rows[..rows.len().min(area.height as usize)];
 		let mut row_index = 0_usize;
 		let mut y = area.y;
 		let mut x = area.x;
-		let mut visible = false;
 
-		RowEvent::each(&rows, |event| match event {
+		RowEvent::each(shown, |event| match event {
 			RowEvent::Break => row_index += 1,
 			RowEvent::RowStart { row } => {
 				y = area.y.saturating_add(row_index as u16);
-				visible = row_index < area.height as usize && y < area.bottom();
 
-				if visible {
-					// the band paints the whole row of the area first, the glyphs land on it
-					// with foreground styles that keep it
-					if let Some(style) = band(row_index) {
-						buffer.set_style(Rect::new(area.x, y, area.width, 1), *style);
-					}
-
-					gradients.start_row(row);
-					// the layout computed each row's alignment inside the canvas already
-					x = area.x.saturating_add(row.align_offset as u16);
+				// the band paints the whole row of the area first, the glyphs land on it
+				// with foreground styles that keep it
+				if let Some(style) = band(row_index) {
+					buffer.set_style(Rect::new(area.x, y, area.width, 1), *style);
 				}
+
+				gradients.start_row(row);
+				// the layout computed each row's alignment inside the canvas already, an offset beyond u16
+				// saturates so the row lands past the area and paints nothing instead of wrapping around
+				x = area.x.saturating_add(u16::try_from(row.align_offset).unwrap_or(u16::MAX));
 			}
-			RowEvent::Text { text, block_index, slot, paintable } if visible => match plan.domain(block_index) {
+			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
 					if x < area.right() {
 						let style = plan.paint_for(block_index, slot, paintable).copied().unwrap_or_default();
@@ -169,18 +174,17 @@ impl Widget for &CfontsWidget<'_> {
 					}
 				}
 			},
-			RowEvent::EntryEnd { width, block_index } if visible => {
+			RowEvent::EntryEnd { width, block_index } => {
 				// ramped segments advanced per column already; slot painted entries claim their columns whole
 				if plan.domain(block_index) == PaintDomain::Slots {
 					gradients.advance(width);
 				}
 			}
 			// Blank columns leave cells untouched: they keep the row's band, or stay transparent without one
-			RowEvent::Blank { width, .. } if visible => {
+			RowEvent::Blank { width, .. } => {
 				x = (x as usize).saturating_add(width).min(area.right() as usize) as u16;
 				gradients.advance(width);
 			}
-			_ => {}
 		});
 
 		if rows.is_empty()
@@ -193,8 +197,10 @@ impl Widget for &CfontsWidget<'_> {
 
 #[cfg(test)]
 mod tests {
+	use std::ops::Range;
+
 	use super::*;
-	use ::ratatui::{Terminal, backend::TestBackend};
+	use ::ratatui::{Terminal, backend::TestBackend, buffer::Cell};
 
 	use crate::{
 		BackgroundOption, ColorOption, ColorOverride, GradientOption,
@@ -591,18 +597,148 @@ mod tests {
 		// five glyphs on two rows roll enough picks that two fresh seeds never draw the same assortment
 		let mut options = options(Valign::Top, None, vec![block("CANDY", Font::Tiny, false)]);
 		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::CANDY]));
-
-		let draw = |overrides: RenderOverrides| {
-			let widget = CfontsWidget { options: &options, overrides };
-			let mut terminal = Terminal::new(TestBackend::new(20, 2)).unwrap();
-			terminal.draw(|frame| frame.render_widget(&widget, frame.area())).unwrap();
-			terminal.backend().buffer().clone()
-		};
-		let seeded = |seed: u64| RenderOverrides::default().with_seed(seed);
+		let draw = |overrides: RenderOverrides| drawn(&options, overrides, 20, 2, Rect::new(0, 0, 20, 2));
 
 		assert_eq!(draw(seeded(42)), draw(seeded(42)));
 		assert_ne!(draw(seeded(42)), draw(seeded(43)));
 		// without a seed every render rolls its own
 		assert_ne!(draw(RenderOverrides::default()), draw(RenderOverrides::default()));
+	}
+
+	// clipping
+
+	/// The buffer one draw leaves in a frame of `columns` by `lines` cells, the widget placed at `area`
+	fn drawn(options: &Options, overrides: RenderOverrides, columns: u16, lines: u16, area: Rect) -> Buffer {
+		let widget = CfontsWidget { options, overrides };
+		let mut terminal = Terminal::new(TestBackend::new(columns, lines)).unwrap();
+		terminal.draw(|frame| frame.render_widget(&widget, area)).unwrap();
+		terminal.backend().buffer().clone()
+	}
+
+	/// Overrides pinning candy to one seed, so every draw of the same options rolls the same assortment
+	fn seeded(seed: u64) -> RenderOverrides {
+		RenderOverrides::default().with_seed(seed)
+	}
+
+	/// The rightmost column of `rows` showing a glyph, None when they show none
+	fn reach(buffer: &Buffer, rows: Range<u16>) -> Option<u16> {
+		rows
+			.flat_map(|y| (0..buffer.area.width).map(move |x| (x, y)))
+			.filter(|&(x, y)| buffer.cell((x, y)).unwrap().symbol() != " ")
+			.map(|(x, _)| x)
+			.max()
+	}
+
+	/// A block ramping its own gradient over a ramped background, wrapping in twelve columns
+	/// so its hidden second line is the wider one and the fixed ramp stretches past the visible rows
+	fn own_ramp_wrapping() -> Options {
+		let mut options = options(Valign::Top, None, vec![block("A AAA", Font::Tiny, true)]);
+		options.blocks[0].colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
+		options.background =
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
+		options
+	}
+
+	/// A candy block beside a block on the global ramp over a ramped background, wrapping in twelve columns
+	/// so the hidden second line is the wider one: candy rolls on the visible rows while the global ramp
+	/// stretches past them
+	fn candy_beside_the_global_ramp() -> Options {
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false), block("B BBB", Font::Tiny, true)]);
+		options.blocks[0].colors = Some(ColorOption::Colors(vec![Color::CANDY]));
+		options.global_colors =
+			Some(ColorOption::Gradient(GradientOption::TwoStop { start: Color::GREEN, end: Color::YELLOW }));
+		options.background =
+			Some(BackgroundOption::Gradient(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE }));
+		options
+	}
+
+	/// Both wrapping compositions, labelled for the assertion messages
+	fn wrapping_compositions() -> [(&'static str, Options); 2] {
+		[("own ramp", own_ramp_wrapping()), ("global ramp", candy_beside_the_global_ramp())]
+	}
+
+	#[test]
+	fn a_short_area_shows_the_top_rows_of_the_whole_composition() {
+		for (name, options) in wrapping_compositions() {
+			let whole = drawn(&options, seeded(42), 12, 8, Rect::new(0, 0, 12, 8));
+			let short = drawn(&options, seeded(42), 12, 2, Rect::new(0, 0, 12, 2));
+
+			// the whole composition ends above the frame's last row and its hidden line reaches further right
+			// than the visible one, so a ramp over the visible rows alone would be shorter than the whole one
+			let visible = reach(&whole, 0..2);
+			let hidden = reach(&whole, 2..8);
+			assert_eq!(reach(&whole, 7..8), None, "{name}: the whole composition fits the frame");
+			assert!(hidden > visible, "{name}: the hidden line reaches {hidden:?}, the visible one {visible:?}");
+
+			for y in 0..2 {
+				for x in 0..12 {
+					assert_eq!(short.cell((x, y)), whole.cell((x, y)), "{name}: cell ({x}, {y})");
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn a_placed_area_shows_the_same_rows_at_its_own_origin() {
+		for (name, options) in wrapping_compositions() {
+			let whole = drawn(&options, seeded(42), 12, 8, Rect::new(0, 0, 12, 8));
+			// three rows of the composition in an area starting at (3, 2) inside a larger frame
+			let placed = drawn(&options, seeded(42), 18, 7, Rect::new(3, 2, 12, 3));
+
+			for y in 0..7 {
+				for x in 0..18 {
+					let inside = (3..15).contains(&x) && (2..5).contains(&y);
+					let expected = if inside { whole.cell((x - 3, y - 2)) } else { Some(&Cell::EMPTY) };
+					assert_eq!(placed.cell((x, y)), expected, "{name}: cell ({x}, {y})");
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn an_area_past_the_buffer_paints_as_its_part_inside_it() {
+		// ratatui's Block and Paragraph clip to the buffer first, so an area reaching past it lays out and
+		// paints exactly like its part inside: the wide area would hold both words on one line, the areas
+		// reaching past the bottom carry a wrapped row the frame cannot hold, and an area below it paints nothing
+		let frame = Rect::new(0, 0, 9, 5);
+		let options = options(Valign::Top, None, vec![block("AA BB", Font::Tiny, true)]);
+		let draw = |area: Rect| drawn(&options, RenderOverrides::default(), frame.width, frame.height, area);
+
+		for (reaching, inside) in [
+			(Rect::new(0, 0, 20, 5), Rect::new(0, 0, 9, 5)),
+			(Rect::new(0, 1, 9, 8), Rect::new(0, 1, 9, 4)),
+			(Rect::new(4, 3, 9, 5), Rect::new(4, 3, 5, 2)),
+		] {
+			assert_eq!(inside, reaching.intersection(frame), "{reaching:?}");
+			assert_eq!(draw(reaching), draw(inside), "{reaching:?}");
+		}
+		assert_eq!(draw(Rect::new(0, 5, 9, 5)), Buffer::empty(frame));
+	}
+
+	#[test]
+	fn an_area_at_the_u16_edge_paints_nothing_past_it() {
+		// a struct literal area runs past u16::MAX, which Rect::new would clamp, so its second row lands on
+		// the one line no buffer can hold: the buffer clip keeps the first row whole and drops that one
+		let options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };
+		let mut buffer = Buffer::empty(Rect::new(0, u16::MAX - 1, 5, 1));
+
+		Widget::render(&widget, Rect { x: 0, y: u16::MAX - 1, width: 5, height: 2 }, &mut buffer);
+
+		// the glyph's second row starts with a full block, so a first row still starting with a half one
+		// was never painted over
+		assert_eq!(buffer.content(), Buffer::with_lines(["▄▀█  "]).content());
+	}
+
+	#[test]
+	fn an_alignment_past_the_u16_edge_paints_nothing() {
+		// a canvas override wider than u16 holds aligns the row that far right, past any buffer, so the
+		// offset saturates instead of wrapping around into a column the buffer has
+		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
+		options.align = Align::Right;
+		let overrides = RenderOverrides::default().with_canvas_width(u16::MAX as usize + 6);
+
+		assert_eq!(drawn(&options, overrides, 9, 2, Rect::new(0, 0, 9, 2)), Buffer::empty(Rect::new(0, 0, 9, 2)));
 	}
 }
