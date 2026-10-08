@@ -13,8 +13,8 @@
 		"forceConsistentCasingInFileNames": true,
 		"declaration": true,
 		"noEmitOnError": true,
-		"removeComments": false,
+		"removeComments": false
 	},
 	"include": ["npm/**/*.ts"],
-	"exclude": ["node_modules", "pkg", "dist", "tests", "npm/tests"],
+	"exclude": ["node_modules", "pkg", "dist", "tests", "npm/tests"]
 }

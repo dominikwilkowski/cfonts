@@ -1,0 +1,9 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"useTabs": true,
+	"printWidth": 120,
+	"endOfLine": "lf",
+	"sortPackageJson": false,
+	"sortImports": true,
+	"ignorePatterns": ["**/*.md", "**/*.toml", "**/*.yml", "**/*.yaml", ".claude/**", "crates/cfonts/examples/**/*.html"]
+}

@@ -92,8 +92,8 @@ export const Rgb = Object.freeze({ fromHex: rgbFromHex });
 export class Cfonts {
 	readonly #inner: WasmCfonts;
 
-	private constructor(inner: WasmCfonts) {
-		this.#inner = inner;
+	private constructor(builder: WasmCfonts) {
+		this.#inner = builder;
 	}
 
 	/**

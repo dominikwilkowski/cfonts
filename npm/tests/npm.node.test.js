@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
 import * as packageExports from "cfonts";
+
 // the Node entry seals the browser host away, the built module answers for it here
 import { BrowserHost } from "../../dist/hosts/browser.js";
 // the raw boundary takes the terminal facts as one object, so a test can hand it a terminal this process is not

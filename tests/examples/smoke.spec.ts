@@ -28,14 +28,14 @@ function capturePageErrors(page: Page): Error[] {
 
 /** The format string and the style arguments of one console call, as the page passed them */
 async function consoleArguments(message: ConsoleMessage): Promise<[string, string[]]> {
-	const values = await Promise.all(message.args().map((argument) => argument.jsonValue()));
+	const values: unknown[] = await Promise.all(message.args().map((argument) => argument.jsonValue()));
 	const [format, ...styles] = values;
 
 	if (typeof format !== "string" || !styles.every((style) => typeof style === "string")) {
 		throw new TypeError("Expected a console format string followed by style strings");
 	}
 
-	return [format, styles as string[]];
+	return [format, styles];
 }
 
 async function expectStyledConsoleMessage(message: ConsoleMessage): Promise<[string, string[]]> {
@@ -50,9 +50,7 @@ async function expectStyledConsoleMessage(message: ConsoleMessage): Promise<[str
 
 /** The background of every banded row in a rendered canvas */
 function bands(canvas: Locator): Promise<string[]> {
-	return canvas
-		.locator("div[style*='background:']")
-		.evaluateAll((rows) => rows.map((row) => (row as HTMLElement).style.background));
+	return canvas.locator("div[style*='background:']").evaluateAll((rows) => rows.map((row) => row.style.background));
 }
 
 test("the page runs the command line in the terminal and fills the font pickers from the core's names", async ({
@@ -209,7 +207,9 @@ test("the browser console prints one styled banner per pick and one more on ente
 	await form.getByLabel("text", { exact: true }).fill("Playwright");
 	expect(messages).toHaveLength(1);
 
-	await printed(() => form.locator("select[name='font']").selectOption("tiny"));
+	await printed(async () => {
+		await form.locator("select[name='font']").selectOption("tiny");
+	});
 	const styles = await printed(() => form.getByLabel("background").press("Enter"));
 	expect(styles.some((style) => style.includes("background:"))).toBe(false);
 

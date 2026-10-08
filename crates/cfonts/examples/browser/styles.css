@@ -535,7 +535,7 @@ main:has([name="env"][value="console"]:checked) .note {
 		}
 	}
 
-	 > :not(.spacer) + :not(.spacer)::before {
+	> :not(.spacer) + :not(.spacer)::before {
 		content: "│";
 		margin-right: 1ch;
 		color: var(--line-strong);

@@ -84,5 +84,5 @@ export function environmentArguments(
 		throw new TypeError(`\`${method}()\` expects a cfonts environment`);
 	}
 
-	return [kind, environment[rawMode] === true];
+	return [kind, environment[rawMode]];
 }

@@ -82,10 +82,13 @@ export class NodeHost implements Host {
 	 * lives here
 	 */
 	#terminal(): Terminal {
+		// stdout is a tty stream only while a terminal is attached, piped it carries no `isTTY` at all, whatever @types/node says
+		const { isTTY } = process.stdout as { isTTY?: boolean };
+
 		return {
 			stdoutColumns: process.stdout.columns,
 			stderrColumns: process.stderr.columns,
-			attached: process.stdout.isTTY === true,
+			attached: isTTY === true,
 			platform: process.platform,
 			release: release(),
 			environment: (name) => process.env[name],
