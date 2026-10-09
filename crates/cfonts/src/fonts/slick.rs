@@ -31,8 +31,9 @@ pub static FONT_SLICK: FontFile<6> = FontFile {
 		r"<c2>╱</c2>",
 		r"<c2>╱</c2>",
 	),
-	colors: 2,
+	letter_spacing: 1,
 	line_height: 1,
+	colors: 2,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
@@ -501,13 +502,18 @@ pub static FONT_SLICK: FontFile<6> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_plain_segments_are_spaces, assert_slots_paint_only,
-		assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_letter_space_takes_columns,
+		assert_plain_segments_are_spaces, assert_slots_paint_only, assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_SLICK);
+	}
+
+	#[test]
+	fn letter_space_takes_columns() {
+		assert_letter_space_takes_columns(&super::FONT_SLICK);
 	}
 
 	#[test]

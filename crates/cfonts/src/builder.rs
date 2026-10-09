@@ -129,6 +129,8 @@ impl<
 
 	/// Sets how many font-defined letter-space glyphs are inserted between glyphs in the current block
 	///
+	/// Unset, the block takes the letter spacing its font declares
+	///
 	/// ```
 	/// use cfonts::{Cfonts, Options};
 	///
@@ -136,10 +138,10 @@ impl<
 	///     .letter_spacing(2)
 	///     .into();
 	///
-	/// assert_eq!(options.blocks[0].letter_spacing, 2);
+	/// assert_eq!(options.blocks[0].letter_spacing, Some(2));
 	/// ```
 	pub fn letter_spacing(mut self, letter_spacing: usize) -> Self {
-		self.current_block_mut().letter_spacing = letter_spacing;
+		self.current_block_mut().letter_spacing = Some(letter_spacing);
 		self
 	}
 
@@ -803,9 +805,9 @@ mod tests {
 		let options: Options = Cfonts::text("one").font(Font::Tiny).letter_spacing(2).next("two").font(Font::Block).into();
 
 		assert_eq!(options.blocks[0].font, Font::Tiny);
-		assert_eq!(options.blocks[0].letter_spacing, 2);
+		assert_eq!(options.blocks[0].letter_spacing, Some(2));
 		assert_eq!(options.blocks[1].font, Font::Block);
-		assert_eq!(options.blocks[1].letter_spacing, 1);
+		assert_eq!(options.blocks[1].letter_spacing, None);
 	}
 
 	#[test]

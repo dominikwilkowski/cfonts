@@ -113,6 +113,9 @@ pub trait FontData {
 	/// Returns the number of blank rows the font asks for between rendered lines
 	fn line_height(&self) -> usize;
 
+	/// Returns the number of letter-space glyphs the font puts between glyphs
+	fn letter_spacing(&self) -> usize;
+
 	/// Returns the number of rows of each glyph in a font (height of the font in the terminal)
 	fn rows(&self) -> usize;
 
@@ -234,6 +237,7 @@ pub struct FontFile<const ROWS: usize> {
 	pub name: &'static str,
 	pub colors: usize,
 	pub line_height: usize,
+	pub letter_spacing: usize,
 	pub buffer_start: &'static [GlyphRow; ROWS],
 	pub buffer_end: &'static [GlyphRow; ROWS],
 	pub buffer_size: usize,
@@ -252,6 +256,10 @@ impl<const ROWS: usize> FontData for FontFile<ROWS> {
 
 	fn line_height(&self) -> usize {
 		self.line_height
+	}
+
+	fn letter_spacing(&self) -> usize {
+		self.letter_spacing
 	}
 
 	fn rows(&self) -> usize {
@@ -329,6 +337,17 @@ pub(crate) mod tests {
 				}
 			}
 		}
+	}
+
+	/// Assert the letter space takes at least one column, so every letter spacing a block asks for shows
+	///
+	/// A font whose letters touch declares a letter spacing of `0` instead of drawing an empty letter space
+	pub(crate) fn assert_letter_space_takes_columns<const ROWS: usize>(font: &FontFile<ROWS>) {
+		assert!(
+			font.letter_space.width > 0,
+			"font \"{}\" draws its letter space zero columns wide, so no letter spacing can show, give it a column and declare letter_spacing 0 for touching letters",
+			font.name,
+		);
 	}
 
 	/// The characters the font uses as ground: whatever its letter-space glyph
@@ -562,6 +581,7 @@ pub(crate) mod tests {
 		name: "dead-slot-fixture",
 		colors: 3,
 		line_height: 1,
+		letter_spacing: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
@@ -578,6 +598,7 @@ pub(crate) mod tests {
 		name: "out-of-range-fixture",
 		colors: 2,
 		line_height: 1,
+		letter_spacing: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
@@ -593,6 +614,7 @@ pub(crate) mod tests {
 		name: "space-cell-fixture",
 		colors: 1,
 		line_height: 1,
+		letter_spacing: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
@@ -610,10 +632,34 @@ pub(crate) mod tests {
 		assert_no_space_cells(&SPACE_CELL_FIXTURE);
 	}
 
+	/// A fixture whose letters touch through an empty letter space instead of a declared letter spacing of `0`
+	static ZERO_LETTER_SPACE_FIXTURE: FontFile<1> = FontFile {
+		name: "zero-letter-space-fixture",
+		colors: 1,
+		line_height: 1,
+		letter_spacing: 1,
+		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
+		buffer_size: 0,
+		letter_space: glyph!(r""),
+		glyphs: {
+			let mut table = [None; 128];
+			table['A' as usize] = Some(glyph!(r"A"));
+			table
+		},
+	};
+
+	#[test]
+	#[should_panic(expected = "font \"zero-letter-space-fixture\" draws its letter space zero columns wide")]
+	fn a_zero_width_letter_space_fails_the_validation() {
+		assert_letter_space_takes_columns(&ZERO_LETTER_SPACE_FIXTURE);
+	}
+
 	static GROUND_EDGE_FIXTURE: FontFile<2> = FontFile {
 		name: "ground-edge-fixture",
 		colors: 1,
 		line_height: 1,
+		letter_spacing: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }, GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }, GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,
@@ -636,6 +682,7 @@ pub(crate) mod tests {
 		name: "unpainted-ink-fixture",
 		colors: 3,
 		line_height: 1,
+		letter_spacing: 1,
 		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
 		buffer_size: 0,

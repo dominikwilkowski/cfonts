@@ -89,7 +89,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] letter_spacing: JsValue,
 	) -> Result<(), JsValue> {
-		self.current_block_mut().letter_spacing = input::expect_u32(&letter_spacing, "letterSpacing")? as usize;
+		self.current_block_mut().letter_spacing = Some(input::expect_u32(&letter_spacing, "letterSpacing")? as usize);
 		Ok(())
 	}
 

@@ -22,8 +22,9 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 		r" ",
 		r" ",
 	),
-	colors: 3,
+	letter_spacing: 1,
 	line_height: 1,
+	colors: 3,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
@@ -321,13 +322,18 @@ pub static FONT_RETRO: FontFile<3> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_plain_segments_are_spaces,
-		assert_rows_stripe_their_slot, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_letter_space_takes_columns,
+		assert_plain_segments_are_spaces, assert_rows_stripe_their_slot, assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_RETRO);
+	}
+
+	#[test]
+	fn letter_space_takes_columns() {
+		assert_letter_space_takes_columns(&super::FONT_RETRO);
 	}
 
 	#[test]

@@ -131,7 +131,7 @@ const options = [
 	{
 		name: "letter-spacing",
 		flag: "--letter-spacing",
-		unset: "1",
+		unset: "",
 		apply: (cfonts, value) => cfonts.letterSpacing(wholeNumber(value)),
 	},
 	{

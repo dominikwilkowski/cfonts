@@ -100,7 +100,9 @@ pub struct BlockOptions {
 	pub colors: Option<ColorOption>,
 
 	/// Number of font-defined letter-space glyphs inserted between glyphs
-	pub letter_spacing: usize,
+	///
+	/// `None` uses the letter spacing the font declares for itself
+	pub letter_spacing: Option<usize>,
 
 	/// Number of blank rows inserted after each rendered line from this block
 	///
@@ -117,7 +119,7 @@ impl Default for BlockOptions {
 			text: String::new(),
 			font: Font::Block,
 			colors: None,
-			letter_spacing: 1,
+			letter_spacing: None,
 			line_height: None,
 			word_wrap: false,
 		}

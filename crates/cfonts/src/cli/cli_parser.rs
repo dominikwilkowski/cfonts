@@ -1079,7 +1079,7 @@ mod argument_parsing {
 		let input = args(&["my text", "-l", "9", "-z", "2", "-m", "100"]);
 		let parsed = parse_args(&input, tty()).unwrap();
 
-		assert_eq!(parsed.options.blocks[0].letter_spacing, 9);
+		assert_eq!(parsed.options.blocks[0].letter_spacing, Some(9));
 		assert_eq!(parsed.options.blocks[0].line_height, Some(2));
 		assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(100));
 	}
@@ -1300,7 +1300,7 @@ mod argument_parsing {
 
 			assert_eq!(block.text(), "LONG TEXT|WITH NEW LINE");
 			assert_eq!(block.font, Font::SimpleBlock);
-			assert_eq!(block.letter_spacing, 9);
+			assert_eq!(block.letter_spacing, Some(9));
 			assert_eq!(block.line_height, Some(2));
 			// the first block's colors cascade to the global scope
 			assert_eq!(block.colors, None);

@@ -146,6 +146,8 @@ export class Cfonts {
 	/**
 	 * Sets the space between letters for the current text block, in glyph columns
 	 *
+	 * Unset, the block takes the letter spacing its font declares
+	 *
 	 * @example
 	 * Cfonts.text("hello").letterSpacing(2);
 	 */

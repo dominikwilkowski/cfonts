@@ -243,6 +243,7 @@ impl<'a> Layout<'a> {
 
 		// We make the letter space a glyph so flush_line handles it like any other
 		let letter_space_glyph = LayoutGlyph { glyph: font.letter_space(), block_index, paintable: true };
+		let letter_spacing = block.letter_spacing.unwrap_or_else(|| font.letter_spacing());
 
 		// Now we iterate each character in this block
 		for ch in block.text().chars() {
@@ -251,7 +252,7 @@ impl<'a> Layout<'a> {
 			// a slanted font keeps its staircase of trailing spaces here, which nothing but a band drawn cell by cell can show
 			if ch == NEW_LINE_CHAR {
 				self.commit_block();
-				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
+				self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
 				self.flush_line(canvas_width);
 				self.push_glyph(buffer_start);
 				continue; // Skip as `|` does not print anything
@@ -266,20 +267,20 @@ impl<'a> Layout<'a> {
 			let break_class = Self::how_to_break_char(ch, block.word_wrap);
 			// A separator ends the word before it, a run of spaces stays staged in front of the next word
 			if matches!(break_class, Break::Both | Break::Space) && self.word_glyph_count > self.word_spaces {
-				self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
+				self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
 			}
-			self.stage_glyph(glyph, letter_space_glyph, block.letter_spacing, block_index);
+			self.stage_glyph(glyph, letter_space_glyph, letter_spacing, block_index);
 			match break_class {
 				Break::Space => self.word_spaces += 1,
 				Break::Both | Break::After => {
-					self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
+					self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
 				}
 				Break::None => {}
 			}
 		}
 
 		// The end of a block always commits the pending word (words do not span blocks)
-		self.commit_word(buffer_start, letter_space_glyph, block.letter_spacing, canvas_width);
+		self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
 
 		// A block whose text committed nothing contributes nothing: drop its staged
 		// entry instead of closing a buffer pair that never opened
@@ -1576,7 +1577,7 @@ mod tests {
 			vec![{
 				let mut block = BlockOptions::new("AB");
 				block.font = Font::Tiny;
-				block.letter_spacing = 2;
+				block.letter_spacing = Some(2);
 				block
 			}],
 		));
@@ -1593,7 +1594,7 @@ mod tests {
 			vec![{
 				let mut block = BlockOptions::new("AB");
 				block.font = Font::Tiny;
-				block.letter_spacing = 0;
+				block.letter_spacing = Some(0);
 				block
 			}],
 		));
@@ -1686,6 +1687,39 @@ mod tests {
 		let output = &layout.output;
 		assert_eq!(output.len(), 3); // 1 row + 1 gap row + 1 row
 		assert!(output[1].entries.is_empty());
+	}
+
+	#[test]
+	fn an_unset_letter_spacing_uses_the_font_declaration() {
+		// console declares zero: its letters touch like plain text
+		let options = options(
+			Valign::Top,
+			None,
+			vec![{
+				let mut block = BlockOptions::new("AB");
+				block.font = Font::Console;
+				block
+			}],
+		);
+		let layout = Layout::build(&options, None);
+		assert_eq!(layout.output[0].width, 2);
+	}
+
+	#[test]
+	fn an_explicit_letter_spacing_beats_the_font_declaration() {
+		// the user asks console for a gap and gets one column per letter space
+		let options = options(
+			Valign::Top,
+			None,
+			vec![{
+				let mut block = BlockOptions::new("AB");
+				block.font = Font::Console;
+				block.letter_spacing = Some(2);
+				block
+			}],
+		);
+		let layout = Layout::build(&options, None);
+		assert_eq!(layout.output[0].width, 4); // 1 letter + 2 letter spaces + 1 letter
 	}
 
 	#[test]

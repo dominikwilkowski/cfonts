@@ -69,9 +69,9 @@ static OPTIONS: [Row; 13] = [
 		flag: "--letter-spacing",
 		setting: Setting::Word {
 			read: |form| form.letter_spacing,
-			unset: "1",
+			unset: "",
 			apply: |options, value| {
-				Setting::block(options).letter_spacing = Setting::number(value)?;
+				Setting::block(options).letter_spacing = Some(Setting::number(value)?);
 				Ok(())
 			},
 		},

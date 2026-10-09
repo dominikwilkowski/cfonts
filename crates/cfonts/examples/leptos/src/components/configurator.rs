@@ -27,7 +27,7 @@ impl Default for FormState {
 			env: RwSignal::new(String::from("browser")),
 			text: RwSignal::new(String::from("How are you?")),
 			font: RwSignal::new(String::from("neat")),
-			letter_spacing: RwSignal::new(String::from("1")),
+			letter_spacing: RwSignal::new(String::new()),
 			line_height: RwSignal::new(String::new()),
 			word_wrap: RwSignal::new(true),
 			colors: RwSignal::new(String::from("red-blue")),

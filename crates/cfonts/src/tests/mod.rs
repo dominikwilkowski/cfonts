@@ -31,7 +31,7 @@ pub(crate) fn block(text: &str, font: Font, word_wrap: bool) -> BlockOptions {
 pub(crate) fn spaced_block(text: &str, letter_spacing: usize, word_wrap: bool) -> BlockOptions {
 	let mut block = BlockOptions::new(text);
 	block.font = Font::Tiny;
-	block.letter_spacing = letter_spacing;
+	block.letter_spacing = Some(letter_spacing);
 	block.word_wrap = word_wrap;
 	block
 }

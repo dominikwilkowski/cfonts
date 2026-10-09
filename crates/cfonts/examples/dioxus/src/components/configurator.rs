@@ -28,7 +28,7 @@ pub fn Configurator() -> Element {
 		env: use_signal(|| String::from("browser")),
 		text: use_signal(|| String::from("How are you?")),
 		font: use_signal(|| String::from("neat")),
-		letter_spacing: use_signal(|| String::from("1")),
+		letter_spacing: use_signal(String::new),
 		line_height: use_signal(String::new),
 		word_wrap: use_signal(|| true),
 		colors: use_signal(|| String::from("red-blue")),

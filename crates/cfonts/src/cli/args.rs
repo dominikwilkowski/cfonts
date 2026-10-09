@@ -224,7 +224,7 @@ impl Args {
 			}
 			Self::LetterSpacing => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.current_block_mut().block.letter_spacing = self.parse_number(value)?;
+				state.current_block_mut().block.letter_spacing = Some(self.parse_number(value)?);
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;

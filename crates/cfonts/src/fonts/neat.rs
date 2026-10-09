@@ -31,8 +31,9 @@ pub static FONT_NEAT: FontFile<6> = FontFile {
 		r" ",
 		r" ",
 	),
-	colors: 1,
+	letter_spacing: 1,
 	line_height: 1,
+	colors: 1,
 	#[rustfmt::skip]
 	glyphs: {
 		let mut table = [None; 128];
@@ -501,12 +502,17 @@ pub static FONT_NEAT: FontFile<6> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_letter_space_takes_columns, assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_NEAT);
+	}
+
+	#[test]
+	fn letter_space_takes_columns() {
+		assert_letter_space_takes_columns(&super::FONT_NEAT);
 	}
 
 	#[test]
