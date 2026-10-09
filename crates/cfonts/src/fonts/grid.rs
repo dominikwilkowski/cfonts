@@ -511,13 +511,13 @@ mod tests {
 	}
 
 	#[test]
-	fn no_space_cells() {
-		assert_no_space_cells(&super::FONT_GRID);
+	fn glyph_edges_carry_ink() {
+		assert_glyph_edges_carry_ink(&super::FONT_GRID);
 	}
 
 	#[test]
-	fn glyph_edges_carry_ink() {
-		assert_glyph_edges_carry_ink(&super::FONT_GRID);
+	fn no_space_cells() {
+		assert_no_space_cells(&super::FONT_GRID);
 	}
 
 	#[test]

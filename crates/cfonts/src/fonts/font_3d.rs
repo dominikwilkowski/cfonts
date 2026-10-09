@@ -691,13 +691,13 @@ mod tests {
 	}
 
 	#[test]
-	fn no_space_cells() {
-		assert_no_space_cells(&super::FONT_3D);
+	fn glyph_edges_carry_ink() {
+		assert_glyph_edges_carry_ink(&super::FONT_3D);
 	}
 
 	#[test]
-	fn glyph_edges_carry_ink() {
-		assert_glyph_edges_carry_ink(&super::FONT_3D);
+	fn no_space_cells() {
+		assert_no_space_cells(&super::FONT_3D);
 	}
 
 	#[test]

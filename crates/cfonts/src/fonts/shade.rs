@@ -133,14 +133,14 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c2>░░░</c2>",
 		));
 		table['J' as usize] = Some(glyph!(
-			r"<c2>░░░░</c2>",
-			r"<c1>███</c1><c2>░</c2>",
-			r"<c1>  █</c1><c2>░</c2>",
-			r"<c2>░░</c2><c1>█</c1><c2>░</c2>",
-			r"<c1>█</c1><c2>░</c2><c1>█</c1><c2>░</c2>",
-			r"<c1>███</c1><c2>░</c2>",
-			r"<c2>   ░</c2>",
-			r"<c2>░░░░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c1>███</c1>",
+			r"<c1>  █</c1>",
+			r"<c2>░░</c2><c1>█</c1>",
+			r"<c1>█</c1><c2>░</c2><c1>█</c1>",
+			r"<c1>███</c1>",
+			r"   ",
+			r"<c2>░░░</c2>",
 		));
 		table['K' as usize] = Some(glyph!(
 			r"<c2>░░░░</c2>",
@@ -313,14 +313,14 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c2>░░░░</c2>",
 		));
 		table['1' as usize] = Some(glyph!(
-			r"<c2>░░░░</c2>",
-			r"<c1>██</c1><c2>░░</c2>",
-			r"<c1> █</c1><c2>░░</c2>",
-			r"<c2>░</c2><c1>█</c1><c2>░░</c2>",
-			r"<c2>░</c2><c1>█</c1><c2>░░</c2>",
-			r"<c1>███</c1><c2>░</c2>",
-			r"<c2>   ░</c2>",
-			r"<c2>░░░░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c1>██</c1><c2>░</c2>",
+			r"<c1> █</c1><c2>░</c2>",
+			r"<c2>░</c2><c1>█</c1><c2>░</c2>",
+			r"<c2>░</c2><c1>█</c1><c2>░</c2>",
+			r"<c1>███</c1>",
+			r"   ",
+			r"<c2>░░░</c2>",
 		));
 		table['2' as usize] = Some(glyph!(
 			r"<c2>░░░░</c2>",
@@ -403,14 +403,14 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c2>░░░░</c2>",
 		));
 		table['!' as usize] = Some(glyph!(
-			r"<c2>░░░</c2>",
-			r"<c1>██</c1><c2>░</c2>",
-			r"<c1>██</c1><c2>░</c2>",
-			r"<c1>██</c1><c2>░</c2>",
-			r"<c2>  ░</c2>",
-			r"<c1>██</c1><c2>░</c2>",
-			r"<c2>  ░</c2>",
-			r"<c2>░░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c1>██</c1>",
+			r"<c1>██</c1>",
+			r"<c1>██</c1>",
+			r"  ",
+			r"<c1>██</c1>",
+			r"  ",
+			r"<c2>░░</c2>",
 		));
 		table['?' as usize] = Some(glyph!(
 			r"<c2>░░░░</c2>",
@@ -423,14 +423,14 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c2>░░░░</c2>",
 		));
 		table['.' as usize] = Some(glyph!(
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c1>█</c1><c2>░</c2>",
-			r"<c2> ░</c2>",
-			r"<c2>░░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c1>█</c1>",
+			r" ",
+			r"<c2>░</c2>",
 		));
 		table['+' as usize] = Some(glyph!(
 			r"<c2>░░░</c2>",
@@ -523,14 +523,14 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c2>░░░░░</c2>",
 		));
 		table['(' as usize] = Some(glyph!(
-			r"<c2>░░░░</c2>",
-			r"<c2>░░</c2><c1>█</c1><c2>░</c2>",
-			r"<c2>░</c2><c1>█</c1><c2> ░</c2>",
-			r"<c1>█</c1><c2> ░░</c2>",
-			r"<c1>█</c1><c2>░░░</c2>",
-			r"<c1> █</c1><c2>░░</c2>",
-			r"<c2>░</c2><c1> █</c1><c2>░</c2>",
-			r"<c2>░░ ░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c2>░░</c2><c1>█</c1>",
+			r"<c2>░</c2><c1>█ </c1>",
+			r"<c1>█</c1><c2> ░</c2>",
+			r"<c1>█</c1><c2>░░</c2>",
+			r"<c1> █</c1><c2>░</c2>",
+			r"<c2>░</c2><c1> █</c1>",
+			r"<c2>░░ </c2>",
 		));
 		table[')' as usize] = Some(glyph!(
 			r"<c2>░░░</c2>",
@@ -553,54 +553,54 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 			r"<c2> ░░░</c2>",
 		));
 		table[':' as usize] = Some(glyph!(
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c1>█</c1><c2>░</c2>",
-			r"<c2> ░</c2>",
-			r"<c2>░░</c2>",
-			r"<c1>█</c1><c2>░</c2>",
-			r"<c2> ░</c2>",
-			r"<c2>░░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c1>█</c1>",
+			r" ",
+			r"<c2>░</c2>",
+			r"<c1>█</c1>",
+			r" ",
+			r"<c2>░</c2>",
 		));
 		table[';' as usize] = Some(glyph!(
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░</c2><c1>█</c1><c2>░</c2>",
-			r"<c2>░ ░</c2>",
-			r"<c2>░</c2><c1>█</c1><c2>░</c2>",
-			r"<c1>█</c1><c2> ░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░</c2><c1>█</c1>",
+			r"<c2>░ </c2>",
+			r"<c2>░</c2><c1>█</c1>",
+			r"<c1>█ </c1>",
 		));
 		table[',' as usize] = Some(glyph!(
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░░░</c2>",
-			r"<c2>░</c2><c1>█</c1><c2>░</c2>",
-			r"<c1>█</c1><c2> ░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░░</c2>",
+			r"<c2>░</c2><c1>█</c1>",
+			r"<c1>█ </c1>",
 		));
 		table['\'' as usize] = Some(glyph!(
-			r"<c2>░░</c2>",
-			r"<c1>█</c1><c2>░</c2>",
-			r"<c2> ░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
-			r"<c2>░░</c2>",
+			r"<c2>░</c2>",
+			r"<c1>█</c1>",
+			r" ",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
+			r"<c2>░</c2>",
 		));
 		table['"' as usize] = Some(glyph!(
-			r"<c2>░░░░</c2>",
-			r"<c1>█</c1><c2>░</c2><c1>█</c1><c2>░</c2>",
-			r"<c2> ░ ░</c2>",
-			r"<c2>░░░░</c2>",
-			r"<c2>░░░░</c2>",
-			r"<c2>░░░░</c2>",
-			r"<c2>░░░░</c2>",
-			r"<c2>░░░░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c1>█</c1><c2>░</c2><c1>█</c1>",
+			r"<c2> ░ </c2>",
+			r"<c2>░░░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c2>░░░</c2>",
+			r"<c2>░░░</c2>",
 		));
 		table[' ' as usize] = Some(glyph!(
 			r"<c2>░░░</c2>",
@@ -621,12 +621,18 @@ pub static FONT_SHADE: FontFile<8> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_plain_segments_are_spaces, assert_slots_paint_only, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_plain_segments_are_spaces, assert_slots_paint_only,
+		assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_SHADE);
+	}
+
+	#[test]
+	fn glyph_edges_carry_ink() {
+		assert_glyph_edges_carry_ink(&super::FONT_SHADE);
 	}
 
 	#[test]

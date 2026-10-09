@@ -381,12 +381,17 @@ pub static FONT_BUBBLE: FontFile<4> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_BUBBLE);
+	}
+
+	#[test]
+	fn glyph_edges_carry_ink() {
+		assert_glyph_edges_carry_ink(&super::FONT_BUBBLE);
 	}
 
 	#[test]

@@ -321,12 +321,18 @@ pub static FONT_EDGE: FontFile<3> = FontFile {
 mod tests {
 	use crate::fonts::tests::{
 		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_plain_segments_are_spaces, assert_rows_stripe_their_slot, assert_supported,
+		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_plain_segments_are_spaces,
+		assert_rows_stripe_their_slot, assert_supported,
 	};
 
 	#[test]
 	fn all_supported_glyphs_defined() {
 		assert_supported(&super::FONT_EDGE);
+	}
+
+	#[test]
+	fn glyph_edges_carry_ink() {
+		assert_glyph_edges_carry_ink(&super::FONT_EDGE);
 	}
 
 	#[test]
