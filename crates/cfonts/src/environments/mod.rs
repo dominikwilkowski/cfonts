@@ -139,20 +139,24 @@ impl RowEvent<'_> {
 
 			for entry in &row.entries {
 				match entry {
-					RowEntry::Data { glyph_row, block_index, width, paintable } => {
-						for segment in glyph_row.segments {
-							let (text, slot) = segment.parts();
+					RowEntry::Data { glyph_row, block_index, width, repeat, paintable } => {
+						let block_index = *block_index as usize;
+						// a run of copies emits what as many separate entries would
+						for _ in 0..*repeat {
+							for segment in glyph_row.segments {
+								let (text, slot) = segment.parts();
 
-							// empty segments emit nothing so no consumer wraps color codes around zero columns
-							if !text.is_empty() {
-								event(RowEvent::Text { text, block_index: *block_index, slot, paintable: *paintable });
+								// empty segments emit nothing so no consumer wraps color codes around zero columns
+								if !text.is_empty() {
+									event(RowEvent::Text { text, block_index, slot, paintable: *paintable });
+								}
 							}
-						}
 
-						event(RowEvent::EntryEnd { width: *width, block_index: *block_index });
+							event(RowEvent::EntryEnd { width: usize::from(*width), block_index });
+						}
 					}
 					RowEntry::Blank { width, block_index } => {
-						event(RowEvent::Blank { width: *width, block_index: *block_index });
+						event(RowEvent::Blank { width: *width as usize, block_index: *block_index as usize });
 					}
 				}
 			}
@@ -382,7 +386,7 @@ fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 			RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row.segments.iter().any(|segment| {
 				let (text, slot) = segment.parts();
 
-				!text.is_empty() && plan.resolves(*block_index, slot, *paintable)
+				!text.is_empty() && plan.resolves(*block_index as usize, slot, *paintable)
 			}),
 			RowEntry::Blank { .. } => false,
 		})
@@ -442,7 +446,11 @@ mod tests {
 		let data_entries: usize = layout
 			.output
 			.iter()
-			.map(|row| row.entries.iter().filter(|entry| matches!(entry, RowEntry::Data { .. })).count())
+			.flat_map(|row| row.entries.iter())
+			.map(|entry| match entry {
+				RowEntry::Data { repeat, .. } => usize::from(*repeat),
+				RowEntry::Blank { .. } => 0,
+			})
 			.sum();
 		assert_eq!(entry_ends, data_entries);
 		let claimed: usize = layout.output.iter().map(|row| row.width).sum::<usize>()
@@ -451,7 +459,7 @@ mod tests {
 				.iter()
 				.flat_map(|row| row.entries.iter())
 				.filter_map(|entry| match entry {
-					RowEntry::Blank { width, .. } => Some(*width),
+					RowEntry::Blank { width, .. } => Some(*width as usize),
 					RowEntry::Data { .. } => None,
 				})
 				.sum::<usize>();

@@ -1,6 +1,6 @@
 //! Positioning: text and fonts become rows of glyph entries at a canvas width
 
-use std::mem;
+use std::{mem, ptr};
 
 use crate::{
 	NEW_LINE_CHAR,
@@ -30,22 +30,36 @@ impl LayoutGlyph {
 	fn width(&self) -> usize {
 		self.glyph.width
 	}
+
+	/// Whether two staged glyphs render the same, so a run of them is one entry with a repeat count
+	fn same(&self, other: &Self) -> bool {
+		ptr::eq(self.rows(), other.rows())
+			&& self.width() == other.width()
+			&& self.block_index == other.block_index
+			&& self.paintable == other.paintable
+	}
 }
 
 /// One entry of an output row: glyph data or blank valign padding
+///
+/// A row holds one entry per glyph for the whole render, so an entry stays at 16 bytes
 #[derive(Debug, PartialEq, Eq)]
 pub enum RowEntry {
 	/// One row of a glyph, tagged with the block it came from so the render
-	/// environments can tie it to that block's color configuration
+	/// environments can tie it to that block's color configuration,
+	/// a run of the same glyph side by side, letter spaces above all, is one entry
 	Data {
 		/// One row of the glyph's art, shared from the font's static data
 		glyph_row: &'static GlyphRow,
 
 		/// The block whose options cover this row's paint
-		block_index: usize,
+		block_index: u32,
 
-		/// The columns this entry claims, so cursors advance without rescanning text
-		width: usize,
+		/// The columns one copy claims, so cursors advance without rescanning text
+		width: u16,
+
+		/// How many copies of this row stand side by side
+		repeat: u8,
 
 		/// Whether untagged text of this row may take the block's single color
 		/// (printable glyphs and letter spaces may, buffer seams may not)
@@ -53,7 +67,7 @@ pub enum RowEntry {
 	},
 
 	/// A run of empty columns (valign padding), tagged with its block for background colors later
-	Blank { width: usize, block_index: usize },
+	Blank { width: u32, block_index: u32 },
 }
 
 /// Where a glyph allows a soft line break, relative to itself
@@ -487,6 +501,11 @@ impl<'a> Layout<'a> {
 		self.options.align.offset(canvas_width.saturating_sub(row_width))
 	}
 
+	/// A block index as a row entry stores it
+	fn entry_block(block_index: usize) -> u32 {
+		u32::try_from(block_index).expect("a composition holds fewer than 4,294,967,296 blocks")
+	}
+
 	/// Flushing a complete line to our output
 	fn flush_line(&mut self, canvas_width: Option<usize>) {
 		let mut current_block: Option<usize> = None;
@@ -519,9 +538,14 @@ impl<'a> Layout<'a> {
 			}
 		}
 
+		// a run of the same glyph is one entry per row, up to the largest repeat count an entry holds
+		let runs = || self.line.chunk_by(LayoutGlyph::same).flat_map(|run| run.chunks(usize::from(u8::MAX)));
+		let run_count = runs().count();
+
 		for row in 0..rows_to_push {
-			let mut entries = Vec::with_capacity(self.line.len());
-			for glyph in self.line.iter() {
+			let mut entries = Vec::with_capacity(run_count);
+			for run in runs() {
+				let glyph = run[0];
 				if current_block != Some(glyph.block_index) {
 					// rows_to_push >= the glyph's rows is guaranteed by flush_line's height tracking
 					padding = self.options.valign.offset(rows_to_push - glyph.rows().len());
@@ -530,12 +554,16 @@ impl<'a> Layout<'a> {
 
 				let entry = if row < padding || row >= padding + glyph.rows().len() {
 					// Blank padding rows for fonts that are not as tall as another on the same line
-					RowEntry::Blank { width: glyph.width(), block_index: glyph.block_index }
+					RowEntry::Blank {
+						width: u32::try_from(glyph.width() * run.len()).expect("a padding run is narrower than 2^32 columns"),
+						block_index: Self::entry_block(glyph.block_index),
+					}
 				} else {
 					RowEntry::Data {
 						glyph_row: &glyph.rows()[row - padding],
-						block_index: glyph.block_index,
-						width: glyph.width(),
+						block_index: Self::entry_block(glyph.block_index),
+						width: u16::try_from(glyph.width()).expect("a glyph is narrower than 65,536 columns"),
+						repeat: u8::try_from(run.len()).expect("a run is split at the largest repeat count"),
 						paintable: glyph.paintable,
 					}
 				};
@@ -576,8 +604,8 @@ mod tests {
 		row
 			.iter()
 			.map(|entry| match entry {
-				RowEntry::Data { glyph_row, .. } => glyph_row_width(glyph_row),
-				RowEntry::Blank { width, .. } => *width,
+				RowEntry::Data { glyph_row, repeat, .. } => glyph_row_width(glyph_row) * usize::from(*repeat),
+				RowEntry::Blank { width, .. } => *width as usize,
 			})
 			.sum()
 	}
@@ -1238,7 +1266,7 @@ mod tests {
 		// every row spans the same columns: Blank rows claim exactly the glyph width
 		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
 		assert!(widths.iter().all(|width| *width == widths[0]));
-		assert!(matches!(layout.output[0].entries[1], RowEntry::Blank { width, .. } if width == tiny_glyph.width));
+		assert!(matches!(layout.output[0].entries[1], RowEntry::Blank { width, .. } if width as usize == tiny_glyph.width));
 	}
 
 	#[test]
@@ -1582,6 +1610,42 @@ mod tests {
 			}],
 		));
 		assert_eq!(lines, vec![vec![expected, expected]]);
+	}
+
+	#[test]
+	fn a_row_entry_stays_at_16_bytes() {
+		// a row holds one entry per glyph for the whole render, so the size of one decides the peak heap of a long text
+		assert_eq!(mem::size_of::<RowEntry>(), 16);
+	}
+
+	#[test]
+	fn a_run_of_letter_spaces_is_one_entry() {
+		// every row opens and closes with the font's buffers, the three letter spaces between the glyphs are one entry
+		let font = Font::Tiny.get_font();
+		let options = options(
+			Valign::Top,
+			None,
+			vec![{
+				let mut block = BlockOptions::new("AB");
+				block.font = Font::Tiny;
+				block.letter_spacing = Some(3);
+				block
+			}],
+		);
+		let layout = Layout::build(&options, None);
+
+		for row in &layout.output {
+			let repeats: Vec<u8> = row
+				.entries
+				.iter()
+				.filter_map(|entry| match entry {
+					RowEntry::Data { repeat, .. } => Some(*repeat),
+					RowEntry::Blank { .. } => None,
+				})
+				.collect();
+			assert_eq!(repeats, [1, 1, 3, 1, 1]);
+			assert_eq!(row_width(&row.entries), font.get_glyph('A').unwrap().width + 3 + font.get_glyph('B').unwrap().width);
+		}
 	}
 
 	#[test]
