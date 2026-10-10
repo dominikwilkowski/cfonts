@@ -1,13 +1,15 @@
 //! The perf runner: `perf` prints what changed against the results in `README.md`, `save` writes them there
-//! and `compare` writes the comparison with v3, each after one fairness check, the make targets run it
+//! and `compare` writes the comparison with v3, each after one fairness check, `flamegraph` writes a flamegraph
+//! and a heap profile per scenario, the make targets run it
 
 mod check;
 mod child;
 mod cli;
 mod measure;
+mod profile;
 mod readme;
 
-use std::{collections::HashMap, env, process::ExitCode, thread};
+use std::{collections::HashMap, env, fs, process::ExitCode, thread};
 
 use cfonts_perf::{Scenario, Version, scenarios};
 use console::style;
@@ -16,8 +18,9 @@ use rayon::ThreadPoolBuilder;
 
 use crate::{
 	check::{check, problems},
-	child::{CHILD_FLAG, answer},
+	child::{CHILD_FLAG, PROFILE_TASK, TIME_LIMIT, answer, run_limited, task},
 	cli::Binaries,
+	profile::FLAME_TIME,
 	readme::{README, Written, bytes, cell, count, duration, parse, significant},
 };
 
@@ -115,13 +118,22 @@ fn main() -> ExitCode {
 		["perf"] => Mode::Perf,
 		["save"] => Mode::Save,
 		["compare"] => Mode::Compare,
+		["flamegraph"] => return finish(picked().and_then(|scenarios| profiles(&scenarios))),
 		_ => {
-			eprintln!("cfonts-perf takes perf, save or compare, run `make perf`, `make perf-save` or `make compare`");
+			eprintln!(
+				"cfonts-perf takes perf, save, compare or flamegraph, run `make perf`, `make perf-save`, `make compare` \
+				 or `make flamegraph`"
+			);
 			return ExitCode::FAILURE;
 		}
 	};
 
-	match run(mode) {
+	finish(run(mode))
+}
+
+/// Prints the lines a run ends with, or the reason it stopped
+fn finish(result: Result<Vec<String>, String>) -> ExitCode {
+	match result {
 		Ok(lines) => {
 			println!("{}", lines.join("\n"));
 			ExitCode::SUCCESS
@@ -184,6 +196,38 @@ fn picked() -> Result<Vec<Scenario>, String> {
 	} else {
 		Err(format!("{SCENARIOS_VARIABLE} is {names:?}, name scenarios perf/src/lib.rs lists, separated by commas"))
 	}
+}
+
+/// Writes a flamegraph and a heap profile per scenario next to the runner's build, `perf/target/flamegraphs` unless
+/// `CARGO_TARGET_DIR` moves it, one child after the other so no sample catches another child's work
+fn profiles(scenarios: &[Scenario]) -> Result<Vec<String>, String> {
+	let runner = env::current_exe().map_err(|error| format!("the runner cannot find its own path: {error}"))?;
+	let directory = runner.ancestors().nth(2).ok_or("the runner sits in no target directory")?.join("flamegraphs");
+	fs::create_dir_all(&directory).map_err(|error| format!("{} cannot be created: {error}", directory.display()))?;
+
+	let mut lines = Vec::new();
+	with_bar("flamegraphs", |bar| {
+		bar.set_length(scenarios.len() as u64);
+		for scenario in scenarios {
+			bar.set_message(scenario.name.clone());
+			let mut command = task(PROFILE_TASK, Version::V4, scenario);
+			command.arg(&directory);
+			if let Err(crash) = run_limited(command, FLAME_TIME + TIME_LIMIT) {
+				lines.push(format!("{} crashed: {crash}", scenario.name));
+			}
+			bar.inc(1);
+		}
+	});
+
+	lines.push(format!(
+		"Wrote a flamegraph and a heap profile of {} scenarios into {}",
+		scenarios.len(),
+		directory.display()
+	));
+	lines.push(String::from(
+		"Open a <scenario>.svg in a browser and a <scenario>.dhat.json in https://nnethercote.github.io/dh_view/dh_view.html",
+	));
+	Ok(lines)
 }
 
 /// Runs one test under a progress bar that names it and the scenario it measures, the bar is gone when it ends

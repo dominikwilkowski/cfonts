@@ -5,6 +5,7 @@ use std::{
 	env,
 	fmt::{self, Display},
 	io::Read,
+	path::Path,
 	process::{Command, ExitCode, ExitStatus, Stdio},
 	thread,
 	time::{Duration, Instant},
@@ -13,7 +14,10 @@ use std::{
 use cfonts_perf::{Scenario, Version, render_text};
 use wait_timeout::ChildExt;
 
-use crate::measure::{api_heap, api_speed};
+use crate::{
+	measure::{api_heap, api_speed},
+	profile::api_profiles,
+};
 
 /// The flag the runner runs itself with for one task: `cfonts-perf --perf-child <task> <version> <scenario> [budget]`
 pub const CHILD_FLAG: &str = "--perf-child";
@@ -26,6 +30,9 @@ pub const SPEED_TASK: &str = "speed";
 
 /// The task of the allocation and memory tests: print the blocks, bytes and peak heap of one render
 pub const HEAP_TASK: &str = "heap";
+
+/// The task of the flamegraph target: write a flamegraph and a heap profile of one scenario into a directory
+pub const PROFILE_TASK: &str = "profile";
 
 /// How long one render may take before its child is killed, the fairness check's limit
 pub const TIME_LIMIT: Duration = Duration::from_secs(30);
@@ -45,16 +52,20 @@ pub fn task(name: &str, version: Version, scenario: &Scenario) -> Command {
 }
 
 /// Answers one task in a child, a panic here is the crash the parent records
-pub fn answer(task: &str, version: &str, scenario: &str, budget: Option<&str>) -> ExitCode {
+pub fn answer(task: &str, version: &str, scenario: &str, extra: Option<&str>) -> ExitCode {
 	let version = Version::from_name(version).unwrap_or_else(|| panic!("{version} is no version, pass v3 or v4"));
 	let scenario =
 		Scenario::find(scenario).unwrap_or_else(|| panic!("{scenario} is no scenario, perf/src/lib.rs lists them"));
 
-	match (task, budget.map(str::parse)) {
+	match (task, extra.map(str::parse)) {
 		(RENDER_TASK, _) => print!("{}", render_text(version, &scenario)),
 		(SPEED_TASK, Some(Ok(budget))) => println!("{}", api_speed(version, &scenario, Duration::from_nanos(budget))),
 		(HEAP_TASK, _) => println!("{}", api_heap(version, &scenario).map(|value| value.to_string()).join(" ")),
-		_ => panic!("{task} is no task, pass {RENDER_TASK}, {SPEED_TASK} with a budget in nanoseconds or {HEAP_TASK}"),
+		(PROFILE_TASK, _) => api_profiles(&scenario, Path::new(extra.expect("the profile task names its directory"))),
+		_ => panic!(
+			"{task} is no task, pass {RENDER_TASK}, {SPEED_TASK} with a budget in nanoseconds, {HEAP_TASK} \
+			 or {PROFILE_TASK} with a directory"
+		),
 	}
 
 	ExitCode::SUCCESS

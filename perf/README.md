@@ -36,11 +36,12 @@ so the API path renders in child processes of the runner with no terminal attach
 
 Run them from the repository root.
 
-| target           | what it does                                                                                              | when to use it                           |
-| ---------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `make perf`      | measures v4 and prints every number that changed against the results below beyond its noise               | as often as you like while you change v4 |
-| `make perf-save` | measures v4 and writes the results below                                                                  | once you are happy with the change       |
-| `make compare`   | installs the v3 binary into `perf/target/v3` once, measures both versions and writes the comparison below | to see v4 next to v3                     |
+| target            | what it does                                                                                              | when to use it                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `make perf`       | measures v4 and prints every number that changed against the results below beyond its noise               | as often as you like while you change v4          |
+| `make perf-save`  | measures v4 and writes the results below                                                                  | once you are happy with the change                |
+| `make compare`    | installs the v3 binary into `perf/target/v3` once, measures both versions and writes the comparison below | to see v4 next to v3                              |
+| `make flamegraph` | writes a flamegraph and a heap profile of v4 per scenario into `perf/target/flamegraphs`                  | to find where a render spends its time and memory |
 
 The results below are the baseline.
 Change v4 and run `make perf` as often as you like, it reads the results and never writes this file.
@@ -53,6 +54,10 @@ and prints how many scenarios it checked.
 `CFONTS_PERF_SCENARIOS=short-plain,long-gradient make perf` checks only the scenarios it names,
 `make perf-save` and `make compare` then write tables of only those.
 
+`make flamegraph` renders each scenario on the API path for three seconds under a sampling profiler
+and once more under dhat, and writes `<scenario>.svg` and `<scenario>.dhat.json`.
+Open the graph in a browser and the heap profile in [dhat's viewer](https://nnethercote.github.io/dh_view/dh_view.html).
+The CLI path has no graph, the profiler samples the runner itself and the CLI runs the same render behind process start.
 ## The fairness check
 
 The runner checks every scenario once before it measures anything.

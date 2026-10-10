@@ -14,3 +14,13 @@ repository = "https://github.com/dominikwilkowski/cfonts"
 
 [workspace.dependencies]
 cfonts-macros = { path = "crates/macros", version = "=4.0.0" }
+
+# The release build of the cfonts binary and the npm package
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
+
+# Stripping removes the section that records the wasm features the module uses, wasm-opt then rejects the module
+[profile.release.package.cfonts-wasm]
+strip = false

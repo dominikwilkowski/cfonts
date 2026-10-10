@@ -6,7 +6,7 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test perf perf-save compare
+.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test perf perf-save compare flamegraph
 
 help:
 	@echo "make cli       the Rust API tour, printed to the terminal"
@@ -24,6 +24,7 @@ help:
 	@echo "make perf      v4 on speed, allocations and memory, prints what changed against perf/README.md"
 	@echo "make perf-save v4 on speed, allocations and memory, the results go into perf/README.md"
 	@echo "make compare   v4 against the published v3 1.3.0, the comparison goes into perf/README.md"
+	@echo "make flamegraph a flamegraph and a heap profile of v4 per scenario into perf/target/flamegraphs"
 
 cli:
 	cargo run --locked -p cfonts --example cli
@@ -97,6 +98,9 @@ perf-save: perf-build
 compare: perf-build
 	test -x $(PERF_V3) || cargo install cfonts --version =1.3.0 --locked --root perf/target/v3 --target-dir perf/target/v3/build
 	CFONTS_PERF_V3=$(PERF_V3) $(PERF_RUN) compare
+
+flamegraph: perf-build
+	$(PERF_RUN) flamegraph
 
 # the v4 binary, then the runner and the interpose library in one build of the perf workspace
 .PHONY: perf-build

@@ -162,10 +162,15 @@ pub fn api_speed(version: Version, scenario: &Scenario, budget: Duration) -> u12
 	.as_nanos()
 }
 
+/// Hands every later allocation of this process to dhat, a child does this once before dhat starts
+pub fn hand_allocations_to_dhat() {
+	DHAT.store(true, Relaxed);
+}
+
 /// Answers the heap task in a child: the blocks and bytes of a render after a first one and the peak heap of that first,
 /// under dhat started after the options are built
 pub fn api_heap(version: Version, scenario: &Scenario) -> [u64; 3] {
-	DHAT.store(true, Relaxed);
+	hand_allocations_to_dhat();
 	let mut v3 = [scenario.v3_options(), scenario.v3_options()].into_iter();
 	let v4 = scenario.v4_options();
 	let mut render = || match version {
