@@ -1,0 +1,35 @@
+[package]
+name = "cfonts-perf"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# standalone on purpose: the comparison pulls in the published v3 crate and dhat,
+# normal workspace builds stay free of both
+[workspace]
+members = ["interpose"]
+
+# v4 needs no feature, the CLI environment and render_with are always on outside the browser
+[dependencies]
+cfonts = { path = "../crates/cfonts" }
+cfonts_v3 = { package = "cfonts", version = "=1.3.0" }
+console = "0.16.6"
+dhat = "0.3.3"
+indicatif = "0.18.6"
+libc = "0.2.190"
+rayon = "1.12.0"
+sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
+tabled = { version = "0.22.0", default-features = false, features = ["std"] }
+wait-timeout = "0.2.1"
+
+# The v4 workspace declares no release profile, so this spells out cargo's default release profile:
+# - the API path builds both libraries with it, v3 and v4 alike
+# - the v4 binary of the CLI path is the workspace's release build, the same profile
+# - the v3 binary of the CLI path is the published crate installed by cargo install, built with its own
+#   profile, fat LTO, one codegen unit and stripped
+[profile.release]
+opt-level = 3
+debug = false
+lto = false
+codegen-units = 16
+panic = "unwind"

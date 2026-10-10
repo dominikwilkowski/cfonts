@@ -1,0 +1,57 @@
+[package]
+name = "cfonts"
+description = "Sexy ANSI fonts for the console"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/cfonts/"
+readme = "../../README.md"
+keywords = ["fonts", "color", "console", "ascii", "ANSI"]
+categories = ["command-line-interface", "command-line-utilities", "graphics"]
+include = [
+	"src/**",
+	"!**/.DS_Store",
+	"examples/**",
+	"Cargo.toml",
+	"LICENSE",
+]
+
+[dependencies]
+cfonts-macros.workspace = true
+dioxus = { version = "0.7", optional = true, default-features = false, features = [
+	"html",
+	"macro",
+	"signals",
+] }
+leptos = { version = "0.8", optional = true, default-features = false }
+ratatui = { version = "0.30", optional = true, default-features = false }
+wasm-bindgen = { version = "0.2", optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = ["console"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console"] }
+windows-version = "0.100"
+
+[dev-dependencies]
+temp-env = "0.3"
+
+[target.'cfg(windows)'.dev-dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Security"] }
+
+[features]
+dioxus = ["dep:dioxus", "web"]
+leptos = ["dep:leptos", "web"]
+ratatui = ["dep:ratatui", "dep:js-sys"]
+# the plain enums cross the JavaScript boundary as they are, the wasm crate turns this on
+wasm = ["dep:wasm-bindgen"]
+web = ["dep:js-sys", "dep:web-sys"]
