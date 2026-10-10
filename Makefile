@@ -6,7 +6,7 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test
+.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test perf perf-save compare
 
 help:
 	@echo "make cli       the Rust API tour, printed to the terminal"
@@ -21,6 +21,9 @@ help:
 	@echo "make bundle    the browser, leptos and dioxus pages the smoke test serves, after pnpm run build"
 	@echo "make check     compiles the ratatui, leptos and dioxus examples"
 	@echo "make test      the whole gate, every check and every test"
+	@echo "make perf      v4 on speed, allocations and memory, prints what changed against perf/README.md"
+	@echo "make perf-save v4 on speed, allocations and memory, the results go into perf/README.md"
+	@echo "make compare   v4 against the published v3 1.3.0, the comparison goes into perf/README.md"
 
 cli:
 	cargo run --locked -p cfonts --example cli
@@ -73,6 +76,33 @@ test: wasm32
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features wasm
 	pnpm test
+
+# The perf package measures this v4 and compares it with the published v3 on request, its lib.rs lists the scenarios
+# and how they run, its README.md holds the hand written part and the tables perf-save and compare write into it,
+# perf reads the results back and prints what changed
+# the v3 binary installs once into perf/target/v3 with a build directory of its own, so it never lands on the v4 binary,
+# the other paths follow CARGO_TARGET_DIR the way cargo does
+PERF_V3 = $(CURDIR)/perf/target/v3/bin/cfonts
+PERF_V4 = $(abspath $(or $(CARGO_TARGET_DIR),target))/release/cfonts
+PERF_TARGET = $(abspath $(or $(CARGO_TARGET_DIR),perf/target))/release
+PERF_INTERPOSE = $(PERF_TARGET)/libcfonts_perf_interpose.$(if $(filter Darwin,$(shell uname -s)),dylib,so)
+PERF_RUN = CFONTS_PERF_V4=$(PERF_V4) CFONTS_PERF_INTERPOSE=$(PERF_INTERPOSE) $(PERF_TARGET)/cfonts-perf
+
+perf: perf-build
+	$(PERF_RUN) perf
+
+perf-save: perf-build
+	$(PERF_RUN) save
+
+compare: perf-build
+	test -x $(PERF_V3) || cargo install cfonts --version =1.3.0 --locked --root perf/target/v3 --target-dir perf/target/v3/build
+	CFONTS_PERF_V3=$(PERF_V3) $(PERF_RUN) compare
+
+# the v4 binary, then the runner and the interpose library in one build of the perf workspace
+.PHONY: perf-build
+perf-build:
+	cargo build --locked --release -p cfonts --bin cfonts
+	cargo build --locked --release --manifest-path perf/Cargo.toml --workspace
 
 # The framework examples compile for the browser, add the target with `rustup target add wasm32-unknown-unknown`
 # and install trunk once with `cargo install trunk` to serve them
