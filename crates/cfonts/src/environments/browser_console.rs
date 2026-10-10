@@ -45,7 +45,21 @@ impl BrowserConsoleEnv {
 			(None, None) => None,
 			(Some(color), None) => Some(Cow::Borrowed(color)),
 			(None, Some(band)) => Some(Cow::Borrowed(band.start.as_ref())),
-			(Some(color), Some(band)) => Some(Cow::Owned(format!("{color};{}", band.start))),
+			(Some(color), Some(_)) => {
+				let mut style = String::from(color);
+				Self::push_band(band, &mut style);
+				Some(Cow::Owned(style))
+			}
+		}
+	}
+
+	/// Adds the row's band to the declarations in `style`, after a `;` when the run has its own color
+	fn push_band(band: Option<&ColorTokens>, style: &mut String) {
+		if let Some(band) = band {
+			if !style.is_empty() {
+				style.push(';');
+			}
+			style.push_str(&band.start);
 		}
 	}
 
@@ -100,10 +114,18 @@ impl Environment for BrowserConsoleEnv {
 		context: &RenderContext,
 		out: &mut Rendered,
 	) -> usize {
+		// one buffer holds every column's declarations, only a style that changes is copied out
+		let mut style = String::new();
+
 		each_ramp_column(text, colors, |character, rgb| {
-			let color =
-				rgb.zip(context.color_level()).map(|(rgb, level)| format!("color:{}", rgb.at_level(level).to_css_hex()));
-			Self::style_run(color.as_deref(), band, out);
+			style.clear();
+			if let Some((rgb, level)) = rgb.zip(context.color_level()) {
+				style.push_str("color:");
+				rgb.at_level(level).push_css_hex(&mut style);
+			}
+			Self::push_band(band, &mut style);
+
+			Self::switch(&style, out);
 			Self::push_escaped_char(character, &mut out.text);
 		})
 	}

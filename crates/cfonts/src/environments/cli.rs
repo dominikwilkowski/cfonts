@@ -15,22 +15,75 @@ use crate::{
 /// after the text a terminal whose cursor rests on the last column would erase that column
 const ERASE_TO_LINE_END: &str = "\x1b[K";
 
+/// The SGR parameter that selects the foreground color
+const FOREGROUND: &str = "38";
+
+/// The SGR parameter that selects the background color
+const BACKGROUND: &str = "48";
+
+/// The longest start code, `\x1b[38;2;255;255;255m`, so a token's string is sized once and never grows
+const LONGEST_CODE: usize = 19;
+
+/// Writes `value` in decimal, the digits an SGR parameter carries
+fn push_decimal(value: u8, out: &mut String) {
+	if value >= 100 {
+		out.push(char::from(b'0' + value / 100));
+	}
+	if value >= 10 {
+		out.push(char::from(b'0' + value / 10 % 10));
+	}
+	out.push(char::from(b'0' + value % 10));
+}
+
 impl CliEnv {
 	/// The foreground start code of one RGB value at one support level
 	fn rgb_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
-		match level {
-			ColorLevel::TrueColor => Cow::Owned(format!("\x1b[38;2;{};{};{}m", rgb.red, rgb.green, rgb.blue)),
-			ColorLevel::Ansi256 => Cow::Owned(format!("\x1b[38;5;{}m", rgb.ansi256_index())),
-			ColorLevel::Basic => Cow::Borrowed(rgb.ansi16_sgr()),
-		}
+		Self::rgb_code(rgb, level, FOREGROUND, Rgb::ansi16_sgr)
 	}
 
 	/// The background start code of one RGB value at one support level
 	fn rgb_background_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
+		Self::rgb_code(rgb, level, BACKGROUND, Rgb::ansi16_background_sgr)
+	}
+
+	/// The start code of one RGB value at one support level as a token,
+	/// the fixed sixteen color codes borrowed, the others written once into a string of the right size
+	fn rgb_code(rgb: Rgb, level: ColorLevel, layer: &str, basic: fn(Rgb) -> &'static str) -> Cow<'static, str> {
 		match level {
-			ColorLevel::TrueColor => Cow::Owned(format!("\x1b[48;2;{};{};{}m", rgb.red, rgb.green, rgb.blue)),
-			ColorLevel::Ansi256 => Cow::Owned(format!("\x1b[48;5;{}m", rgb.ansi256_index())),
-			ColorLevel::Basic => Cow::Borrowed(rgb.ansi16_background_sgr()),
+			ColorLevel::Basic => Cow::Borrowed(basic(rgb)),
+			extended => {
+				let mut code = String::with_capacity(LONGEST_CODE);
+				Self::push_rgb_code(rgb, extended, layer, basic, &mut code);
+				Cow::Owned(code)
+			}
+		}
+	}
+
+	/// Writes the start code of one RGB value at one support level straight into `out`
+	///
+	/// - `layer` is the SGR parameter of the foreground or the background
+	/// - `basic` picks the sixteen color code of that layer
+	/// - the digits go in place, so a gradient formats no string per column
+	fn push_rgb_code(rgb: Rgb, level: ColorLevel, layer: &str, basic: fn(Rgb) -> &'static str, out: &mut String) {
+		match level {
+			ColorLevel::TrueColor => {
+				out.push_str("\x1b[");
+				out.push_str(layer);
+				out.push_str(";2");
+				for channel in [rgb.red, rgb.green, rgb.blue] {
+					out.push(';');
+					push_decimal(channel, out);
+				}
+				out.push('m');
+			}
+			ColorLevel::Ansi256 => {
+				out.push_str("\x1b[");
+				out.push_str(layer);
+				out.push_str(";5;");
+				push_decimal(rgb.ansi256_index(), out);
+				out.push('m');
+			}
+			ColorLevel::Basic => out.push_str(basic(rgb)),
 		}
 	}
 
@@ -118,7 +171,7 @@ impl Environment for CliEnv {
 
 		each_ramp_column(text, colors, |character, rgb| match rgb {
 			Some(rgb) => {
-				out.text.push_str(&Self::rgb_start(*rgb, level));
+				Self::push_rgb_code(*rgb, level, FOREGROUND, Rgb::ansi16_sgr, &mut out.text);
 				out.text.push(character);
 				out.text.push_str(ANSI_RESET);
 			}
@@ -159,6 +212,26 @@ impl Environment for CliEnv {
 mod tests {
 	use super::*;
 	use crate::{Cfonts, Font, RenderOverrides};
+
+	// start codes
+
+	#[test]
+	fn start_codes_spell_every_channel_value_like_the_format_macro() {
+		// the digits are written by hand, so every channel value is checked against the standard formatting
+		for value in 0..=u8::MAX {
+			let rgb = Rgb { red: value, green: value, blue: value };
+
+			assert_eq!(CliEnv::rgb_start(rgb, ColorLevel::TrueColor), format!("\x1b[38;2;{value};{value};{value}m"));
+			assert_eq!(
+				CliEnv::rgb_background_start(rgb, ColorLevel::TrueColor),
+				format!("\x1b[48;2;{value};{value};{value}m")
+			);
+			assert_eq!(CliEnv::rgb_start(rgb, ColorLevel::Ansi256), format!("\x1b[38;5;{}m", rgb.ansi256_index()));
+			assert_eq!(CliEnv::rgb_background_start(rgb, ColorLevel::Ansi256), format!("\x1b[48;5;{}m", rgb.ansi256_index()));
+			assert_eq!(CliEnv::rgb_start(rgb, ColorLevel::Basic), rgb.ansi16_sgr());
+			assert_eq!(CliEnv::rgb_background_start(rgb, ColorLevel::Basic), rgb.ansi16_background_sgr());
+		}
+	}
 
 	// color_tokens
 

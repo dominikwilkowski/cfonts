@@ -101,6 +101,14 @@ pub struct Rgb {
 	pub blue: u8,
 }
 
+/// The digits of lowercase hexadecimal notation, indexed by their value
+const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
+
+/// Writes one hexadecimal digit, `value` is below 16
+fn push_hex_digit(value: u8, out: &mut String) {
+	out.push(char::from(HEX_DIGITS[usize::from(value)]));
+}
+
 impl Rgb {
 	/// Parses a `#rgb` or `#rrggbb` hex color; the leading `#` is optional
 	pub fn from_hex(hex: &str) -> Result<Self, ColorError> {
@@ -125,17 +133,32 @@ impl Rgb {
 
 	/// The lowercase `#rrggbb` form of this color
 	pub fn to_hex(self) -> String {
-		format!("#{:0>2x}{:0>2x}{:0>2x}", self.red, self.green, self.blue)
+		let mut hex = String::with_capacity(7);
+		self.push_hex(false, &mut hex);
+		hex
 	}
 
 	/// The shortest CSS form of this color: `#rgb` when every channel repeats its nibble, `#rrggbb` otherwise
 	pub fn to_css_hex(self) -> String {
-		let repeats = |channel: u8| (channel >> 4) == (channel & 0x0f);
+		let mut hex = String::with_capacity(7);
+		self.push_css_hex(&mut hex);
+		hex
+	}
 
-		if repeats(self.red) && repeats(self.green) && repeats(self.blue) {
-			format!("#{:x}{:x}{:x}", self.red & 0x0f, self.green & 0x0f, self.blue & 0x0f)
-		} else {
-			self.to_hex()
+	/// Writes the shortest CSS form of this color straight into `out`, so a gradient formats no string per column
+	pub(crate) fn push_css_hex(self, out: &mut String) {
+		let short = [self.red, self.green, self.blue].iter().all(|channel| channel >> 4 == channel & 0x0f);
+		self.push_hex(short, out);
+	}
+
+	/// Writes `#` and the lowercase hex digits of every channel, one digit per channel when `short`
+	fn push_hex(self, short: bool, out: &mut String) {
+		out.push('#');
+		for channel in [self.red, self.green, self.blue] {
+			if !short {
+				push_hex_digit(channel >> 4, out);
+			}
+			push_hex_digit(channel & 0x0f, out);
 		}
 	}
 
@@ -1139,6 +1162,16 @@ mod tests {
 		assert_eq!(Rgb { red: 255, green: 255, blue: 255 }.to_hex(), "#ffffff");
 		assert_eq!(Rgb { red: 127, green: 127, blue: 127 }.to_hex(), "#7f7f7f");
 		assert_eq!(Rgb { red: 255, green: 136, blue: 0 }.to_hex(), "#ff8800");
+	}
+
+	#[test]
+	fn the_hex_digits_match_the_format_macro_for_every_channel_value() {
+		// the digits are written by hand, so every channel value is checked against the standard formatting
+		for value in 0..=u8::MAX {
+			let rgb = Rgb { red: value, green: value / 2, blue: u8::MAX - value };
+
+			assert_eq!(rgb.to_hex(), format!("#{:02x}{:02x}{:02x}", rgb.red, rgb.green, rgb.blue));
+		}
 	}
 
 	#[test]

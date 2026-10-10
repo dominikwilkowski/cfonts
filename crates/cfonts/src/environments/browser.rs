@@ -34,9 +34,9 @@ impl BrowserEnv {
 	///
 	/// Both the slot and the gradient paint paths route through this,
 	/// so the markup has exactly one home
-	fn push_span(css: &str, content: impl FnOnce(&mut String), out: &mut String) {
+	fn push_span(css: impl FnOnce(&mut String), content: impl FnOnce(&mut String), out: &mut String) {
 		out.push_str(r#"<span style="color:"#);
-		out.push_str(css);
+		css(out);
 		out.push_str(r#"">"#);
 		content(out);
 		out.push_str("</span>");
@@ -105,7 +105,7 @@ impl Environment for BrowserEnv {
 		each_ramp_column(text, colors, |character, rgb| match rgb.zip(context.color_level()) {
 			Some((rgb, level)) => {
 				Self::push_span(
-					&rgb.at_level(level).to_css_hex(),
+					|out| rgb.at_level(level).push_css_hex(out),
 					|out| Self::push_escaped_char(character, out),
 					&mut out.text,
 				);
@@ -129,7 +129,11 @@ impl Environment for BrowserEnv {
 			return;
 		}
 
-		Self::push_span(&tokens.start, |out| push_escaped(text, Self::push_escaped_char, out), &mut out.text);
+		Self::push_span(
+			|out| out.push_str(&tokens.start),
+			|out| push_escaped(text, Self::push_escaped_char, out),
+			&mut out.text,
+		);
 	}
 
 	/// A banded row opens its band, an empty row without a band is the bare block
