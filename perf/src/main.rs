@@ -163,8 +163,8 @@ fn run(mode: Mode) -> Result<Vec<String>, String> {
 		}
 		None => {
 			readme::write("compare", versions, &names, &values)?;
+			lines.extend(comparison(&names, &values));
 			lines.push(format!("Wrote the comparison of {} scenarios into {README}", names.len()));
-			lines.extend(ratios(&names, &values));
 		}
 	}
 
@@ -201,7 +201,7 @@ fn changes(names: &[String], values: &Values, written: &Written) -> Vec<String> 
 	let mut lines = Vec::new();
 	let mut changed = 0;
 	for name in names {
-		let (block, moved) = block(name, values, written);
+		let (block, moved) = block(name, |measure| against_readme(name, measure, values, written));
 		changed += usize::from(moved);
 		lines.extend(block);
 		lines.push(String::new());
@@ -215,10 +215,20 @@ fn changes(names: &[String], values: &Values, written: &Written) -> Vec<String> 
 	lines
 }
 
-/// The report block of one scenario and whether anything in it moved beyond noise
-///
-/// A drop is green and a rise red, lower is better for every column, a value within its noise reads 0%
-fn block(name: &str, values: &Values, written: &Written) -> (Vec<String>, bool) {
+/// One block per scenario with every column of both paths in it, v4 against v3
+fn comparison(names: &[String], values: &Values) -> Vec<String> {
+	let mut lines = Vec::new();
+	for name in names {
+		let (block, _) = block(name, |measure| against_v3(name, measure, values));
+		lines.extend(block);
+		lines.push(String::new());
+	}
+	lines
+}
+
+/// The report block of one scenario and whether anything in it moved, `shown` gives a column's text
+/// and whether that column moved
+fn block(name: &str, shown: impl Fn(&Measure) -> (String, bool)) -> (Vec<String>, bool) {
 	let mut lines = vec![style(format!("== {name} ==")).yellow().to_string()];
 	let mut moved = false;
 
@@ -227,29 +237,57 @@ fn block(name: &str, values: &Values, written: &Written) -> (Vec<String>, bool) 
 		for column in columns {
 			let measure =
 				MEASURES.iter().find(|measure| measure.column == *column).expect("every reported column is a measure");
-			let now = &values[&(name.to_string(), measure.column, Version::V4)];
-			let before = written.get(&(name.to_string(), measure.column)).map_or("not in the README", String::as_str);
 			let label = format!("{}:", column.split_once(' ').map_or(*column, |(_, label)| label));
-
-			let shown = match movement(measure, before, now) {
-				Movement::Still => String::from("0%"),
-				Movement::Unmeasured => String::from("n/a"),
-				Movement::Moved(percent) => {
-					moved = true;
-					let places = decimals(percent);
-					let text = format!("{percent:+.places$}%");
-					if percent < 0.0 { style(text).green().to_string() } else { style(text).red().to_string() }
-				}
-				Movement::Missing(reason) => {
-					moved = true;
-					style(reason).yellow().to_string()
-				}
-			};
-			lines.push(format!("  {label:<LABEL_WIDTH$}{shown}"));
+			let (text, column_moved) = shown(measure);
+			moved |= column_moved;
+			lines.push(format!("  {label:<LABEL_WIDTH$}{text}"));
 		}
 	}
 
 	(lines, moved)
+}
+
+/// One column of this run against the README and whether it moved beyond noise,
+/// a drop is green and a rise red, lower is better for every column, a value within its noise reads 0%
+fn against_readme(name: &str, measure: &Measure, values: &Values, written: &Written) -> (String, bool) {
+	let now = &values[&(name.to_string(), measure.column, Version::V4)];
+	let before = written.get(&(name.to_string(), measure.column)).map_or("not in the README", String::as_str);
+
+	match movement(measure, before, now) {
+		Movement::Still => (String::from("0%"), false),
+		Movement::Unmeasured => (String::from("n/a"), false),
+		Movement::Moved(percent) => {
+			let places = decimals(percent);
+			(painted(format!("{percent:+.places$}%"), percent < 0.0), true)
+		}
+		Movement::Missing(reason) => (style(reason).yellow().to_string(), true),
+	}
+}
+
+/// One column of v4 against v3 as a factor and whether the two differ,
+/// green when v4 is ahead and red when it is behind, lower is better for every column
+fn against_v3(name: &str, measure: &Measure, values: &Values) -> (String, bool) {
+	let [v3, v4] = Version::BOTH.map(|version| &values[&(name.to_string(), measure.column, version)]);
+	let (better, worse) = if measure.test == "speed" { ("faster", "slower") } else { ("less", "more") };
+
+	match (v3, v4) {
+		(Ok(v3), Ok(v4)) if v3 == v4 => (String::from("same"), false),
+		(Ok(v3), Ok(v4)) if *v3 > 0 && *v4 > 0 => {
+			let ahead = v4 < v3;
+			let (factor, word) = if ahead { (*v3 as f64 / *v4 as f64, better) } else { (*v4 as f64 / *v3 as f64, worse) };
+			(painted(format!("{}x {word}", significant(factor)), ahead), true)
+		}
+		_ if cell(v3, measure.format) == cell(v4, measure.format) => (cell(v4, measure.format), false),
+		_ => {
+			let text = format!("{} against {} in v3", cell(v4, measure.format), cell(v3, measure.format));
+			(style(text).yellow().to_string(), true)
+		}
+	}
+}
+
+/// `text` in green when it is good news and in red when it is not
+fn painted(text: String, good: bool) -> String {
+	if good { style(text).green().to_string() } else { style(text).red().to_string() }
 }
 
 /// The decimals a change shows, a few allocations out of thousands is a real change, so small moves keep three
@@ -276,33 +314,4 @@ fn movement(measure: &Measure, before: &str, now: &Result<u64, String>) -> Movem
 		(None, _) if before == cell(now, measure.format) => Movement::Unmeasured,
 		_ => Movement::Missing(format!("{} now, {before} in the README", cell(now, measure.format))),
 	}
-}
-
-/// One line per ratio column: the smallest, the median and the largest ratio of v4 over v3 across the scenarios
-fn ratios(names: &[String], values: &Values) -> Vec<String> {
-	let ratio_of = |name: &String, column| {
-		let [Ok(v3), Ok(v4)] = Version::BOTH.map(|version| &values[&(name.clone(), column, version)]) else {
-			return None;
-		};
-		(*v3 > 0).then(|| *v4 as f64 / *v3 as f64)
-	};
-
-	let measures = MEASURES.iter().filter(|measure| measure.ratio.is_some());
-	measures
-		.map(|measure| {
-			let mut ratios: Vec<f64> = names.iter().filter_map(|name| ratio_of(name, measure.column)).collect();
-			ratios.sort_by(f64::total_cmp);
-			match (ratios.first(), ratios.last()) {
-				(Some(low), Some(high)) => format!(
-					"{}, v4 over v3: {}x to {}x, median {}x over {} scenarios",
-					measure.column,
-					significant(*low),
-					significant(*high),
-					significant(ratios[ratios.len() / 2]),
-					ratios.len()
-				),
-				_ => format!("{}, v4 over v3: no scenario with both", measure.column),
-			}
-		})
-		.collect()
 }
