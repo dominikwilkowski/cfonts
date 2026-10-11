@@ -25,6 +25,8 @@ pub use hosts::Host;
 pub use options::{Align, BlockOptions, Options, Valign};
 pub use render::{CanvasWidth, ColorOverride, RenderContext, RenderOverrides, render_with};
 
+use cfonts_macros::supported_chars;
+
 #[cfg(feature = "web")]
 pub use hosts::BrowserHost;
 #[cfg(not(target_arch = "wasm32"))]
@@ -46,8 +48,4 @@ mod tests;
 pub const NEW_LINE_CHAR: char = '|';
 
 /// All supported characters of cfonts
-pub const SUPPORTED_CHARS: &[char] = &[
-	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-	'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '?', '.', '+', '-', '_', '=', '@', '#', '$',
-	'%', '&', '(', ')', '/', ':', ';', ',', '\'', '"', ' ',
-];
+pub const SUPPORTED_CHARS: &[char] = &supported_chars!();

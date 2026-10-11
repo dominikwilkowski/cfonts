@@ -1,8 +1,8 @@
 //! Tests for the `All` derive
 //!
-//! `proc_macro::TokenStream` only exists during real expansion, so unlike the `glyph!` tests
+//! `proc_macro::TokenStream` only exists during real expansion, so unlike the `font!` tests
 //! these must be integration tests: rustc expands the derive and the assertions check the result
-//! Rejection paths (structs, data variants, generics) fail compilation and are not testable here
+//! Rejection paths fail compilation, `compile_fail.rs` checks their errors
 
 use cfonts_macros::All;
 

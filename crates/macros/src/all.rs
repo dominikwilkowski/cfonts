@@ -1,13 +1,13 @@
-use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree};
 
-use crate::glyph::compile_error;
+use crate::error::CompileError;
 
 pub(crate) fn derive_all(input: TokenStream) -> TokenStream {
 	match expand(input) {
 		Ok(generated) => generated,
 		Err(message) => {
 			// derive output sits in item position, so the invocation takes its semicolon
-			let mut error = compile_error(&message);
+			let mut error = CompileError::new(message, Span::call_site()).into_tokens();
 			error.extend(";".parse::<TokenStream>().expect("a semicolon always parses"));
 			error
 		}

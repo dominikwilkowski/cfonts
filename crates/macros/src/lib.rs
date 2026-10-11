@@ -1,7 +1,8 @@
 use proc_macro::TokenStream;
 
 mod all;
-mod glyph;
+mod error;
+mod font;
 
 /// Derives `ALL`, a `pub const` array holding every variant of a fieldless enum, and its names
 ///
@@ -41,33 +42,43 @@ pub fn all(input: TokenStream) -> TokenStream {
 	all::derive_all(input)
 }
 
-/// Build a glyph from marker-annotated rows
-///
-/// Only raw string literals are accepted:
+/// Compiles one font's art into the tables cfonts renders from, checking every rule a font follows
 ///
 /// ```ignore
-/// glyph!(
-///     r"<c1>Hello</c1>",
-///     r#"plain "quoted" text"#,
-/// )
+/// pub(super) static FONT_TINY: FontFile = font! {
+///     font: Font::Tiny,
+///     name: "tiny",
+///     colors: 1,
+///     rows: 2,
+///     line_height: 1,
+///     letter_spacing: 1,
+///     letter_space: [
+///         r" ",
+///         r" ",
+///     ],
+///     glyphs: {
+///         'A' => [
+///             r"▄▀█",
+///             r"█▀█",
+///         ],
+///     },
+/// };
 /// ```
 ///
-/// `<cN>…</cN>` is 1-based in source and becomes:
-///
-/// ```ignore
-/// Segment::Colored { slot: N - 1, text }
-/// ```
-///
-/// Untagged text becomes:
-///
-/// ```ignore
-/// Segment::Plain(text)
-/// ```
-///
-/// `Segment` must be in scope at the call site
-/// The row count is checked against `Glyph<ROWS>` at the assignment, not here
-/// Invalid input turns into a `compile_error!` at the call site
+/// The settings and their grammar are listed in `font/source.rs`, the rules in `font/checks.rs`
+/// `<cN>…</cN>` in a row paints its text with color slot N, counted from 1
+/// A broken rule turns into a `compile_error!` at the setting, glyph or row breaking it
 #[proc_macro]
-pub fn glyph(input: TokenStream) -> TokenStream {
-	glyph::expand(input)
+pub fn font(input: TokenStream) -> TokenStream {
+	font::expand(input)
+}
+
+/// Expands to the array of every character cfonts draws, the one list `font!` checks each font against
+///
+/// ```ignore
+/// pub const SUPPORTED_CHARS: &[char] = &supported_chars!();
+/// ```
+#[proc_macro]
+pub fn supported_chars(input: TokenStream) -> TokenStream {
+	font::supported_chars(input)
 }

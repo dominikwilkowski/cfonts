@@ -284,7 +284,7 @@ jobs:
           checksum: true
 
       - name: Generate code coverage
-        run: cargo llvm-cov --locked --all-features --workspace --lcov --exclude cfonts-wasm --output-path lcov.info
+        run: make coverage-lcov
 
       - name: Print last few lines of lcov.info
         run: tail ./lcov.info

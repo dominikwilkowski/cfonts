@@ -6,25 +6,29 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test perf perf-save compare flamegraph
+.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test coverage coverage-lcov perf perf-save compare flamegraph
 
 help:
-	@echo "make cli       the Rust API tour, printed to the terminal"
-	@echo "make node      the node API tour, printed to the terminal"
-	@echo "               or: pnpm run example:node"
-	@echo "make ratatui   the ratatui widget, an interactive terminal app"
-	@echo "make leptos    the leptos site, served by trunk"
-	@echo "make dioxus    the dioxus site, served by trunk"
-	@echo "make topcoat   the topcoat site, served by its own binary"
-	@echo "make browser   the browser example, served by vite"
-	@echo "               or: pnpm run example:browser"
-	@echo "make bundle    the browser, leptos and dioxus pages the smoke test serves, after pnpm run build"
-	@echo "make check     compiles the ratatui, leptos and dioxus examples"
-	@echo "make test      the whole gate, every check and every test"
-	@echo "make perf      v4 on speed, allocations and memory, prints what changed against perf/README.md"
-	@echo "make perf-save v4 on speed, allocations and memory, the results go into perf/README.md"
-	@echo "make compare   v4 against the published v3 1.3.0, the comparison goes into perf/README.md"
-	@echo "make flamegraph a flamegraph and a heap profile of v4 per scenario into perf/target/flamegraphs"
+	@echo "make cli            the Rust API tour, printed to the terminal"
+	@echo "make node           the node API tour, printed to the terminal"
+	@echo "                    or: pnpm run example:node"
+	@echo "make ratatui        the ratatui widget, an interactive terminal app"
+	@echo "make leptos         the leptos site, served by trunk"
+	@echo "make dioxus         the dioxus site, served by trunk"
+	@echo "make topcoat        the topcoat site, served by its own binary"
+	@echo "make browser        the browser example, served by vite"
+	@echo "                    or: pnpm run example:browser"
+	@echo "make bundle         the browser, leptos and dioxus pages the smoke test serves, after pnpm run build"
+	@echo "make check          compiles the ratatui, leptos and dioxus examples"
+	@echo "make test           the whole gate, every check and every test"
+	@echo "make coverage       the coverage of the cfonts and macro crates"
+	@echo "                    saved as an HTML report under target/llvm-cov/html"
+	@echo "make coverage-lcov  the same coverage into lcov.info, the file CI uploads to coveralls"
+	@echo "make perf           v4 on speed, allocations and memory"
+	@echo "                    prints what changed against perf/README.md"
+	@echo "make perf-save      v4 on speed, allocations and memory, the results go into perf/README.md"
+	@echo "make compare        v4 against the published v3 1.3.0, the comparison goes into perf/README.md"
+	@echo "make flamegraph     a flamegraph and a heap profile of v4 per scenario into perf/target/flamegraphs"
 
 cli:
 	cargo run --locked -p cfonts --example cli
@@ -77,6 +81,17 @@ test: wasm32
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features wasm
 	pnpm test
+
+# Coverage of the cfonts and macro crates with every feature, the same run locally and in CI
+# the wasm crate stays out since its code runs in the browser, and cargo llvm-cov records the macros running inside
+# the compiler, so the fonts and the compile-fail cases count toward the macro crate
+COVERAGE = cargo llvm-cov --locked --all-features --workspace --exclude cfonts-wasm
+
+coverage:
+	$(COVERAGE) --html
+
+coverage-lcov:
+	$(COVERAGE) --lcov --output-path lcov.info
 
 # The perf package measures this v4 and compares it with the published v3 on request, its lib.rs lists the scenarios
 # and how they run, its README.md holds the hand written part and the tables perf-save and compare write into it,

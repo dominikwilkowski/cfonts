@@ -1,6 +1,6 @@
 //! Positioning: text and fonts become rows of glyph entries at a canvas width
 
-use std::{mem, ptr};
+use std::mem;
 
 use crate::{
 	NEW_LINE_CHAR,
@@ -23,8 +23,12 @@ pub struct LayoutGlyph {
 }
 
 impl LayoutGlyph {
-	fn rows(&self) -> &'static [GlyphRow] {
+	fn rows(&self) -> usize {
 		self.glyph.rows
+	}
+
+	fn row(&self, index: usize) -> GlyphRow {
+		self.glyph.row(index)
 	}
 
 	fn width(&self) -> usize {
@@ -33,24 +37,21 @@ impl LayoutGlyph {
 
 	/// Whether two staged glyphs render the same, so a run of them is one entry with a repeat count
 	fn same(&self, other: &Self) -> bool {
-		ptr::eq(self.rows(), other.rows())
-			&& self.width() == other.width()
-			&& self.block_index == other.block_index
-			&& self.paintable == other.paintable
+		self.glyph == other.glyph && self.block_index == other.block_index && self.paintable == other.paintable
 	}
 }
 
 /// One entry of an output row: glyph data or blank valign padding
 ///
-/// A row holds one entry per glyph for the whole render, so an entry stays at 16 bytes
+/// A row holds one entry per glyph for the whole render, so an entry stays at 12 bytes
 #[derive(Debug, PartialEq, Eq)]
 pub enum RowEntry {
 	/// One row of a glyph, tagged with the block it came from so the render
 	/// environments can tie it to that block's color configuration,
 	/// a run of the same glyph side by side, letter spaces above all, is one entry
 	Data {
-		/// One row of the glyph's art, shared from the font's static data
-		glyph_row: &'static GlyphRow,
+		/// One row of the glyph's art in the font's tables
+		glyph_row: GlyphRow,
 
 		/// The block whose options cover this row's paint
 		block_index: u32,
@@ -304,17 +305,7 @@ impl<'a> Layout<'a> {
 
 		// Close the block with its buffer_end, mirroring the buffer_start that opened it,
 		// so a block that follows on the same line starts at one column on every row
-		self.push_glyph(LayoutGlyph {
-			glyph: GlyphRef {
-				rows: font.buffer_end().rows,
-				// `buffer_end` claims 0 columns because `buffer_start` already
-				// claims the whole `buffer_size`, and the pair's rows are complementary
-				// (see `assert_buffers_complementary` in fonts/mod.rs)
-				width: 0,
-			},
-			block_index,
-			paintable: false,
-		});
+		self.push_glyph(LayoutGlyph { glyph: font.buffer_end(), block_index, paintable: false });
 		self.line_max_rows = self.line_max_rows.max(font.rows());
 	}
 
@@ -515,7 +506,7 @@ impl<'a> Layout<'a> {
 
 		let rows_to_push = self.line_max_rows.max(self.current_font_rows);
 		debug_assert!(
-			self.line.iter().all(|glyph| glyph.rows().len() <= rows_to_push),
+			self.line.iter().all(|glyph| glyph.rows() <= rows_to_push),
 			"Error: `line` contains a glyph taller than `rows_to_push`; a height update at a push site was missed",
 		);
 		self.output.reserve(self.prev_line_height + rows_to_push);
@@ -548,11 +539,11 @@ impl<'a> Layout<'a> {
 				let glyph = run[0];
 				if current_block != Some(glyph.block_index) {
 					// rows_to_push >= the glyph's rows is guaranteed by flush_line's height tracking
-					padding = self.options.valign.offset(rows_to_push - glyph.rows().len());
+					padding = self.options.valign.offset(rows_to_push - glyph.rows());
 					current_block = Some(glyph.block_index);
 				}
 
-				let entry = if row < padding || row >= padding + glyph.rows().len() {
+				let entry = if row < padding || row >= padding + glyph.rows() {
 					// Blank padding rows for fonts that are not as tall as another on the same line
 					RowEntry::Blank {
 						width: u32::try_from(glyph.width() * run.len()).expect("a padding run is narrower than 2^32 columns"),
@@ -560,7 +551,7 @@ impl<'a> Layout<'a> {
 					}
 				} else {
 					RowEntry::Data {
-						glyph_row: &glyph.rows()[row - padding],
+						glyph_row: glyph.row(row - padding),
 						block_index: Self::entry_block(glyph.block_index),
 						width: u16::try_from(glyph.width()).expect("a glyph is narrower than 65,536 columns"),
 						repeat: u8::try_from(run.len()).expect("a run is split at the largest repeat count"),
@@ -592,7 +583,7 @@ impl<'a> Layout<'a> {
 mod tests {
 	use super::*;
 	use crate::{
-		fonts::{Font, tests::row_width as glyph_row_width},
+		fonts::Font,
 		options::{Align, BlockOptions, Valign},
 		tests::{block, options, spaced_block},
 	};
@@ -604,7 +595,9 @@ mod tests {
 		row
 			.iter()
 			.map(|entry| match entry {
-				RowEntry::Data { glyph_row, repeat, .. } => glyph_row_width(glyph_row) * usize::from(*repeat),
+				RowEntry::Data { glyph_row, repeat, .. } => {
+					glyph_row.segments().map(|(text, _)| text.chars().count()).sum::<usize>() * usize::from(*repeat)
+				}
 				RowEntry::Blank { width, .. } => *width as usize,
 			})
 			.sum()
@@ -1613,9 +1606,9 @@ mod tests {
 	}
 
 	#[test]
-	fn a_row_entry_stays_at_16_bytes() {
+	fn a_row_entry_stays_at_12_bytes() {
 		// a row holds one entry per glyph for the whole render, so the size of one decides the peak heap of a long text
-		assert_eq!(mem::size_of::<RowEntry>(), 16);
+		assert_eq!(mem::size_of::<RowEntry>(), 12);
 	}
 
 	#[test]

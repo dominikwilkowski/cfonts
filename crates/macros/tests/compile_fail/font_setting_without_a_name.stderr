@@ -1,0 +1,5 @@
+error: font!: expected a setting name such as `colors`, found `2`
+ --> tests/compile_fail/font_setting_without_a_name.rs:5:3
+  |
+5 |         2: 1,
+  |         ^

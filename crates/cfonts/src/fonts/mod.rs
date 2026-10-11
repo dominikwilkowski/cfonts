@@ -1,135 +1,216 @@
-//! The bundled font data and its parsed glyph representation
+//! The bundled fonts and the tables their glyphs are read from
+//!
+//! Each font file compiles its art with `font!`, which checks every rule a font follows and lays the art out as
+//! integer tables over one string of text, so the fonts hold almost no pointers for the loader to rewrite at startup
+//! The rules live in the macro crate, `crates/macros/src/font/checks.rs`, a font that breaks one does not compile
 
 mod block;
-pub use block::FONT_BLOCK;
+use block::FONT_BLOCK;
 mod board;
-pub use board::FONT_BOARD;
+use board::FONT_BOARD;
 mod braille;
-pub use braille::FONT_BRAILLE;
+use braille::FONT_BRAILLE;
 mod bridge;
-pub use bridge::FONT_BRIDGE;
+use bridge::FONT_BRIDGE;
 mod bubble;
-pub use bubble::FONT_BUBBLE;
+use bubble::FONT_BUBBLE;
 mod chrome;
-pub use chrome::FONT_CHROME;
+use chrome::FONT_CHROME;
 mod dense;
-pub use dense::FONT_DENSE;
+use dense::FONT_DENSE;
 mod depth;
-pub use depth::FONT_DEPTH;
+use depth::FONT_DEPTH;
 mod console;
-pub use console::FONT_CONSOLE;
+use console::FONT_CONSOLE;
 mod font_3d;
-pub use font_3d::FONT_3D;
+use font_3d::FONT_3D;
 mod frost;
-pub use frost::FONT_FROST;
+use frost::FONT_FROST;
 mod grid;
-pub use grid::FONT_GRID;
+use grid::FONT_GRID;
 mod huge;
-pub use huge::FONT_HUGE;
+use huge::FONT_HUGE;
 mod neat;
-pub use neat::FONT_NEAT;
+use neat::FONT_NEAT;
 mod edge;
-pub use edge::FONT_EDGE;
+use edge::FONT_EDGE;
 mod pallet;
-pub use pallet::FONT_PALLET;
+use pallet::FONT_PALLET;
 mod retro;
-pub use retro::FONT_RETRO;
+use retro::FONT_RETRO;
 mod shade;
-pub use shade::FONT_SHADE;
+use shade::FONT_SHADE;
 mod simple;
-pub use simple::FONT_SIMPLE;
+use simple::FONT_SIMPLE;
 mod simple_block;
-pub use simple_block::FONT_SIMPLE_BLOCK;
+use simple_block::FONT_SIMPLE_BLOCK;
 mod slick;
-pub use slick::FONT_SLICK;
+use slick::FONT_SLICK;
 mod thin;
-pub use thin::FONT_THIN;
+use thin::FONT_THIN;
 mod tiny;
-pub use tiny::FONT_TINY;
+use tiny::FONT_TINY;
 mod vision;
-pub use vision::FONT_VISION;
+use vision::FONT_VISION;
 mod wire;
-pub use wire::FONT_WIRE;
+use wire::FONT_WIRE;
 
 use cfonts_macros::All;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-/// One segment within a GlyphRow that tells us what parts are color and with what color
-#[derive(Debug, PartialEq, Eq)]
-pub enum Segment {
-	/// Rendered as-is, no color
-	Plain(&'static str),
-
-	/// Painted with a color slot, 0-based index into the font's color set
-	Colored { slot: usize, text: &'static str },
-}
-
-impl Segment {
-	/// The segment's text and color slot as one pair
-	pub fn parts(&self) -> (&'static str, Option<usize>) {
-		match self {
-			Self::Plain(text) => (text, None),
-			Self::Colored { slot, text } => (text, Some(*slot)),
-		}
-	}
-}
-
-/// One row of a glyph: an ordered run of plain/colored segments
-#[derive(Debug, PartialEq, Eq)]
+/// One row of a glyph's art: the font it belongs to and the row's place in that font's tables
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GlyphRow {
-	pub segments: &'static [Segment],
+	font: Font,
+	index: u16,
 }
 
-/// The parsed representation of one glyph, with all rows validated to the same width, with generic type-level safety
-#[derive(Debug)]
-pub struct Glyph<const ROWS: usize> {
-	pub rows: &'static [GlyphRow; ROWS],
-	pub width: usize,
-}
-
-/// Same as [Glyph] but without the generic type-level safety so we can use it at runtime without having to carry
-/// forward the generic type parameter
-#[derive(Debug, Copy, Clone)]
-pub struct GlyphRef {
-	pub rows: &'static [GlyphRow],
-	pub width: usize,
-}
-
-impl<const ROWS: usize> From<&'static Glyph<ROWS>> for GlyphRef {
-	fn from(glyph: &'static Glyph<ROWS>) -> Self {
-		Self { rows: &glyph.rows[..], width: glyph.width }
+impl GlyphRow {
+	/// The row's art in print order, each run of text with its 0-based color slot, `None` for untagged text
+	pub fn segments(self) -> impl Iterator<Item = (&'static str, Option<usize>)> {
+		self.font.get_font().segments(self.index)
 	}
 }
 
-// A trait for font data, providing access to font properties and glyphs without the const generic
-pub trait FontData {
-	/// Returns the name of the font
-	fn name(&self) -> &'static str;
+/// One glyph of a font, as the layout stages it
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct GlyphRef {
+	font: Font,
+	first_row: u16,
 
-	/// Returns the number of colors supported by the font
-	fn colors(&self) -> usize;
+	/// The rows the glyph stacks, the same for every glyph of a font
+	pub(crate) rows: usize,
 
-	/// Returns the number of blank rows the font asks for between rendered lines
-	fn line_height(&self) -> usize;
+	/// The columns the glyph takes
+	pub(crate) width: usize,
+}
 
-	/// Returns the number of letter-space glyphs the font puts between glyphs
-	fn letter_spacing(&self) -> usize;
+impl GlyphRef {
+	/// One row of the glyph, counted from its top
+	pub(crate) fn row(self, index: usize) -> GlyphRow {
+		debug_assert!(index < self.rows, "Error: row {index} of a glyph with {} rows", self.rows);
+		let index = u16::try_from(index).expect("a glyph row sits in a font's u16 row table");
 
-	/// Returns the number of rows of each glyph in a font (height of the font in the terminal)
-	fn rows(&self) -> usize;
+		GlyphRow { font: self.font, index: self.first_row + index }
+	}
+}
 
-	/// Returns the buffer start glyph of this font (for the start of the font to align each row)
-	fn buffer_start(&self) -> GlyphRef;
+/// A font: its settings, and its art as integer tables over one string of text, built by `font!`
+#[derive(Debug)]
+pub(crate) struct FontFile {
+	font: Font,
 
-	/// Returns the buffer end glyph of this font (for the end of the font to align each row)
-	fn buffer_end(&self) -> GlyphRef;
+	/// Only the CLI's demo reads the name, and the CLI does not build for wasm
+	#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+	name: &'static str,
+	colors: usize,
+	rows: usize,
+	line_height: usize,
+	letter_spacing: usize,
+	buffer_start: Glyph,
+	buffer_end: Glyph,
+	letter_space: Glyph,
 
-	/// Returns the letter space glyph for the font
-	fn letter_space(&self) -> GlyphRef;
+	/// The glyph of every character by its code, `None` for a character the font does not draw
+	characters: [Option<Glyph>; 128],
 
-	/// Returns the glyph for a given character, if it exists
-	fn get_glyph(&self, character: char) -> Option<GlyphRef>;
+	/// The text of every segment, each distinct run once
+	text: &'static str,
+
+	/// Every segment of every row, a row's segments side by side
+	segments: &'static [Segment],
+
+	/// Every row of every glyph, a glyph's rows side by side
+	glyph_rows: &'static [Row],
+}
+
+/// One glyph in a font's tables: where its rows start and the columns it takes
+#[derive(Debug, Clone, Copy)]
+struct Glyph {
+	first_row: u16,
+	width: u16,
+}
+
+/// One row in a font's tables: the run of segments that draws it
+#[derive(Debug, Clone, Copy)]
+struct Row {
+	first: u16,
+	count: u16,
+}
+
+/// One segment in a font's tables: the bytes of the font's text it prints and the color slot painting it
+#[derive(Debug, Clone, Copy)]
+struct Segment {
+	start: u16,
+	len: u16,
+	slot: Option<u8>,
+}
+
+impl FontFile {
+	/// The name of the font
+	#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+	pub(crate) fn name(&self) -> &'static str {
+		self.name
+	}
+
+	/// The number of color slots the font paints
+	pub(crate) fn colors(&self) -> usize {
+		self.colors
+	}
+
+	/// The number of blank rows the font asks for between rendered lines
+	pub(crate) fn line_height(&self) -> usize {
+		self.line_height
+	}
+
+	/// The number of letter-space glyphs the font puts between glyphs
+	pub(crate) fn letter_spacing(&self) -> usize {
+		self.letter_spacing
+	}
+
+	/// The number of rows of each glyph, the height of the font in the terminal
+	pub(crate) fn rows(&self) -> usize {
+		self.rows
+	}
+
+	/// The art in front of every row of a block, so a slanted font lines its rows up
+	pub(crate) fn buffer_start(&self) -> GlyphRef {
+		self.glyph(self.buffer_start)
+	}
+
+	/// The art behind every row of a block, claiming no columns:
+	/// buffer_start claims the pair's whole width and the two complement each other on every row, which `font!` checks
+	pub(crate) fn buffer_end(&self) -> GlyphRef {
+		GlyphRef { width: 0, ..self.glyph(self.buffer_end) }
+	}
+
+	/// The glyph between two glyphs
+	pub(crate) fn letter_space(&self) -> GlyphRef {
+		self.glyph(self.letter_space)
+	}
+
+	/// The glyph for a character, if the font draws it
+	pub(crate) fn get_glyph(&self, character: char) -> Option<GlyphRef> {
+		let glyph = self.characters.get(character as usize).copied().flatten()?;
+		Some(self.glyph(glyph))
+	}
+
+	fn glyph(&self, glyph: Glyph) -> GlyphRef {
+		GlyphRef { font: self.font, first_row: glyph.first_row, rows: self.rows, width: usize::from(glyph.width) }
+	}
+
+	/// The segments of one row of the tables, as text and color slot
+	fn segments(&'static self, row: u16) -> impl Iterator<Item = (&'static str, Option<usize>)> {
+		let Row { first, count } = self.glyph_rows[usize::from(row)];
+		let first = usize::from(first);
+		let text = self.text;
+
+		self.segments[first..first + usize::from(count)].iter().map(move |segment| {
+			let start = usize::from(segment.start);
+			(&text[start..start + usize::from(segment.len)], segment.slot.map(usize::from))
+		})
+	}
 }
 
 /// The cfonts font enum for config
@@ -167,7 +248,7 @@ pub enum Font {
 
 impl Font {
 	/// Returns the font data for this font, including glyphs and color/size information
-	pub fn get_font(self) -> &'static dyn FontData {
+	pub(crate) fn get_font(self) -> &'static FontFile {
 		match self {
 			Self::Block => &FONT_BLOCK,
 			Self::Board => &FONT_BOARD,
@@ -230,557 +311,32 @@ impl Font {
 	}
 }
 
-/// A font consisting of a set of glyphs and color/size information
-#[derive(Debug)]
-pub struct FontFile<const ROWS: usize> {
-	#[cfg_attr(not(test), allow(dead_code))]
-	pub name: &'static str,
-	pub colors: usize,
-	pub line_height: usize,
-	pub letter_spacing: usize,
-	pub buffer_start: &'static [GlyphRow; ROWS],
-	pub buffer_end: &'static [GlyphRow; ROWS],
-	pub buffer_size: usize,
-	pub letter_space: &'static Glyph<ROWS>,
-	glyphs: [Option<&'static Glyph<ROWS>>; 128],
-}
-
-impl<const ROWS: usize> FontData for FontFile<ROWS> {
-	fn name(&self) -> &'static str {
-		self.name
-	}
-
-	fn colors(&self) -> usize {
-		self.colors
-	}
-
-	fn line_height(&self) -> usize {
-		self.line_height
-	}
-
-	fn letter_spacing(&self) -> usize {
-		self.letter_spacing
-	}
-
-	fn rows(&self) -> usize {
-		ROWS
-	}
-
-	fn buffer_start(&self) -> GlyphRef {
-		GlyphRef { rows: self.buffer_start, width: self.buffer_size }
-	}
-
-	fn buffer_end(&self) -> GlyphRef {
-		GlyphRef { rows: self.buffer_end, width: self.buffer_size }
-	}
-
-	fn letter_space(&self) -> GlyphRef {
-		GlyphRef::from(self.letter_space)
-	}
-
-	fn get_glyph(&self, character: char) -> Option<GlyphRef> {
-		let index = character as usize;
-		if index < self.glyphs.len() { self.glyphs[index].map(GlyphRef::from) } else { None }
-	}
-}
-
 #[cfg(test)]
-pub(crate) mod tests {
-	use std::iter;
-
+mod tests {
 	use super::*;
 
-	use crate::SUPPORTED_CHARS;
-	use cfonts_macros::glyph;
+	#[test]
+	fn every_font_file_names_its_variant() {
+		for font in Font::ALL {
+			assert_eq!(font.get_font().font, font, "the file of {font:?} declares another font");
+		}
+	}
 
-	pub(crate) fn assert_supported<const ROWS: usize>(font: &FontFile<ROWS>) {
-		let missing =
-			SUPPORTED_CHARS.iter().filter(|&character| font.get_glyph(*character).is_none()).collect::<Vec<&char>>();
-		assert!(missing.is_empty(), "The font \"{}\" is missing glyphs for: {missing:?}", font.name);
+	#[test]
+	fn a_glyph_row_reads_back_its_art() {
+		let glyph = Font::Pallet.get_font().get_glyph('A').unwrap();
+		let segments: Vec<(&str, Option<usize>)> = glyph.row(2).segments().collect();
+
+		assert_eq!(segments, [("║║", Some(0)), ("─", Some(1)), ("║║", Some(0))]);
+		assert_eq!((glyph.rows, glyph.width), (6, 5));
+	}
+
+	#[test]
+	fn characters_the_font_does_not_draw_have_no_glyph() {
+		let font = Font::Block.get_font();
+
+		assert!(font.get_glyph('a').is_none());
 		assert!(font.get_glyph('ü').is_none());
-	}
-
-	/// The display name of a glyph slot: its character, or `letter_space` for
-	/// the slot chained after the table
-	pub(crate) fn glyph_name<const ROWS: usize>(font: &FontFile<ROWS>, code_point: usize) -> String {
-		if code_point == font.glyphs.len() {
-			String::from("letter_space")
-		} else {
-			format!("{:?}", char::from_u32(code_point as u32).unwrap_or('?'))
-		}
-	}
-
-	/// Assert each row tags only its own slot: the first row `<c1>`, the second `<c2>`...
-	///
-	/// Row-striped fonts color by line, so a tag on the wrong line paints one
-	/// row in another row's stripe
-	pub(crate) fn assert_rows_stripe_their_slot<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
-			let Some(glyph) = glyph else {
-				continue;
-			};
-
-			for (line, row) in glyph.rows.iter().enumerate() {
-				for segment in row.segments {
-					if let Segment::Colored { slot, .. } = segment {
-						assert_eq!(
-							*slot,
-							line,
-							"font \"{}\" glyph {} (line {}) tags <c{}>; a row-striped font colors this line with <c{}>",
-							font.name,
-							glyph_name(font, code_point),
-							line,
-							slot + 1,
-							line + 1,
-						);
-					}
-				}
-			}
-		}
-	}
-
-	/// Assert the letter space takes at least one column, so every letter spacing a block asks for shows
-	///
-	/// A font whose letters touch declares a letter spacing of `0` instead of drawing an empty letter space
-	pub(crate) fn assert_letter_space_takes_columns<const ROWS: usize>(font: &FontFile<ROWS>) {
-		assert!(
-			font.letter_space.width > 0,
-			"font \"{}\" draws its letter space zero columns wide, so no letter spacing can show, give it a column and declare letter_spacing 0 for touching letters",
-			font.name,
-		);
-	}
-
-	/// The characters the font uses as ground: whatever its letter-space glyph
-	/// is drawn with, plus the space itself
-	fn ground_characters<const ROWS: usize>(font: &FontFile<ROWS>) -> Vec<char> {
-		let mut ground: Vec<char> = font
-			.letter_space
-			.rows
-			.iter()
-			.flat_map(|row| row.segments.iter().flat_map(|segment| segment.parts().0.chars()))
-			.collect();
-		ground.push(' ');
-		ground
-	}
-
-	/// Assert no glyph, nor the letter space, carries a space: the font fills
-	/// every cell with ink or with its own ground character, so a space is a hole
-	pub(crate) fn assert_no_space_cells<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
-			let Some(glyph) = glyph else {
-				continue;
-			};
-
-			for (line, row) in glyph.rows.iter().enumerate() {
-				let text: String = row.segments.iter().map(|segment| segment.parts().0).collect();
-				assert!(
-					!text.contains(' '),
-					"font \"{}\" glyph {} (line {}) contains a space; this font fills every cell",
-					font.name,
-					glyph_name(font, code_point),
-					line,
-				);
-			}
-		}
-	}
-
-	/// Assert every glyph reaches both of its edges with more than ground:
-	/// a leading or trailing column of the font's own ground character on every row is padding baked into the glyph
-	/// exactly like a blank column in a font whose ground is the space
-	/// glyphs made only of ground are exempt
-	pub(crate) fn assert_glyph_edges_carry_ink<const ROWS: usize>(font: &FontFile<ROWS>) {
-		let ground = ground_characters(font);
-
-		for (code_point, glyph) in font.glyphs.iter().copied().enumerate() {
-			let Some(glyph) = glyph else {
-				continue;
-			};
-
-			let rows: Vec<String> =
-				glyph.rows.iter().map(|row| row.segments.iter().map(|segment| segment.parts().0).collect::<String>()).collect();
-
-			if rows.iter().all(|row| row.chars().all(|character| ground.contains(&character))) {
-				continue;
-			}
-
-			for (edge, padded) in [
-				("leading", rows.iter().all(|row| row.chars().next().is_some_and(|first| ground.contains(&first)))),
-				("trailing", rows.iter().all(|row| row.chars().last().is_some_and(|last| ground.contains(&last)))),
-			] {
-				assert!(
-					!padded,
-					"font \"{}\" glyph {} has a {edge} column of ground on every row; trim it and let letter_spacing space the glyph",
-					font.name,
-					glyph_name(font, code_point),
-				);
-			}
-		}
-	}
-
-	/// Assert plain segments hold only spaces: every visible character sits inside a color tag
-	///
-	/// Multi-color fonts paint per tag, so untagged ink renders in the
-	/// terminal's default color instead of a configured one
-	pub(crate) fn assert_plain_segments_are_spaces<const ROWS: usize>(font: &FontFile<ROWS>) {
-		assert!(font.colors > 1, "font \"{}\" paints wholesale with one color; plain segments are its ink", font.name);
-
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
-			let Some(glyph) = glyph else {
-				continue;
-			};
-
-			for (line, row) in glyph.rows.iter().enumerate() {
-				for segment in row.segments {
-					if let Segment::Plain(text) = segment {
-						assert!(
-							text.chars().all(|character| character == ' '),
-							"font \"{}\" glyph {} (line {}) leaves {:?} unpainted; every visible character needs a color tag",
-							font.name,
-							glyph_name(font, code_point),
-							line,
-							text,
-						);
-					}
-				}
-			}
-		}
-	}
-
-	/// Assert every color slot paints only the characters listed for it, one list per slot
-	///
-	/// Some fonts draw each slot with its own material, the fill with one set of characters and
-	/// the edge with another, so a character tagged with the wrong slot paints in the wrong color
-	/// Spaces carry no ink and need no listing, the list count must match the colors the font declares
-	pub(crate) fn assert_slots_paint_only<const ROWS: usize>(font: &FontFile<ROWS>, allowed: &[&[char]]) {
-		assert_eq!(
-			allowed.len(),
-			font.colors,
-			"font \"{}\" declares {} colors but the white list covers {} slots",
-			font.name,
-			font.colors,
-			allowed.len(),
-		);
-
-		for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
-			let Some(glyph) = glyph else {
-				continue;
-			};
-
-			for (line, row) in glyph.rows.iter().enumerate() {
-				for segment in row.segments {
-					let Segment::Colored { slot, text } = segment else {
-						continue;
-					};
-					let Some(characters) = allowed.get(*slot) else {
-						panic!(
-							"font \"{}\" glyph {} (line {}) tags <c{}> beyond the {} slots of the white list",
-							font.name,
-							glyph_name(font, code_point),
-							line,
-							slot + 1,
-							allowed.len(),
-						);
-					};
-
-					for character in text.chars().filter(|character| *character != ' ') {
-						assert!(
-							characters.contains(&character),
-							"font \"{}\" glyph {} (line {}) paints {:?} with <c{}>, which only paints {:?}",
-							font.name,
-							glyph_name(font, code_point),
-							line,
-							character,
-							slot + 1,
-							characters,
-						);
-					}
-				}
-			}
-		}
-	}
-
-	/// Assert the font uses every color it declares and tags none beyond them
-	///
-	/// A declared slot no glyph tags means a configured color silently never paints;
-	/// a tag beyond the declaration means a color the user cannot configure
-	pub(crate) fn assert_colors_all_used<const ROWS: usize>(font: &FontFile<ROWS>) {
-		match font.colors {
-			0 => {
-				panic!("font \"{}\" declares 0 colors; a font must declare at least one color", font.name);
-			}
-			1 => {
-				// Single-color fonts are wrapped wholesale at render time, so no `<c*>`
-				// tags belong in the data — a tag here is almost always a leftover from
-				// converting a multi-color font
-				for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
-					let Some(glyph) = glyph else {
-						continue;
-					};
-
-					let glyph_name = glyph_name(font, code_point);
-
-					for (line, row) in glyph.rows.iter().enumerate() {
-						for segment in row.segments {
-							assert!(
-								!matches!(segment, Segment::Colored { .. }),
-								"font \"{}\" declares {} color but glyph {glyph_name} (line {line}) uses a color tag; single-color fonts must not tag colors",
-								font.name,
-								font.colors,
-							);
-						}
-					}
-				}
-			}
-			_ => {
-				let mut used = vec![false; font.colors];
-				let mut out_of_range: Vec<(usize, String)> = Vec::new();
-
-				for (code_point, glyph) in font.glyphs.iter().copied().chain(iter::once(Some(font.letter_space))).enumerate() {
-					let Some(glyph) = glyph else {
-						continue;
-					};
-
-					for row in glyph.rows.iter() {
-						for segment in row.segments {
-							if let Segment::Colored { slot, .. } = segment {
-								if *slot < font.colors {
-									used[*slot] = true;
-								} else if !out_of_range.iter().any(|(tagged, _)| *tagged == slot + 1) {
-									out_of_range.push((slot + 1, glyph_name(font, code_point)));
-								}
-							}
-						}
-					}
-				}
-
-				let out_of_range: Vec<String> =
-					out_of_range.iter().map(|(slot, glyph)| format!("<c{slot}> (first in glyph {glyph})")).collect();
-				assert!(
-					out_of_range.is_empty(),
-					"font \"{}\" declares {} colors but tags {} beyond them",
-					font.name,
-					font.colors,
-					out_of_range.join(", "),
-				);
-
-				let missing: Vec<String> =
-					used.iter().enumerate().filter(|(_, used)| !**used).map(|(slot, _)| format!("<c{}>", slot + 1)).collect();
-				assert!(
-					missing.is_empty(),
-					"font \"{}\" declares {} colors but no glyph uses {}",
-					font.name,
-					font.colors,
-					missing.join(", "),
-				);
-			}
-		}
-	}
-
-	/// A three color fixture whose middle slot no glyph ever tags
-	static DEAD_SLOT_FIXTURE: FontFile<1> = FontFile {
-		name: "dead-slot-fixture",
-		colors: 3,
-		line_height: 1,
-		letter_spacing: 1,
-		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_size: 0,
-		letter_space: glyph!(r" "),
-		glyphs: {
-			let mut table = [None; 128];
-			table['A' as usize] = Some(glyph!(r"<c1>A</c1><c3>B</c3>"));
-			table
-		},
-	};
-
-	/// A two color fixture tagging a slot beyond its declaration
-	static OUT_OF_RANGE_FIXTURE: FontFile<1> = FontFile {
-		name: "out-of-range-fixture",
-		colors: 2,
-		line_height: 1,
-		letter_spacing: 1,
-		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_size: 0,
-		letter_space: glyph!(r" "),
-		glyphs: {
-			let mut table = [None; 128];
-			table['A' as usize] = Some(glyph!(r"<c1>A</c1><c3>B</c3>"));
-			table
-		},
-	};
-
-	static SPACE_CELL_FIXTURE: FontFile<1> = FontFile {
-		name: "space-cell-fixture",
-		colors: 1,
-		line_height: 1,
-		letter_spacing: 1,
-		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_size: 0,
-		letter_space: glyph!(r"╱"),
-		glyphs: {
-			let mut table = [None; 128];
-			table['A' as usize] = Some(glyph!(r"╱A B╱"));
-			table
-		},
-	};
-
-	#[test]
-	#[should_panic(expected = "glyph 'A' (line 0) contains a space")]
-	fn space_cells_fail_the_validation() {
-		assert_no_space_cells(&SPACE_CELL_FIXTURE);
-	}
-
-	/// A fixture whose letters touch through an empty letter space instead of a declared letter spacing of `0`
-	static ZERO_LETTER_SPACE_FIXTURE: FontFile<1> = FontFile {
-		name: "zero-letter-space-fixture",
-		colors: 1,
-		line_height: 1,
-		letter_spacing: 1,
-		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_size: 0,
-		letter_space: glyph!(r""),
-		glyphs: {
-			let mut table = [None; 128];
-			table['A' as usize] = Some(glyph!(r"A"));
-			table
-		},
-	};
-
-	#[test]
-	#[should_panic(expected = "font \"zero-letter-space-fixture\" draws its letter space zero columns wide")]
-	fn a_zero_width_letter_space_fails_the_validation() {
-		assert_letter_space_takes_columns(&ZERO_LETTER_SPACE_FIXTURE);
-	}
-
-	static GROUND_EDGE_FIXTURE: FontFile<2> = FontFile {
-		name: "ground-edge-fixture",
-		colors: 1,
-		line_height: 1,
-		letter_spacing: 1,
-		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }, GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }, GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_size: 0,
-		letter_space: glyph!(r"╋", r"╋"),
-		glyphs: {
-			let mut table = [None; 128];
-			table['A' as usize] = Some(glyph!(r"╋A╋", r"╋B╋"));
-			table[' ' as usize] = Some(glyph!(r"╋╋", r"╋╋"));
-			table
-		},
-	};
-
-	#[test]
-	#[should_panic(expected = "glyph 'A' has a leading column of ground on every row")]
-	fn ground_edge_columns_fail_the_validation() {
-		assert_glyph_edges_carry_ink(&GROUND_EDGE_FIXTURE);
-	}
-
-	static UNPAINTED_INK_FIXTURE: FontFile<1> = FontFile {
-		name: "unpainted-ink-fixture",
-		colors: 3,
-		line_height: 1,
-		letter_spacing: 1,
-		buffer_start: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_end: &[GlyphRow { segments: &[Segment::Plain("")] }],
-		buffer_size: 0,
-		letter_space: glyph!(r" "),
-		glyphs: {
-			let mut table = [None; 128];
-			table['A' as usize] = Some(glyph!(r"<c3>═</c3>│<c2>∙</c2>╒══╕"));
-			table
-		},
-	};
-
-	#[test]
-	#[should_panic(expected = "leaves \"│\" unpainted")]
-	fn unpainted_ink_fails_the_validation() {
-		assert_plain_segments_are_spaces(&UNPAINTED_INK_FIXTURE);
-	}
-
-	#[test]
-	#[should_panic(expected = "no glyph uses <c2>")]
-	fn dead_color_slots_fail_the_validation() {
-		assert_colors_all_used(&DEAD_SLOT_FIXTURE);
-	}
-
-	#[test]
-	#[should_panic(expected = "tags <c3> (first in glyph 'A') beyond them")]
-	fn out_of_range_color_slots_fail_the_validation() {
-		assert_colors_all_used(&OUT_OF_RANGE_FIXTURE);
-	}
-
-	#[test]
-	#[should_panic(expected = "declares 3 colors but the white list covers 2 slots")]
-	fn a_white_list_of_the_wrong_length_fails_the_validation() {
-		assert_slots_paint_only(&DEAD_SLOT_FIXTURE, &[&['A'], &['B']]);
-	}
-
-	#[test]
-	#[should_panic(expected = "glyph 'A' (line 0) paints 'B' with <c3>, which only paints ['C']")]
-	fn a_character_outside_its_slots_white_list_fails_the_validation() {
-		assert_slots_paint_only(&DEAD_SLOT_FIXTURE, &[&['A'], &[], &['C']]);
-	}
-
-	#[test]
-	fn a_white_list_that_covers_every_slot_passes() {
-		assert_slots_paint_only(&DEAD_SLOT_FIXTURE, &[&['A'], &[], &['B']]);
-	}
-
-	/// Column width of a single row: the char count across all its segments
-	pub(crate) fn row_width(row: &GlyphRow) -> usize {
-		row.segments.iter().map(|segment| segment.parts().0.chars().count()).sum()
-	}
-
-	/// Assert `buffer_size` matches the widest row of a buffer
-	/// `buffer_size` describes the column width the buffer occupies, which is its widest row
-	fn assert_buffer_size(name: &str, label: &str, buffer: &[GlyphRow], buffer_size: usize) {
-		let widest = buffer.iter().map(row_width).max().unwrap_or(0);
-		assert_eq!(
-			widest, buffer_size,
-			"font \"{name}\": buffer_size is {buffer_size} but the widest row of {label} is {widest} columns wide",
-		);
-	}
-
-	pub(crate) fn assert_buffer_start_size<const ROWS: usize>(font: &FontFile<ROWS>) {
-		assert_buffer_size(font.name, "buffer_start", font.buffer_start, font.buffer_size);
-	}
-
-	pub(crate) fn assert_buffer_end_size<const ROWS: usize>(font: &FontFile<ROWS>) {
-		assert_buffer_size(font.name, "buffer_end", font.buffer_end, font.buffer_size);
-	}
-
-	pub(crate) fn assert_buffers_plain<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (label, buffer) in [("buffer_start", font.buffer_start.as_slice()), ("buffer_end", font.buffer_end.as_slice())]
-		{
-			for (row, glyph_row) in buffer.iter().enumerate() {
-				for segment in glyph_row.segments {
-					assert!(
-						matches!(segment, Segment::Plain(_)),
-						"font \"{}\": {label} row {row} contains a colored segment; buffers must be plain whitespace",
-						font.name,
-					);
-				}
-			}
-		}
-	}
-
-	/// Buffers may be ragged, that's their purpose (slant lead-in/lead-out) but the
-	/// pair must be complementary: on every row, buffer_start + buffer_end together
-	/// occupy exactly buffer_size columns. The layout relies on this: it records
-	/// buffer_size as the width of buffer_start and 0 for buffer_end, so everything
-	/// after the pair stays column-aligned on valign padding rows
-	pub(crate) fn assert_buffers_complementary<const ROWS: usize>(font: &FontFile<ROWS>) {
-		for (row, (start, end)) in font.buffer_start.iter().zip(font.buffer_end).enumerate() {
-			let pair_width = row_width(start) + row_width(end);
-			assert_eq!(
-				pair_width, font.buffer_size,
-				"font \"{}\": buffer_start + buffer_end occupy {pair_width} columns on row {row} but buffer_size is {}",
-				font.name, font.buffer_size,
-			);
-		}
 	}
 
 	#[test]

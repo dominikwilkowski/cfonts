@@ -1,242 +1,187 @@
-use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
-use cfonts_macros::glyph;
+use crate::fonts::{Font, FontFile};
+use cfonts_macros::font;
 
-pub static FONT_CONSOLE: FontFile<1> = FontFile {
+pub(super) static FONT_CONSOLE: FontFile = font! {
+	font: Font::Console,
 	name: "console",
-	#[rustfmt::skip]
-	buffer_start: &[
-		GlyphRow { segments: &[Segment::Plain("")] },
-	],
-	#[rustfmt::skip]
-	buffer_end: &[
-		GlyphRow { segments: &[Segment::Plain("")] },
-	],
-	buffer_size: 0,
-	#[rustfmt::skip]
-	letter_space: glyph!(
-		r" ",
-	),
-	letter_spacing: 0,
-	line_height: 0,
 	colors: 1,
-	#[rustfmt::skip]
+	rows: 1,
+	line_height: 0,
+	letter_spacing: 0,
+	letter_space: [
+		r" ",
+	],
 	glyphs: {
-		let mut table = [None; 128];
-		table['A' as usize] = Some(glyph!(
+		'A' => [
 			r"a",
-		));
-		table['B' as usize] = Some(glyph!(
+		],
+		'B' => [
 			r"b",
-		));
-		table['C' as usize] = Some(glyph!(
+		],
+		'C' => [
 			r"c",
-		));
-		table['D' as usize] = Some(glyph!(
+		],
+		'D' => [
 			r"d",
-		));
-		table['E' as usize] = Some(glyph!(
+		],
+		'E' => [
 			r"e",
-		));
-		table['F' as usize] = Some(glyph!(
+		],
+		'F' => [
 			r"f",
-		));
-		table['G' as usize] = Some(glyph!(
+		],
+		'G' => [
 			r"g",
-		));
-		table['H' as usize] = Some(glyph!(
+		],
+		'H' => [
 			r"h",
-		));
-		table['I' as usize] = Some(glyph!(
+		],
+		'I' => [
 			r"i",
-		));
-		table['J' as usize] = Some(glyph!(
+		],
+		'J' => [
 			r"j",
-		));
-		table['K' as usize] = Some(glyph!(
+		],
+		'K' => [
 			r"k",
-		));
-		table['L' as usize] = Some(glyph!(
+		],
+		'L' => [
 			r"l",
-		));
-		table['M' as usize] = Some(glyph!(
+		],
+		'M' => [
 			r"m",
-		));
-		table['N' as usize] = Some(glyph!(
+		],
+		'N' => [
 			r"n",
-		));
-		table['O' as usize] = Some(glyph!(
+		],
+		'O' => [
 			r"o",
-		));
-		table['P' as usize] = Some(glyph!(
+		],
+		'P' => [
 			r"p",
-		));
-		table['Q' as usize] = Some(glyph!(
+		],
+		'Q' => [
 			r"q",
-		));
-		table['R' as usize] = Some(glyph!(
+		],
+		'R' => [
 			r"r",
-		));
-		table['S' as usize] = Some(glyph!(
+		],
+		'S' => [
 			r"s",
-		));
-		table['T' as usize] = Some(glyph!(
+		],
+		'T' => [
 			r"t",
-		));
-		table['U' as usize] = Some(glyph!(
+		],
+		'U' => [
 			r"u",
-		));
-		table['V' as usize] = Some(glyph!(
+		],
+		'V' => [
 			r"v",
-		));
-		table['W' as usize] = Some(glyph!(
+		],
+		'W' => [
 			r"w",
-		));
-		table['X' as usize] = Some(glyph!(
+		],
+		'X' => [
 			r"x",
-		));
-		table['Y' as usize] = Some(glyph!(
+		],
+		'Y' => [
 			r"y",
-		));
-		table['Z' as usize] = Some(glyph!(
+		],
+		'Z' => [
 			r"z",
-		));
-		table['0' as usize] = Some(glyph!(
+		],
+		'0' => [
 			r"0",
-		));
-		table['1' as usize] = Some(glyph!(
+		],
+		'1' => [
 			r"1",
-		));
-		table['2' as usize] = Some(glyph!(
+		],
+		'2' => [
 			r"2",
-		));
-		table['3' as usize] = Some(glyph!(
+		],
+		'3' => [
 			r"3",
-		));
-		table['4' as usize] = Some(glyph!(
+		],
+		'4' => [
 			r"4",
-		));
-		table['5' as usize] = Some(glyph!(
+		],
+		'5' => [
 			r"5",
-		));
-		table['6' as usize] = Some(glyph!(
+		],
+		'6' => [
 			r"6",
-		));
-		table['7' as usize] = Some(glyph!(
+		],
+		'7' => [
 			r"7",
-		));
-		table['8' as usize] = Some(glyph!(
+		],
+		'8' => [
 			r"8",
-		));
-		table['9' as usize] = Some(glyph!(
+		],
+		'9' => [
 			r"9",
-		));
-		table['!' as usize] = Some(glyph!(
+		],
+		'!' => [
 			r"!",
-		));
-		table['?' as usize] = Some(glyph!(
+		],
+		'?' => [
 			r"?",
-		));
-		table['.' as usize] = Some(glyph!(
+		],
+		'.' => [
 			r".",
-		));
-		table['+' as usize] = Some(glyph!(
+		],
+		'+' => [
 			r"+",
-		));
-		table['-' as usize] = Some(glyph!(
+		],
+		'-' => [
 			r"-",
-		));
-		table['_' as usize] = Some(glyph!(
+		],
+		'_' => [
 			r"_",
-		));
-		table['=' as usize] = Some(glyph!(
+		],
+		'=' => [
 			r"=",
-		));
-		table['@' as usize] = Some(glyph!(
+		],
+		'@' => [
 			r"@",
-		));
-		table['#' as usize] = Some(glyph!(
+		],
+		'#' => [
 			r"#",
-		));
-		table['$' as usize] = Some(glyph!(
+		],
+		'$' => [
 			r"$",
-		));
-		table['%' as usize] = Some(glyph!(
+		],
+		'%' => [
 			r"%",
-		));
-		table['&' as usize] = Some(glyph!(
+		],
+		'&' => [
 			r"&",
-		));
-		table['(' as usize] = Some(glyph!(
+		],
+		'(' => [
 			r"(",
-		));
-		table[')' as usize] = Some(glyph!(
+		],
+		')' => [
 			r")",
-		));
-		table['/' as usize] = Some(glyph!(
+		],
+		'/' => [
 			r"/",
-		));
-		table[':' as usize] = Some(glyph!(
+		],
+		':' => [
 			r":",
-		));
-		table[';' as usize] = Some(glyph!(
+		],
+		';' => [
 			r";",
-		));
-		table[',' as usize] = Some(glyph!(
+		],
+		',' => [
 			r",",
-		));
-		table['\'' as usize] = Some(glyph!(
+		],
+		'\'' => [
 			r"'",
-		));
-		table['"' as usize] = Some(glyph!(
+		],
+		'"' => [
 			r#"""#,
-		));
-		table[' ' as usize] = Some(glyph!(
+		],
+		' ' => [
 			r" ",
-		));
-
-		table
+		],
 	},
 };
-
-#[cfg(test)]
-mod tests {
-	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_letter_space_takes_columns, assert_supported,
-	};
-
-	#[test]
-	fn all_supported_glyphs_defined() {
-		assert_supported(&super::FONT_CONSOLE);
-	}
-
-	#[test]
-	fn letter_space_takes_columns() {
-		assert_letter_space_takes_columns(&super::FONT_CONSOLE);
-	}
-
-	#[test]
-	fn colors_all_used() {
-		assert_colors_all_used(&super::FONT_CONSOLE);
-	}
-
-	#[test]
-	fn buffer_start_size() {
-		assert_buffer_start_size(&super::FONT_CONSOLE);
-	}
-
-	#[test]
-	fn buffer_end_size() {
-		assert_buffer_end_size(&super::FONT_CONSOLE);
-	}
-
-	#[test]
-	fn buffers_plain() {
-		assert_buffers_plain(&super::FONT_CONSOLE);
-	}
-
-	#[test]
-	fn buffers_complementary() {
-		assert_buffers_complementary(&super::FONT_CONSOLE);
-	}
-}

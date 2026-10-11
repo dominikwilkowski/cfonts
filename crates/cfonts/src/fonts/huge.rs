@@ -1,58 +1,32 @@
-use crate::fonts::{FontFile, Glyph, GlyphRow, Segment};
-use cfonts_macros::glyph;
+use crate::fonts::{Font, FontFile};
+use cfonts_macros::font;
 
-pub static FONT_HUGE: FontFile<11> = FontFile {
+pub(super) static FONT_HUGE: FontFile = font! {
+	font: Font::Huge,
 	name: "huge",
-	#[rustfmt::skip]
-	buffer_start: &[
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-	],
-	#[rustfmt::skip]
-	buffer_end: &[
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-		GlyphRow { segments: &[Segment::Plain("")] },
-	],
-	buffer_size: 0,
-	#[rustfmt::skip]
-	letter_space: glyph!(
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-		r" ",
-	),
-	letter_spacing: 1,
-	line_height: 1,
 	colors: 2,
-	#[rustfmt::skip]
+	rows: 11,
+	line_height: 1,
+	letter_spacing: 1,
+	checks: {
+		plain_segments_are_spaces,
+		slots_paint_only: [['█', '▄', '▀', '▐', '▌'], ['░']],
+	},
+	letter_space: [
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+		r" ",
+	],
 	glyphs: {
-		let mut table = [None; 128];
-		table['A' as usize] = Some(glyph!(
+		'A' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -64,8 +38,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▀         ▀ </c1>",
-		));
-		table['B' as usize] = Some(glyph!(
+		],
+		'B' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄  </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -77,8 +51,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌ </c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀  </c1>",
-		));
-		table['C' as usize] = Some(glyph!(
+		],
+		'C' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -90,8 +64,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['D' as usize] = Some(glyph!(
+		],
+		'D' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄  </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -103,8 +77,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░</c2><c1>▌ </c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀  </c1>",
-		));
-		table['E' as usize] = Some(glyph!(
+		],
+		'E' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -116,8 +90,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['F' as usize] = Some(glyph!(
+		],
+		'F' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -129,8 +103,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌          </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌          </c1>",
 			r"<c1> ▀           </c1>",
-		));
-		table['G' as usize] = Some(glyph!(
+		],
+		'G' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -142,8 +116,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['H' as usize] = Some(glyph!(
+		],
+		'H' => [
 			r"<c1> ▄         ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -155,8 +129,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▀         ▀ </c1>",
-		));
-		table['I' as usize] = Some(glyph!(
+		],
+		'I' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀▀ </c1>",
@@ -168,8 +142,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄█</c1><c2>░</c2><c1>█▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['J' as usize] = Some(glyph!(
+		],
+		'J' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀ </c1>",
@@ -181,8 +155,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄▄█</c1><c2>░</c2><c1>▌    </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌    </c1>",
 			r"<c1> ▀▀▀▀▀▀▀     </c1>",
-		));
-		table['K' as usize] = Some(glyph!(
+		],
+		'K' => [
 			r"<c1> ▄    ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌  ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌ ▐</c1><c2>░</c2><c1>▌ </c1>",
@@ -194,8 +168,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌ ▐</c1><c2>░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌  ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▀    ▀ </c1>",
-		));
-		table['L' as usize] = Some(glyph!(
+		],
+		'L' => [
 			r"<c1> ▄           </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌          </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌          </c1>",
@@ -207,8 +181,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['M' as usize] = Some(glyph!(
+		],
+		'M' => [
 			r"<c1> ▄▄       ▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌     ▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>",
@@ -220,8 +194,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▀         ▀ </c1>",
-		));
-		table['N' as usize] = Some(glyph!(
+		],
+		'N' => [
 			r"<c1> ▄▄        ▄ </c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌      ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -233,8 +207,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌      ▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1> ▀        ▀▀ </c1>",
-		));
-		table['O' as usize] = Some(glyph!(
+		],
+		'O' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -246,8 +220,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['P' as usize] = Some(glyph!(
+		],
+		'P' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -259,8 +233,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌          </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌          </c1>",
 			r"<c1> ▀           </c1>",
-		));
-		table['Q' as usize] = Some(glyph!(
+		],
+		'Q' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -272,8 +246,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▀▀▀▀▀▀█</c1><c2>░</c2><c1>█▀▀ </c1>",
 			r"<c1>        ▐</c1><c2>░</c2><c1>▌  </c1>",
 			r"<c1>         ▀   </c1>",
-		));
-		table['R' as usize] = Some(glyph!(
+		],
+		'R' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -285,8 +259,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌      ▐</c1><c2>░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▀         ▀ </c1>",
-		));
-		table['S' as usize] = Some(glyph!(
+		],
+		'S' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -298,8 +272,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['T' as usize] = Some(glyph!(
+		],
+		'T' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀▀ </c1>",
@@ -311,8 +285,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>     ▐</c1><c2>░</c2><c1>▌     </c1>",
 			r"<c1>     ▐</c1><c2>░</c2><c1>▌     </c1>",
 			r"<c1>      ▀      </c1>",
-		));
-		table['U' as usize] = Some(glyph!(
+		],
+		'U' => [
 			r"<c1> ▄         ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -324,8 +298,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['V' as usize] = Some(glyph!(
+		],
+		'V' => [
 			r"<c1> ▄               ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌             ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▐</c1><c2>░</c2><c1>▌           ▐</c1><c2>░</c2><c1>▌ </c1>",
@@ -337,8 +311,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>       ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌       </c1>",
 			r"<c1>        ▐</c1><c2>░</c2><c1>▌        </c1>",
 			r"<c1>         ▀         </c1>",
-		));
-		table['W' as usize] = Some(glyph!(
+		],
+		'W' => [
 			r"<c1> ▄         ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -350,8 +324,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌     ▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀       ▀▀ </c1>",
-		));
-		table['X' as usize] = Some(glyph!(
+		],
+		'X' => [
 			r"<c1> ▄       ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌ </c1>",
@@ -363,8 +337,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▀       ▀ </c1>",
-		));
-		table['Y' as usize] = Some(glyph!(
+		],
+		'Y' => [
 			r"<c1> ▄         ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -376,8 +350,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>     ▐</c1><c2>░</c2><c1>▌     </c1>",
 			r"<c1>     ▐</c1><c2>░</c2><c1>▌     </c1>",
 			r"<c1>      ▀      </c1>",
-		));
-		table['Z' as usize] = Some(glyph!(
+		],
+		'Z' => [
 			r"<c1> ▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -389,8 +363,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀ </c1>",
-		));
-		table['0' as usize] = Some(glyph!(
+		],
+		'0' => [
 			r"<c1>  ▄▄▄▄▄▄▄▄▄  </c1>",
 			r"<c1> ▐</c1><c2>░░░░░░░░░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█</c1><c2>░</c2><c1>█▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -402,8 +376,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄█</c1><c2>░</c2><c1>█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▐</c1><c2>░░░░░░░░░</c2><c1>▌ </c1>",
 			r"<c1>  ▀▀▀▀▀▀▀▀▀  </c1>",
-		));
-		table['1' as usize] = Some(glyph!(
+		],
+		'1' => [
 			r"<c1>    ▄▄▄▄     </c1>",
 			r"<c1>  ▄█</c1><c2>░░░░</c2><c1>▌    </c1>",
 			r"<c1> ▐</c1><c2>░░</c2><c1>▌▐</c1><c2>░░</c2><c1>▌    </c1>",
@@ -415,8 +389,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄█</c1><c2>░░</c2><c1>█▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['2' as usize] = Some(glyph!(
+		],
+		'2' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -428,8 +402,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['3' as usize] = Some(glyph!(
+		],
+		'3' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -441,8 +415,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['4' as usize] = Some(glyph!(
+		],
+		'4' => [
 			r"<c1> ▄         ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌</c1>",
@@ -454,8 +428,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>          ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>          ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>           ▀ </c1>",
-		));
-		table['5' as usize] = Some(glyph!(
+		],
+		'5' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -467,8 +441,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['6' as usize] = Some(glyph!(
+		],
+		'6' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀▀ </c1>",
@@ -480,8 +454,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['7' as usize] = Some(glyph!(
+		],
+		'7' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -493,8 +467,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>    ▐</c1><c2>░</c2><c1>▌      </c1>",
 			r"<c1>   ▐</c1><c2>░</c2><c1>▌       </c1>",
 			r"<c1>    ▀        </c1>",
-		));
-		table['8' as usize] = Some(glyph!(
+		],
+		'8' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -506,8 +480,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['9' as usize] = Some(glyph!(
+		],
+		'9' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -519,8 +493,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['!' as usize] = Some(glyph!(
+		],
+		'!' => [
 			r"<c1> ▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
@@ -532,8 +506,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀ </c1>",
-		));
-		table['?' as usize] = Some(glyph!(
+		],
+		'?' => [
 			r"<c1>   ▄▄▄▄▄▄▄  </c1>",
 			r"<c1> ▄█</c1><c2>░░░░░░</c2><c1>█▄ </c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌▀▀▀▀█</c1><c2>░░</c2><c1>▌</c1>",
@@ -545,8 +519,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>   ▄▄       </c1>",
 			r"<c1>  ▐</c1><c2>░░</c2><c1>▌      </c1>",
 			r"<c1>   ▀▀       </c1>",
-		));
-		table['.' as usize] = Some(glyph!(
+		],
+		'.' => [
 			r"    ",
 			r"    ",
 			r"    ",
@@ -558,8 +532,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀ </c1>",
-		));
-		table['+' as usize] = Some(glyph!(
+		],
+		'+' => [
 			r"          ",
 			r"          ",
 			r"<c1>    ▄▄    </c1>",
@@ -571,8 +545,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>    ▀▀    </c1>",
 			r"          ",
 			r"          ",
-		));
-		table['-' as usize] = Some(glyph!(
+		],
+		'-' => [
 			r"       ",
 			r"       ",
 			r"       ",
@@ -584,8 +558,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"       ",
 			r"       ",
 			r"       ",
-		));
-		table['_' as usize] = Some(glyph!(
+		],
+		'_' => [
 			r"       ",
 			r"       ",
 			r"       ",
@@ -597,8 +571,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀ </c1>",
 			r"       ",
-		));
-		table['=' as usize] = Some(glyph!(
+		],
+		'=' => [
 			r"       ",
 			r"       ",
 			r"<c1> ▄▄▄▄▄ </c1>",
@@ -610,8 +584,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▀▀▀▀▀ </c1>",
 			r"       ",
 			r"       ",
-		));
-		table['@' as usize] = Some(glyph!(
+		],
+		'@' => [
 			r"<c1> ▄▄▄▄▄▄▄▄▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>▌</c1>",
@@ -623,8 +597,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>▌▄▄███████</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀▀▀▀▀▀▀▀▀ </c1>",
-		));
-		table['#' as usize] = Some(glyph!(
+		],
+		'#' => [
 			r"<c1>   ▄         ▄   </c1>",
 			r"<c1>  ▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌  </c1>",
 			r"<c1> ▄█</c1><c2>░</c2><c1>█▄▄▄▄▄▄▄█</c1><c2>░</c2><c1>█▄ </c1>",
@@ -636,8 +610,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▀█</c1><c2>░</c2><c1>█▀▀▀▀▀▀▀█</c1><c2>░</c2><c1>█▀ </c1>",
 			r"<c1>  ▐</c1><c2>░</c2><c1>▌       ▐</c1><c2>░</c2><c1>▌  </c1>",
 			r"<c1>   ▀         ▀   </c1>",
-		));
-		table['$' as usize] = Some(glyph!(
+		],
+		'$' => [
 			r"<c1>      ▄      </c1>",
 			r"<c1> ▄▄▄▄█</c1><c2>░</c2><c1>█▄▄▄▄ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
@@ -649,8 +623,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░░░░░░░░░░░</c2><c1>▌</c1>",
 			r"<c1> ▀▀▀▀█</c1><c2>░</c2><c1>█▀▀▀▀ </c1>",
 			r"<c1>      ▀      </c1>",
-		));
-		table['%' as usize] = Some(glyph!(
+		],
+		'%' => [
 			r"<c1>         ▄ </c1>",
 			r"<c1>  ▄     ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1> ▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌ </c1>",
@@ -662,8 +636,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▐</c1><c2>░</c2><c1>▌   ▐</c1><c2>░</c2><c1>▌ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌     ▀  </c1>",
 			r"<c1> ▀         </c1>",
-		));
-		table['&' as usize] = Some(glyph!(
+		],
+		'&' => [
 			r"<c1> ▄▄▄▄▄▄▄     </c1>",
 			r"<c1>▐</c1><c2>░░░░░░░</c2><c1>▌    </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>█▀▀▀█</c1><c2>░</c2><c1>▌    </c1>",
@@ -675,8 +649,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░</c2><c1>█▄▄▄▄█</c1><c2>░</c2><c1>▌ ▀ </c1>",
 			r"<c1>▐</c1><c2>░░░░░░</c2><c1>▌▐</c1><c2>░</c2><c1>▌  </c1>",
 			r"<c1> ▀▀▀▀▀▀  ▀   </c1>",
-		));
-		table['(' as usize] = Some(glyph!(
+		],
+		'(' => [
 			r"<c1>  ▄▄▄▄▄ </c1>",
 			r"<c1> ▐</c1><c2>░░░░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░</c2><c1>█▀▀▀ </c1>",
@@ -688,8 +662,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░░</c2><c1>█▄▄▄ </c1>",
 			r"<c1> ▐</c1><c2>░░░░░</c2><c1>▌</c1>",
 			r"<c1>  ▀▀▀▀▀ </c1>",
-		));
-		table[')' as usize] = Some(glyph!(
+		],
+		')' => [
 			r"<c1> ▄▄▄▄▄  </c1>",
 			r"<c1>▐</c1><c2>░░░░░</c2><c1>▌ </c1>",
 			r"<c1> ▀▀▀█</c1><c2>░░</c2><c1>▌</c1>",
@@ -701,8 +675,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▄▄▄█</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░░░░░</c2><c1>▌ </c1>",
 			r"<c1> ▀▀▀▀▀  </c1>",
-		));
-		table['/' as usize] = Some(glyph!(
+		],
+		'/' => [
 			r"<c1>         ▄ </c1>",
 			r"<c1>        ▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>       ▐</c1><c2>░</c2><c1>▌ </c1>",
@@ -714,8 +688,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▐</c1><c2>░</c2><c1>▌       </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌        </c1>",
 			r"<c1> ▀         </c1>",
-		));
-		table[':' as usize] = Some(glyph!(
+		],
+		':' => [
 			r"    ",
 			r"    ",
 			r"<c1> ▄▄ </c1>",
@@ -727,8 +701,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▀▀ </c1>",
 			r"    ",
 			r"    ",
-		));
-		table[';' as usize] = Some(glyph!(
+		],
+		';' => [
 			r"    ",
 			r"    ",
 			r"<c1> ▄▄ </c1>",
@@ -740,8 +714,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1> ▀▌ </c1>",
 			r"<c1> ▀  </c1>",
 			r"    ",
-		));
-		table[',' as usize] = Some(glyph!(
+		],
+		',' => [
 			r"    ",
 			r"    ",
 			r"    ",
@@ -753,8 +727,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"<c1>▐</c1><c2>░░</c2><c1>▌</c1>",
 			r"<c1> ▀▌ </c1>",
 			r"<c1> ▀  </c1>",
-		));
-		table['\'' as usize] = Some(glyph!(
+		],
+		'\'' => [
 			r"<c1> ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌</c1>",
@@ -766,8 +740,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"   ",
 			r"   ",
 			r"   ",
-		));
-		table['"' as usize] = Some(glyph!(
+		],
+		'"' => [
 			r"<c1> ▄  ▄ </c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌▐</c1><c2>░</c2><c1>▌</c1>",
 			r"<c1>▐</c1><c2>░</c2><c1>▌▐</c1><c2>░</c2><c1>▌</c1>",
@@ -779,8 +753,8 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"      ",
 			r"      ",
 			r"      ",
-		));
-		table[' ' as usize] = Some(glyph!(
+		],
+		' ' => [
 			r"    ",
 			r"    ",
 			r"    ",
@@ -792,67 +766,6 @@ pub static FONT_HUGE: FontFile<11> = FontFile {
 			r"    ",
 			r"    ",
 			r"    ",
-		));
-
-		table
+		],
 	},
 };
-
-#[cfg(test)]
-mod tests {
-	use crate::fonts::tests::{
-		assert_buffer_end_size, assert_buffer_start_size, assert_buffers_complementary, assert_buffers_plain,
-		assert_colors_all_used, assert_glyph_edges_carry_ink, assert_letter_space_takes_columns,
-		assert_plain_segments_are_spaces, assert_slots_paint_only, assert_supported,
-	};
-
-	#[test]
-	fn all_supported_glyphs_defined() {
-		assert_supported(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn letter_space_takes_columns() {
-		assert_letter_space_takes_columns(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn glyph_edges_carry_ink() {
-		assert_glyph_edges_carry_ink(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn colors_all_used() {
-		assert_colors_all_used(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn plain_segments_are_spaces() {
-		assert_plain_segments_are_spaces(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn buffer_start_size() {
-		assert_buffer_start_size(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn buffer_end_size() {
-		assert_buffer_end_size(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn buffers_plain() {
-		assert_buffers_plain(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn buffers_complementary() {
-		assert_buffers_complementary(&super::FONT_HUGE);
-	}
-
-	#[test]
-	fn slots_paint_only_their_material() {
-		assert_slots_paint_only(&super::FONT_HUGE, &[&['█', '▄', '▀', '▐', '▌'], &['░']]);
-	}
-}

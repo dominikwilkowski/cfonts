@@ -143,9 +143,7 @@ impl RowEvent<'_> {
 						let block_index = *block_index as usize;
 						// a run of copies emits what as many separate entries would
 						for _ in 0..*repeat {
-							for segment in glyph_row.segments {
-								let (text, slot) = segment.parts();
-
+							for (text, slot) in glyph_row.segments() {
 								// empty segments emit nothing so no consumer wraps color codes around zero columns
 								if !text.is_empty() {
 									event(RowEvent::Text { text, block_index, slot, paintable: *paintable });
@@ -189,7 +187,7 @@ pub trait Environment {
 		ColorTokens::default()
 	}
 
-	/// Paint one [`Segment`](crate::fonts::Segment) of text, wrapped in the env-interpreted color tokens
+	/// Paint one [segment](crate::fonts::GlyphRow::segments) of text, wrapped in the env-interpreted color tokens
 	///
 	/// `band` carries the row's background markers for environments whose styles name both layers at once
 	/// `will_style` says whether this render emits any style at all,
@@ -383,11 +381,9 @@ pub trait Environment {
 fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
 	rows.iter().any(|row| {
 		row.entries.iter().any(|entry| match entry {
-			RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row.segments.iter().any(|segment| {
-				let (text, slot) = segment.parts();
-
-				!text.is_empty() && plan.resolves(*block_index as usize, slot, *paintable)
-			}),
+			RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row
+				.segments()
+				.any(|(text, slot)| !text.is_empty() && plan.resolves(*block_index as usize, slot, *paintable)),
 			RowEntry::Blank { .. } => false,
 		})
 	})
