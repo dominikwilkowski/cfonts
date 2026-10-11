@@ -43,6 +43,10 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_
 windows-version = "0.100"
 
 [dev-dependencies]
+# the component tests render to a string the way a server does, dioxus through its own renderer
+dioxus-ssr = "0.7"
+# and leptos through tachys, which only renders to a string with server rendering on
+tachys = { version = "0.2", default-features = false, features = ["ssr"] }
 temp-env = "0.3"
 
 [target.'cfg(windows)'.dev-dependencies]

@@ -35,6 +35,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
+name = "askama_escape"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3df27b8d5ddb458c5fb1bbc1ce172d4a38c614a97d550b0ac89003897fb01de4"
+
+[[package]]
 name = "async-lock"
 version = "3.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,10 +185,12 @@ version = "4.0.0"
 dependencies = [
  "cfonts-macros",
  "dioxus",
+ "dioxus-ssr",
  "js-sys",
  "leptos",
  "libc",
  "ratatui",
+ "tachys",
  "temp-env",
  "wasm-bindgen",
  "web-sys",
@@ -467,6 +475,7 @@ dependencies = [
  "longest-increasing-subsequence",
  "rustc-hash",
  "rustversion",
+ "serde",
  "slab",
  "slotmap",
  "subsecond",
@@ -571,6 +580,18 @@ dependencies = [
  "rustc-hash",
  "tracing",
  "warnings",
+]
+
+[[package]]
+name = "dioxus-ssr"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4544ecf908962909de403bfdf94f771b036e9e1857e371cd3279841a15a892e6"
+dependencies = [
+ "askama_escape",
+ "dioxus-core",
+ "dioxus-core-types",
+ "rustc-hash",
 ]
 
 [[package]]
