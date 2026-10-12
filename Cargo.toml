@@ -16,9 +16,9 @@ repository = "https://github.com/dominikwilkowski/cfonts"
 cfonts-macros = { path = "crates/macros", version = "=4.0.0" }
 
 # The release build of the cfonts binary and the npm package
+# fat link-time optimization keeps the default codegen units, a single unit renders gradients about 30% slower
 [profile.release]
 lto = "fat"
-codegen-units = 1
 strip = true
 
 # Stripping removes the section that records the wasm features the module uses, wasm-opt then rejects the module

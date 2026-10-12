@@ -249,33 +249,38 @@ pub enum Font {
 impl Font {
 	/// Returns the font data for this font, including glyphs and color/size information
 	pub(crate) fn get_font(self) -> &'static FontFile {
-		match self {
-			Self::Block => &FONT_BLOCK,
-			Self::Board => &FONT_BOARD,
-			Self::Braille => &FONT_BRAILLE,
-			Self::Bridge => &FONT_BRIDGE,
-			Self::Bubble => &FONT_BUBBLE,
-			Self::Chrome => &FONT_CHROME,
-			Self::Dense => &FONT_DENSE,
-			Self::Depth => &FONT_DEPTH,
-			Self::Console => &FONT_CONSOLE,
-			Self::Font3D => &FONT_3D,
-			Self::Frost => &FONT_FROST,
-			Self::Grid => &FONT_GRID,
-			Self::Huge => &FONT_HUGE,
-			Self::Neat => &FONT_NEAT,
-			Self::Edge => &FONT_EDGE,
-			Self::Pallet => &FONT_PALLET,
-			Self::Retro => &FONT_RETRO,
-			Self::Shade => &FONT_SHADE,
-			Self::Simple => &FONT_SIMPLE,
-			Self::SimpleBlock => &FONT_SIMPLE_BLOCK,
-			Self::Slick => &FONT_SLICK,
-			Self::Thin => &FONT_THIN,
-			Self::Tiny => &FONT_TINY,
-			Self::Vision => &FONT_VISION,
-			Self::Wire => &FONT_WIRE,
-		}
+		// every glyph row looks its font up while it paints,
+		// an index is cheaper than a match over every variant the files sit in the order the variants are declared,
+		// `every_font_file_names_its_variant` test holds them to it
+		static FONT_FILES: [&FontFile; Font::ALL.len()] = [
+			&FONT_BLOCK,
+			&FONT_BOARD,
+			&FONT_BRAILLE,
+			&FONT_BRIDGE,
+			&FONT_BUBBLE,
+			&FONT_CHROME,
+			&FONT_DENSE,
+			&FONT_DEPTH,
+			&FONT_EDGE,
+			&FONT_3D,
+			&FONT_FROST,
+			&FONT_GRID,
+			&FONT_HUGE,
+			&FONT_NEAT,
+			&FONT_PALLET,
+			&FONT_RETRO,
+			&FONT_SHADE,
+			&FONT_SIMPLE,
+			&FONT_SIMPLE_BLOCK,
+			&FONT_SLICK,
+			&FONT_THIN,
+			&FONT_TINY,
+			&FONT_VISION,
+			&FONT_WIRE,
+			&FONT_CONSOLE,
+		];
+
+		FONT_FILES[self as usize]
 	}
 
 	/// Looks up a font by its name, case insensitively

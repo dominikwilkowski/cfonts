@@ -24,12 +24,11 @@ tabled = { version = "0.22.0", default-features = false, features = ["std"] }
 wait-timeout = "0.2.1"
 
 # The same code generation as the v4 workspace's release profile, so the API path and the CLI path measure one build:
-# - link-time optimization across every crate and one codegen unit, as the workspace sets them
+# - link-time optimization across every crate with the default codegen units, as the workspace sets them
 # - symbols stay, stripping changes nothing that runs and the interpose library keeps its exports readable
 # - line tables name the inlined functions in the flamegraphs and heap profiles, they change no code
 # - the v3 binary of the CLI path is the published crate installed by cargo install, built with its own profile,
 #   the same settings and stripped
 [profile.release]
 lto = "fat"
-codegen-units = 1
 debug = "line-tables-only"
