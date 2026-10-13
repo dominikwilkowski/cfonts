@@ -20,6 +20,10 @@ pub struct LayoutGlyph {
 	/// Whether this glyph's untagged text may take the block's single color
 	/// (printable glyphs and letter spaces may, buffer seams may not)
 	paintable: bool,
+
+	/// How many copies stand side by side, the letter spaces between two glyphs above all,
+	/// staged as one entry where the copies are made so no row has to search for the run
+	repeat: u32,
 }
 
 impl LayoutGlyph {
@@ -31,13 +35,25 @@ impl LayoutGlyph {
 		self.glyph.row(index)
 	}
 
+	/// The columns one copy takes
 	fn width(&self) -> usize {
 		self.glyph.width
 	}
 
-	/// Whether two staged glyphs render the same, so a run of them is one entry with a repeat count
-	fn same(&self, other: &Self) -> bool {
-		self.glyph == other.glyph && self.block_index == other.block_index && self.paintable == other.paintable
+	/// The columns the whole run takes
+	fn columns(&self) -> usize {
+		self.glyph.width * self.repeat as usize
+	}
+
+	/// One row of the glyph as a row entry holding `repeat` copies
+	fn entry(&self, row: usize, repeat: u8) -> RowEntry {
+		RowEntry::Data {
+			glyph_row: self.row(row),
+			block_index: Layout::entry_block(self.block_index),
+			width: u16::try_from(self.width()).expect("a glyph is narrower than 65,536 columns"),
+			repeat,
+			paintable: self.paintable,
+		}
 	}
 }
 
@@ -246,7 +262,7 @@ impl<'a> Layout<'a> {
 		self.space_pending = false;
 
 		// The buffer is a glyph so flush_line handles it like any other
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index, paintable: false };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index, paintable: false, repeat: 1 };
 
 		// The block's line contribution is only staged: its first committing char
 		// commits it, so a block whose text commits nothing adds no buffers and no height
@@ -256,9 +272,15 @@ impl<'a> Layout<'a> {
 			line_height: block.line_height.unwrap_or_else(|| font.line_height()),
 		});
 
-		// We make the letter space a glyph so flush_line handles it like any other
-		let letter_space_glyph = LayoutGlyph { glyph: font.letter_space(), block_index, paintable: true };
-		let letter_spacing = block.letter_spacing.unwrap_or_else(|| font.letter_spacing());
+		// The letter spaces between two glyphs are one glyph repeated as often as the block asks,
+		// so flush_line handles the run like any other glyph
+		let letter_space = LayoutGlyph {
+			glyph: font.letter_space(),
+			block_index,
+			paintable: true,
+			repeat: u32::try_from(block.letter_spacing.unwrap_or_else(|| font.letter_spacing()))
+				.expect("a letter spacing is below 4,294,967,296"),
+		};
 
 		// Now we iterate each character in this block
 		for ch in block.text().chars() {
@@ -267,7 +289,7 @@ impl<'a> Layout<'a> {
 			// a slanted font keeps its staircase of trailing spaces here, which nothing but a band drawn cell by cell can show
 			if ch == NEW_LINE_CHAR {
 				self.commit_block();
-				self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
+				self.commit_word(buffer_start, letter_space, canvas_width);
 				self.flush_line(canvas_width);
 				self.push_glyph(buffer_start);
 				continue; // Skip as `|` does not print anything
@@ -282,20 +304,20 @@ impl<'a> Layout<'a> {
 			let break_class = Self::how_to_break_char(ch, block.word_wrap);
 			// A separator ends the word before it, a run of spaces stays staged in front of the next word
 			if matches!(break_class, Break::Both | Break::Space) && self.word_glyph_count > self.word_spaces {
-				self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
+				self.commit_word(buffer_start, letter_space, canvas_width);
 			}
-			self.stage_glyph(glyph, letter_space_glyph, letter_spacing, block_index);
+			self.stage_glyph(glyph, letter_space, block_index);
 			match break_class {
 				Break::Space => self.word_spaces += 1,
 				Break::Both | Break::After => {
-					self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
+					self.commit_word(buffer_start, letter_space, canvas_width);
 				}
 				Break::None => {}
 			}
 		}
 
 		// The end of a block always commits the pending word (words do not span blocks)
-		self.commit_word(buffer_start, letter_space_glyph, letter_spacing, canvas_width);
+		self.commit_word(buffer_start, letter_space, canvas_width);
 
 		// A block whose text committed nothing contributes nothing: drop its staged
 		// entry instead of closing a buffer pair that never opened
@@ -305,7 +327,7 @@ impl<'a> Layout<'a> {
 
 		// Close the block with its buffer_end, mirroring the buffer_start that opened it,
 		// so a block that follows on the same line starts at one column on every row
-		self.push_glyph(LayoutGlyph { glyph: font.buffer_end(), block_index, paintable: false });
+		self.push_glyph(LayoutGlyph { glyph: font.buffer_end(), block_index, paintable: false, repeat: 1 });
 		self.line_max_rows = self.line_max_rows.max(font.rows());
 	}
 
@@ -338,29 +360,26 @@ impl<'a> Layout<'a> {
 		}
 	}
 
-	/// Stage one printable glyph into the pending word, interleaving the letter spaces at insertion
+	/// Stage one printable glyph into the pending word, with the run of letter spaces in front of it,
 	/// so the word is exactly what will land on the line
-	fn stage_glyph(
-		&mut self,
-		glyph: GlyphRef,
-		letter_space_glyph: LayoutGlyph,
-		letter_spacing: usize,
-		block_index: usize,
-	) {
-		if !self.word.is_empty() {
-			for _ in 0..letter_spacing {
-				self.word.push(letter_space_glyph);
-				self.word_width += letter_space_glyph.width();
-			}
+	fn stage_glyph(&mut self, glyph: GlyphRef, letter_space: LayoutGlyph, block_index: usize) {
+		if !self.word.is_empty() && letter_space.repeat > 0 {
+			self.word.push(letter_space);
+			self.word_width += letter_space.columns();
 		}
-		self.word.push(LayoutGlyph { glyph, block_index, paintable: true });
+		self.word.push(LayoutGlyph { glyph, block_index, paintable: true, repeat: 1 });
 		self.word_width += glyph.width;
 		self.word_glyph_count += 1;
 	}
 
+	/// How many entries of `word` one printable takes: itself and the run of letter spaces before the next
+	fn word_stride(letter_space: LayoutGlyph) -> usize {
+		if letter_space.repeat > 0 { 2 } else { 1 }
+	}
+
 	/// Whether the pending word (plus its leading letter spaces) fits on the current line
-	fn word_fits(&self, letter_space_width: usize, letter_spacing: usize, canvas_width: Option<usize>) -> bool {
-		let leading = if self.space_pending { letter_spacing * letter_space_width } else { 0 };
+	fn word_fits(&self, letter_space: LayoutGlyph, canvas_width: Option<usize>) -> bool {
+		let leading = if self.space_pending { letter_space.columns() } else { 0 };
 		canvas_width.is_none_or(|canvas_width| self.line_output_width + leading + self.word_width <= canvas_width)
 			&& self
 				.options
@@ -373,18 +392,12 @@ impl<'a> Layout<'a> {
 	/// The spaces in front of a word belong to the break before it, the way text wraps in print:
 	/// a word that fits lands with them, a word that wraps leaves them behind, and spaces that
 	/// reach a break on their own are dropped
-	fn commit_word(
-		&mut self,
-		buffer_start: LayoutGlyph,
-		letter_space_glyph: LayoutGlyph,
-		letter_spacing: usize,
-		canvas_width: Option<usize>,
-	) {
+	fn commit_word(&mut self, buffer_start: LayoutGlyph, letter_space: LayoutGlyph, canvas_width: Option<usize>) {
 		if self.word.is_empty() {
 			return;
 		}
 
-		let mut fits = !self.line_closed && self.word_fits(letter_space_glyph.width(), letter_spacing, canvas_width);
+		let mut fits = !self.line_closed && self.word_fits(letter_space, canvas_width);
 
 		// Wrap only if this line already holds printable content and the word brings some:
 		// a word that fits no line at all starts here and gets split below instead, and spaces alone never open a line
@@ -395,22 +408,20 @@ impl<'a> Layout<'a> {
 
 		// The break swallows the spaces in front of the word, which may be all the word holds
 		if !fits {
-			self.drop_leading_spaces(letter_spacing);
+			self.drop_leading_spaces(letter_space);
 			if self.word.is_empty() {
 				// A run that reached a hard break on its own ends the line for the word after the break
 				self.line_closed = self.line_glyph_count > 0;
 				return;
 			}
 			// The line or the word changed so the verdict must be recomputed
-			fits = self.word_fits(letter_space_glyph.width(), letter_spacing, canvas_width);
+			fits = self.word_fits(letter_space, canvas_width);
 		}
 
 		if fits {
 			// Insert inter-word letter spacing before a non-initial word
-			if self.space_pending {
-				for _ in 0..letter_spacing {
-					self.push_glyph(letter_space_glyph);
-				}
+			if self.space_pending && letter_space.repeat > 0 {
+				self.push_glyph(letter_space);
 			}
 			// The word lands on this line exactly as staged
 			self.line.extend_from_slice(&self.word);
@@ -420,16 +431,17 @@ impl<'a> Layout<'a> {
 		} else {
 			// A word that fits no line: place its printables, glyph by glyph, wrapping at the edge
 			// The staged letter spaces are skipped and re-created around the splits instead so no line ends or starts with one
-			// `stage_glyph` puts exactly `letter_spacing` letter spaces before every printable but the first,
-			// so the printables sit at every `letter_spacing + 1`th entry
+			// `stage_glyph` puts one run of letter spaces before every printable but the first,
+			// so the printables sit at every `stride`th entry
+			let stride = Self::word_stride(letter_space);
 			debug_assert!(
-				self.word.len() == self.word_glyph_count + (self.word_glyph_count - 1) * letter_spacing,
-				"Error: `word` is not shaped as printables interleaved with `letter_spacing` letter spaces",
+				self.word.len() == (self.word_glyph_count - 1) * stride + 1,
+				"Error: `word` is not shaped as printables interleaved with runs of letter spaces",
 			);
 			let word = mem::take(&mut self.word);
-			for entry in word.iter().step_by(letter_spacing + 1) {
-				let letter_spacing_count = if self.space_pending { letter_spacing } else { 0 };
-				let next_glyph_width = letter_spacing_count * letter_space_glyph.width() + entry.width();
+			for entry in word.iter().step_by(stride) {
+				let leading = if self.space_pending { letter_space.columns() } else { 0 };
+				let next_glyph_width = leading + entry.columns();
 
 				// A glyph wider than the canvas overflows on the spot:
 				// wrapping the still empty line would only add a blank line in front of it
@@ -439,10 +451,8 @@ impl<'a> Layout<'a> {
 				{
 					self.flush_line(canvas_width);
 					self.push_glyph(buffer_start);
-				} else {
-					for _ in 0..letter_spacing_count {
-						self.push_glyph(letter_space_glyph);
-					}
+				} else if self.space_pending && letter_space.repeat > 0 {
+					self.push_glyph(letter_space);
 				}
 
 				self.push_glyph(*entry);
@@ -462,18 +472,18 @@ impl<'a> Layout<'a> {
 		self.word_spaces = 0;
 	}
 
-	/// Drops the spaces in front of `word`, each with the letter spaces staged after it
-	fn drop_leading_spaces(&mut self, letter_spacing: usize) {
+	/// Drops the spaces in front of `word`, each with the run of letter spaces staged after it
+	fn drop_leading_spaces(&mut self, letter_space: LayoutGlyph) {
 		// a word of spaces alone ends without letter spaces, so the count caps at the word
-		let entries = (self.word_spaces * (letter_spacing + 1)).min(self.word.len());
-		self.word_width -= self.word.drain(..entries).map(|glyph| glyph.width()).sum::<usize>();
+		let entries = (self.word_spaces * Self::word_stride(letter_space)).min(self.word.len());
+		self.word_width -= self.word.drain(..entries).map(|glyph| glyph.columns()).sum::<usize>();
 		self.word_glyph_count -= self.word_spaces;
 		self.word_spaces = 0;
 	}
 
 	/// Pushes a glyph to the current line, updating the line's output width
 	fn push_glyph(&mut self, glyph: LayoutGlyph) {
-		self.line_output_width += glyph.width();
+		self.line_output_width += glyph.columns();
 		self.line.push(glyph);
 	}
 
@@ -524,41 +534,37 @@ impl<'a> Layout<'a> {
 		let mut line_spans: Vec<BlockSpan> = Vec::new();
 		for glyph in self.line.iter() {
 			match line_spans.last_mut() {
-				Some(span) if span.block_index == glyph.block_index => span.width += glyph.width(),
-				_ => line_spans.push(BlockSpan { block_index: glyph.block_index, width: glyph.width() }),
+				Some(span) if span.block_index == glyph.block_index => span.width += glyph.columns(),
+				_ => line_spans.push(BlockSpan { block_index: glyph.block_index, width: glyph.columns() }),
 			}
 		}
 
-		// a run of the same glyph is one entry per row, up to the largest repeat count an entry holds
-		let runs = || self.line.chunk_by(LayoutGlyph::same).flat_map(|run| run.chunks(usize::from(u8::MAX)));
-		let run_count = runs().count();
-
 		for row in 0..rows_to_push {
-			let mut entries = Vec::with_capacity(run_count);
-			for run in runs() {
-				let glyph = run[0];
+			let mut entries = Vec::with_capacity(self.line.len());
+			for glyph in self.line.iter() {
 				if current_block != Some(glyph.block_index) {
 					// rows_to_push >= the glyph's rows is guaranteed by flush_line's height tracking
 					padding = self.options.valign.offset(rows_to_push - glyph.rows());
 					current_block = Some(glyph.block_index);
 				}
 
-				let entry = if row < padding || row >= padding + glyph.rows() {
+				if row < padding || row >= padding + glyph.rows() {
 					// Blank padding rows for fonts that are not as tall as another on the same line
-					RowEntry::Blank {
-						width: u32::try_from(glyph.width() * run.len()).expect("a padding run is narrower than 2^32 columns"),
+					entries.push(RowEntry::Blank {
+						width: u32::try_from(glyph.columns()).expect("a padding run is narrower than 2^32 columns"),
 						block_index: Self::entry_block(glyph.block_index),
-					}
+					});
+				} else if let Ok(repeat) = u8::try_from(glyph.repeat) {
+					entries.push(glyph.entry(row - padding, repeat));
 				} else {
-					RowEntry::Data {
-						glyph_row: glyph.row(row - padding),
-						block_index: Self::entry_block(glyph.block_index),
-						width: u16::try_from(glyph.width()).expect("a glyph is narrower than 65,536 columns"),
-						repeat: u8::try_from(run.len()).expect("a run is split at the largest repeat count"),
-						paintable: glyph.paintable,
+					// a run longer than one entry holds spreads over several
+					let mut left = glyph.repeat;
+					while left > 0 {
+						let repeat = left.min(u32::from(u8::MAX));
+						entries.push(glyph.entry(row - padding, u8::try_from(repeat).expect("a slice of a run fits one entry")));
+						left -= repeat;
 					}
-				};
-				entries.push(entry);
+				}
 			}
 			self.output.push(LayoutRow { entries, width: line_width, align_offset, block_spans: line_spans.clone() });
 		}
@@ -650,8 +656,18 @@ mod tests {
 		let tiny_font = Font::Tiny.get_font();
 		layout.current_font_rows = block_font.rows();
 		layout.line_max_rows = block_font.rows();
-		layout.push_glyph(LayoutGlyph { glyph: block_font.get_glyph('A').unwrap(), block_index: 0, paintable: true });
-		layout.push_glyph(LayoutGlyph { glyph: tiny_font.get_glyph('B').unwrap(), block_index: 1, paintable: true });
+		layout.push_glyph(LayoutGlyph {
+			glyph: block_font.get_glyph('A').unwrap(),
+			block_index: 0,
+			paintable: true,
+			repeat: 1,
+		});
+		layout.push_glyph(LayoutGlyph {
+			glyph: tiny_font.get_glyph('B').unwrap(),
+			block_index: 1,
+			paintable: true,
+			repeat: 1,
+		});
 		layout.flush_line(None);
 		layout
 			.output
@@ -804,10 +820,10 @@ mod tests {
 		let options = options(Valign::Top, None, vec![]);
 		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		let glyph = font.get_glyph('A').unwrap();
 
-		layout.stage_glyph(glyph, letter_space, 1, 0);
+		layout.stage_glyph(glyph, letter_space, 0);
 
 		assert_eq!(layout.word.len(), 1);
 		assert_eq!(layout.word_width, glyph.width);
@@ -818,15 +834,31 @@ mod tests {
 		let options = options(Valign::Top, None, vec![]);
 		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 2 };
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 
-		layout.stage_glyph(glyph_a, letter_space, 2, 0);
-		layout.stage_glyph(glyph_b, letter_space, 2, 0);
+		layout.stage_glyph(glyph_a, letter_space, 0);
+		layout.stage_glyph(glyph_b, letter_space, 0);
 
-		assert_eq!(layout.word.len(), 4);
-		assert_eq!(layout.word_width, glyph_a.width + 2 * letter_space.width() + glyph_b.width);
+		assert_eq!(layout.word.len(), 3); // A, the run of two letter spaces, B
+		assert_eq!(layout.word_width, glyph_a.width + letter_space.columns() + glyph_b.width);
+	}
+
+	#[test]
+	fn stage_glyph_stages_no_run_at_a_letter_spacing_of_zero() {
+		let options = options(Valign::Top, None, vec![]);
+		let mut layout = Layout::new(&options);
+		let font = Font::Tiny.get_font();
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 0 };
+		let glyph_a = font.get_glyph('A').unwrap();
+		let glyph_b = font.get_glyph('B').unwrap();
+
+		layout.stage_glyph(glyph_a, letter_space, 0);
+		layout.stage_glyph(glyph_b, letter_space, 0);
+
+		assert_eq!(layout.word.len(), 2);
+		assert_eq!(layout.word_width, glyph_a.width + glyph_b.width);
 	}
 
 	// word_fits
@@ -836,18 +868,18 @@ mod tests {
 		let options = options(Valign::Top, None, vec![]);
 		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		let glyph = font.get_glyph('A').unwrap();
-		layout.stage_glyph(glyph, letter_space, 1, 0);
+		layout.stage_glyph(glyph, letter_space, 0);
 
 		// at a line start the word needs exactly its own width
-		assert!(layout.word_fits(letter_space.width(), 1, Some(glyph.width)));
-		assert!(!layout.word_fits(letter_space.width(), 1, Some(glyph.width - 1)));
+		assert!(layout.word_fits(letter_space, Some(glyph.width)));
+		assert!(!layout.word_fits(letter_space, Some(glyph.width - 1)));
 
 		// after a placed glyph the leading letter spaces count too
 		layout.space_pending = true;
-		assert!(layout.word_fits(letter_space.width(), 1, Some(glyph.width + letter_space.width())));
-		assert!(!layout.word_fits(letter_space.width(), 1, Some(glyph.width + letter_space.width() - 1)));
+		assert!(layout.word_fits(letter_space, Some(glyph.width + letter_space.width())));
+		assert!(!layout.word_fits(letter_space, Some(glyph.width + letter_space.width() - 1)));
 	}
 
 	// commit_word
@@ -857,10 +889,10 @@ mod tests {
 		let options = options(Valign::Top, None, vec![]);
 		let mut layout = Layout::new(&options);
 		let font = Font::Tiny.get_font();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		assert!(layout.line.is_empty());
 		assert!(layout.output.is_empty());
@@ -873,12 +905,12 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		let glyph = font.get_glyph('A').unwrap();
 
-		layout.stage_glyph(glyph, letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(glyph, letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		assert_eq!(layout.line.len(), 1); // no leading letter space at the start of a line
 		assert_eq!(layout.line_output_width, glyph.width);
@@ -896,13 +928,13 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 
-		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
-		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
+		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		assert_eq!(layout.line.len(), 3); // A, letter space, B
 		assert_eq!(layout.line_glyph_count, 2);
@@ -915,14 +947,14 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
 
-		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
-		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
+		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		assert_eq!(layout.output.len(), font.rows()); // the first line was flushed
 		assert_eq!(layout.line_glyph_count, 1); // B alone on the new line
@@ -935,18 +967,18 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 		// wide enough for A but not for A + letter space + B
 		let canvas_width = glyph_a.width + letter_space.width() + glyph_b.width - 1;
 
-		layout.stage_glyph(glyph_a, letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
-		layout.stage_glyph(glyph_b, letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
+		layout.stage_glyph(glyph_a, letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(canvas_width));
+		layout.stage_glyph(glyph_b, letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(canvas_width));
 
 		assert_eq!(layout.output.len(), font.rows());
 		assert_eq!(layout.line_output_width, glyph_b.width); // B alone, no leading letter space
@@ -959,14 +991,14 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
 
 		for character in ['A', 'B', 'C'] {
-			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
+			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 0);
 		}
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		// exactly one flush (A B), no spurious blank line before the word
 		assert_eq!(layout.output.len(), font.rows());
@@ -983,16 +1015,16 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
-		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 		let entries_with_a = layout.line.len();
 
-		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 1, 0);
+		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 0);
 		layout.word_spaces = 1;
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		assert!(layout.output.is_empty()); // no line wrapped for the space
 		assert_eq!(layout.line.len(), entries_with_a); // and it landed nowhere
@@ -1008,15 +1040,15 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
-		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 		layout.line_closed = true;
 
-		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('B').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		// the dropped spaces between A and B still separate them, B starts the next line
 		assert_eq!(layout.output.len(), font.rows());
@@ -1031,20 +1063,20 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		let glyph_b = font.get_glyph('B').unwrap();
 		layout.push_glyph(buffer_start);
-		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.stage_glyph(font.get_glyph('A').unwrap(), letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(100));
 		let width_with_a = layout.line_output_width;
 
-		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 1, 0);
+		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 0);
 		layout.word_spaces = 1;
 		for _ in 0..2 {
-			layout.stage_glyph(glyph_b, letter_space, 1, 0);
+			layout.stage_glyph(glyph_b, letter_space, 0);
 		}
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		// " BB" fits no more beside A, so BB wraps and the space goes with the break
 		assert_eq!(layout.output.len(), font.rows());
@@ -1060,20 +1092,20 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 		// exactly wide enough for A and B without the space between them
 		let canvas_width = glyph_a.width + letter_space.width() + glyph_b.width;
 		layout.push_glyph(buffer_start);
-		layout.stage_glyph(glyph_a, letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
+		layout.stage_glyph(glyph_a, letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(canvas_width));
 
-		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 1, 0);
+		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 0);
 		layout.word_spaces = 1;
-		layout.stage_glyph(glyph_b, letter_space, 1, 0);
-		layout.commit_word(buffer_start, letter_space, 1, Some(canvas_width));
+		layout.stage_glyph(glyph_b, letter_space, 0);
+		layout.commit_word(buffer_start, letter_space, Some(canvas_width));
 
 		// B alone would have fit, but the space in front of it is what keeps the words apart, so B wraps
 		assert_eq!(layout.output.len(), font.rows());
@@ -1087,15 +1119,15 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
-		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 1, 0);
+		layout.stage_glyph(font.get_glyph(' ').unwrap(), letter_space, 0);
 		layout.word_spaces = 1;
 		for character in ['A', 'B'] {
-			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
+			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 0);
 		}
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		// " AB" exceeds the line, AB alone fills it: the space goes and no blank line is flushed above
 		assert!(layout.output.is_empty());
@@ -1112,14 +1144,14 @@ mod tests {
 		let font = Font::Tiny.get_font();
 		layout.current_font_rows = font.rows();
 		layout.line_max_rows = font.rows();
-		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false };
-		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true };
+		let buffer_start = LayoutGlyph { glyph: font.buffer_start(), block_index: 0, paintable: false, repeat: 1 };
+		let letter_space = LayoutGlyph { glyph: font.letter_space(), block_index: 0, paintable: true, repeat: 1 };
 		layout.push_glyph(buffer_start);
 		for character in ['A', 'B', 'C'] {
-			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 1, 0);
+			layout.stage_glyph(font.get_glyph(character).unwrap(), letter_space, 0);
 		}
 
-		layout.commit_word(buffer_start, letter_space, 1, Some(100));
+		layout.commit_word(buffer_start, letter_space, Some(100));
 
 		assert!(layout.word.is_empty());
 		assert_eq!(layout.word_width, 0);
@@ -1136,8 +1168,8 @@ mod tests {
 		let glyph_a = font.get_glyph('A').unwrap();
 		let glyph_b = font.get_glyph('B').unwrap();
 
-		layout.push_glyph(LayoutGlyph { glyph: glyph_a, block_index: 0, paintable: true });
-		layout.push_glyph(LayoutGlyph { glyph: glyph_b, block_index: 0, paintable: true });
+		layout.push_glyph(LayoutGlyph { glyph: glyph_a, block_index: 0, paintable: true, repeat: 1 });
+		layout.push_glyph(LayoutGlyph { glyph: glyph_b, block_index: 0, paintable: true, repeat: 1 });
 
 		assert_eq!(layout.line.len(), 2);
 		assert_eq!(layout.line_output_width, glyph_a.width + glyph_b.width);
@@ -1252,8 +1284,13 @@ mod tests {
 		layout.current_font_rows = block_font.rows();
 		layout.line_max_rows = block_font.rows();
 		let tiny_glyph = tiny_font.get_glyph('B').unwrap();
-		layout.push_glyph(LayoutGlyph { glyph: block_font.get_glyph('A').unwrap(), block_index: 0, paintable: true });
-		layout.push_glyph(LayoutGlyph { glyph: tiny_glyph, block_index: 1, paintable: true });
+		layout.push_glyph(LayoutGlyph {
+			glyph: block_font.get_glyph('A').unwrap(),
+			block_index: 0,
+			paintable: true,
+			repeat: 1,
+		});
+		layout.push_glyph(LayoutGlyph { glyph: tiny_glyph, block_index: 1, paintable: true, repeat: 1 });
 		layout.flush_line(None);
 
 		// every row spans the same columns: Blank rows claim exactly the glyph width
@@ -1272,7 +1309,7 @@ mod tests {
 		layout.current_line_height = 3;
 		layout.space_pending = true;
 		layout.line_glyph_count = 1;
-		layout.push_glyph(LayoutGlyph { glyph: font.get_glyph('A').unwrap(), block_index: 0, paintable: true });
+		layout.push_glyph(LayoutGlyph { glyph: font.get_glyph('A').unwrap(), block_index: 0, paintable: true, repeat: 1 });
 		layout.line_closed = true;
 
 		layout.flush_line(None);
@@ -1638,6 +1675,33 @@ mod tests {
 				.collect();
 			assert_eq!(repeats, [1, 1, 3, 1, 1]);
 			assert_eq!(row_width(&row.entries), font.get_glyph('A').unwrap().width + 3 + font.get_glyph('B').unwrap().width);
+		}
+	}
+
+	#[test]
+	fn a_run_longer_than_an_entry_holds_spreads_over_entries() {
+		let options = options(
+			Valign::Top,
+			None,
+			vec![{
+				let mut block = BlockOptions::new("AB");
+				block.font = Font::Tiny;
+				block.letter_spacing = Some(300);
+				block
+			}],
+		);
+		let layout = Layout::build(&options, None);
+
+		for row in &layout.output {
+			let repeats: Vec<u8> = row
+				.entries
+				.iter()
+				.filter_map(|entry| match entry {
+					RowEntry::Data { repeat, .. } => Some(*repeat),
+					RowEntry::Blank { .. } => None,
+				})
+				.collect();
+			assert_eq!(repeats, [1, 1, 255, 45, 1, 1]);
 		}
 	}
 
