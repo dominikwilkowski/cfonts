@@ -381,11 +381,16 @@ impl GradientState {
 		Self { stops, transition, colors: GradientColors::new(), origin: 0 }
 	}
 
-	/// Refills the ramp over one column extent, reusing the buffer; no extent leaves the ramp empty
+	/// Moves the ramp to one column extent, reusing the buffer; no extent leaves the ramp empty
+	///
+	/// The stops never change, so a ramp of the same length holds the same colors and only the origin moves,
+	/// which spares an independent composition the refill on every row of a line
 	fn fill(&mut self, extent: Option<Range<usize>>) {
 		let extent = extent.unwrap_or(0..0);
 		self.origin = extent.start;
-		self.colors.fill(&self.stops, self.transition, extent.len());
+		if self.colors.colors().len() != extent.len() {
+			self.colors.fill(&self.stops, self.transition, extent.len());
+		}
 	}
 
 	/// The ramp from one absolute column onward; empty before the origin and past the ramp
