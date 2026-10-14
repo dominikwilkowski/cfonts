@@ -273,14 +273,17 @@ impl<T> PaintPlan<T> {
 	///
 	/// A block's own color wins over the global color; without a color level nothing paints
 	pub(crate) fn build(options: &Options, context: &RenderContext, mut resolve: impl FnMut(Color) -> Option<T>) -> Self {
+		let rng = CandyRng::new(context.seed());
+
+		// without a color level nothing paints, and the lookups read a missing block as unpainted
+		if context.color_level().is_none() {
+			return Self { blocks: Vec::new(), candy: None, rng, will_style: false };
+		}
+
 		let blocks = options
 			.blocks
 			.iter()
 			.map(|block| {
-				if context.color_level().is_none() {
-					return BlockPlan::bare(PaintDomain::Slots);
-				}
-
 				let Some(color) = block.colors.as_ref().or(options.global_colors.as_ref()) else {
 					return BlockPlan::bare(PaintDomain::Slots);
 				};
@@ -318,7 +321,7 @@ impl<T> PaintPlan<T> {
 		let rolls = blocks.iter().any(|block| block.slots.iter().any(|slot| matches!(slot, SlotPaint::Candy)));
 		let candy = rolls.then(|| Box::new(CANDY.map(&mut resolve)));
 
-		Self { blocks, candy, rng: CandyRng::new(context.seed()), will_style }
+		Self { blocks, candy, rng, will_style }
 	}
 
 	/// The paint path of one block
@@ -425,6 +428,11 @@ impl GradientPlans {
 	///
 	/// Without a color level the plan routes every block through its slots, so nothing ramps
 	pub(crate) fn build<T>(plan: &PaintPlan<T>, options: &Options, rows: &[LayoutRow]) -> Self {
+		// a composition without a ramp needs no tables, the lookups read a missing block as unramped
+		if (0..options.blocks.len()).all(|block_index| plan.domain(block_index) == PaintDomain::Slots) {
+			return Self { domains: Vec::new(), blocks: Vec::new(), global: None, independent: false, column: 0 };
+		}
+
 		let domains: Vec<PaintDomain> = (0..options.blocks.len()).map(|block_index| plan.domain(block_index)).collect();
 
 		let mut blocks: Vec<Option<GradientState>> = options
