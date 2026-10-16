@@ -173,20 +173,11 @@ impl Rgb {
 			+ Self::channel_distance(self.green, Self::CUBE_LEVELS[green_level])
 			+ Self::channel_distance(self.blue, Self::CUBE_LEVELS[blue_level]);
 
-		// the ramp holds 24 grays at 8 + 10n; keeping the first best gives ties to the lower entry
-		let mut gray_index: u8 = 0;
-		let mut gray_distance = u32::MAX;
-		for entry in 0..24u8 {
-			let value = 8 + 10 * entry;
-			let distance = Self::channel_distance(self.red, value)
-				+ Self::channel_distance(self.green, value)
-				+ Self::channel_distance(self.blue, value);
-
-			if distance < gray_distance {
-				gray_distance = distance;
-				gray_index = entry;
-			}
-		}
+		let gray_index = Self::gray_entry(u32::from(self.red) + u32::from(self.green) + u32::from(self.blue));
+		let gray = 8 + 10 * gray_index;
+		let gray_distance = Self::channel_distance(self.red, gray)
+			+ Self::channel_distance(self.green, gray)
+			+ Self::channel_distance(self.blue, gray);
 
 		if gray_distance < cube_distance {
 			232 + gray_index
@@ -264,6 +255,17 @@ impl Rgb {
 			196..=235 => 4,
 			_ => 5,
 		}
+	}
+
+	/// The nearest entry of the gray ramp for a channel sum, the ramp holds 24 grays at 8 + 10n
+	///
+	/// The squared distance of one gray to a color is a parabola in the gray with its minimum at a third of the sum,
+	/// so the nearest entry is the one whose gray is closest to that mean
+	/// Entry n is closer than entry n + 1 while the sum is below 30n + 39, at that sum both are equally close
+	/// and the lower entry wins, so entry n takes every sum from 30n + 10 to 30n + 39,
+	/// which is (sum - 10) / 30 in integer division with the ends held to the ramp
+	fn gray_entry(sum: u32) -> u8 {
+		(sum.saturating_sub(10) / 30).min(23) as u8
 	}
 
 	/// The squared distance between one channel and one palette value
@@ -1267,6 +1269,38 @@ mod tests {
 					}
 				}
 			}
+		}
+	}
+
+	/// The gray entry a search over all 24 distances picks for a color of this channel sum, keeping the first best
+	///
+	/// The distances of two entries differ only through the channel sum, so one color per sum stands for every color
+	/// with that sum
+	fn gray_entry_by_search(sum: u32) -> u8 {
+		let red = u8::try_from(sum.min(255)).expect("a channel holds up to 255");
+		let green = u8::try_from((sum - u32::from(red)).min(255)).expect("a channel holds up to 255");
+		let blue = u8::try_from(sum - u32::from(red) - u32::from(green)).expect("three channels hold the sum");
+		let mut nearest = 0;
+		let mut nearest_distance = u32::MAX;
+
+		for entry in 0..24u8 {
+			let gray = 8 + 10 * entry;
+			let distance =
+				Rgb::channel_distance(red, gray) + Rgb::channel_distance(green, gray) + Rgb::channel_distance(blue, gray);
+
+			if distance < nearest_distance {
+				nearest_distance = distance;
+				nearest = entry;
+			}
+		}
+
+		nearest
+	}
+
+	#[test]
+	fn the_gray_entry_matches_a_search_over_the_ramp_for_every_channel_sum() {
+		for sum in 0..=3 * u32::from(u8::MAX) {
+			assert_eq!(Rgb::gray_entry(sum), gray_entry_by_search(sum), "sum {sum}");
 		}
 	}
 
