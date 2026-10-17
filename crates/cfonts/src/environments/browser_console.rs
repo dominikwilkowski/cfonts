@@ -24,33 +24,22 @@ impl BrowserConsoleEnv {
 		out.styles.last().map_or("", String::as_str)
 	}
 
+	/// Sends one marker with its style value, together so markers and styles always match
+	fn mark(style: String, out: &mut Rendered) {
+		out.text.push_str("%c");
+		out.styles.push(style);
+	}
+
 	/// Switches to `style` with one marker, unless the console already writes under it
-	///
-	/// The marker and its value go out together so markers and styles always match
 	fn switch(style: &str, out: &mut Rendered) {
 		if Self::current(out) != style {
-			out.text.push_str("%c");
-			out.styles.push(style.to_string());
+			Self::mark(style.to_string(), out);
 		}
 	}
 
 	/// Closes an open style with the empty one
 	fn reset(out: &mut Rendered) {
 		Self::switch("", out);
-	}
-
-	/// The declarations of one run: its own color, the row's band, or both
-	fn declarations<'a>(color: Option<&'a str>, band: Option<&'a ColorTokens>) -> Option<Cow<'a, str>> {
-		match (color, band) {
-			(None, None) => None,
-			(Some(color), None) => Some(Cow::Borrowed(color)),
-			(None, Some(band)) => Some(Cow::Borrowed(band.start.as_ref())),
-			(Some(color), Some(_)) => {
-				let mut style = String::from(color);
-				Self::push_band(band, &mut style);
-				Some(Cow::Owned(style))
-			}
-		}
 	}
 
 	/// Adds the row's band to the declarations in `style`, after a `;` when the run has its own color
@@ -63,11 +52,19 @@ impl BrowserConsoleEnv {
 		}
 	}
 
-	/// Switches to the run's declarations, or back to no style when the run has none
+	/// Switches to the run's declarations, its own color and the row's band joined by a `;`,
+	/// or back to no style when the run has none
+	///
+	/// The pieces compare against the current style as they are, so only a style that changes
+	/// gets joined, into the one String that goes out
 	fn style_run(color: Option<&str>, band: Option<&ColorTokens>, out: &mut Rendered) {
-		match Self::declarations(color, band) {
-			Some(style) => Self::switch(&style, out),
-			None => Self::reset(out),
+		let color = color.unwrap_or("");
+		let band = band.map_or("", |band| band.start.as_ref());
+		let separator = if color.is_empty() || band.is_empty() { "" } else { ";" };
+		let current = Self::current(out);
+
+		if current.strip_prefix(color).and_then(|rest| rest.strip_prefix(separator)) != Some(band) {
+			Self::mark([color, separator, band].concat(), out);
 		}
 	}
 
@@ -306,6 +303,37 @@ mod tests {
 
 		assert_eq!(out.text, "%c▄▀█");
 		assert_eq!(out.styles, vec![String::from("background:#0020f5")]);
+	}
+
+	#[test]
+	fn an_equal_color_and_band_reopen_nothing() {
+		let mut out = Rendered::default();
+
+		BrowserConsoleEnv.paint("▄▀", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleEnv.paint("█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+
+		assert_eq!(out.text, "%c▄▀█");
+		assert_eq!(out.styles, vec![String::from("color:#ea3223;background:#0020f5")]);
+	}
+
+	#[test]
+	fn a_run_sharing_only_a_piece_of_the_open_style_switches() {
+		// a band opened by blanks gains the run's color, and bare text on the band drops it again
+		let mut out = Rendered::default();
+
+		BrowserConsoleEnv.blank(1, Some(&blue_band()), &mut out);
+		BrowserConsoleEnv.paint("▄", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleEnv.paint("▀", &ColorTokens::default(), Some(&blue_band()), true, &leveled(), &mut out);
+
+		assert_eq!(out.text, "%c %c▄%c▀");
+		assert_eq!(
+			out.styles,
+			vec![
+				String::from("background:#0020f5"),
+				String::from("color:#ea3223;background:#0020f5"),
+				String::from("background:#0020f5"),
+			]
+		);
 	}
 
 	#[test]
