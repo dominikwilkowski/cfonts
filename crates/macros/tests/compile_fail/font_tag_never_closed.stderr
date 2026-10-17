@@ -1,0 +1,5 @@
+error: font!: letter_space: `<c1>` is never closed
+ --> tests/compile_fail/font_tag_never_closed.rs:5:18
+  |
+5 |         letter_space: [r"<c1>─"],
+  |                        ^^^^^^^^

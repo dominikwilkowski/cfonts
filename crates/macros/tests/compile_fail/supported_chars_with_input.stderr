@@ -1,0 +1,7 @@
+error: supported_chars! takes no input
+ --> tests/compile_fail/supported_chars_with_input.rs:3:35
+  |
+3 | const SUPPORTED_CHARS: &[char] = &supported_chars!(A);
+  |                                   ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `supported_chars` (in Nightly builds, run with -Z macro-backtrace for more info)

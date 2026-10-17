@@ -1,0 +1,7 @@
+error: unknown attribute all, only #[all(rename = "name")] is supported
+ --> tests/compile_fail/all_attribute_without_arguments.rs:3:10
+  |
+3 | #[derive(All)]
+  |          ^^^
+  |
+  = note: this error originates in the derive macro `All` (in Nightly builds, run with -Z macro-backtrace for more info)

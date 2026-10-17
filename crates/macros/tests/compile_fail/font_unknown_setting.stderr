@@ -1,0 +1,5 @@
+error: font!: unknown setting `colour`, a font sets font, name, colors, rows, line_height, letter_spacing, ground, checks, buffer_start, buffer_end, letter_space and glyphs
+ --> tests/compile_fail/font_unknown_setting.rs:5:3
+  |
+5 |         colour: 2,
+  |         ^^^^^^

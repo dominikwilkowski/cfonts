@@ -1,0 +1,13 @@
+error: font!: set `line_height`
+  --> tests/compile_fail/font_without_a_setting.rs:4:2
+   |
+ 4 | /     font! {
+ 5 | |         font: Font::Tiny,
+ 6 | |         name: "tiny",
+ 7 | |         colors: 1,
+...  |
+13 | |         },
+14 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
