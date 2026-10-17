@@ -158,10 +158,9 @@ impl Widget for &CfontsWidget<'_> {
 				PaintDomain::Block | PaintDomain::Global => {
 					// gradients paint one cell per column, each with its ramp color
 					for character in text.chars() {
-						let rgb = gradients.window(block_index).first().copied();
-
 						if x < area.right() {
 							// a ramp exists only with a level, so a drained window is the one bare case
+							let rgb = gradients.window(block_index).first().copied();
 							let style =
 								rgb.zip(level).map(|(rgb, level)| Style::default().fg(terminal_rgb(rgb, level))).unwrap_or_default();
 
