@@ -723,8 +723,8 @@ fn parse_args_with<'a>(
 		let buffer = (std_provider.read)().map_err(|error| ParseError::StdinUnreadable(StdinError(error)))?;
 		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
 		let buffer = buffer.strip_suffix('\r').unwrap_or(buffer);
-		let buffer =
-			buffer.replace("\r\n", &NEW_LINE_CHAR.to_string()).replace('\n', &NEW_LINE_CHAR.to_string()).to_string();
+		let new_line = NEW_LINE_CHAR.to_string();
+		let buffer = buffer.replace("\r\n", &new_line).replace('\n', &new_line);
 
 		// an empty buffer fills nothing, try_from reads the leftover markers to name the cause
 		if !buffer.is_empty() {
