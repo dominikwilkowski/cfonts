@@ -1,5 +1,5 @@
 use crate::{
-	Cfonts, CliEnv, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, Valign,
+	Cfonts, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, TerminalTarget, Valign,
 	cli::{
 		Args, VERSION,
 		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_mark},
@@ -25,7 +25,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 		.valign(Valign::Bottom)
 		.colors(vec![Color::SYSTEM])
 		.into();
-	let banner = render_resolved(&banner, &CliEnv::default(), context);
+	let banner = render_resolved(&banner, &TerminalTarget::default(), context);
 
 	// every backticked span of the usage is an input and renders in the mark color
 	const USAGE: &str = concat!(

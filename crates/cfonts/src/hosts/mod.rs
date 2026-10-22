@@ -8,9 +8,9 @@ use std::{
 
 use crate::{
 	color::ColorLevel,
-	environments::{Environment, Rendered},
 	options::Options,
 	render::{RenderContext, render_resolved},
+	targets::{Rendered, Target},
 };
 
 #[cfg(feature = "web")]
@@ -49,8 +49,8 @@ pub(crate) fn entropy() -> u64 {
 /// Answers where a render runs and how its output leaves the program
 ///
 /// A host answers three questions, the canvas width, the color level and the candy seed,
-/// and owns the one write, the environment answers the format, the caller combines them:
-/// every pair of host and environment is legal
+/// and owns the one write, the target answers the format, the caller combines them:
+/// every pair of host and target is legal
 pub trait Host {
 	/// Error returned by the host's output action
 	type Error;
@@ -64,22 +64,22 @@ pub trait Host {
 	/// The seed that makes candy colors reproducible
 	fn seed(&self) -> u64;
 
-	/// Performs the host-specific output action, `line_end` is what the environment ends the artifact with
+	/// Performs the host-specific output action, `line_end` is what the target ends the artifact with
 	fn write(&self, rendered: &Rendered, line_end: &str) -> Result<(), Self::Error>;
 
 	/// Answers the three questions once and returns one rendered artifact
 	#[must_use]
-	fn render<E: Environment + ?Sized>(&self, environment: &E, options: &Options) -> Rendered {
+	fn render<T: Target + ?Sized>(&self, target: &T, options: &Options) -> Rendered {
 		let context = RenderContext::resolved(self.canvas_width(), self.color_level(), self.seed());
 
-		render_resolved(options, environment, context)
+		render_resolved(options, target, context)
 	}
 
 	/// Renders once and writes once
-	fn say<E: Environment + ?Sized>(&self, environment: &E, options: &Options) -> Result<(), Self::Error> {
-		let rendered = self.render(environment, options);
+	fn say<T: Target + ?Sized>(&self, target: &T, options: &Options) -> Result<(), Self::Error> {
+		let rendered = self.render(target, options);
 
-		self.write(&rendered, environment.line_end())
+		self.write(&rendered, target.line_end())
 	}
 }
 
@@ -91,14 +91,14 @@ mod tests {
 	};
 
 	use super::Host;
-	use crate::{Cfonts, ColorLevel, Environment, Font, Options, Rendered};
+	use crate::{Cfonts, ColorLevel, Font, Options, Rendered, Target};
 
-	struct SpyEnvironment {
+	struct SpyTarget {
 		marker: &'static str,
 		render_calls: Cell<usize>,
 	}
 
-	impl Environment for SpyEnvironment {
+	impl Target for SpyTarget {
 		fn wrapper_start(&self, _options: &Options, _banded: bool, out: &mut Rendered) {
 			self.render_calls.set(self.render_calls.get() + 1);
 
@@ -147,28 +147,28 @@ mod tests {
 	}
 
 	#[test]
-	fn render_answers_each_question_once_through_the_given_environment() {
+	fn render_answers_each_question_once_through_the_given_target() {
 		let host = SpyHost::default();
-		let environment = SpyEnvironment { marker: "render", render_calls: Cell::new(0) };
+		let target = SpyTarget { marker: "render", render_calls: Cell::new(0) };
 
-		let rendered = host.render(&environment, &Options::default());
+		let rendered = host.render(&target, &Options::default());
 
 		assert_eq!(rendered.text, "render");
 		assert_eq!(host.answers.get(), 3);
-		assert_eq!(environment.render_calls.get(), 1);
+		assert_eq!(target.render_calls.get(), 1);
 		assert_eq!(host.write_calls.get(), 0);
 		assert!(host.written.borrow().is_empty());
 	}
 
 	#[test]
-	fn say_renders_once_and_writes_once_with_the_environments_line_end() {
+	fn say_renders_once_and_writes_once_with_the_targets_line_end() {
 		let host = SpyHost::default();
-		let environment = SpyEnvironment { marker: "say", render_calls: Cell::new(0) };
+		let target = SpyTarget { marker: "say", render_calls: Cell::new(0) };
 
-		host.say(&environment, &Options::default()).expect("the spy host cannot fail");
+		host.say(&target, &Options::default()).expect("the spy host cannot fail");
 
 		assert_eq!(host.answers.get(), 3);
-		assert_eq!(environment.render_calls.get(), 1);
+		assert_eq!(target.render_calls.get(), 1);
 		assert_eq!(host.write_calls.get(), 1);
 		assert_eq!(host.written.borrow().as_str(), "say|end");
 	}
@@ -178,9 +178,9 @@ mod tests {
 		// three columns hold one Tiny glyph, so the pair wraps where an unlimited canvas keeps it on one line
 		let host = SpyHost::default();
 		let options: Options = Cfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
-		let environment = SpyEnvironment { marker: "", render_calls: Cell::new(0) };
+		let target = SpyTarget { marker: "", render_calls: Cell::new(0) };
 
-		let rendered = host.render(&environment, &options);
+		let rendered = host.render(&target, &options);
 
 		assert_eq!(rendered.text.lines().count(), 4);
 	}

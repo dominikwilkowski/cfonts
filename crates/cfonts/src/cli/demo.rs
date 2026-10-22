@@ -1,5 +1,5 @@
 use crate::{
-	Cfonts, CliEnv, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, Valign,
+	Cfonts, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, TerminalTarget, Valign,
 	cli::{
 		VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
@@ -29,7 +29,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		.valign(Valign::Bottom)
 		.colors(vec![Color::SYSTEM])
 		.into();
-	let banner = render_resolved(&banner, &CliEnv::default(), context);
+	let banner = render_resolved(&banner, &TerminalTarget::default(), context);
 
 	output.push_str(&banner.text);
 	output.push_str("\n\n════════════════════════════════════════════════════════════\n\n");
@@ -42,7 +42,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		example.global_colors = options.global_colors.clone();
 		example.independent_gradient = options.independent_gradient;
 		example.background = options.background.clone();
-		let rendered = render_resolved(&example, &CliEnv::default(), context);
+		let rendered = render_resolved(&example, &TerminalTarget::default(), context);
 		output.push_str(&format!(
 			"{prompt} cfonts \"{name}\" --font {name}\n\n{}\n\n────────────────────────────────────────────────────────────\n\n",
 			rendered.text

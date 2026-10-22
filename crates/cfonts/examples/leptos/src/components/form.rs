@@ -1,4 +1,4 @@
-use cfonts::{Align, Background, BrowserConsoleEnv, Color, Font, GradientPreset, Host, Text, Valign};
+use cfonts::{Align, Background, BrowserConsoleTarget, Color, Font, GradientPreset, Host, Text, Valign};
 use leptos::{
 	prelude::*,
 	wasm_bindgen::{JsCast, JsValue},
@@ -36,7 +36,7 @@ const BACKGROUND_EXAMPLES: [(&str, &str); 4] = [
 /// Prints the banner into the devtools console, or the error where the banner would go
 fn print(composition: &Composition) {
 	match &composition.options {
-		Ok(options) => host().say(&BrowserConsoleEnv, options).expect("the page console cannot fail"),
+		Ok(options) => host().say(&BrowserConsoleTarget, options).expect("the page console cannot fail"),
 		Err(error) => console::error_1(&JsValue::from_str(&format!("ERROR {}", error.message))),
 	}
 }
@@ -55,7 +55,7 @@ pub fn Form(form_state: FormState, composition: Signal<Composition>) -> impl Int
 
 	// the console prints on every pick and a typed value prints on enter, the page follows on its own
 	let print_to_console = move || {
-		if form_state.env.with(|env| env == "console") {
+		if form_state.target.with(|target| target == "console") {
 			composition.with(print);
 		}
 	};
@@ -79,8 +79,8 @@ pub fn Form(form_state: FormState, composition: Signal<Composition>) -> impl Int
 			</p>
 			<fieldset class="group">
 				<legend class="visually-hidden">output</legend>
-				<Radio name="env" value="browser" label="browser" group=form_state.env />
-				<Radio name="env" value="console" label="browser console" group=form_state.env />
+				<Radio name="target" value="browser" label="browser" group=form_state.target />
+				<Radio name="target" value="console" label="browser console" group=form_state.target />
 				<button type="submit" class="run">run</button>
 			</fieldset>
 			<fieldset class="group">

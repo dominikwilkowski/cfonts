@@ -1412,7 +1412,7 @@ mod preset_tests {
 mod block_composition {
 	use super::helpers::*;
 	use super::*;
-	use crate::{CliEnv, Color, ColorOption, Font, RenderOverrides, render_with};
+	use crate::{Color, ColorOption, Font, RenderOverrides, TerminalTarget, render_with};
 
 	#[test]
 	fn next_starts_additional_text_blocks() {
@@ -1513,8 +1513,8 @@ mod block_composition {
 
 		let overrides = RenderOverrides::default();
 		assert_eq!(
-			render_with(&with_empty.options, &CliEnv::default(), overrides).text,
-			render_with(&without.options, &CliEnv::default(), overrides).text,
+			render_with(&with_empty.options, &TerminalTarget::default(), overrides).text,
+			render_with(&without.options, &TerminalTarget::default(), overrides).text,
 		);
 	}
 

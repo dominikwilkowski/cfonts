@@ -30,15 +30,15 @@ import {
 	type Rgb as WasmRgb,
 } from "../pkg/cfonts_wasm.js";
 import { inner } from "./boundary.js";
-import { BrowserConsoleEnv, BrowserEnv, CliEnv, type Environment, environmentArguments } from "./environments/index.js";
 import type { Host } from "./hosts/types.js";
+import { BrowserConsoleTarget, BrowserTarget, TerminalTarget, type Target, targetArguments } from "./targets/index.js";
 
 export type {
 	BackgroundChannels,
 	BackgroundColor,
 	BackgroundOption,
 	ColorOption,
-	Environment,
+	Target,
 	GradientColor,
 	GradientOption,
 	Host,
@@ -53,10 +53,10 @@ export type {
 export {
 	Align,
 	alignNames,
-	BrowserConsoleEnv,
-	BrowserEnv,
+	BrowserConsoleTarget,
+	BrowserTarget,
 	backgroundColorNames,
-	CliEnv,
+	TerminalTarget,
 	Color,
 	ColorLevel,
 	colorNames,
@@ -325,7 +325,7 @@ export class Cfonts {
 	}
 
 	/**
-	 * Removes environment-specific outer spacing around the composition
+	 * Removes target-specific outer spacing around the composition
 	 *
 	 * @example
 	 * Cfonts.text("hello").spaceless();
@@ -336,52 +336,52 @@ export class Cfonts {
 	}
 
 	/**
-	 * Renders through an explicit environment without a host
+	 * Renders through an explicit target without a host
 	 *
 	 * This does not perform host discovery or output side effects: nothing is decided here,
 	 * so an override left out is off, no canvas limit, no color, the zero seed
 	 *
 	 * @example
-	 * Cfonts.text("hello").renderWith(CliEnv);
+	 * Cfonts.text("hello").renderWith(TerminalTarget);
 	 *
 	 * @example
-	 * Cfonts.text("hello").renderWith(BrowserEnv, { color: ColorLevel.TrueColor });
+	 * Cfonts.text("hello").renderWith(BrowserTarget, { color: ColorLevel.TrueColor });
 	 */
-	renderWith(environment: Environment, overrides?: RenderOverrides): Rendered {
-		return this.#inner.render(overrides, ...environmentArguments(environment, "renderWith"));
+	renderWith(target: Target, overrides?: RenderOverrides): Rendered {
+		return this.#inner.render(overrides, ...targetArguments(target, "renderWith"));
 	}
 
 	/**
-	 * Renders through the supplied host into the environment's format without performing output
+	 * Renders through the supplied host into the target's format without performing output
 	 *
-	 * The host answers what its runtime can show, the environment formats the artifact
+	 * The host answers what its runtime can show, the target formats the artifact
 	 *
 	 * @example
-	 * const rendered = Cfonts.text("hello").render(host, CliEnv);
+	 * const rendered = Cfonts.text("hello").render(host, TerminalTarget);
 	 * console.log(rendered.text);
 	 */
-	render(host: Host, environment: Environment): Rendered {
+	render(host: Host, target: Target): Rendered {
 		if (host === null || typeof host !== "object" || typeof host.render !== "function") {
 			throw new TypeError("`render()` expects a cfonts host");
 		}
 
-		return host.render(this, environment);
+		return host.render(this, target);
 	}
 
 	/**
 	 * Renders and delegates output to the supplied host
 	 *
 	 * @example
-	 * Cfonts.text("hello").say(host, CliEnv); // NodeHost writes to stdout
+	 * Cfonts.text("hello").say(host, TerminalTarget); // NodeHost writes to stdout
 	 *
 	 * @example
-	 * Cfonts.text("hello").say(host, BrowserConsoleEnv); // BrowserHost writes to the console
+	 * Cfonts.text("hello").say(host, BrowserConsoleTarget); // BrowserHost writes to the console
 	 */
-	say(host: Host, environment: Environment): void {
+	say(host: Host, target: Target): void {
 		if (host === null || typeof host !== "object" || typeof host.say !== "function") {
 			throw new TypeError("`say()` expects a cfonts host");
 		}
 
-		host.say(this, environment);
+		host.say(this, target);
 	}
 }

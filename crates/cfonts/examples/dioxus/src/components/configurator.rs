@@ -4,7 +4,7 @@ use crate::components::{command::Composition, console::Console, form::Form};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FormState {
-	pub env: Signal<String>,
+	pub target: Signal<String>,
 	pub text: Signal<String>,
 	pub font: Signal<String>,
 	pub letter_spacing: Signal<String>,
@@ -25,7 +25,7 @@ pub struct FormState {
 pub fn Configurator() -> Element {
 	// the signals are hooks, so the page defaults live here rather than in a Default impl
 	let form_state = FormState {
-		env: use_signal(|| String::from("browser")),
+		target: use_signal(|| String::from("browser")),
 		text: use_signal(|| String::from("How are you?")),
 		font: use_signal(|| String::from("neat")),
 		letter_spacing: use_signal(String::new),

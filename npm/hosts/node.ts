@@ -2,8 +2,8 @@ import { release } from "node:os";
 
 import { entropy, type RenderOverrides, type Terminal, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
 import { inner } from "../boundary.js";
-import { type Environment, environmentArguments, lineEnd } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
+import { type Target, targetArguments, lineEnd } from "../targets/index.js";
 import type { Host } from "./types.js";
 
 /**
@@ -60,18 +60,14 @@ export class NodeHost implements Host {
 		return new NodeHost(overrides);
 	}
 
-	render(composition: Cfonts, environment: Environment): Rendered {
-		return this.#inner.render(composition[inner](), ...environmentArguments(environment, "render"), this.#terminal());
+	render(composition: Cfonts, target: Target): Rendered {
+		return this.#inner.render(composition[inner](), ...targetArguments(target, "render"), this.#terminal());
 	}
 
-	say(composition: Cfonts, environment: Environment): void {
-		const rendered = this.#inner.render(
-			composition[inner](),
-			...environmentArguments(environment, "say"),
-			this.#terminal(),
-		);
+	say(composition: Cfonts, target: Target): void {
+		const rendered = this.#inner.render(composition[inner](), ...targetArguments(target, "say"), this.#terminal());
 
-		process.stdout.write(`${rendered.text}${lineEnd(environment)}`);
+		process.stdout.write(`${rendered.text}${lineEnd(target)}`);
 	}
 
 	/**

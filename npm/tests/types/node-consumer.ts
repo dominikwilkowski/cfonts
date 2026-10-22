@@ -3,11 +3,11 @@ import {
 	alignNames,
 	type BackgroundColor,
 	type BackgroundOption,
-	BrowserConsoleEnv,
-	BrowserEnv,
+	BrowserConsoleTarget,
+	BrowserTarget,
 	backgroundColorNames,
 	Cfonts,
-	CliEnv,
+	TerminalTarget,
 	Color,
 	type ColorOption,
 	colorNames,
@@ -32,29 +32,29 @@ import {
 const banner = Cfonts.text("hello").font(Font.Block);
 const host = NodeHost.fromOverrides({ canvasWidth: 80 });
 
-const rendered = banner.render(host, CliEnv);
-banner.say(host, CliEnv);
+const rendered = banner.render(host, TerminalTarget);
+banner.say(host, TerminalTarget);
 
-banner.say(NodeHost.fromOverrides({ seed: NodeHost.entropy() }), CliEnv);
-banner.say(new NodeHost(), CliEnv);
-banner.say(new NodeHost({ canvasWidth: 80 }), CliEnv);
+banner.say(NodeHost.fromOverrides({ seed: NodeHost.entropy() }), TerminalTarget);
+banner.say(new NodeHost(), TerminalTarget);
+banner.say(new NodeHost({ canvasWidth: 80 }), TerminalTarget);
 
-banner.say(host, CliEnv.rawMode());
-const raw = banner.renderWith(CliEnv.rawMode(), { canvasWidth: 80 });
+banner.say(host, TerminalTarget.rawMode());
+const raw = banner.renderWith(TerminalTarget.rawMode(), { canvasWidth: 80 });
 console.log(raw.text);
 
-// @ts-expect-error every render names its environment
+// @ts-expect-error every render names its target
 banner.render(host);
 
-// @ts-expect-error the browser environments have no raw mode
-BrowserEnv.rawMode();
+// @ts-expect-error the browser targets have no raw mode
+BrowserTarget.rawMode();
 
-const artifact = banner.renderWith(BrowserConsoleEnv, {
+const artifact = banner.renderWith(BrowserConsoleTarget, {
 	canvasWidth: 80,
 });
 
 // @ts-expect-error the overrides take a color, not a resolved level
-banner.renderWith(BrowserConsoleEnv, { colorLevel: 3 });
+banner.renderWith(BrowserConsoleTarget, { colorLevel: 3 });
 
 // the enums and their command line names both pick, the names come from the core
 banner.font("3d").align("center").valign("bottom").align(Align.Center).valign(Valign.Bottom);
@@ -92,7 +92,7 @@ colorful.colors([rgb]).colors({ start: rgb, end: Color.Blue }).background(rgb);
 Rgb.fromHex("#f80").red = 1;
 
 colorful.colors({ preset: GradientPreset.Lesbian });
-colorful.render(host, CliEnv);
+colorful.render(host, TerminalTarget);
 
 // the types carry the Rust names, a consumer holds one of each
 const stops: TransitionStops = [Color.Red, "#8899dd", channels];

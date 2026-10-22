@@ -1,14 +1,14 @@
-//! Pure formatters: each environment turns layout rows into its target's artifact
+//! Pure formatters: each target turns layout rows into its own artifact
 //!
-//! Environments own syntax such as color codes, markup and escaping;
+//! Targets own syntax such as color codes, markup and escaping;
 //! hosts own capability discovery and output side effects
 
 mod browser;
-pub use browser::BrowserEnv;
+pub use browser::BrowserTarget;
 mod browser_console;
-pub use browser_console::BrowserConsoleEnv;
-mod cli;
-pub use cli::CliEnv;
+pub use browser_console::BrowserConsoleTarget;
+mod terminal;
+pub use terminal::TerminalTarget;
 
 use std::{array, borrow::Cow, iter};
 
@@ -19,7 +19,7 @@ use crate::{
 	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext},
 };
 
-/// The output of a render: one complete artifact in the selected environment's format
+/// The output of a render: one complete artifact in the selected target's format
 /// (ANSI text, an HTML snippet, a browser-console banner)
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Rendered {
@@ -28,12 +28,12 @@ pub struct Rendered {
 
 	/// Style values consumed by the text's format markers, in marker order
 	///
-	/// Only environments that style through arguments fill this; the browser
+	/// Only targets that style through arguments fill this; the browser
 	/// console pairs each value with one `%c` marker in the text
 	pub styles: Vec<String>,
 }
 
-/// The environment specific markers that paint one color around a segment
+/// The target specific markers that paint one color around a segment
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColorTokens {
 	/// Output before the painted text
@@ -57,7 +57,7 @@ impl Default for ColorTokens {
 	}
 }
 
-/// The RGB value one color paints in an environment without a palette of its own
+/// The RGB value one color paints in a target without a palette of its own
 ///
 /// The browser shows any value, so a level below full support paints the palette entry's own value:
 /// a named color's table value is a palette entry already, an RGB value takes the entry its level allows
@@ -84,7 +84,7 @@ pub(crate) fn each_ramp_column(text: &str, colors: &[Rgb], mut paint: impl FnMut
 	consumed
 }
 
-/// Pushes `text` through an environment's one-character escaper
+/// Pushes `text` through a target's one-character escaper
 pub(crate) fn push_escaped(text: &str, escape: impl Fn(char, &mut String), out: &mut String) {
 	for character in text.chars() {
 		escape(character, out);
@@ -92,7 +92,7 @@ pub(crate) fn push_escaped(text: &str, escape: impl Fn(char, &mut String), out: 
 }
 
 /// One paintable event of a layout, in output order:
-/// the flattened view of rows every environment consumes
+/// the flattened view of rows every target consumes
 #[derive(Debug)]
 pub enum RowEvent<'a> {
 	/// The start of a new row
@@ -165,33 +165,33 @@ impl RowEvent<'_> {
 /// How many padding rows sit above and below the composition unless it is spaceless
 pub const PADDING_ROWS: usize = 2;
 
-/// Formats layout rows into one environment-specific artifact
+/// Formats layout rows into one target-specific artifact
 ///
-/// Environments own formatting such as wrappers, escaping, row separators, alignment syntax and color syntax
+/// Targets own formatting such as wrappers, escaping, row separators, alignment syntax and color syntax
 ///
 /// Hosts own capability discovery and output side effects
-pub trait Environment {
-	/// One color as this environment's start and end paint markers
+pub trait Target {
+	/// One color as this target's start and end paint markers
 	///
 	/// Resolved once per configured color per render through the paint plan, never per glyph
-	/// The default paints nothing so monochrome environments need no color code
+	/// The default paints nothing so monochrome targets need no color code
 	fn color_tokens(&self, _color: Color<Text>, _context: &RenderContext) -> ColorTokens {
 		ColorTokens::default()
 	}
 
-	/// One color as this environment's start and end markers behind a whole row
+	/// One color as this target's start and end markers behind a whole row
 	///
 	/// Resolved once per band per render through the backdrop, never per row
-	/// The default paints nothing so environments without backgrounds need no code
+	/// The default paints nothing so targets without backgrounds need no code
 	fn background_tokens(&self, _color: Color<Background>, _context: &RenderContext) -> ColorTokens {
 		ColorTokens::default()
 	}
 
-	/// Paint one [segment](crate::fonts::GlyphRow::segments) of text, wrapped in the env-interpreted color tokens
+	/// Paint one [segment](crate::fonts::GlyphRow::segments) of text, wrapped in the target-interpreted color tokens
 	///
-	/// `band` carries the row's background markers for environments whose styles name both layers at once
+	/// `band` carries the row's background markers for targets whose styles name both layers at once
 	/// `will_style` says whether this render emits any style at all,
-	/// for environments whose escaping depends on the whole artifact
+	/// for targets whose escaping depends on the whole artifact
 	fn paint(
 		&self,
 		text: &str,
@@ -211,7 +211,7 @@ pub trait Environment {
 	/// The window is pre-sliced to this segment's first column
 	/// a drained window paints bare so the cursor stays honest even past the ramp
 	/// `band` carries the row's background markers, see [`paint`](Self::paint)
-	/// The default ignores the ramp so monochrome environments stay untouched
+	/// The default ignores the ramp so monochrome targets stay untouched
 	fn gradient_paint(
 		&self,
 		text: &str,
@@ -263,7 +263,7 @@ pub trait Environment {
 
 	/// The separation between two rows of output
 	///
-	/// `row` and `band` are the row that ends and its band, so an environment whose rows break lines
+	/// `row` and `band` are the row that ends and its band, so a target whose rows break lines
 	/// themselves can leave its own break out
 	fn row_break(&self, _row: &LayoutRow, _band: Option<&ColorTokens>, out: &mut Rendered) {
 		out.text.push('\n');
@@ -479,7 +479,7 @@ mod tests {
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
 		let tokens = ColorTokens { start: Cow::Borrowed("<start>"), end: Cow::Borrowed("<end>") };
-		CliEnv::default().paint("TEXT", &tokens, None, true, &RenderContext::unlimited(), &mut out);
+		TerminalTarget::default().paint("TEXT", &tokens, None, true, &RenderContext::unlimited(), &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 
@@ -489,7 +489,7 @@ mod tests {
 	fn the_default_row_start_paints_the_alignment_offset() {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 4, block_spans: Vec::new() };
 		let mut out = Rendered::default();
-		CliEnv::default().row_start(&row, None, &Options::default(), &mut out);
+		TerminalTarget::default().row_start(&row, None, &Options::default(), &mut out);
 
 		assert_eq!(out.text, "    ");
 	}
@@ -503,7 +503,7 @@ mod tests {
 			.line_height(0)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserEnv, RenderOverrides::default().with_canvas_width(3));
+			.render_with(&BrowserTarget, RenderOverrides::default().with_canvas_width(3));
 
 		assert_eq!(
 			rendered.text,
@@ -516,16 +516,16 @@ mod tests {
 		let rendered = Cfonts::text("A")
 			.font(Font::Tiny)
 			.valign(Valign::Top)
-			.render_with(&CliEnv::default(), RenderOverrides::default());
+			.render_with(&TerminalTarget::default(), RenderOverrides::default());
 
 		assert_eq!(rendered.text, "\n\n▄▀█\n█▀█\n\n");
 	}
 
 	#[test]
 	fn spaceless_skips_the_padding_hooks() {
-		// a custom environment whose padding hooks emit markers
-		struct PaddedEnv;
-		impl Environment for PaddedEnv {
+		// a custom target whose padding hooks emit markers
+		struct PaddedTarget;
+		impl Target for PaddedTarget {
 			fn top_padding(&self, _bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
 				out.text.push_str("TOP\n");
 			}
@@ -537,23 +537,23 @@ mod tests {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		{
 			let layout = Layout::build(&options, None);
-			let padded = PaddedEnv.render_rows(&layout.output, &options, &RenderContext::unlimited());
+			let padded = PaddedTarget.render_rows(&layout.output, &options, &RenderContext::unlimited());
 			assert!(padded.text.starts_with("TOP\n"));
 			assert!(padded.text.ends_with("\nBOTTOM"));
 		}
 
 		options.spaceless = true;
 		let layout = Layout::build(&options, None);
-		let spaceless = PaddedEnv.render_rows(&layout.output, &options, &RenderContext::unlimited());
+		let spaceless = PaddedTarget.render_rows(&layout.output, &options, &RenderContext::unlimited());
 		assert!(!spaceless.text.contains("TOP"));
 		assert!(!spaceless.text.contains("BOTTOM"));
 	}
 
 	#[test]
 	fn every_output_row_gets_its_band_in_order() {
-		// a custom environment that writes each band it is handed, padding rows first
-		struct BandEnv;
-		impl Environment for BandEnv {
+		// a custom target that writes each band it is handed, padding rows first
+		struct BandTarget;
+		impl Target for BandTarget {
 			fn background_tokens(&self, color: Color<Background>, _context: &RenderContext) -> ColorTokens {
 				match color.to_rgb() {
 					Some(rgb) => ColorTokens { start: Cow::Owned(format!("<{}>", rgb.red)), end: Cow::Borrowed("|") },
@@ -578,7 +578,7 @@ mod tests {
 		let layout = Layout::build(&options, None);
 		let context = RenderContext::colored(ColorLevel::TrueColor);
 
-		let rendered = BandEnv.render_rows(&layout.output, &options, &context).text;
+		let rendered = BandTarget.render_rows(&layout.output, &options, &context).text;
 
 		// two padding bands, two rows each opened and closed, two padding bands: red first, blue last
 		assert!(rendered.starts_with("<255>"), "{rendered:?}");
@@ -589,9 +589,9 @@ mod tests {
 
 	#[test]
 	fn the_wrapper_hooks_learn_whether_the_render_is_banded() {
-		// a custom environment that writes the flag it is handed at both ends
-		struct FlagEnv;
-		impl Environment for FlagEnv {
+		// a custom target that writes the flag it is handed at both ends
+		struct FlagTarget;
+		impl Target for FlagTarget {
 			fn background_tokens(&self, _color: Color<Background>, _context: &RenderContext) -> ColorTokens {
 				ColorTokens { start: Cow::Borrowed("["), end: Cow::Borrowed("]") }
 			}
@@ -609,17 +609,17 @@ mod tests {
 
 		let plain = {
 			let layout = Layout::build(&options, None);
-			FlagEnv.render_rows(&layout.output, &options, &context).text
+			FlagTarget.render_rows(&layout.output, &options, &context).text
 		};
 		assert!(plain.starts_with("plain:") && plain.ends_with(":plain"), "{plain:?}");
 
 		options.background = Some(BackgroundOption::Color(Color::BLUE));
 		let layout = Layout::build(&options, None);
-		let banded = FlagEnv.render_rows(&layout.output, &options, &context).text;
+		let banded = FlagTarget.render_rows(&layout.output, &options, &context).text;
 		assert!(banded.starts_with("banded:[") && banded.ends_with("]:banded"), "{banded:?}");
 
 		// a background that resolves to no band leaves the wrapper plain
-		let unleveled = FlagEnv.render_rows(&layout.output, &options, &RenderContext::unlimited()).text;
+		let unleveled = FlagTarget.render_rows(&layout.output, &options, &RenderContext::unlimited()).text;
 		assert!(unleveled.starts_with("plain:") && unleveled.ends_with(":plain"), "{unleveled:?}");
 	}
 }

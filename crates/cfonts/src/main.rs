@@ -6,7 +6,7 @@ use std::{
 };
 
 use cfonts::{
-	CliEnv, Host, RustHost,
+	Host, RustHost, TerminalTarget,
 	cli::{ParseError, ParsedArgs, StdinProvider, VERSION, cli_demo, cli_help, parse_args},
 };
 
@@ -14,39 +14,39 @@ use cfonts::{
 // `row` = one terminal line. The atomic unit of output. A glyph occupies `n` rows vertically
 // `line` = one logical line of glyphs, `n` rows tall. This is the thing terminated by `|`, by `max-length`, or by terminal width
 // `glyph` = one character rendered in a font
-// `environment` = a formatter that turns layout rows into one output artifact, it never asks the machine anything and never prints
-//     - ANSI escape sequences for the CLI
+// `target` = a formatter that turns layout rows into one output artifact, it never asks the machine anything and never prints
+//     - ANSI escape sequences for the terminal
 //     - HTML for the browser
 //     - a `%c` format string with its style list for the browser console
-// `host` = the runtime, it answers what the environment cannot: what this runtime can show and how output leaves the program
+// `host` = the runtime, it answers what the target cannot: what this runtime can show and how output leaves the program
 //     - answers canvas width, color level and candy seed, the `context` of one render
 //     - owns the one write, stdout on a terminal, `console.log` on a page
-//     - the caller pairs it with any environment, a terminal usually takes the CLI, a page renders HTML and says to the console
-// `context` = the resolved capabilities one render runs under, the host's answers handed to the environment
+//     - the caller pairs it with any target, a terminal usually takes the terminal target, a page renders HTML and says to the console
+// `context` = the resolved capabilities one render runs under, the host's answers handed to the target
 //     - canvas width
 //     - color level
 //     - seed
 // `overrides` = what a caller asks the host to assume instead of resolving
 //
 // For rust:
-// | Host          | Environment         | Context  | Artifact              | `say`                                                 |
-// | ------------- | ------------------- | -------- | --------------------- | ----------------------------------------------------- |
-// | `RustHost`    | `CliEnv`            | detected | ANSI escape sequences | stdout via `write!()`                                 |
-// | `RustHost`    | `BrowserEnv`        | detected | HTML                  | stdout via `write!()`                                 |
-// | `RustHost`    | `BrowserConsoleEnv` | detected | `%c` format           | stdout via `write!()`, the text alone, not the styles |
-// | `BrowserHost` | `CliEnv`            | decided  | ANSI escape sequences | `console.log()`                                       |
-// | `BrowserHost` | `BrowserEnv`        | decided  | HTML                  | `console.log()`                                       |
-// | `BrowserHost` | `BrowserConsoleEnv` | decided  | `%c` format           | `console.log()`, including styles                     |
+// | Host          | Target                 | Context  | Artifact              | `say`                                                               |
+// | ------------- | ---------------------- | -------- | --------------------- | ------------------------------------------------------------------- |
+// | `RustHost`    | `TerminalTarget`       | detected | ANSI escape sequences | stdout via `write!()`                                               |
+// | `RustHost`    | `BrowserTarget`        | detected | HTML                  | stdout via `write!()`                                               |
+// | `RustHost`    | `BrowserConsoleTarget` | detected | `%c` format           | stdout via `write!()`, the text alone, not the styles               |
+// | `BrowserHost` | `TerminalTarget`       | decided  | ANSI escape sequences | `console.log()`                                                     |
+// | `BrowserHost` | `BrowserTarget`        | decided  | HTML                  | `console.log()`                                                     |
+// | `BrowserHost` | `BrowserConsoleTarget` | decided  | `%c` format           | `console.log()`, including styles                                   |
 //
 // For npm:
-// | Host          | Environment         | Context  | Artifact              | `say`                                                               |
-// | ------------- | ------------------- | -------- | --------------------- | ------------------------------------------------------------------- |
-// | `NodeHost`    | `CliEnv`            | detected | ANSI escape sequences | stdout via `process.stdout.write()`                                 |
-// | `NodeHost`    | `BrowserEnv`        | detected | HTML                  | stdout via `process.stdout.write()`                                 |
-// | `NodeHost`    | `BrowserConsoleEnv` | detected | `%c` format           | stdout via `process.stdout.write()`, the text alone, not the styles |
-// | `BrowserHost` | `CliEnv`            | decided  | ANSI escape sequences | `console.log()`                                                     |
-// | `BrowserHost` | `BrowserEnv`        | decided  | HTML                  | `console.log()`                                                     |
-// | `BrowserHost` | `BrowserConsoleEnv` | decided  | `%c` format           | `console.log()`, including styles                                   |
+// | Host          | Target                 | Context  | Artifact              | `say`                                                               |
+// | ------------- | -------------------    | -------- | --------------------- | ------------------------------------------------------------------- |
+// | `NodeHost`    | `TerminalTarget`       | detected | ANSI escape sequences | stdout via `process.stdout.write()`                                 |
+// | `NodeHost`    | `BrowserTarget`        | detected | HTML                  | stdout via `process.stdout.write()`                                 |
+// | `NodeHost`    | `BrowserConsoleTarget` | detected | `%c` format           | stdout via `process.stdout.write()`, the text alone, not the styles |
+// | `BrowserHost` | `TerminalTarget`       | decided  | ANSI escape sequences | `console.log()`                                                     |
+// | `BrowserHost` | `BrowserTarget`        | decided  | HTML                  | `console.log()`                                                     |
+// | `BrowserHost` | `BrowserConsoleTarget` | decided  | `%c` format           | `console.log()`, including styles                                   |
 
 /// Prints one line to stderr, best effort:
 /// a broken error stream cannot be reported to itself and never changes the outcome
@@ -114,9 +114,9 @@ fn main() -> ExitCode {
 	} else if show_demo {
 		emit_stdout(cli_demo(&options))
 	} else {
-		let environment = if raw_mode { CliEnv::default().raw_mode() } else { CliEnv::default() };
+		let target = if raw_mode { TerminalTarget::default().raw_mode() } else { TerminalTarget::default() };
 
-		RustHost::default().say(&environment, &options)
+		RustHost::default().say(&target, &options)
 	};
 
 	exit_after_writing(written)

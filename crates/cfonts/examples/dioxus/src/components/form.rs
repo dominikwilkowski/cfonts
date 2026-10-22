@@ -1,4 +1,4 @@
-use cfonts::{Align, Background, BrowserConsoleEnv, Color, Font, GradientPreset, Host, Text, Valign};
+use cfonts::{Align, Background, BrowserConsoleTarget, Color, Font, GradientPreset, Host, Text, Valign};
 use dioxus::prelude::*;
 use web_sys::{
 	Event, HtmlInputElement, console,
@@ -38,7 +38,7 @@ const BACKGROUND_EXAMPLES: [(&str, &str); 4] = [
 /// It composes from the form itself, a print is an action and reads nothing the page tracks
 fn print(form_state: &FormState) {
 	match Composition::compose(form_state).options {
-		Ok(options) => host().say(&BrowserConsoleEnv, &options).expect("the page console cannot fail"),
+		Ok(options) => host().say(&BrowserConsoleTarget, &options).expect("the page console cannot fail"),
 		Err(error) => console::error_1(&JsValue::from_str(&format!("ERROR {}", error.message))),
 	}
 }
@@ -58,7 +58,7 @@ pub fn Form(form_state: FormState, composition: ReadSignal<Composition>) -> Elem
 
 	// the console prints on every pick and a typed value prints on enter, the page follows on its own
 	let print_to_console = move || {
-		if form_state.env.read().as_str() == "console" {
+		if form_state.target.read().as_str() == "console" {
 			print(&form_state);
 		}
 	};
@@ -83,8 +83,8 @@ pub fn Form(form_state: FormState, composition: ReadSignal<Composition>) -> Elem
 			}
 			fieldset { class: "group",
 				legend { class: "visually-hidden", "output" }
-				Radio { name: "env", value: "browser", label: "browser", group: form_state.env }
-				Radio { name: "env", value: "console", label: "browser console", group: form_state.env }
+				Radio { name: "target", value: "browser", label: "browser", group: form_state.target }
+				Radio { name: "target", value: "console", label: "browser console", group: form_state.target }
 				button { r#type: "submit", class: "run", "run" }
 			}
 			fieldset { class: "group",

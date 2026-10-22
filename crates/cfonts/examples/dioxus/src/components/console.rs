@@ -1,4 +1,4 @@
-use cfonts::{BrowserEnv, Host};
+use cfonts::{BrowserTarget, Host};
 use dioxus::prelude::*;
 
 use crate::components::{
@@ -20,7 +20,7 @@ pub fn Console(text: Signal<String>, composition: ReadSignal<Composition>) -> El
 		Err(error) => error.message.clone(),
 	};
 	let canvas = match &spelled.options {
-		Ok(options) => host().render(&BrowserEnv, options).text,
+		Ok(options) => host().render(&BrowserTarget, options).text,
 		Err(error) => format!("<span class=\"error\">ERROR</span> {}", escaped(&error.message)),
 	};
 

@@ -1,5 +1,5 @@
 use cfonts::{
-	CanvasWidth, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, Options, RenderOverrides, render_with,
+	CanvasWidth, Cfonts, Color, ColorLevel, ColorOverride, Font, Options, RenderOverrides, TerminalTarget, render_with,
 };
 
 #[test]
@@ -17,8 +17,8 @@ fn render_overrides_distinguish_auto_unlimited_and_columns() {
 fn explicit_overrides_control_wrapping_without_detection() {
 	let options: Options = Cfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
 
-	let narrow = render_with(&options, &CliEnv::default(), RenderOverrides::default().with_canvas_width(3));
-	let unlimited = render_with(&options, &CliEnv::default(), RenderOverrides::default());
+	let narrow = render_with(&options, &TerminalTarget::default(), RenderOverrides::default().with_canvas_width(3));
+	let unlimited = render_with(&options, &TerminalTarget::default(), RenderOverrides::default());
 
 	assert_ne!(narrow.text, unlimited.text);
 }
@@ -37,15 +37,18 @@ fn overrides_carry_color_and_seed() {
 fn without_a_host_auto_means_off() {
 	// nothing detects here: no color paints and candy rolls from the zero seed, so two renders agree
 	let candy = Cfonts::text("CANDY").font(Font::Tiny).colors(vec![Color::CANDY]);
-	let plain = candy.render_with(&CliEnv::default(), RenderOverrides::default());
+	let plain = candy.render_with(&TerminalTarget::default(), RenderOverrides::default());
 	assert!(!plain.text.contains('\u{1b}'));
 
 	let leveled = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
-	assert!(candy.render_with(&CliEnv::default(), leveled).text.contains('\u{1b}'));
-	assert_eq!(candy.render_with(&CliEnv::default(), leveled), candy.render_with(&CliEnv::default(), leveled));
+	assert!(candy.render_with(&TerminalTarget::default(), leveled).text.contains('\u{1b}'));
+	assert_eq!(
+		candy.render_with(&TerminalTarget::default(), leveled),
+		candy.render_with(&TerminalTarget::default(), leveled)
+	);
 	assert_ne!(
-		candy.render_with(&CliEnv::default(), leveled),
-		candy.render_with(&CliEnv::default(), leveled.with_seed(42))
+		candy.render_with(&TerminalTarget::default(), leveled),
+		candy.render_with(&TerminalTarget::default(), leveled.with_seed(42))
 	);
 }
 
@@ -53,9 +56,9 @@ fn without_a_host_auto_means_off() {
 fn a_color_level_without_color_options_paints_nothing() {
 	// capabilities alone paint nothing: only configured colors consume the level
 	let banner = Cfonts::text("HI").font(Font::Tiny);
-	let plain = banner.render_with(&CliEnv::default(), RenderOverrides::default());
+	let plain = banner.render_with(&TerminalTarget::default(), RenderOverrides::default());
 	let leveled = banner.render_with(
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(42),
 	);
 

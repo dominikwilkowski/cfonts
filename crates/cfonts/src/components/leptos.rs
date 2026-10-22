@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::{BrowserEnv, BrowserHost, Host, Options, RenderOverrides};
+use crate::{BrowserHost, BrowserTarget, Host, Options, RenderOverrides};
 
 /// Renders cfonts HTML inside a Leptos element
 ///
@@ -18,7 +18,7 @@ pub fn CfontsLeptos(
 	let host = BrowserHost::from_overrides(overrides);
 
 	view! {
-		<div inner_html=move || options.with(|options| host.render(&BrowserEnv, options).text) />
+		<div inner_html=move || options.with(|options| host.render(&BrowserTarget, options).text) />
 	}
 }
 
@@ -44,7 +44,7 @@ mod tests {
 
 	/// The host's artifact inside the one div the component adds
 	fn in_a_div(host: BrowserHost, options: &Options) -> String {
-		format!("<div>{}</div>", host.render(&BrowserEnv, options).text)
+		format!("<div>{}</div>", host.render(&BrowserTarget, options).text)
 	}
 
 	#[test]

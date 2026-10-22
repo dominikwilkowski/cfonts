@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::{Align, Cfonts as CoreCfonts, Font, Options, Valign, options::BlockOptions, render_with};
 
-use crate::{EnvironmentKind, Rendered, input, types::with_environment};
+use crate::{Rendered, TargetKind, input, types::with_target};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
@@ -142,7 +142,7 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Removes environment-specific outer spacing
+	/// Removes target-specific outer spacing
 	pub fn spaceless(&mut self) -> Result<(), JsError> {
 		self.set_global(SPACELESS_SET, "spaceless")?;
 		self.options.spaceless = true;
@@ -204,18 +204,18 @@ impl Cfonts {
 	/// Renders one artifact through the core Rust library without a host
 	///
 	/// Nothing is detected here, so an override left out is off: no canvas limit, no color, the zero seed,
-	/// raw mode ends terminal rows with `\r\n` and means nothing to the browser environments
+	/// raw mode ends terminal rows with `\r\n` and means nothing to the browser targets
 	///
 	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(
 		&self,
 		#[wasm_bindgen(unchecked_param_type = "RenderOverrides | undefined")] overrides: JsValue,
-		environment: EnvironmentKind,
+		target: TargetKind,
 		raw_mode: bool,
 	) -> Result<Ts<Rendered>, JsValue> {
 		let overrides = input::overrides(&overrides, "renderWith")?;
 		let rendered: Rendered =
-			with_environment!(environment, raw_mode, |env| render_with(&self.options, &env, overrides).into());
+			with_target!(target, raw_mode, |target| render_with(&self.options, &target, overrides).into());
 
 		Ok(rendered.into_ts().map_err(JsError::from)?)
 	}

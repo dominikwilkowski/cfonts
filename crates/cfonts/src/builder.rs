@@ -2,11 +2,11 @@ use std::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
 	color::{BackgroundOption, ColorOption},
-	environments::{Environment, Rendered},
 	fonts::Font,
 	hosts::Host,
 	options::{Align, BlockOptions, Options, Valign},
 	render::{self, RenderOverrides},
+	targets::{Rendered, Target},
 };
 
 #[doc(hidden)]
@@ -210,7 +210,7 @@ impl<
 		self
 	}
 
-	/// Renders through an explicit environment without a host
+	/// Renders through an explicit target without a host
 	///
 	/// This is the low-level API for consumers that need a particular artifact
 	/// without host detection or output side effects: nothing is decided here,
@@ -218,30 +218,30 @@ impl<
 	///
 	/// ```
 	/// use cfonts::{
-	///     BrowserEnv, Cfonts, Font, RenderOverrides,
+	///     BrowserTarget, Cfonts, Font, RenderOverrides,
 	/// };
 	///
 	/// let rendered = Cfonts::text("A")
 	///     .font(Font::Tiny)
 	///     .render_with(
-	///         &BrowserEnv,
+	///         &BrowserTarget,
 	///         RenderOverrides::default(),
 	///     );
 	///
 	/// assert!(rendered.text.contains("▄▀█"));
 	/// ```
-	pub fn render_with<E: Environment + ?Sized>(&self, environment: &E, overrides: RenderOverrides) -> Rendered {
-		render::render_with(&self.options, environment, overrides)
+	pub fn render_with<T: Target + ?Sized>(&self, target: &T, overrides: RenderOverrides) -> Rendered {
+		render::render_with(&self.options, target, overrides)
 	}
 
-	/// Renders the composition through a host into an environment's format
+	/// Renders the composition through a host into a target's format
 	///
-	/// The host answers what its runtime can show, the environment formats the artifact
+	/// The host answers what its runtime can show, the target formats the artifact
 	/// This returns a [`Rendered`] value without performing the host's output action
 	///
 	/// ```
 	/// use cfonts::{
-	///     Cfonts, CliEnv, Font, RenderOverrides, RustHost,
+	///     Cfonts, TerminalTarget, Font, RenderOverrides, RustHost,
 	/// };
 	///
 	/// let host = RustHost::from_overrides(
@@ -251,12 +251,12 @@ impl<
 	///
 	/// let rendered = Cfonts::text("A")
 	///     .font(Font::Tiny)
-	///     .render(&host, &CliEnv::default());
+	///     .render(&host, &TerminalTarget::default());
 	///
 	/// assert!(rendered.text.contains("▄▀█"));
 	/// ```
-	pub fn render<H: Host + ?Sized, E: Environment + ?Sized>(&self, host: &H, environment: &E) -> Rendered {
-		host.render(environment, &self.options)
+	pub fn render<H: Host + ?Sized, T: Target + ?Sized>(&self, host: &H, target: &T) -> Rendered {
+		host.render(target, &self.options)
 	}
 
 	/// Renders the composition and performs the host's output action
@@ -265,15 +265,15 @@ impl<
 	/// Use [`render`](Self::render) when you need the artifact without writing it
 	///
 	/// ```no_run
-	/// use cfonts::{Cfonts, CliEnv, Font, RustHost};
+	/// use cfonts::{Cfonts, TerminalTarget, Font, RustHost};
 	///
 	/// Cfonts::text("hello")
 	///     .font(Font::Block)
-	///     .say(&RustHost::default(), &CliEnv::default())
+	///     .say(&RustHost::default(), &TerminalTarget::default())
 	///     .expect("stdout should be writable");
 	/// ```
-	pub fn say<H: Host + ?Sized, E: Environment + ?Sized>(&self, host: &H, environment: &E) -> Result<(), H::Error> {
-		host.say(environment, &self.options)
+	pub fn say<H: Host + ?Sized, T: Target + ?Sized>(&self, host: &H, target: &T) -> Result<(), H::Error> {
+		host.say(target, &self.options)
 	}
 }
 
@@ -494,7 +494,7 @@ impl<
 		Cfonts { options, _state: PhantomData }
 	}
 
-	/// Controls whether the environment adds its usual top and bottom padding
+	/// Controls whether the target adds its usual top and bottom padding
 	/// *This is a global setting and may only be configured once*
 	///
 	/// ```
@@ -728,7 +728,7 @@ mod tests {
 	use std::{cell::RefCell, convert::Infallible};
 
 	use super::*;
-	use crate::{CliEnv, Color, ColorLevel, GradientOption, GradientPreset};
+	use crate::{Color, ColorLevel, GradientOption, GradientPreset, TerminalTarget};
 
 	// Double-setting a global is a compile error, not a runtime panic:
 	// that guarantee lives in the `compile_fail` doctests on each global setter
@@ -897,7 +897,8 @@ mod tests {
 	fn render_returns_the_artifact_without_writing() {
 		let host = CaptureHost::default();
 
-		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&host, &CliEnv::default());
+		let rendered =
+			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&host, &TerminalTarget::default());
 
 		assert_eq!(rendered.text, "▄▀█\n█▀█");
 		assert!(host.written.borrow().is_empty());
@@ -906,8 +907,11 @@ mod tests {
 	#[test]
 	fn render_succeeds_even_when_the_hosts_writer_is_broken() {
 		// render never touches the output action, so a broken writer cannot matter
-		let rendered =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&FailingHost, &CliEnv::default());
+		let rendered = Cfonts::text("A")
+			.font(Font::Tiny)
+			.valign(Valign::Top)
+			.spaceless()
+			.render(&FailingHost, &TerminalTarget::default());
 
 		assert_eq!(rendered.text, "▄▀█\n█▀█");
 	}
@@ -915,18 +919,18 @@ mod tests {
 	// say
 
 	#[test]
-	fn say_writes_the_composition_through_the_host_with_the_environments_line_end() {
+	fn say_writes_the_composition_through_the_host_with_the_targets_line_end() {
 		let host = CaptureHost::default();
 		let banner = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless();
 
-		banner.say(&host, &CliEnv::default()).expect("CaptureHost cannot fail");
-		banner.say(&host, &CliEnv::default().raw_mode()).expect("CaptureHost cannot fail");
+		banner.say(&host, &TerminalTarget::default()).expect("CaptureHost cannot fail");
+		banner.say(&host, &TerminalTarget::default().raw_mode()).expect("CaptureHost cannot fail");
 
 		assert_eq!(host.written.borrow().as_slice(), ["▄▀█\n█▀█\n", "▄▀█\r\n█▀█\r\n"]);
 	}
 
 	#[test]
 	fn say_returns_the_hosts_write_error() {
-		assert_eq!(Cfonts::text("A").say(&FailingHost, &CliEnv::default()), Err("the writer is broken"));
+		assert_eq!(Cfonts::text("A").say(&FailingHost, &TerminalTarget::default()), Err("the writer is broken"));
 	}
 }

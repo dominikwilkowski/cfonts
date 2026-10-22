@@ -94,12 +94,15 @@ impl Host for BrowserHost {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{BrowserConsoleEnv, BrowserEnv, Cfonts, Color, ColorOverride, Font, Options, Valign, render_with};
+	use crate::{BrowserConsoleTarget, BrowserTarget, Cfonts, Color, ColorOverride, Font, Options, Valign, render_with};
 
 	#[test]
 	fn the_host_renders_the_browser_artifact() {
-		let rendered =
-			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().render(&BrowserHost::default(), &BrowserEnv);
+		let rendered = Cfonts::text("A")
+			.font(Font::Tiny)
+			.valign(Valign::Top)
+			.spaceless()
+			.render(&BrowserHost::default(), &BrowserTarget);
 
 		assert_eq!(
 			rendered.text,
@@ -114,7 +117,7 @@ mod tests {
 			.valign(Valign::Top)
 			.spaceless()
 			.background(Color::BLUE)
-			.render(&BrowserHost::default(), &BrowserEnv);
+			.render(&BrowserHost::default(), &BrowserTarget);
 
 		assert!(rendered.text.contains(r#"<div style="background:#0020f5;min-height:1lh">▄▀█</div>"#));
 	}
@@ -126,7 +129,7 @@ mod tests {
 			.valign(Valign::Top)
 			.spaceless()
 			.colors(vec![Color::RED])
-			.render(&BrowserHost::default(), &BrowserEnv);
+			.render(&BrowserHost::default(), &BrowserTarget);
 
 		assert!(rendered.text.contains(r##"<span style="color:#ea3223">"##));
 	}
@@ -136,17 +139,17 @@ mod tests {
 		// three columns hold one Tiny glyph, so the pair wraps where the unlimited page keeps it on one line
 		let options: Options = Cfonts::text("AA").font(Font::Tiny).valign(Valign::Top).spaceless().into();
 		let narrow =
-			BrowserHost::from_overrides(RenderOverrides::default().with_canvas_width(3)).render(&BrowserEnv, &options);
+			BrowserHost::from_overrides(RenderOverrides::default().with_canvas_width(3)).render(&BrowserTarget, &options);
 		let unlimited =
-			BrowserHost::from_overrides(RenderOverrides::default().with_canvas_width(0)).render(&BrowserEnv, &options);
+			BrowserHost::from_overrides(RenderOverrides::default().with_canvas_width(0)).render(&BrowserTarget, &options);
 
 		assert_ne!(narrow.text, unlimited.text);
-		assert_eq!(unlimited.text, BrowserHost::default().render(&BrowserEnv, &options).text);
+		assert_eq!(unlimited.text, BrowserHost::default().render(&BrowserTarget, &options).text);
 		assert_eq!(
 			narrow,
 			render_with(
 				&options,
-				&BrowserEnv,
+				&BrowserTarget,
 				RenderOverrides::default().with_canvas_width(3).with_color(ColorOverride::Level(ColorLevel::TrueColor))
 			)
 		);
@@ -161,8 +164,8 @@ mod tests {
 
 		assert_eq!(disabled.color_level(), None);
 		assert_eq!(basic.color_level(), Some(ColorLevel::Basic));
-		assert!(!banner.render(&disabled, &BrowserEnv).text.contains("<span"));
-		assert!(banner.render(&BrowserHost::default(), &BrowserEnv).text.contains("<span"));
+		assert!(!banner.render(&disabled, &BrowserTarget).text.contains("<span"));
+		assert!(banner.render(&BrowserHost::default(), &BrowserTarget).text.contains("<span"));
 	}
 
 	#[test]
@@ -171,17 +174,17 @@ mod tests {
 		let pinned = BrowserHost::from_overrides(RenderOverrides::default().with_seed(42));
 
 		assert_eq!(pinned.seed(), 42);
-		assert_eq!(banner.render(&pinned, &BrowserEnv), banner.render(&pinned, &BrowserEnv));
+		assert_eq!(banner.render(&pinned, &BrowserTarget), banner.render(&pinned, &BrowserTarget));
 		// every default host rolls its own seed, so two of them draw different assortments
 		assert_ne!(
-			banner.render(&BrowserHost::default(), &BrowserEnv),
-			banner.render(&BrowserHost::default(), &BrowserEnv)
+			banner.render(&BrowserHost::default(), &BrowserTarget),
+			banner.render(&BrowserHost::default(), &BrowserTarget)
 		);
 	}
 
 	#[test]
 	fn say_cannot_fail_on_the_server() {
 		// native test targets take the SSR write arm: render, write nothing
-		Cfonts::text("A").say(&BrowserHost::default(), &BrowserConsoleEnv).expect("the console write cannot fail");
+		Cfonts::text("A").say(&BrowserHost::default(), &BrowserConsoleTarget).expect("the console write cannot fail");
 	}
 }

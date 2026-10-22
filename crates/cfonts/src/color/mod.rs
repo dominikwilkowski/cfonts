@@ -1,6 +1,6 @@
 //! Everything a color is: the types, the conversion tables and the candy assortment
 //!
-//! Environments decide how a color is written; hosts decide whether color exists
+//! Targets decide how a color is written; hosts decide whether color exists
 //! This module only ever answers what a color is worth in another representation
 
 pub mod gradient;

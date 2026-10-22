@@ -498,12 +498,12 @@ select {
 }
 
 .note,
-main:has([name="env"][value="console"]:checked) .terminal {
+main:has([name="target"][value="console"]:checked) .terminal {
 	display: none;
 	opacity: 0;
 }
 
-main:has([name="env"][value="console"]:checked) .note {
+main:has([name="target"][value="console"]:checked) .note {
 	display: block;
 	opacity: 1;
 }

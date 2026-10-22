@@ -1,7 +1,7 @@
 //! A cfonts component for [topcoat](https://github.com/tokio-rs/topcoat), the server rendered web framework of the tokio org
 //!
 //! Topcoat renders a page on the server and ships HTML, so the core runs natively here and the component
-//! hands the page the HTML the browser environment renders, the way the Leptos and Dioxus components do in
+//! hands the page the HTML the browser target renders, the way the Leptos and Dioxus components do in
 //! the browser. Topcoat is still early stage and not ready for a component yet, once it is the crate can ship one
 //!
 //! Run it with `make topcoat` from the repository root, or with the command behind it:
@@ -15,7 +15,7 @@
 
 use std::{env, io};
 
-use cfonts::{BrowserEnv, BrowserHost, Cfonts, Color, Font, GradientOption, Host, Options, RenderOverrides};
+use cfonts::{BrowserTarget, BrowserHost, Cfonts, Color, Font, GradientOption, Host, Options, RenderOverrides};
 use tokio::net::TcpListener;
 use topcoat::{
 	Result,
@@ -31,7 +31,7 @@ use topcoat::{
 /// Candy rolls a fresh pick per request through the host, a seed in the overrides pins the picks
 #[component]
 pub async fn cfonts_topcoat(options: &Options, #[default] overrides: RenderOverrides) -> Result<impl View> {
-	let rendered = BrowserHost::from_overrides(overrides).render(&BrowserEnv, options);
+	let rendered = BrowserHost::from_overrides(overrides).render(&BrowserTarget, options);
 
 	Ok(view! { (Unescaped::new_unchecked(rendered.text)) })
 }

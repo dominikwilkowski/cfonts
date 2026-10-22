@@ -1,9 +1,9 @@
 import {
-	BrowserConsoleEnv,
-	BrowserEnv,
+	BrowserConsoleTarget,
+	BrowserTarget,
 	BrowserHost,
 	Cfonts,
-	CliEnv,
+	TerminalTarget,
 	Color,
 	Font,
 	fontNames,
@@ -15,10 +15,10 @@ import {
 const banner = Cfonts.text("hello").font(Font.Block);
 const host = BrowserHost.fromOverrides({ canvasWidth: 80, seed: BrowserHost.entropy() });
 
-const html = banner.render(host, BrowserEnv);
-banner.say(host, BrowserConsoleEnv);
-banner.say(new BrowserHost(), BrowserConsoleEnv);
-banner.say(new BrowserHost({ canvasWidth: 80 }), BrowserConsoleEnv);
+const html = banner.render(host, BrowserTarget);
+banner.say(host, BrowserConsoleTarget);
+banner.say(new BrowserHost(), BrowserConsoleTarget);
+banner.say(new BrowserHost({ canvasWidth: 80 }), BrowserConsoleTarget);
 
 banner
 	.colors([Color.RedBright, "#f80", Rgb.fromHex("#8899dd")])
@@ -58,8 +58,8 @@ banner.colors(presetAndStops);
 // @ts-expect-error channels beside a preset are two background shapes
 banner.background(channelsAndPreset);
 
-const consoleArtifact = banner.renderWith(BrowserConsoleEnv);
-const terminal = banner.renderWith(CliEnv.rawMode()); // for a terminal emulator in the page
+const consoleArtifact = banner.renderWith(BrowserConsoleTarget);
+const terminal = banner.renderWith(TerminalTarget.rawMode()); // for a terminal emulator in the page
 
 const text: string = html.text;
 console.log(text, consoleArtifact.text, terminal.text);

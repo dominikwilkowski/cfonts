@@ -168,7 +168,7 @@ pub struct Options {
 	/// Vertical alignment for mixed-height font blocks
 	pub valign: Valign,
 
-	/// Whether environment-specific top and bottom padding should be omitted
+	/// Whether target-specific top and bottom padding should be omitted
 	pub spaceless: bool,
 
 	/// Maximum printable glyphs per rendered line

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{BrowserEnv, BrowserHost, Host, Options, RenderOverrides};
+use crate::{BrowserHost, BrowserTarget, Host, Options, RenderOverrides};
 
 /// Renders cfonts HTML inside a Dioxus element
 ///
@@ -20,7 +20,7 @@ use crate::{BrowserEnv, BrowserHost, Host, Options, RenderOverrides};
 #[component]
 pub fn CfontsDioxus(options: ReadSignal<Options>, #[props(default)] overrides: RenderOverrides) -> Element {
 	let options = options.read();
-	let rendered = BrowserHost::from_overrides(overrides).render(&BrowserEnv, &options);
+	let rendered = BrowserHost::from_overrides(overrides).render(&BrowserTarget, &options);
 
 	rsx! {
 		div {
@@ -43,7 +43,7 @@ mod tests {
 
 	/// The core artifact for `options` inside the one div the component renders
 	fn wrapped(options: &Options, overrides: RenderOverrides) -> String {
-		format!("<div>{}</div>", BrowserHost::from_overrides(overrides).render(&BrowserEnv, options).text)
+		format!("<div>{}</div>", BrowserHost::from_overrides(overrides).render(&BrowserTarget, options).text)
 	}
 
 	/// A page holding the component with the overrides it receives and the options signal provided at the root

@@ -1,7 +1,7 @@
 //! The command line parser behind the cfonts binary
 //!
 //! Public so cfonts compatible command lines can be built and tested against;
-//! rendering itself stays with the hosts and environments
+//! rendering itself stays with the hosts and targets
 
 mod args;
 pub use args::Args;

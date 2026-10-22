@@ -1,4 +1,4 @@
-import { BrowserConsoleEnv, BrowserEnv, BrowserHost, Cfonts, fontNames } from "cfonts";
+import { BrowserConsoleTarget, BrowserTarget, BrowserHost, Cfonts, fontNames } from "cfonts";
 
 // The page is an eighty column terminal, so long text wraps the way it would there
 const host = BrowserHost.fromOverrides({ canvasWidth: 80 });
@@ -72,7 +72,7 @@ function paintLogo() {
 	logo.innerHTML = Cfonts.text("cfonts")
 		.spaceless()
 		.colors({ start: gradient[(offset + gradient.length - 1) % gradient.length], end: gradient[offset] })
-		.render(host, BrowserEnv).text;
+		.render(host, BrowserTarget).text;
 }
 paintLogo();
 
@@ -205,11 +205,11 @@ function run() {
 		form.elements[error.name].setCustomValidity(error.message);
 	}
 
-	if (data.get("env") === "console") {
+	if (data.get("target") === "console") {
 		if (error) {
 			console.error(`ERROR ${error.message}`);
 		} else {
-			cfonts.say(host, BrowserConsoleEnv);
+			cfonts.say(host, BrowserConsoleTarget);
 		}
 		return;
 	}
@@ -223,7 +223,7 @@ function run() {
 		canvas.replaceChildren(output);
 		canvas.setAttribute("aria-label", error.message);
 	} else {
-		canvas.innerHTML = cfonts.render(host, BrowserEnv).text;
+		canvas.innerHTML = cfonts.render(host, BrowserTarget).text;
 		canvas.setAttribute("aria-label", data.get("text"));
 	}
 }
@@ -232,12 +232,12 @@ run();
 
 // The page follows every keystroke and pick, the console prints on every pick and a typed value prints on enter
 form.addEventListener("input", () => {
-	if (form.elements.env.value === "browser") {
+	if (form.elements.target.value === "browser") {
 		run();
 	}
 });
 form.addEventListener("change", (event) => {
-	if (form.elements.env.value === "console" && !event.target.matches("input:is([type='text'], [type='number'])")) {
+	if (form.elements.target.value === "console" && !event.target.matches("input:is([type='text'], [type='number'])")) {
 		run();
 	}
 });

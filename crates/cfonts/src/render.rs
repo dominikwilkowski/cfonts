@@ -4,9 +4,9 @@ use crate::{
 	color::{
 		Background, BackgroundOption, CANDY, CandyRng, Color, ColorLevel, ColorOption, GradientColors, GradientOption, Rgb,
 	},
-	environments::{Environment, Rendered},
 	layout::{Layout, LayoutRow},
 	options::{Align, Options},
+	targets::{Rendered, Target},
 };
 
 /// How a host should resolve its canvas width
@@ -113,7 +113,7 @@ impl RenderOverrides {
 	}
 }
 
-/// The capabilities one render runs under: what environments read and hosts produce
+/// The capabilities one render runs under: what targets read and hosts produce
 ///
 /// Consumers ask through [`RenderOverrides`], a host or the host free path turns the request into this
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -253,12 +253,12 @@ impl<T> BlockPlan<T> {
 }
 
 /// The convert-once color cache of one render:
-/// every configured color resolved to the environment's paint exactly once
+/// every configured color resolved to the target's paint exactly once
 #[derive(Debug)]
 pub(crate) struct PaintPlan<T> {
 	blocks: Vec<BlockPlan<T>>,
 
-	/// The candy assortment resolved through the environment, present only when a slot rolls
+	/// The candy assortment resolved through the target, present only when a slot rolls
 	candy: Option<Box<[Option<T>; CANDY.len()]>>,
 
 	/// The deterministic roll source, seeded by the host through the context
@@ -331,7 +331,7 @@ impl<T> PaintPlan<T> {
 
 	/// Whether any slot resolved to paint
 	///
-	/// Environments whose escaping depends on the whole artifact key off this
+	/// Targets whose escaping depends on the whole artifact key off this
 	pub(crate) fn will_style(&self) -> bool {
 		self.will_style
 	}
@@ -581,34 +581,26 @@ impl<T> Backdrop<T> {
 	}
 }
 
-/// Renders through a pure environment without a host
+/// Renders through a pure target without a host
 ///
 /// Nothing detects or decides here, so `Auto` means off: no canvas limit, no color and the zero seed
-pub fn render_with<E: Environment + ?Sized>(
-	options: &Options,
-	environment: &E,
-	overrides: RenderOverrides,
-) -> Rendered {
+pub fn render_with<T: Target + ?Sized>(options: &Options, target: &T, overrides: RenderOverrides) -> Rendered {
 	let context = RenderContext::resolved(
 		overrides.canvas_width().columns_or(None),
 		overrides.color().level_or(None),
 		overrides.seed().unwrap_or(0),
 	);
 
-	render_resolved(options, environment, context)
+	render_resolved(options, target, context)
 }
 
-/// Builds layout once under a resolved context and renders it through a pure environment
-pub(crate) fn render_resolved<E: Environment + ?Sized>(
-	options: &Options,
-	environment: &E,
-	context: RenderContext,
-) -> Rendered {
+/// Builds layout once under a resolved context and renders it through a pure target
+pub(crate) fn render_resolved<T: Target + ?Sized>(options: &Options, target: &T, context: RenderContext) -> Rendered {
 	let mut rows = Layout::build(options, context.canvas_width()).into_rows();
 
-	// Environments that own their frame align rows within the widest line when
+	// Targets that own their frame align rows within the widest line when
 	// no canvas exists, so gradients and padding share one column story
-	if context.canvas_width().is_none() && environment.frames_alignment_to_widest() && options.align != Align::Left {
+	if context.canvas_width().is_none() && target.frames_alignment_to_widest() && options.align != Align::Left {
 		let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
 
 		// Zero-width rows have nothing to align, matching Layout::align_offset's canvas rule:
@@ -618,7 +610,7 @@ pub(crate) fn render_resolved<E: Environment + ?Sized>(
 		}
 	}
 
-	environment.render_rows(&rows, options, &context)
+	target.render_rows(&rows, options, &context)
 }
 
 #[cfg(test)]
@@ -838,7 +830,7 @@ mod tests {
 
 	// Backdrop
 
-	/// Resolves every color but the terminal's own to itself, the way an environment with a palette would
+	/// Resolves every color but the terminal's own to itself, the way a target with a palette would
 	fn resolve(color: Color<Background>) -> Option<Color<Background>> {
 		(color != Color::SYSTEM).then_some(color)
 	}
@@ -888,7 +880,7 @@ mod tests {
 		assert!(Backdrop::build(&blue, &RenderContext::unlimited(), 3, resolve).is_none(), "no color level");
 		assert!(Backdrop::build(&blue, &level, 0, resolve).is_none(), "no rows");
 
-		// an environment that paints no RGB values turns a gradient into no backdrop as well
+		// a target that paints no RGB values turns a gradient into no backdrop as well
 		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let ramped = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
 		assert!(Backdrop::build(&ramped, &level, 3, |_| None::<Color>).is_none(), "no paint");

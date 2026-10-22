@@ -63,7 +63,7 @@ impl LayoutGlyph {
 #[derive(Debug, PartialEq, Eq)]
 pub enum RowEntry {
 	/// One row of a glyph, tagged with the block it came from so the render
-	/// environments can tie it to that block's color configuration,
+	/// targets can tie it to that block's color configuration,
 	/// a run of the same glyph side by side, letter spaces above all, is one entry
 	Data {
 		/// One row of the glyph's art in the font's tables

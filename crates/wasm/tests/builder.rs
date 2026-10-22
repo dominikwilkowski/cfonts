@@ -4,11 +4,12 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use cfonts::{
-	Background, BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts as CoreCfonts, CliEnv, Color as CoreColor,
-	ColorOverride, Gradient, GradientOption, Options, RenderOverrides, Rgb, Text, TransitionStops, render_with,
+	Background, BackgroundOption, BrowserConsoleTarget, BrowserTarget, Cfonts as CoreCfonts, Color as CoreColor,
+	ColorOverride, Gradient, GradientOption, Options, RenderOverrides, Rgb, TerminalTarget, Text, TransitionStops,
+	render_with,
 };
 use cfonts_wasm::{
-	Align, BrowserHost, Cfonts, Color, ColorLevel, EnvironmentKind, Font, GradientPreset, NodeHost, Rendered, Valign,
+	Align, BrowserHost, Cfonts, Color, ColorLevel, Font, GradientPreset, NodeHost, Rendered, TargetKind, Valign,
 	align_names, background_color_names, color_names, entropy, font_names, gradient_color_names, gradient_preset_names,
 	line_end, rgb_from_hex, valign_names,
 };
@@ -93,14 +94,14 @@ fn reads(counts: &JsValue, key: &str) -> f64 {
 }
 
 /// The same render through the core directly, the boundary's oracle
-fn render_core(environment: EnvironmentKind, canvas_width: Option<usize>) -> String {
+fn render_core(target: TargetKind, canvas_width: Option<usize>) -> String {
 	let options: Options = CoreCfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
 	let overrides = RenderOverrides::default().with_canvas_width(canvas_width.unwrap_or(0));
 
-	match environment {
-		EnvironmentKind::Cli => render_with(&options, &CliEnv::default(), overrides).text,
-		EnvironmentKind::Browser => render_with(&options, &BrowserEnv, overrides).text,
-		EnvironmentKind::BrowserConsole => render_with(&options, &BrowserConsoleEnv, overrides).text,
+	match target {
+		TargetKind::Terminal => render_with(&options, &TerminalTarget::default(), overrides).text,
+		TargetKind::Browser => render_with(&options, &BrowserTarget, overrides).text,
+		TargetKind::BrowserConsole => render_with(&options, &BrowserConsoleTarget, overrides).text,
 	}
 }
 
@@ -140,52 +141,52 @@ fn terminal(stdout: Option<u32>, variables: &[(&str, &str)]) -> JsValue {
 }
 
 #[wasm_bindgen_test]
-fn an_absent_override_means_unlimited_for_every_environment() {
+fn an_absent_override_means_unlimited_for_every_target() {
 	let banner = wrapping_banner();
 
-	for environment in EnvironmentKind::ALL {
+	for target in TargetKind::ALL {
 		assert_eq!(
-			rendered(banner.render(JsValue::UNDEFINED, environment, false)).text,
-			render_core(environment, None),
-			"{environment:?}",
+			rendered(banner.render(JsValue::UNDEFINED, target, false)).text,
+			render_core(target, None),
+			"{target:?}",
 		);
 		assert_eq!(
-			rendered(banner.render(overrides(None, None, None), environment, false)).text,
-			render_core(environment, None),
-			"{environment:?}",
-		);
-	}
-}
-
-#[wasm_bindgen_test]
-fn zero_means_unlimited_for_every_environment() {
-	let banner = wrapping_banner();
-
-	for environment in EnvironmentKind::ALL {
-		assert_eq!(
-			rendered(banner.render(overrides(Some(0), None, None), environment, false)).text,
-			render_core(environment, Some(0)),
-			"{environment:?}",
+			rendered(banner.render(overrides(None, None, None), target, false)).text,
+			render_core(target, None),
+			"{target:?}",
 		);
 	}
 }
 
 #[wasm_bindgen_test]
-fn a_fixed_width_is_forwarded_to_every_environment() {
+fn zero_means_unlimited_for_every_target() {
 	let banner = wrapping_banner();
 
-	for environment in EnvironmentKind::ALL {
+	for target in TargetKind::ALL {
 		assert_eq!(
-			rendered(banner.render(overrides(Some(3), None, None), environment, false)).text,
-			render_core(environment, Some(3)),
-			"{environment:?}",
+			rendered(banner.render(overrides(Some(0), None, None), target, false)).text,
+			render_core(target, Some(0)),
+			"{target:?}",
+		);
+	}
+}
+
+#[wasm_bindgen_test]
+fn a_fixed_width_is_forwarded_to_every_target() {
+	let banner = wrapping_banner();
+
+	for target in TargetKind::ALL {
+		assert_eq!(
+			rendered(banner.render(overrides(Some(3), None, None), target, false)).text,
+			render_core(target, Some(3)),
+			"{target:?}",
 		);
 	}
 }
 
 #[wasm_bindgen_test]
 fn browser_console_render_returns_an_artifact() {
-	let rendered = rendered(wrapping_banner().render(JsValue::UNDEFINED, EnvironmentKind::BrowserConsole, false));
+	let rendered = rendered(wrapping_banner().render(JsValue::UNDEFINED, TargetKind::BrowserConsole, false));
 
 	// Logging belongs to the page host so the raw binding only returns data
 	assert_eq!(rendered.text, "▄▀█ ▄▀█\n█▀█ █▀█",);
@@ -197,17 +198,17 @@ fn the_overrides_are_read_behind_the_boundary() {
 
 	// anything but an object is no overrides object, an array included
 	for input in [JsValue::NULL, 0.into(), true.into(), "".into(), js("[]")] {
-		let refused = banner.render(input, EnvironmentKind::Cli, false).map(|_| ());
+		let refused = banner.render(input, TargetKind::Terminal, false).map(|_| ());
 		assert_eq!(message(refused), "`renderWith()` expects an overrides object");
 	}
 
 	// every member crosses with the sentence of its type
 	for input in [js("{ \"canvasWidth\": -1 }"), js("{ \"canvasWidth\": 1.5 }"), js("{ \"seed\": 4294967296 }")] {
-		let refused = banner.render(input, EnvironmentKind::Cli, false).map(|_| ());
+		let refused = banner.render(input, TargetKind::Terminal, false).map(|_| ());
 		assert_eq!(message(refused), "`renderWith()` expects an unsigned 32-bit integer");
 	}
 	for input in [js("{ \"color\": 99 }"), js("{ \"color\": true }")] {
-		let refused = banner.render(input, EnvironmentKind::Cli, false).map(|_| ());
+		let refused = banner.render(input, TargetKind::Terminal, false).map(|_| ());
 		assert_eq!(message(refused), "`renderWith()` expects a supported enum value");
 	}
 
@@ -215,8 +216,8 @@ fn the_overrides_are_read_behind_the_boundary() {
 	let mut colored = text("A");
 	colored.font("tiny".into()).expect("a font name");
 	colored.colors(js("[\"red\"]")).expect("valid colors");
-	assert!(!rendered(colored.render(js("{ \"color\": false }"), EnvironmentKind::Cli, false)).text.contains('\u{1b}'));
-	assert!(rendered(colored.render(js("{ \"color\": 0 }"), EnvironmentKind::Cli, false)).text.contains("\u{1b}[31m"));
+	assert!(!rendered(colored.render(js("{ \"color\": false }"), TargetKind::Terminal, false)).text.contains('\u{1b}'));
+	assert!(rendered(colored.render(js("{ \"color\": 0 }"), TargetKind::Terminal, false)).text.contains("\u{1b}[31m"));
 }
 
 #[wasm_bindgen_test]
@@ -245,9 +246,9 @@ fn setters_produce_the_same_composition_as_the_core_builder() {
 		.valign(Valign::Bottom)
 		.spaceless()
 		.max_length(2)
-		.render_with(&BrowserEnv, RenderOverrides::default());
+		.render_with(&BrowserTarget, RenderOverrides::default());
 
-	assert_eq!(rendered(actual.render(JsValue::UNDEFINED, EnvironmentKind::Browser, false)).text, expected.text,);
+	assert_eq!(rendered(actual.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -297,9 +298,9 @@ fn local_settings_can_be_configured_repeatedly() {
 		.next("B")
 		.next("C")
 		.font(Font::Tiny)
-		.render_with(&BrowserEnv, RenderOverrides::default());
+		.render_with(&BrowserTarget, RenderOverrides::default());
 
-	assert_eq!(rendered(actual.render(JsValue::UNDEFINED, EnvironmentKind::Browser, false)).text, expected.text,);
+	assert_eq!(rendered(actual.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text, expected.text,);
 }
 
 #[wasm_bindgen_test]
@@ -311,8 +312,8 @@ fn builders_keep_independent_state() {
 	let block = text("A");
 
 	assert_ne!(
-		rendered(tiny.render(JsValue::UNDEFINED, EnvironmentKind::Browser, false)).text,
-		rendered(block.render(JsValue::UNDEFINED, EnvironmentKind::Browser, false)).text,
+		rendered(tiny.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text,
+		rendered(block.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text,
 	);
 }
 
@@ -320,11 +321,11 @@ fn builders_keep_independent_state() {
 fn rendering_does_not_consume_or_change_the_builder() {
 	let banner = wrapping_banner();
 
-	for environment in EnvironmentKind::ALL {
-		let first = rendered(banner.render(overrides(Some(3), None, None), environment, false));
-		let second = rendered(banner.render(overrides(Some(3), None, None), environment, false));
+	for target in TargetKind::ALL {
+		let first = rendered(banner.render(overrides(Some(3), None, None), target, false));
+		let second = rendered(banner.render(overrides(Some(3), None, None), target, false));
 
-		assert_eq!(first.text, second.text, "{environment:?}",);
+		assert_eq!(first.text, second.text, "{target:?}",);
 	}
 }
 
@@ -355,7 +356,7 @@ fn a_font_an_alignment_and_a_vertical_alignment_pick_by_number_or_by_name() {
 		let mut banner = text("A");
 		banner.font(font).expect("a font");
 
-		rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text
+		rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text
 	};
 	assert_eq!(render("3d".into()), render((Font::Font3D as u32).into()));
 	assert_eq!(render("TINY".into()), render((Font::Tiny as u32).into()));
@@ -411,11 +412,11 @@ fn color_configuration_without_a_color_level_paints_nothing() {
 	colored.global_colors(js("{ \"transition\": [\"cyan\", \"magenta\"] }")).expect("valid stops");
 	colored.independent_gradient().expect("first independent_gradient call");
 
-	for environment in EnvironmentKind::ALL {
+	for target in TargetKind::ALL {
 		assert_eq!(
-			rendered(colored.render(JsValue::UNDEFINED, environment, false)).text,
-			rendered(plain.render(JsValue::UNDEFINED, environment, false)).text,
-			"{environment:?}",
+			rendered(colored.render(JsValue::UNDEFINED, target, false)).text,
+			rendered(plain.render(JsValue::UNDEFINED, target, false)).text,
+			"{target:?}",
 		);
 	}
 }
@@ -500,7 +501,7 @@ fn a_throwing_getter_or_trap_surfaces_as_the_consumers_own_exception() {
 	assert_eq!(banner.background(throwing(trap)).expect_err("the trap throws"), JsValue::from(thrown.clone()));
 	assert_eq!(
 		banner
-			.render(throwing("return { get canvasWidth() { throw error } }"), EnvironmentKind::Cli, false)
+			.render(throwing("return { get canvasWidth() { throw error } }"), TargetKind::Terminal, false)
 			.map(|_| ())
 			.expect_err("the getter throws"),
 		JsValue::from(thrown.clone())
@@ -508,7 +509,7 @@ fn a_throwing_getter_or_trap_surfaces_as_the_consumers_own_exception() {
 	assert_eq!(
 		NodeHost::from_overrides(JsValue::UNDEFINED)
 			.expect("undefined is no overrides")
-			.render(&banner, EnvironmentKind::Cli, false, throwing("return { get attached() { throw error } }"))
+			.render(&banner, TargetKind::Terminal, false, throwing("return { get attached() { throw error } }"))
 			.map(|_| ())
 			.expect_err("the getter throws"),
 		JsValue::from(thrown)
@@ -524,7 +525,7 @@ fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_bu
 	};
 	let mut plain = text("A");
 	plain.font("tiny".into()).expect("a font name");
-	let expected = rendered(plain.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text;
+	let expected = rendered(plain.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text;
 
 	// a list whose getter or proxy trap throws while its length or an index is read
 	let lists = [
@@ -547,7 +548,7 @@ fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_bu
 
 		// the exception crosses as a result, so the borrow of the builder releases and it keeps taking settings
 		banner.font("tiny".into()).expect("a font name");
-		assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+		assert_eq!(rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text, expected);
 	}
 
 	// the iterator of a list is never invoked, so a throwing one changes nothing
@@ -557,7 +558,7 @@ fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_bu
 	banner.colors(throwing(&transition)).expect("the iterator is not invoked");
 	text("A").global_colors(throwing(iterator)).expect("the iterator is not invoked");
 	text("A").background(throwing(&transition)).expect("the iterator is not invoked");
-	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text, expected);
 
 	// a proxy answering no number for its length reads as zero entries, no index is read and the string "2"
 	// is not read as two, so a transition over it holds zero stops
@@ -575,7 +576,7 @@ fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_bu
 	let transition = Reflect::get_u32(&triple, 1).expect("the transition");
 	let counts = Reflect::get_u32(&triple, 2).expect("the counts");
 	banner.colors(unnumbered).expect("zero entries are a list");
-	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text, expected);
 	assert_eq!(message(banner.colors(transition)), "A transition gradient holds at least two stops, this one holds 0");
 	assert_eq!(reads(&counts, "index"), 0.0);
 
@@ -584,13 +585,13 @@ fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_bu
 	assert!(banner.colors(throwing(revoked)).expect_err("the revoked proxy throws").is_instance_of::<TypeError>());
 	assert!(
 		banner
-			.render(throwing(revoked), EnvironmentKind::Cli, false)
+			.render(throwing(revoked), TargetKind::Terminal, false)
 			.map(|_| ())
 			.expect_err("the revoked proxy throws")
 			.is_instance_of::<TypeError>()
 	);
 	banner.font("tiny".into()).expect("a font name");
-	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text, expected);
+	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text, expected);
 }
 
 #[wasm_bindgen_test]
@@ -599,7 +600,7 @@ fn a_throwing_lookup_crosses_as_the_consumers_own_exception_once_and_leaves_the_
 	banner.font("tiny".into()).expect("a font name");
 	let thrown = RangeError::new("the consumer's own");
 	let host = NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
-	let expected = rendered(host.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text;
+	let expected = rendered(host.render(&banner, TargetKind::Terminal, false, terminal(Some(80), &[]))).text;
 	// terminal facts whose lookup throws at every call and counts its calls beside the facts
 	let pair = Function::new_with_args(
 		"error",
@@ -618,16 +619,16 @@ fn a_throwing_lookup_crosses_as_the_consumers_own_exception_once_and_leaves_the_
 	// the render returns the very exception in place of an artifact resolved over facts the lookup failed to answer,
 	// and asks for no name after the first failure
 	assert_eq!(
-		host.render(&banner, EnvironmentKind::Cli, false, facts).map(|_| ()).expect_err("the lookup throws"),
+		host.render(&banner, TargetKind::Terminal, false, facts).map(|_| ()).expect_err("the lookup throws"),
 		JsValue::from(thrown)
 	);
 	assert_eq!(reads(&counts, "calls"), 1.0);
 
 	// the exception crosses as a result, so the host and the builder keep working, the padding rows go
-	assert_eq!(rendered(host.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text, expected);
+	assert_eq!(rendered(host.render(&banner, TargetKind::Terminal, false, terminal(Some(80), &[]))).text, expected);
 	banner.spaceless().expect("first spaceless call");
 	assert_eq!(
-		rendered(host.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text,
+		rendered(host.render(&banner, TargetKind::Terminal, false, terminal(Some(80), &[]))).text,
 		expected.trim_matches('\n')
 	);
 }
@@ -699,11 +700,11 @@ fn global_colors_without_a_color_level_paint_nothing() {
 
 	colored.global_colors(js("[\"red\", \"#f80\"]")).expect("valid colors");
 
-	for environment in EnvironmentKind::ALL {
+	for target in TargetKind::ALL {
 		assert_eq!(
-			rendered(colored.render(JsValue::UNDEFINED, environment, false)).text,
-			rendered(plain.render(JsValue::UNDEFINED, environment, false)).text,
-			"{environment:?}",
+			rendered(colored.render(JsValue::UNDEFINED, target, false)).text,
+			rendered(plain.render(JsValue::UNDEFINED, target, false)).text,
+			"{target:?}",
 		);
 	}
 }
@@ -723,7 +724,7 @@ fn a_failed_global_color_does_not_claim_the_slot() {
 #[wasm_bindgen_test]
 fn the_spelling_builds_what_the_shapes_build() {
 	let boundary = |banner: &Cfonts| {
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false)).text
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
 	};
 	// a font with two color slots, so a list reaches past its first color
 	let banner = || {
@@ -769,11 +770,11 @@ fn the_background_spelling_builds_what_the_shapes_build() {
 			.line_height(0)
 			.spaceless()
 			.background(background)
-			.render_with(&CliEnv::default(), overrides)
+			.render_with(&TerminalTarget::default(), overrides)
 			.text
 	};
 	let boundary = |banner: &Cfonts| {
-		rendered(banner.render(self::overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false)).text
+		rendered(banner.render(self::overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
 	};
 
 	let mut color = wrapping_banner();
@@ -826,16 +827,16 @@ fn a_color_level_paints_the_configured_colors() {
 	banner.colors(js("[\"red\"]")).expect("valid colors");
 
 	assert!(
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false))
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false))
 			.text
 			.contains("\u{1b}[31m")
 	);
 	assert!(
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Browser, false))
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Browser, false))
 			.text
 			.contains(r##"<span style="color:#ea3223">"##)
 	);
-	assert!(!rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text.contains('\u{1b}'));
+	assert!(!rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text.contains('\u{1b}'));
 }
 
 #[wasm_bindgen_test]
@@ -844,12 +845,12 @@ fn console_styles_cross_the_boundary_in_marker_order() {
 	banner.font("tiny".into()).expect("a font name");
 	banner.colors(js("[\"red\"]")).expect("valid colors");
 
-	let unstyled = rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::BrowserConsole, false));
+	let unstyled = rendered(banner.render(JsValue::UNDEFINED, TargetKind::BrowserConsole, false));
 	assert!(!unstyled.text.contains("%c"));
 	assert!(unstyled.styles.is_empty());
 
 	let styled =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::BrowserConsole, false));
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::BrowserConsole, false));
 	assert_eq!(styled.text.matches("%c").count(), styled.styles.len());
 	assert!(styled.styles.contains(&String::from("color:#ea3223")));
 }
@@ -861,11 +862,11 @@ fn candy_seeds_are_deterministic_across_the_boundary() {
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 
 	let one =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), Some(42)), EnvironmentKind::Cli, false));
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), Some(42)), TargetKind::Terminal, false));
 	let two =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), Some(42)), EnvironmentKind::Cli, false));
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), Some(42)), TargetKind::Terminal, false));
 	let other =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), Some(43)), EnvironmentKind::Cli, false));
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), Some(43)), TargetKind::Terminal, false));
 
 	assert_eq!(one.text, two.text);
 	assert_ne!(one.text, other.text);
@@ -878,14 +879,14 @@ fn gradients_paint_across_the_boundary() {
 	banner.font("tiny".into()).expect("a font name");
 	banner.colors(js("{ \"start\": \"red\", \"end\": \"blue\" }")).expect("valid stops");
 
-	let plain = rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false));
+	let plain = rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
-	let ramped = rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false));
+	let ramped = rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false));
 	assert!(ramped.text.contains("\u{1b}[38;2;255;0;0m"));
 
 	let console =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::BrowserConsole, false));
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::BrowserConsole, false));
 	assert_eq!(console.text.matches("%c").count(), console.styles.len());
 }
 
@@ -897,10 +898,10 @@ fn the_independent_gradient_crosses_the_boundary() {
 	banner.colors(js("{ \"start\": \"red\", \"end\": \"blue\" }")).expect("valid stops");
 
 	let fixed =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false)).text;
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text;
 	banner.independent_gradient().expect("first independent_gradient call");
 	let independent =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false)).text;
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text;
 
 	let expected = CoreCfonts::text("A|AB")
 		.font(Font::Tiny)
@@ -908,7 +909,7 @@ fn the_independent_gradient_crosses_the_boundary() {
 		.colors(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE })
 		.independent_gradient()
 		.render_with(
-			&CliEnv::default(),
+			&TerminalTarget::default(),
 			RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 		);
 
@@ -945,31 +946,30 @@ fn a_failed_background_does_not_claim_the_slot() {
 }
 
 #[wasm_bindgen_test]
-fn a_background_crosses_the_boundary_into_every_environment() {
+fn a_background_crosses_the_boundary_into_every_target() {
 	let mut banner = text("A");
 	banner.font("tiny".into()).expect("a font name");
 	banner.spaceless().expect("first spaceless call");
 	banner.background("blue".into()).expect("a valid background");
 
-	let plain = rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false));
+	let plain = rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false));
 	assert!(!plain.text.contains("\u{1b}["));
 
-	let expected = CoreCfonts::text("A")
-		.font(Font::Tiny)
-		.spaceless()
-		.background(CoreColor::BLUE)
-		.render_with(&CliEnv::default(), RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)));
+	let expected = CoreCfonts::text("A").font(Font::Tiny).spaceless().background(CoreColor::BLUE).render_with(
+		&TerminalTarget::default(),
+		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
+	);
 	assert_eq!(
-		rendered(banner.render(overrides(None, Some(ColorLevel::Basic), None), EnvironmentKind::Cli, false)).text,
+		rendered(banner.render(overrides(None, Some(ColorLevel::Basic), None), TargetKind::Terminal, false)).text,
 		expected.text
 	);
 
 	let html =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Browser, false)).text;
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Browser, false)).text;
 	assert!(html.contains("<div style=\"background:#0020f5;min-height:1lh\">"));
 
 	let console =
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::BrowserConsole, false));
+		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::BrowserConsole, false));
 	assert!(console.styles.contains(&"background:#0020f5".to_owned()));
 }
 
@@ -977,13 +977,13 @@ fn a_background_crosses_the_boundary_into_every_environment() {
 fn a_system_background_is_accepted_and_paints_nothing() {
 	let plain = wrapping_banner();
 	let mut system = wrapping_banner();
-	system.background("system".into()).expect("system leaves the environment's own background");
+	system.background("system".into()).expect("system leaves the target's own background");
 
-	for environment in EnvironmentKind::ALL {
+	for target in TargetKind::ALL {
 		assert_eq!(
-			rendered(system.render(overrides(None, Some(ColorLevel::TrueColor), None), environment, false)).text,
-			rendered(plain.render(overrides(None, Some(ColorLevel::TrueColor), None), environment, false)).text,
-			"{environment:?}",
+			rendered(system.render(overrides(None, Some(ColorLevel::TrueColor), None), target, false)).text,
+			rendered(plain.render(overrides(None, Some(ColorLevel::TrueColor), None), target, false)).text,
+			"{target:?}",
 		);
 	}
 }
@@ -998,11 +998,11 @@ fn every_background_gradient_shape_matches_the_core_builder() {
 			.line_height(0)
 			.spaceless()
 			.background(background)
-			.render_with(&CliEnv::default(), overrides)
+			.render_with(&TerminalTarget::default(), overrides)
 			.text
 	};
 	let boundary = |banner: &Cfonts| {
-		rendered(banner.render(self::overrides(None, Some(ColorLevel::TrueColor), None), EnvironmentKind::Cli, false)).text
+		rendered(banner.render(self::overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
 	};
 
 	let mut two_stop = wrapping_banner();
@@ -1061,22 +1061,22 @@ fn raw_mode_changes_nothing_but_the_line_endings() {
 	banner.font("tiny".into()).expect("a font name");
 	banner.line_height(2.into()).expect("a count");
 
-	let raw = rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, true)).text;
-	let plain = rendered(banner.render(JsValue::UNDEFINED, EnvironmentKind::Cli, false)).text;
+	let raw = rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, true)).text;
+	let plain = rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text;
 
 	assert!(raw.contains("\r\n"));
 	assert!(raw.split("\r\n").eq(plain.split('\n')), "raw output must differ from plain output only by its endings");
 }
 
 #[wasm_bindgen_test]
-fn raw_mode_means_nothing_to_the_browser_environments() {
+fn raw_mode_means_nothing_to_the_browser_targets() {
 	let banner = wrapping_banner();
 
-	for environment in [EnvironmentKind::Browser, EnvironmentKind::BrowserConsole] {
+	for target in [TargetKind::Browser, TargetKind::BrowserConsole] {
 		assert_eq!(
-			rendered(banner.render(JsValue::UNDEFINED, environment, true)).text,
-			rendered(banner.render(JsValue::UNDEFINED, environment, false)).text,
-			"{environment:?}"
+			rendered(banner.render(JsValue::UNDEFINED, target, true)).text,
+			rendered(banner.render(JsValue::UNDEFINED, target, false)).text,
+			"{target:?}"
 		);
 	}
 }
@@ -1090,18 +1090,18 @@ fn the_page_host_pins_what_a_page_render_takes_as_given() {
 	let seed = entropy();
 	let host = BrowserHost::from_overrides(overrides(None, None, Some(seed))).expect("valid overrides");
 
-	for environment in EnvironmentKind::ALL {
+	for target in TargetKind::ALL {
 		assert_eq!(
-			rendered(host.render(&banner, environment, false)).text,
-			rendered(banner.render(overrides(Some(0), Some(ColorLevel::TrueColor), Some(seed)), environment, false)).text,
-			"{environment:?}",
+			rendered(host.render(&banner, target, false)).text,
+			rendered(banner.render(overrides(Some(0), Some(ColorLevel::TrueColor), Some(seed)), target, false)).text,
+			"{target:?}",
 		);
 	}
 
-	// the raw flag reaches the terminal environment through the host
-	let raw = rendered(host.render(&banner, EnvironmentKind::Cli, true)).text;
+	// the raw flag reaches the terminal target through the host
+	let raw = rendered(host.render(&banner, TargetKind::Terminal, true)).text;
 	assert!(raw.contains("\r\n"));
-	assert!(raw.split("\r\n").eq(rendered(host.render(&banner, EnvironmentKind::Cli, false)).text.split('\n')));
+	assert!(raw.split("\r\n").eq(rendered(host.render(&banner, TargetKind::Terminal, false)).text.split('\n')));
 }
 
 #[wasm_bindgen_test]
@@ -1111,16 +1111,16 @@ fn only_a_column_override_wraps_the_page() {
 	let unlimited = BrowserHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 
 	assert_eq!(
-		rendered(narrow.render(&banner, EnvironmentKind::Browser, false)).text,
-		render_core(EnvironmentKind::Browser, Some(3))
+		rendered(narrow.render(&banner, TargetKind::Browser, false)).text,
+		render_core(TargetKind::Browser, Some(3))
 	);
 	assert_eq!(
-		rendered(unlimited.render(&banner, EnvironmentKind::Browser, false)).text,
-		render_core(EnvironmentKind::Browser, None)
+		rendered(unlimited.render(&banner, TargetKind::Browser, false)).text,
+		render_core(TargetKind::Browser, None)
 	);
 	assert_ne!(
-		rendered(narrow.render(&banner, EnvironmentKind::Browser, false)).text,
-		rendered(unlimited.render(&banner, EnvironmentKind::Browser, false)).text
+		rendered(narrow.render(&banner, TargetKind::Browser, false)).text,
+		rendered(unlimited.render(&banner, TargetKind::Browser, false)).text
 	);
 }
 
@@ -1134,12 +1134,10 @@ fn the_page_host_paints_in_true_color_unless_told_otherwise() {
 	let basic = BrowserHost::from_overrides(overrides(None, Some(ColorLevel::Basic), None)).expect("valid overrides");
 
 	assert!(
-		rendered(painted.render(&banner, EnvironmentKind::Browser, false))
-			.text
-			.contains(r##"<span style="color:#ea3223">"##)
+		rendered(painted.render(&banner, TargetKind::Browser, false)).text.contains(r##"<span style="color:#ea3223">"##)
 	);
-	assert!(!rendered(disabled.render(&banner, EnvironmentKind::Browser, false)).text.contains("<span"));
-	assert!(rendered(basic.render(&banner, EnvironmentKind::Cli, false)).text.contains("\u{1b}[31m"));
+	assert!(!rendered(disabled.render(&banner, TargetKind::Browser, false)).text.contains("<span"));
+	assert!(rendered(basic.render(&banner, TargetKind::Terminal, false)).text.contains("\u{1b}[31m"));
 }
 
 #[wasm_bindgen_test]
@@ -1152,15 +1150,15 @@ fn the_page_host_rolls_a_fresh_seed_unless_one_is_pinned() {
 	let rolling = BrowserHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 
 	assert_eq!(
-		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text,
-		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text
+		rendered(pinned.render(&banner, TargetKind::Terminal, false)).text,
+		rendered(pinned.render(&banner, TargetKind::Terminal, false)).text
 	);
 	// the pair is fixed because the core's roll is deterministic per seed: 42 and 43 draw different assortments
 	assert_ne!(
-		rendered(pinned.render(&banner, EnvironmentKind::Cli, false)).text,
-		rendered(other.render(&banner, EnvironmentKind::Cli, false)).text
+		rendered(pinned.render(&banner, TargetKind::Terminal, false)).text,
+		rendered(other.render(&banner, TargetKind::Terminal, false)).text
 	);
-	assert_fresh(|| rendered(rolling.render(&banner, EnvironmentKind::Cli, false)).text);
+	assert_fresh(|| rendered(rolling.render(&banner, TargetKind::Terminal, false)).text);
 	assert_fresh(entropy);
 }
 
@@ -1190,7 +1188,7 @@ fn the_hosts_read_their_overrides_behind_the_boundary() {
 #[wasm_bindgen_test]
 fn the_node_host_resolves_the_width_from_the_terminal_facts() {
 	let banner = text("AAAA");
-	let width = |host: &NodeHost, facts: JsValue| rendered(host.render(&banner, EnvironmentKind::Cli, false, facts)).text;
+	let width = |host: &NodeHost, facts: JsValue| rendered(host.render(&banner, TargetKind::Terminal, false, facts)).text;
 	let detecting = NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 
 	// the measured width wraps, FORCE_SIZE beats it and the API override, zero lifts the limit
@@ -1228,9 +1226,9 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 	banner.font("tiny".into()).expect("a font name");
 	banner.colors(js("[\"#ff8800\"]")).expect("valid colors");
 	let unlimited = NodeHost::from_overrides(overrides(Some(0), None, None)).expect("valid overrides");
-	let level = |facts: JsValue| rendered(unlimited.render(&banner, EnvironmentKind::Cli, false, facts)).text;
+	let level = |facts: JsValue| rendered(unlimited.render(&banner, TargetKind::Terminal, false, facts)).text;
 	let reference =
-		|color: Option<ColorLevel>| rendered(banner.render(overrides(None, color, None), EnvironmentKind::Cli, false)).text;
+		|color: Option<ColorLevel>| rendered(banner.render(overrides(None, color, None), TargetKind::Terminal, false)).text;
 
 	// FORCE_COLOR wins over the cascade, NO_COLOR silences it, an empty NO_COLOR is not set
 	assert_eq!(
@@ -1256,11 +1254,11 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 	// a disabled override paints nothing, FORCE_COLOR still wins over it
 	let disabled = NodeHost::from_overrides(js("{ \"canvasWidth\": 0, \"color\": false }")).expect("valid overrides");
 	assert_eq!(
-		rendered(disabled.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[]))).text,
+		rendered(disabled.render(&banner, TargetKind::Terminal, false, terminal(Some(80), &[]))).text,
 		reference(None)
 	);
 	assert_eq!(
-		rendered(disabled.render(&banner, EnvironmentKind::Cli, false, terminal(Some(80), &[("FORCE_COLOR", "2")]))).text,
+		rendered(disabled.render(&banner, TargetKind::Terminal, false, terminal(Some(80), &[("FORCE_COLOR", "2")]))).text,
 		reference(Some(ColorLevel::Ansi256))
 	);
 
@@ -1277,7 +1275,7 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 
 	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type,
 	// a lookup that is no function with the sentence of the facts
-	let refused = |facts: JsValue| message(unlimited.render(&banner, EnvironmentKind::Cli, false, facts).map(|_| ()));
+	let refused = |facts: JsValue| message(unlimited.render(&banner, TargetKind::Terminal, false, facts).map(|_| ()));
 	for facts in [JsValue::NULL, 1.into(), js("[]")] {
 		assert_eq!(refused(facts), "`render()` expects the terminal facts");
 	}
@@ -1303,23 +1301,23 @@ fn the_node_host_seeds_candy_from_the_override_or_a_fresh_roll() {
 	let rolling = NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 
 	assert_eq!(
-		rendered(pinned.render(&banner, EnvironmentKind::Cli, false, facts())).text,
-		rendered(pinned.render(&banner, EnvironmentKind::Cli, false, facts())).text
+		rendered(pinned.render(&banner, TargetKind::Terminal, false, facts())).text,
+		rendered(pinned.render(&banner, TargetKind::Terminal, false, facts())).text
 	);
 	// the pair is fixed because the core's roll is deterministic per seed: 42 and 43 draw different assortments
 	assert_ne!(
-		rendered(pinned.render(&banner, EnvironmentKind::Cli, false, facts())).text,
-		rendered(other.render(&banner, EnvironmentKind::Cli, false, facts())).text
+		rendered(pinned.render(&banner, TargetKind::Terminal, false, facts())).text,
+		rendered(other.render(&banner, TargetKind::Terminal, false, facts())).text
 	);
-	assert_fresh(|| rendered(rolling.render(&banner, EnvironmentKind::Cli, false, facts())).text);
+	assert_fresh(|| rendered(rolling.render(&banner, TargetKind::Terminal, false, facts())).text);
 }
 
 #[wasm_bindgen_test]
-fn the_line_ending_crosses_as_the_environment_answers_it() {
-	assert_eq!(line_end(EnvironmentKind::Cli, false), "\n");
-	assert_eq!(line_end(EnvironmentKind::Cli, true), "\r\n");
-	assert_eq!(line_end(EnvironmentKind::Browser, false), "");
-	assert_eq!(line_end(EnvironmentKind::BrowserConsole, true), "");
+fn the_line_ending_crosses_as_the_target_answers_it() {
+	assert_eq!(line_end(TargetKind::Terminal, false), "\n");
+	assert_eq!(line_end(TargetKind::Terminal, true), "\r\n");
+	assert_eq!(line_end(TargetKind::Browser, false), "");
+	assert_eq!(line_end(TargetKind::BrowserConsole, true), "");
 }
 
 #[wasm_bindgen_test]
@@ -1331,7 +1329,7 @@ fn the_page_host_say_cannot_fail() {
 
 	BrowserHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides").say(
 		&banner,
-		EnvironmentKind::BrowserConsole,
+		TargetKind::BrowserConsole,
 		false,
 	);
 }

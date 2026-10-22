@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 use crate::{
 	color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Background, Color, ColorLevel, Rgb, Text, Value},
-	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column},
 	layout::LayoutRow,
 	options::Options,
 	render::RenderContext,
+	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, each_ramp_column},
 };
 
 /// Erases from the cursor to the end of the line, which a terminal with background color erase
@@ -35,7 +35,7 @@ fn push_decimal(value: u8, out: &mut String) {
 	out.push(char::from(b'0' + value % 10));
 }
 
-impl CliEnv {
+impl TerminalTarget {
 	/// The foreground start code of one RGB value at one support level
 	fn rgb_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
 		Self::rgb_code(rgb, level, FOREGROUND, Rgb::ansi16_sgr)
@@ -99,11 +99,11 @@ impl CliEnv {
 
 /// The terminal artifact formatter
 #[derive(Debug, Clone, Copy)]
-pub struct CliEnv {
+pub struct TerminalTarget {
 	line_end: &'static str,
 }
 
-impl CliEnv {
+impl TerminalTarget {
 	/// Ends every line with `\r\n`, the ending a terminal in raw mode needs
 	#[must_use]
 	pub const fn raw_mode(mut self) -> Self {
@@ -112,13 +112,13 @@ impl CliEnv {
 	}
 }
 
-impl Default for CliEnv {
+impl Default for TerminalTarget {
 	fn default() -> Self {
 		Self { line_end: "\n" }
 	}
 }
 
-impl Environment for CliEnv {
+impl Target for TerminalTarget {
 	/// The line ending every row break writes, so the host closes the artifact like the rows
 	fn line_end(&self) -> &'static str {
 		self.line_end
@@ -221,15 +221,18 @@ mod tests {
 		for value in 0..=u8::MAX {
 			let rgb = Rgb { red: value, green: value, blue: value };
 
-			assert_eq!(CliEnv::rgb_start(rgb, ColorLevel::TrueColor), format!("\x1b[38;2;{value};{value};{value}m"));
+			assert_eq!(TerminalTarget::rgb_start(rgb, ColorLevel::TrueColor), format!("\x1b[38;2;{value};{value};{value}m"));
 			assert_eq!(
-				CliEnv::rgb_background_start(rgb, ColorLevel::TrueColor),
+				TerminalTarget::rgb_background_start(rgb, ColorLevel::TrueColor),
 				format!("\x1b[48;2;{value};{value};{value}m")
 			);
-			assert_eq!(CliEnv::rgb_start(rgb, ColorLevel::Ansi256), format!("\x1b[38;5;{}m", rgb.ansi256_index()));
-			assert_eq!(CliEnv::rgb_background_start(rgb, ColorLevel::Ansi256), format!("\x1b[48;5;{}m", rgb.ansi256_index()));
-			assert_eq!(CliEnv::rgb_start(rgb, ColorLevel::Basic), rgb.ansi16_sgr());
-			assert_eq!(CliEnv::rgb_background_start(rgb, ColorLevel::Basic), rgb.ansi16_background_sgr());
+			assert_eq!(TerminalTarget::rgb_start(rgb, ColorLevel::Ansi256), format!("\x1b[38;5;{}m", rgb.ansi256_index()));
+			assert_eq!(
+				TerminalTarget::rgb_background_start(rgb, ColorLevel::Ansi256),
+				format!("\x1b[48;5;{}m", rgb.ansi256_index())
+			);
+			assert_eq!(TerminalTarget::rgb_start(rgb, ColorLevel::Basic), rgb.ansi16_sgr());
+			assert_eq!(TerminalTarget::rgb_background_start(rgb, ColorLevel::Basic), rgb.ansi16_background_sgr());
 		}
 	}
 
@@ -238,7 +241,7 @@ mod tests {
 	#[test]
 	fn named_colors_borrow_their_fixed_codes_at_every_level() {
 		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-			let tokens = CliEnv::default().color_tokens(Color::RED, &RenderContext::colored(level));
+			let tokens = TerminalTarget::default().color_tokens(Color::RED, &RenderContext::colored(level));
 
 			assert_eq!(tokens.start, "\u{1b}[31m", "{level:?}");
 			assert_eq!(tokens.end, "\u{1b}[39m");
@@ -251,102 +254,113 @@ mod tests {
 		let rgb = Color::rgb(255, 136, 0);
 
 		assert_eq!(
-			CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
+			TerminalTarget::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
 			"\u{1b}[38;2;255;136;0m"
 		);
 		assert_eq!(
-			CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start,
+			TerminalTarget::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start,
 			"\u{1b}[38;5;208m"
 		);
-		assert_eq!(CliEnv::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[91m");
+		assert_eq!(
+			TerminalTarget::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start,
+			"\u{1b}[91m"
+		);
 	}
 
 	// background_tokens
 
 	#[test]
 	fn background_codes_follow_the_foreground_rules() {
-		let env = CliEnv::default();
+		let target = TerminalTarget::default();
 		let rgb = Color::rgb(255, 136, 0);
 
 		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-			let tokens = env.background_tokens(Color::BLUE, &RenderContext::colored(level));
+			let tokens = target.background_tokens(Color::BLUE, &RenderContext::colored(level));
 			assert_eq!(tokens.start, "\u{1b}[44m", "{level:?}");
 			assert_eq!(tokens.end, "\u{1b}[49m");
 		}
 
 		assert_eq!(
-			env.background_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
+			target.background_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
 			"\u{1b}[48;2;255;136;0m"
 		);
-		assert_eq!(env.background_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start, "\u{1b}[48;5;208m");
-		assert_eq!(env.background_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[101m");
+		assert_eq!(target.background_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start, "\u{1b}[48;5;208m");
+		assert_eq!(target.background_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[101m");
 
-		assert!(!env.background_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::Basic)).paints());
-		assert!(!env.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
+		assert!(!target.background_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::Basic)).paints());
+		assert!(!target.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
 	}
 
 	// row_start, top_padding, bottom_padding
 
 	#[test]
 	fn a_row_opens_its_band_and_fills_to_the_edge_before_its_alignment() {
-		let env = CliEnv::default();
-		let band = env.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
+		let target = TerminalTarget::default();
+		let band = target.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
 
 		let mut out = Rendered::default();
-		env.row_start(&row, Some(&band), &Options::default(), &mut out);
+		target.row_start(&row, Some(&band), &Options::default(), &mut out);
 		assert_eq!(out.text, "\u{1b}[44m\u{1b}[K  ");
 
 		let mut out = Rendered::default();
-		env.row_start(&row, None, &Options::default(), &mut out);
+		target.row_start(&row, None, &Options::default(), &mut out);
 		assert_eq!(out.text, "  ");
 	}
 
 	#[test]
 	fn padding_rows_carry_their_bands_around_their_line_ends() {
-		let env = CliEnv::default().raw_mode();
-		let band = env.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
+		let target = TerminalTarget::default().raw_mode();
+		let band = target.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
 
 		let mut out = Rendered::default();
-		env.top_padding([Some(&band), None], &mut out);
+		target.top_padding([Some(&band), None], &mut out);
 		assert_eq!(out.text, "\u{1b}[44m\u{1b}[K\u{1b}[49m\r\n\r\n");
 
 		let mut out = Rendered::default();
-		env.bottom_padding([None, Some(&band)], &mut out);
+		target.bottom_padding([None, Some(&band)], &mut out);
 		assert_eq!(out.text, "\r\n\r\n\u{1b}[44m\u{1b}[K\u{1b}[49m");
 	}
 
 	#[test]
 	fn rgb_black_levels_down_to_ansi_black() {
 		let black = Color::rgb(0, 0, 0);
-		let tokens = CliEnv::default().color_tokens(black, &RenderContext::colored(ColorLevel::Basic));
+		let tokens = TerminalTarget::default().color_tokens(black, &RenderContext::colored(ColorLevel::Basic));
 
 		assert_eq!(tokens.start, "\u{1b}[30m");
 		assert_eq!(tokens.end, "\u{1b}[39m");
 		// the RGB path and the named path agree on black at the basic level
-		assert_eq!(tokens, CliEnv::default().color_tokens(Color::BLACK, &RenderContext::colored(ColorLevel::Basic)));
+		assert_eq!(
+			tokens,
+			TerminalTarget::default().color_tokens(Color::BLACK, &RenderContext::colored(ColorLevel::Basic))
+		);
 	}
 
 	#[test]
 	fn system_candy_and_unleveled_contexts_paint_nothing() {
 		// the paint plan rolls candy into a named color before tokens resolve, so raw candy never paints
-		assert!(!CliEnv::default().color_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::TrueColor)).paints());
-		assert!(!CliEnv::default().color_tokens(Color::CANDY, &RenderContext::colored(ColorLevel::TrueColor)).paints());
-		assert!(!CliEnv::default().color_tokens(Color::RED, &RenderContext::unlimited()).paints());
-		assert!(!CliEnv::default().color_tokens(Color::rgb(1, 2, 3), &RenderContext::unlimited()).paints());
+		assert!(
+			!TerminalTarget::default().color_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::TrueColor)).paints()
+		);
+		assert!(
+			!TerminalTarget::default().color_tokens(Color::CANDY, &RenderContext::colored(ColorLevel::TrueColor)).paints()
+		);
+		assert!(!TerminalTarget::default().color_tokens(Color::RED, &RenderContext::unlimited()).paints());
+		assert!(!TerminalTarget::default().color_tokens(Color::rgb(1, 2, 3), &RenderContext::unlimited()).paints());
 	}
 
 	// line endings
 
 	#[test]
 	fn the_line_end_follows_the_raw_flag() {
-		assert_eq!(CliEnv::default().line_end(), "\n");
-		assert_eq!(CliEnv::default().raw_mode().line_end(), "\r\n");
+		assert_eq!(TerminalTarget::default().line_end(), "\n");
+		assert_eq!(TerminalTarget::default().raw_mode().line_end(), "\r\n");
 	}
 
 	#[test]
 	fn raw_mode_pairs_every_line_break_with_a_carriage_return() {
-		let raw = Cfonts::text("A").font(Font::Tiny).render_with(&CliEnv::default().raw_mode(), RenderOverrides::default());
+		let raw =
+			Cfonts::text("A").font(Font::Tiny).render_with(&TerminalTarget::default().raw_mode(), RenderOverrides::default());
 
 		assert!(raw.text.contains("\r\n"));
 		assert_eq!(
@@ -358,7 +372,7 @@ mod tests {
 
 	#[test]
 	fn the_default_line_ending_carries_no_carriage_return() {
-		let plain = Cfonts::text("A").font(Font::Tiny).render_with(&CliEnv::default(), RenderOverrides::default());
+		let plain = Cfonts::text("A").font(Font::Tiny).render_with(&TerminalTarget::default(), RenderOverrides::default());
 
 		assert!(plain.text.contains('\n'));
 		assert!(!plain.text.contains('\r'));
@@ -368,8 +382,8 @@ mod tests {
 	fn raw_mode_changes_nothing_but_the_line_endings() {
 		// blank rows from line_height and the paddings travel through the same endings as the glyph rows
 		let banner = Cfonts::text("AB").font(Font::Tiny).line_height(2);
-		let raw = banner.render_with(&CliEnv::default().raw_mode(), RenderOverrides::default());
-		let plain = banner.render_with(&CliEnv::default(), RenderOverrides::default());
+		let raw = banner.render_with(&TerminalTarget::default().raw_mode(), RenderOverrides::default());
+		let plain = banner.render_with(&TerminalTarget::default(), RenderOverrides::default());
 
 		assert!(
 			raw.text.split("\r\n").eq(plain.text.split('\n')),

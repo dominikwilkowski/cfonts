@@ -1,7 +1,7 @@
 import { entropy, type RenderOverrides, BrowserHost as WasmBrowserHost } from "../../pkg/cfonts_wasm.js";
 import { inner } from "../boundary.js";
-import { type Environment, environmentArguments } from "../environments/index.js";
 import type { Cfonts, Rendered } from "../index.js";
+import { type Target, targetArguments } from "../targets/index.js";
 import type { Host } from "./types.js";
 
 /**
@@ -49,11 +49,11 @@ export class BrowserHost implements Host {
 		return new BrowserHost(overrides);
 	}
 
-	render(composition: Cfonts, environment: Environment): Rendered {
-		return this.#inner.render(composition[inner](), ...environmentArguments(environment, "render"));
+	render(composition: Cfonts, target: Target): Rendered {
+		return this.#inner.render(composition[inner](), ...targetArguments(target, "render"));
 	}
 
-	say(composition: Cfonts, environment: Environment): void {
-		this.#inner.say(composition[inner](), ...environmentArguments(environment, "say"));
+	say(composition: Cfonts, target: Target): void {
+		this.#inner.say(composition[inner](), ...targetArguments(target, "say"));
 	}
 }

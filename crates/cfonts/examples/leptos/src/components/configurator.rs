@@ -4,7 +4,7 @@ use crate::components::{command::Composition, console::Console, form::Form};
 
 #[derive(Debug, Clone, Copy)]
 pub struct FormState {
-	pub env: RwSignal<String>,
+	pub target: RwSignal<String>,
 	pub text: RwSignal<String>,
 	pub font: RwSignal<String>,
 	pub letter_spacing: RwSignal<String>,
@@ -24,7 +24,7 @@ pub struct FormState {
 impl Default for FormState {
 	fn default() -> Self {
 		Self {
-			env: RwSignal::new(String::from("browser")),
+			target: RwSignal::new(String::from("browser")),
 			text: RwSignal::new(String::from("How are you?")),
 			font: RwSignal::new(String::from("neat")),
 			letter_spacing: RwSignal::new(String::new()),

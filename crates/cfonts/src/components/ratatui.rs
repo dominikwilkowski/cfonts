@@ -10,11 +10,11 @@ use ::ratatui::{
 
 use crate::{
 	color::{Background, Color, ColorLevel, Rgb, Text, Value},
-	environments::RowEvent,
 	hosts::entropy,
 	layout::Layout,
 	options::Options,
 	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext, RenderOverrides},
+	targets::RowEvent,
 };
 
 /// A Ratatui widget that renders cfonts directly into a terminal buffer
@@ -244,7 +244,7 @@ mod tests {
 
 	#[test]
 	fn widget_centers_with_floored_padding() {
-		// an uneven gap floors the left padding, like the CLI environment
+		// an uneven gap floors the left padding, like the terminal target
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.align = Align::Center;
 		let widget = CfontsWidget { options: &options, overrides: RenderOverrides::default() };

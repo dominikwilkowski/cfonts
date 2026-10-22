@@ -2,10 +2,10 @@ use std::{borrow::Cow, iter};
 
 use crate::{
 	color::{Background, Color, Rgb, Text},
-	environments::{ColorTokens, Environment, PADDING_ROWS, Rendered, each_ramp_column, leveled_rgb, push_escaped},
 	layout::LayoutRow,
 	options::Options,
 	render::RenderContext,
+	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, each_ramp_column, leveled_rgb, push_escaped},
 };
 
 /// The browser-console artifact formatter
@@ -16,9 +16,9 @@ use crate::{
 /// A marker replaces the whole style, so one goes out only where the style changes,
 /// and every row closes with the empty style before its line break
 #[derive(Debug, Clone, Copy, Default)]
-pub struct BrowserConsoleEnv;
+pub struct BrowserConsoleTarget;
 
-impl BrowserConsoleEnv {
+impl BrowserConsoleTarget {
 	/// The style the console writes under right now: the last one pushed, or none
 	fn current(out: &Rendered) -> &str {
 		out.styles.last().map_or("", String::as_str)
@@ -79,7 +79,7 @@ impl BrowserConsoleEnv {
 	}
 }
 
-impl Environment for BrowserConsoleEnv {
+impl Target for BrowserConsoleTarget {
 	/// The console has no terminal palette, so named colors flatten to their RGB values as CSS
 	/// declarations and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
@@ -192,11 +192,11 @@ mod tests {
 	}
 
 	fn red() -> ColorTokens {
-		BrowserConsoleEnv.color_tokens(Color::RED, &leveled())
+		BrowserConsoleTarget.color_tokens(Color::RED, &leveled())
 	}
 
 	fn blue_band() -> ColorTokens {
-		BrowserConsoleEnv.background_tokens(Color::BLUE, &leveled())
+		BrowserConsoleTarget.background_tokens(Color::BLUE, &leveled())
 	}
 
 	// color_tokens
@@ -205,8 +205,8 @@ mod tests {
 	fn named_colors_flatten_to_css_declarations() {
 		assert_eq!(red().start, "color:#ea3223");
 		assert_eq!(red().end, "");
-		assert!(!BrowserConsoleEnv.color_tokens(Color::SYSTEM, &leveled()).paints());
-		assert!(!BrowserConsoleEnv.color_tokens(Color::RED, &RenderContext::unlimited()).paints());
+		assert!(!BrowserConsoleTarget.color_tokens(Color::SYSTEM, &leveled()).paints());
+		assert!(!BrowserConsoleTarget.color_tokens(Color::RED, &RenderContext::unlimited()).paints());
 	}
 
 	#[test]
@@ -214,17 +214,17 @@ mod tests {
 		// the console shows any value, so a level below full support paints the entry a terminal would pick
 		let orange = Rgb { red: 255, green: 136, blue: 0 };
 
-		assert_eq!(BrowserConsoleEnv.color_tokens(orange.into(), &leveled()).start, "color:#f80");
+		assert_eq!(BrowserConsoleTarget.color_tokens(orange.into(), &leveled()).start, "color:#f80");
 		assert_eq!(
-			BrowserConsoleEnv.color_tokens(orange.into(), &RenderContext::colored(ColorLevel::Ansi256)).start,
+			BrowserConsoleTarget.color_tokens(orange.into(), &RenderContext::colored(ColorLevel::Ansi256)).start,
 			"color:#ff8700"
 		);
 		assert_eq!(
-			BrowserConsoleEnv.color_tokens(orange.into(), &RenderContext::colored(ColorLevel::Basic)).start,
+			BrowserConsoleTarget.color_tokens(orange.into(), &RenderContext::colored(ColorLevel::Basic)).start,
 			"color:#ee776d"
 		);
 		assert_eq!(
-			BrowserConsoleEnv.background_tokens(orange.into(), &RenderContext::colored(ColorLevel::Basic)).start,
+			BrowserConsoleTarget.background_tokens(orange.into(), &RenderContext::colored(ColorLevel::Basic)).start,
 			"background:#ee776d"
 		);
 	}
@@ -235,8 +235,8 @@ mod tests {
 	fn a_band_is_a_background_declaration() {
 		assert_eq!(blue_band().start, "background:#0020f5");
 		assert_eq!(blue_band().end, "");
-		assert!(!BrowserConsoleEnv.background_tokens(Color::SYSTEM, &leveled()).paints());
-		assert!(!BrowserConsoleEnv.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
+		assert!(!BrowserConsoleTarget.background_tokens(Color::SYSTEM, &leveled()).paints());
+		assert!(!BrowserConsoleTarget.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
 	}
 
 	// paint
@@ -245,7 +245,7 @@ mod tests {
 	fn a_painted_run_opens_its_style_and_leaves_it_open() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄▀█", &red(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄▀█", &red(), None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223")]);
@@ -255,8 +255,8 @@ mod tests {
 	fn an_equal_style_reopens_nothing() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄▀", &red(), None, true, &leveled(), &mut out);
-		BrowserConsoleEnv.paint("█", &red(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄▀", &red(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("█", &red(), None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█");
 		assert_eq!(out.styles.len(), 1);
@@ -265,10 +265,10 @@ mod tests {
 	#[test]
 	fn a_different_style_switches_with_one_marker() {
 		let mut out = Rendered::default();
-		let blue = BrowserConsoleEnv.color_tokens(Color::BLUE, &leveled());
+		let blue = BrowserConsoleTarget.color_tokens(Color::BLUE, &leveled());
 
-		BrowserConsoleEnv.paint("▄", &red(), None, true, &leveled(), &mut out);
-		BrowserConsoleEnv.paint("▀", &blue, None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄", &red(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▀", &blue, None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄%c▀");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223"), String::from("color:#0020f5")]);
@@ -278,8 +278,8 @@ mod tests {
 	fn bare_text_after_a_style_resets_first() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄", &red(), None, true, &leveled(), &mut out);
-		BrowserConsoleEnv.paint("▀", &ColorTokens::default(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄", &red(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▀", &ColorTokens::default(), None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄%c▀");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223"), String::new()]);
@@ -289,7 +289,7 @@ mod tests {
 	fn a_band_joins_the_run_style() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄▀█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄▀█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223;background:#0020f5")]);
@@ -299,7 +299,7 @@ mod tests {
 	fn a_band_styles_bare_text_too() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄▀█", &ColorTokens::default(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄▀█", &ColorTokens::default(), Some(&blue_band()), true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█");
 		assert_eq!(out.styles, vec![String::from("background:#0020f5")]);
@@ -309,8 +309,8 @@ mod tests {
 	fn an_equal_color_and_band_reopen_nothing() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄▀", &red(), Some(&blue_band()), true, &leveled(), &mut out);
-		BrowserConsoleEnv.paint("█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▄▀", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223;background:#0020f5")]);
@@ -321,9 +321,9 @@ mod tests {
 		// a band opened by blanks gains the run's color, and bare text on the band drops it again
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.blank(1, Some(&blue_band()), &mut out);
-		BrowserConsoleEnv.paint("▄", &red(), Some(&blue_band()), true, &leveled(), &mut out);
-		BrowserConsoleEnv.paint("▀", &ColorTokens::default(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.blank(1, Some(&blue_band()), &mut out);
+		BrowserConsoleTarget.paint("▄", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("▀", &ColorTokens::default(), Some(&blue_band()), true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "%c %c▄%c▀");
 		assert_eq!(
@@ -341,7 +341,7 @@ mod tests {
 		// once any style argument exists the console interprets every percent in the log
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("50%", &ColorTokens::default(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.paint("50%", &ColorTokens::default(), None, true, &leveled(), &mut out);
 
 		assert_eq!(out.text, "50%%");
 		assert!(out.styles.is_empty());
@@ -351,7 +351,7 @@ mod tests {
 	fn unstyled_renders_pass_text_through_untouched() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("50%", &ColorTokens::default(), None, false, &RenderContext::unlimited(), &mut out);
+		BrowserConsoleTarget.paint("50%", &ColorTokens::default(), None, false, &RenderContext::unlimited(), &mut out);
 
 		assert_eq!(out.text, "50%");
 		assert!(out.styles.is_empty());
@@ -364,7 +364,7 @@ mod tests {
 		let mut out = Rendered::default();
 		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
 
-		BrowserConsoleEnv.gradient_paint("▄▀█", &ramp, Some(&blue_band()), &leveled(), &mut out);
+		BrowserConsoleTarget.gradient_paint("▄▀█", &ramp, Some(&blue_band()), &leveled(), &mut out);
 
 		// the third column is past the ramp, so it keeps the band alone
 		assert_eq!(out.text, "%c▄%c▀%c█");
@@ -384,7 +384,7 @@ mod tests {
 		let mut out = Rendered::default();
 		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
 
-		BrowserConsoleEnv.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::Basic), &mut out);
+		BrowserConsoleTarget.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::Basic), &mut out);
 
 		assert_eq!(out.text, "%c▄%c▀");
 		assert_eq!(out.styles, vec![String::from("color:#ee776d"), String::from("color:#6974f6")]);
@@ -395,12 +395,12 @@ mod tests {
 	#[test]
 	fn blanks_on_a_band_open_it_when_nothing_is_open() {
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.blank(2, Some(&blue_band()), &mut out);
+		BrowserConsoleTarget.blank(2, Some(&blue_band()), &mut out);
 		assert_eq!(out.text, "%c  ");
 		assert_eq!(out.styles, vec![String::from("background:#0020f5")]);
 
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.blank(2, None, &mut out);
+		BrowserConsoleTarget.blank(2, None, &mut out);
 		assert_eq!(out.text, "  ");
 		assert!(out.styles.is_empty());
 	}
@@ -409,8 +409,8 @@ mod tests {
 	fn blanks_inside_an_open_style_cost_no_marker() {
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.paint("▄▀█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
-		BrowserConsoleEnv.blank(2, Some(&blue_band()), &mut out);
+		BrowserConsoleTarget.paint("▄▀█", &red(), Some(&blue_band()), true, &leveled(), &mut out);
+		BrowserConsoleTarget.blank(2, Some(&blue_band()), &mut out);
 
 		assert_eq!(out.text, "%c▄▀█  ");
 		assert_eq!(out.styles.len(), 1);
@@ -421,12 +421,12 @@ mod tests {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
 
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.row_start(&row, Some(&blue_band()), &Options::default(), &mut out);
+		BrowserConsoleTarget.row_start(&row, Some(&blue_band()), &Options::default(), &mut out);
 		assert_eq!(out.text, "%c  ");
 		assert_eq!(out.styles, vec![String::from("background:#0020f5")]);
 
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.row_start(&row, None, &Options::default(), &mut out);
+		BrowserConsoleTarget.row_start(&row, None, &Options::default(), &mut out);
 		assert_eq!(out.text, "  ");
 		assert!(out.styles.is_empty());
 	}
@@ -437,7 +437,7 @@ mod tests {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 0, block_spans: Vec::new() };
 		let mut out = Rendered::default();
 
-		BrowserConsoleEnv.row_start(&row, Some(&blue_band()), &Options::default(), &mut out);
+		BrowserConsoleTarget.row_start(&row, Some(&blue_band()), &Options::default(), &mut out);
 
 		assert_eq!(out.text, "");
 		assert!(out.styles.is_empty());
@@ -446,13 +446,13 @@ mod tests {
 	#[test]
 	fn row_end_closes_an_open_style_and_nothing_otherwise() {
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.paint("▄▀█", &red(), None, true, &leveled(), &mut out);
-		BrowserConsoleEnv.row_end(None, &mut out);
+		BrowserConsoleTarget.paint("▄▀█", &red(), None, true, &leveled(), &mut out);
+		BrowserConsoleTarget.row_end(None, &mut out);
 		assert_eq!(out.text, "%c▄▀█%c");
 		assert_eq!(out.styles, vec![String::from("color:#ea3223"), String::new()]);
 
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.row_end(None, &mut out);
+		BrowserConsoleTarget.row_end(None, &mut out);
 		assert_eq!(out.text, "");
 		assert!(out.styles.is_empty());
 	}
@@ -462,8 +462,8 @@ mod tests {
 	#[test]
 	fn padding_rows_are_empty_lines() {
 		let mut out = Rendered::default();
-		BrowserConsoleEnv.top_padding([Some(&blue_band()), None], &mut out);
-		BrowserConsoleEnv.bottom_padding([None, Some(&blue_band())], &mut out);
+		BrowserConsoleTarget.top_padding([Some(&blue_band()), None], &mut out);
+		BrowserConsoleTarget.bottom_padding([None, Some(&blue_band())], &mut out);
 
 		assert_eq!(out.text, "\n\n\n\n");
 		assert!(out.styles.is_empty());
@@ -473,13 +473,13 @@ mod tests {
 
 	#[test]
 	fn render_aligns_inside_a_user_defined_canvas() {
-		// the console env has no alignment syntax of its own, so the default physical padding applies
+		// the console target has no alignment syntax of its own, so the default physical padding applies
 		let rendered = Cfonts::text("A")
 			.font(Font::Tiny)
 			.align(Align::Right)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserConsoleEnv, RenderOverrides::default().with_canvas_width(10));
+			.render_with(&BrowserConsoleTarget, RenderOverrides::default().with_canvas_width(10));
 
 		assert_eq!(rendered.text, "       ▄▀█\n       █▀█");
 		assert!(rendered.styles.is_empty());
@@ -491,7 +491,7 @@ mod tests {
 			.font(Font::Tiny)
 			.valign(Valign::Top)
 			.spaceless()
-			.render_with(&BrowserConsoleEnv, RenderOverrides::default());
+			.render_with(&BrowserConsoleTarget, RenderOverrides::default());
 
 		assert_eq!(rendered.text, "▄▀█\n█▀█");
 		assert!(rendered.styles.is_empty());
@@ -500,7 +500,7 @@ mod tests {
 	#[test]
 	fn render_pads_with_empty_lines() {
 		let rendered = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).render_with(
-			&BrowserConsoleEnv,
+			&BrowserConsoleTarget,
 			RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 		);
 
@@ -518,7 +518,7 @@ mod tests {
 			.font(Font::Block)
 			.background(Color::BLUE)
 			.render_with(
-				&BrowserConsoleEnv,
+				&BrowserConsoleTarget,
 				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 			);
 
@@ -531,7 +531,7 @@ mod tests {
 	fn a_band_alone_costs_one_switch_and_one_reset_per_row() {
 		let rendered =
 			Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::BLUE).render_with(
-				&BrowserConsoleEnv,
+				&BrowserConsoleTarget,
 				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 			);
 
@@ -547,7 +547,7 @@ mod tests {
 			.spaceless()
 			.colors(GradientOption::TwoStop { start: Color::RED, end: Color::BLUE })
 			.render_with(
-				&BrowserConsoleEnv,
+				&BrowserConsoleTarget,
 				RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 			);
 

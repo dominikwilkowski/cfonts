@@ -2,8 +2,8 @@ mod common;
 use common::browser_content;
 
 use cfonts::{
-	Align, BackgroundOption, BrowserConsoleEnv, BrowserEnv, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font,
-	GradientOption, GradientPreset, NEW_LINE_CHAR, Options, RenderOverrides, Rgb, Valign, render_with,
+	Align, BackgroundOption, BrowserConsoleTarget, BrowserTarget, Cfonts, Color, ColorLevel, ColorOverride, Font,
+	GradientOption, GradientPreset, NEW_LINE_CHAR, Options, RenderOverrides, Rgb, TerminalTarget, Valign, render_with,
 };
 
 /// The expected terminal bytes of one row painted column by column from a ramp
@@ -27,7 +27,7 @@ fn tiny(text: &str, colors: Vec<Color>) -> Options {
 
 /// The plain rows of one Tiny letter, the text every painted expectation wraps
 fn plain_rows(text: &str) -> Vec<String> {
-	render_with(&tiny(text, vec![]), &CliEnv::default(), RenderOverrides::default())
+	render_with(&tiny(text, vec![]), &TerminalTarget::default(), RenderOverrides::default())
 		.text
 		.lines()
 		.map(String::from)
@@ -39,7 +39,7 @@ fn ramp_codes(row: &str) -> Vec<&str> {
 	row.split("\u{1b}[38;2;").skip(1).map(|run| run.split('m').next().expect("every code closes with m")).collect()
 }
 
-// CliEnv painting
+// TerminalTarget painting
 
 #[test]
 fn named_colors_paint_their_fixed_codes_at_every_level() {
@@ -48,8 +48,12 @@ fn named_colors_paint_their_fixed_codes_at_every_level() {
 
 	for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
 		assert_eq!(
-			render_with(&options, &CliEnv::default(), RenderOverrides::default().with_color(ColorOverride::Level(level)))
-				.text,
+			render_with(
+				&options,
+				&TerminalTarget::default(),
+				RenderOverrides::default().with_color(ColorOverride::Level(level))
+			)
+			.text,
 			expected,
 			"{level:?}"
 		);
@@ -62,19 +66,19 @@ fn rgb_colors_level_down_the_chain() {
 
 	let true_color = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
 	let ansi256 = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Ansi256)),
 	)
 	.text;
 	let basic = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
 	.text;
@@ -86,8 +90,8 @@ fn rgb_colors_level_down_the_chain() {
 
 #[test]
 fn no_color_level_paints_nothing() {
-	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderOverrides::default()).text;
-	let colored = render_with(&tiny("A", vec![Color::RED]), &CliEnv::default(), RenderOverrides::default()).text;
+	let plain = render_with(&tiny("A", vec![]), &TerminalTarget::default(), RenderOverrides::default()).text;
+	let colored = render_with(&tiny("A", vec![Color::RED]), &TerminalTarget::default(), RenderOverrides::default()).text;
 
 	assert_eq!(colored, plain);
 }
@@ -96,13 +100,13 @@ fn no_color_level_paints_nothing() {
 fn system_paints_nothing() {
 	let plain = render_with(
 		&tiny("A", vec![]),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
 	let system = render_with(
 		&tiny("A", vec![Color::SYSTEM]),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -115,11 +119,11 @@ fn candy_renders_are_deterministic_for_a_seed() {
 	let options = tiny("AB", vec![Color::CANDY]);
 	let seeded = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(42);
 
-	let one = render_with(&options, &CliEnv::default(), seeded).text;
-	let two = render_with(&options, &CliEnv::default(), seeded).text;
+	let one = render_with(&options, &TerminalTarget::default(), seeded).text;
+	let two = render_with(&options, &TerminalTarget::default(), seeded).text;
 	let other = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(43),
 	)
 	.text;
@@ -132,7 +136,7 @@ fn candy_renders_are_deterministic_for_a_seed() {
 fn candy_paints_only_assortment_codes() {
 	let rendered = render_with(
 		&tiny("ABC", vec![Color::CANDY]),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)).with_seed(7),
 	)
 	.text;
@@ -158,13 +162,13 @@ fn candy_paints_only_assortment_codes() {
 fn excess_colors_beyond_the_fonts_slots_are_ignored() {
 	let one = render_with(
 		&tiny("A", vec![Color::RED]),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
 	let two = render_with(
 		&tiny("A", vec![Color::RED, Color::BLUE]),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -176,7 +180,7 @@ fn excess_colors_beyond_the_fonts_slots_are_ignored() {
 fn letter_spaces_paint_in_single_color_fonts() {
 	let rendered = render_with(
 		&tiny("AB", vec![Color::RED]),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -195,7 +199,7 @@ fn multi_slot_fonts_paint_each_tagged_slot() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -211,7 +215,7 @@ fn missing_slots_stay_bare() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -230,7 +234,7 @@ fn letter_spaces_stay_bare_in_tagged_fonts() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -253,7 +257,7 @@ fn global_colors_cover_blocks_without_their_own() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -276,8 +280,8 @@ fn an_empty_color_list_suppresses_the_global_colors() {
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
 	assert_eq!(
-		render_with(&suppressed, &CliEnv::default(), overrides).text,
-		render_with(&plain, &CliEnv::default(), overrides).text
+		render_with(&suppressed, &TerminalTarget::default(), overrides).text,
+		render_with(&plain, &TerminalTarget::default(), overrides).text
 	);
 }
 
@@ -288,14 +292,14 @@ fn gradients_paint_nothing_without_a_color_level() {
 		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(GradientPreset::Pride).into();
 
 	assert_eq!(
-		render_with(&ramped, &CliEnv::default(), RenderOverrides::default()).text,
-		render_with(&plain, &CliEnv::default(), RenderOverrides::default()).text
+		render_with(&ramped, &TerminalTarget::default(), RenderOverrides::default()).text,
+		render_with(&plain, &TerminalTarget::default(), RenderOverrides::default()).text
 	);
 }
 
 #[test]
 fn two_stop_gradients_paint_every_column_of_the_ramp() {
-	let plain = render_with(&tiny("AB", vec![]), &CliEnv::default(), RenderOverrides::default()).text;
+	let plain = render_with(&tiny("AB", vec![]), &TerminalTarget::default(), RenderOverrides::default()).text;
 	let ramped: Options = Cfonts::text("AB")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
@@ -305,7 +309,7 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 
 	let rendered = render_with(
 		&ramped,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -331,7 +335,7 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 
 	let rendered = render_with(
 		&ramped,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -346,13 +350,13 @@ fn independent_gradients_ramp_each_line_over_its_own_width() {
 
 #[test]
 fn transition_presets_paint_their_stop_colors() {
-	let plain = render_with(&tiny("A", vec![]), &CliEnv::default(), RenderOverrides::default()).text;
+	let plain = render_with(&tiny("A", vec![]), &TerminalTarget::default(), RenderOverrides::default()).text;
 	let ramped: Options =
 		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().colors(GradientPreset::Pride).into();
 
 	let rendered = render_with(
 		&ramped,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -386,7 +390,7 @@ fn a_static_block_at_either_edge_does_not_stretch_the_global_ramp() {
 		.zip(plain_rows("B").iter())
 		.map(|(a, b)| format!("\u{1b}[31m{a}\u{1b}[39m{}", ramped_row(b, &ramp)))
 		.collect();
-	assert_eq!(render_with(&static_first, &CliEnv::default(), overrides).text, expected.join("\n"));
+	assert_eq!(render_with(&static_first, &TerminalTarget::default(), overrides).text, expected.join("\n"));
 
 	let static_last: Options = Cfonts::text("A")
 		.font(Font::Tiny)
@@ -402,7 +406,7 @@ fn a_static_block_at_either_edge_does_not_stretch_the_global_ramp() {
 		.zip(plain_rows("B").iter())
 		.map(|(a, b)| format!("{}\u{1b}[31m{b}\u{1b}[39m", ramped_row(a, &ramp)))
 		.collect();
-	assert_eq!(render_with(&static_last, &CliEnv::default(), overrides).text, expected.join("\n"));
+	assert_eq!(render_with(&static_last, &TerminalTarget::default(), overrides).text, expected.join("\n"));
 }
 
 #[test]
@@ -423,7 +427,7 @@ fn a_static_block_in_between_consumes_its_columns_of_the_global_ramp() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -460,8 +464,8 @@ fn a_lone_blocks_own_ramp_and_the_global_ramp_are_the_same_ramp() {
 	let overrides =
 		RenderOverrides::default().with_canvas_width(7).with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
-	let own = render_with(&own, &CliEnv::default(), overrides).text;
-	assert_eq!(own, render_with(&global, &CliEnv::default(), overrides).text);
+	let own = render_with(&own, &TerminalTarget::default(), overrides).text;
+	assert_eq!(own, render_with(&global, &TerminalTarget::default(), overrides).text);
 	assert!(own.starts_with("    \u{1b}[38;2;0;255;169m"), "the short row pads and samples ramp column four: {own:?}");
 }
 
@@ -483,7 +487,7 @@ fn an_independent_ramp_spans_each_rows_own_ramped_columns() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -516,8 +520,8 @@ fn an_independent_composition_anchors_its_ramps_at_the_aligned_column() {
 	let overrides =
 		RenderOverrides::default().with_canvas_width(7).with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
-	let own = render_with(&own, &CliEnv::default(), overrides).text;
-	assert_eq!(own, render_with(&global, &CliEnv::default(), overrides).text);
+	let own = render_with(&own, &TerminalTarget::default(), overrides).text;
+	assert_eq!(own, render_with(&global, &TerminalTarget::default(), overrides).text);
 
 	let ramp = ramp_from(&["#ff0000", "#00ff00", "#0000ff"]);
 	assert_eq!(own.lines().next().expect("four rows"), format!("    {}", ramped_row(&plain_rows("A")[0], &ramp)));
@@ -545,7 +549,7 @@ fn a_block_with_its_own_ramp_does_not_stretch_the_global_ramp() {
 		.spaceless()
 		.global_colors(gradient())
 		.into();
-	assert_eq!(render_with(&own_first, &CliEnv::default(), overrides).text, expected.join("\n"));
+	assert_eq!(render_with(&own_first, &TerminalTarget::default(), overrides).text, expected.join("\n"));
 
 	let own_last: Options = Cfonts::text("A")
 		.font(Font::Tiny)
@@ -556,7 +560,7 @@ fn a_block_with_its_own_ramp_does_not_stretch_the_global_ramp() {
 		.spaceless()
 		.global_colors(gradient())
 		.into();
-	assert_eq!(render_with(&own_last, &CliEnv::default(), overrides).text, expected.join("\n"));
+	assert_eq!(render_with(&own_last, &TerminalTarget::default(), overrides).text, expected.join("\n"));
 }
 
 #[test]
@@ -577,7 +581,7 @@ fn a_wrapped_block_ramp_keeps_its_absolute_columns_beside_other_blocks() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -605,7 +609,7 @@ fn valign_padding_consumes_the_ramp_columns_of_the_short_block() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -632,7 +636,7 @@ fn slanted_buffer_seams_consume_the_ramp_columns_they_cover() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -656,13 +660,13 @@ fn gradients_level_down_per_column() {
 
 	let basic = render_with(
 		&ramped,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
 	.text;
 	let ansi256 = render_with(
 		&ramped,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Ansi256)),
 	)
 	.text;
@@ -680,7 +684,7 @@ fn the_browser_and_console_paint_gradients_per_column() {
 
 	let browser = render_with(
 		&ramped,
-		&BrowserEnv,
+		&BrowserTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -688,7 +692,7 @@ fn the_browser_and_console_paint_gradients_per_column() {
 
 	let console = render_with(
 		&ramped,
-		&BrowserConsoleEnv,
+		&BrowserConsoleTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 	assert_eq!(console.text.matches("%c").count(), console.styles.len());
@@ -696,13 +700,13 @@ fn the_browser_and_console_paint_gradients_per_column() {
 	assert!(console.styles.contains(&String::from("color:#750787")));
 }
 
-// BrowserEnv painting
+// BrowserTarget painting
 
 #[test]
 fn the_browser_paints_named_colors_as_their_rgb_spans() {
 	let rendered = render_with(
 		&tiny("A", vec![Color::RED]),
-		&BrowserEnv,
+		&BrowserTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -722,12 +726,15 @@ fn the_browser_paints_named_colors_the_same_at_every_level() {
 	// a named color's table value is a palette entry already, only RGB values level down
 	let options = tiny("A", vec![Color::RED]);
 
-	let basic =
-		render_with(&options, &BrowserEnv, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)))
-			.text;
+	let basic = render_with(
+		&options,
+		&BrowserTarget,
+		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
+	)
+	.text;
 	let true_color = render_with(
 		&options,
-		&BrowserEnv,
+		&BrowserTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -739,15 +746,15 @@ fn the_browser_paints_named_colors_the_same_at_every_level() {
 fn the_browser_paints_nothing_without_a_level_or_for_system() {
 	let plain = render_with(
 		&tiny("A", vec![]),
-		&BrowserEnv,
+		&BrowserTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
 
-	let unleveled = render_with(&tiny("A", vec![Color::RED]), &BrowserEnv, RenderOverrides::default()).text;
+	let unleveled = render_with(&tiny("A", vec![Color::RED]), &BrowserTarget, RenderOverrides::default()).text;
 	let system = render_with(
 		&tiny("A", vec![Color::SYSTEM]),
-		&BrowserEnv,
+		&BrowserTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -756,13 +763,13 @@ fn the_browser_paints_nothing_without_a_level_or_for_system() {
 	assert_eq!(system, plain);
 }
 
-// BrowserConsoleEnv painting
+// BrowserConsoleTarget painting
 
 #[test]
 fn the_console_pairs_markers_with_styles_in_order() {
 	let rendered = render_with(
 		&tiny("A", vec![Color::RED]),
-		&BrowserConsoleEnv,
+		&BrowserConsoleTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 
@@ -777,24 +784,24 @@ fn the_console_pairs_markers_with_styles_in_order() {
 fn only_the_console_fills_styles() {
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
-	assert!(render_with(&tiny("A", vec![Color::RED]), &CliEnv::default(), overrides).styles.is_empty());
-	assert!(render_with(&tiny("A", vec![Color::RED]), &BrowserEnv, overrides).styles.is_empty());
+	assert!(render_with(&tiny("A", vec![Color::RED]), &TerminalTarget::default(), overrides).styles.is_empty());
+	assert!(render_with(&tiny("A", vec![Color::RED]), &BrowserTarget, overrides).styles.is_empty());
 }
 
 #[test]
 fn the_console_paints_nothing_without_a_level_or_for_system() {
-	let unleveled = render_with(&tiny("A", vec![Color::RED]), &BrowserConsoleEnv, RenderOverrides::default());
+	let unleveled = render_with(&tiny("A", vec![Color::RED]), &BrowserConsoleTarget, RenderOverrides::default());
 	assert_eq!(unleveled.text, "▄▀█\n█▀█");
 	assert!(unleveled.styles.is_empty());
 
 	let plain = render_with(
 		&tiny("A", vec![]),
-		&BrowserConsoleEnv,
+		&BrowserConsoleTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 	let system = render_with(
 		&tiny("A", vec![Color::SYSTEM]),
-		&BrowserConsoleEnv,
+		&BrowserConsoleTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 	assert_eq!(system.text, plain.text);
@@ -816,7 +823,7 @@ fn a_resolved_color_that_paints_no_segment_does_not_escape_percent() {
 
 	let rendered = render_with(
 		&options,
-		&BrowserConsoleEnv,
+		&BrowserConsoleTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 
@@ -838,7 +845,7 @@ fn aligned_rows_sample_the_fixed_ramp_at_their_absolute_columns() {
 
 	let overrides =
 		RenderOverrides::default().with_canvas_width(7).with_color(ColorOverride::Level(ColorLevel::TrueColor));
-	let rendered = render_with(&options, &CliEnv::default(), overrides).text;
+	let rendered = render_with(&options, &TerminalTarget::default(), overrides).text;
 
 	// the ramp spans the columns of every row, so the short right aligned row samples
 	// its absolute columns and converges on the end color at the shared right edge
@@ -874,8 +881,9 @@ fn empty_lines_do_not_anchor_the_fixed_ramp() {
 
 	let overrides =
 		RenderOverrides::default().with_canvas_width(7).with_color(ColorOverride::Level(ColorLevel::TrueColor));
-	let with_blank = render_with(&ramp(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B")), &CliEnv::default(), overrides).text;
-	let without_blank = render_with(&ramp(format!("A{NEW_LINE_CHAR}B")), &CliEnv::default(), overrides).text;
+	let with_blank =
+		render_with(&ramp(format!("A{NEW_LINE_CHAR}{NEW_LINE_CHAR}B")), &TerminalTarget::default(), overrides).text;
+	let without_blank = render_with(&ramp(format!("A{NEW_LINE_CHAR}B")), &TerminalTarget::default(), overrides).text;
 
 	assert!(with_blank.contains("\u{1b}[38;2;255;0;0m"), "the glyph rows keep the ramp start: {with_blank:?}");
 
@@ -898,7 +906,7 @@ fn a_block_gradient_ramps_over_its_own_span_beside_other_blocks() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -930,7 +938,7 @@ fn a_wrapped_block_gradient_fixes_its_ramp_across_every_row() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -955,7 +963,7 @@ fn an_independent_global_gradient_ramps_each_line() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -987,8 +995,8 @@ fn one_flag_restarts_the_block_and_the_global_ramp_on_every_line() {
 	let fixed: Options = compose().into();
 	let independent: Options = compose().independent_gradient().into();
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
-	let fixed = render_with(&fixed, &CliEnv::default(), overrides).text;
-	let independent = render_with(&independent, &CliEnv::default(), overrides).text;
+	let fixed = render_with(&fixed, &TerminalTarget::default(), overrides).text;
+	let independent = render_with(&independent, &TerminalTarget::default(), overrides).text;
 
 	let ends_blue = |row: &str| row.rsplit("\u{1b}[38;2;").next().is_some_and(|last| last.starts_with("0;0;255m"));
 
@@ -1011,7 +1019,7 @@ fn leading_space_glyphs_consume_the_ramp() {
 
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -1037,7 +1045,7 @@ fn the_browser_aligns_fixed_gradient_columns_between_lines() {
 
 	let rendered = render_with(
 		&options,
-		&BrowserEnv,
+		&BrowserTarget,
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	);
 	let lines: Vec<&str> = browser_content(&rendered).split("<br>").collect();
@@ -1066,7 +1074,7 @@ fn plated(background: impl Into<BackgroundOption>) -> Options {
 fn a_fixed_background_bands_every_row_padding_rows_included() {
 	let rendered = render_with(
 		&plated(Color::BLUE),
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
 	.text;
@@ -1085,7 +1093,7 @@ fn an_empty_composition_still_bands_its_bare_row() {
 	let options: Options = Cfonts::text("").background(Color::BLUE).into();
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
 	.text;
@@ -1100,7 +1108,7 @@ fn spaceless_drops_the_padding_bands() {
 		Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(Color::BLUE).into();
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
 	.text;
@@ -1117,13 +1125,13 @@ fn a_background_gradient_ramps_from_the_top_row_to_the_bottom_row() {
 
 	// two rows walk the whole ramp: the start color on top, the end color at the bottom
 	assert_eq!(
-		render_with(&options, &CliEnv::default(), overrides).text,
+		render_with(&options, &TerminalTarget::default(), overrides).text,
 		"\u{1b}[48;2;255;0;0m\u{1b}[K▄▀█\u{1b}[49m\n\u{1b}[48;2;0;0;255m\u{1b}[K█▀█\u{1b}[49m"
 	);
 
 	// the padding rows take part in the ramp: the top padding row is red, the bottom one blue,
 	// and the two glyph rows sit on the ramp between them, so every one of the six rows has its own color
-	let padded = render_with(&plated(gradient), &CliEnv::default(), overrides).text;
+	let padded = render_with(&plated(gradient), &TerminalTarget::default(), overrides).text;
 	let ramp = ["255;0;0", "255;204;0", "101;255;0", "0;255;101", "0;203;255", "0;0;255"];
 	let glyphs = ["", "", "▄▀█", "█▀█", "", ""];
 	let expected: Vec<String> =
@@ -1145,7 +1153,7 @@ fn the_independent_flag_leaves_the_background_ramp_alone() {
 		.into();
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
 	)
 	.text;
@@ -1169,7 +1177,7 @@ fn alignment_padding_sits_inside_the_band() {
 	let overrides = RenderOverrides::default().with_canvas_width(7).with_color(ColorOverride::Level(ColorLevel::Basic));
 
 	assert_eq!(
-		render_with(&options, &CliEnv::default(), overrides).text,
+		render_with(&options, &TerminalTarget::default(), overrides).text,
 		"\u{1b}[44m\u{1b}[K    ▄▀█\u{1b}[49m\n\u{1b}[44m\u{1b}[K    █▀█\u{1b}[49m"
 	);
 }
@@ -1185,7 +1193,7 @@ fn a_background_and_font_colors_are_separate_layers() {
 		.into();
 	let rendered = render_with(
 		&options,
-		&CliEnv::default(),
+		&TerminalTarget::default(),
 		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic)),
 	)
 	.text;
@@ -1202,11 +1210,15 @@ fn a_hex_background_levels_down_the_chain() {
 	let orange = Color::from(Rgb { red: 255, green: 136, blue: 0 });
 	let options: Options = Cfonts::text("A").font(Font::Tiny).valign(Valign::Top).spaceless().background(orange).into();
 	let first_row = |level: ColorLevel| {
-		render_with(&options, &CliEnv::default(), RenderOverrides::default().with_color(ColorOverride::Level(level)))
-			.text
-			.lines()
-			.next()
-			.map(String::from)
+		render_with(
+			&options,
+			&TerminalTarget::default(),
+			RenderOverrides::default().with_color(ColorOverride::Level(level)),
+		)
+		.text
+		.lines()
+		.next()
+		.map(String::from)
 	};
 
 	assert_eq!(first_row(ColorLevel::TrueColor).as_deref(), Some("\u{1b}[48;2;255;136;0m\u{1b}[K▄▀█\u{1b}[49m"));
@@ -1220,22 +1232,22 @@ fn the_browser_and_console_carry_the_band() {
 	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
 
 	// every one of the six output rows is a block on the band, inside the scroll wide block
-	let browser = render_with(&options, &BrowserEnv, overrides).text;
+	let browser = render_with(&options, &BrowserTarget, overrides).text;
 	assert_eq!(browser.matches(r#"<div style="background:#0020f5;min-height:1lh">"#).count(), 6, "{browser}");
 	assert!(browser.contains(r#"<div style="min-width:max-content">"#), "{browser}");
 
 	// the console pads with empty lines and bands the text only, one switch and one reset per row
-	let console = render_with(&options, &BrowserConsoleEnv, overrides);
+	let console = render_with(&options, &BrowserConsoleTarget, overrides);
 	assert_eq!(console.text, "\n\n%c▄▀█%c\n%c█▀█%c\n\n");
 	assert_eq!(console.styles, ["background:#0020f5", "", "background:#0020f5", ""]);
 }
 
 #[test]
 fn system_candy_and_no_color_level_paint_no_band() {
-	let plain = render_with(&plated(Color::SYSTEM), &CliEnv::default(), RenderOverrides::default()).text;
+	let plain = render_with(&plated(Color::SYSTEM), &TerminalTarget::default(), RenderOverrides::default()).text;
 	assert_eq!(plain, "\n\n▄▀█\n█▀█\n\n");
 
 	let level = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::Basic));
-	assert_eq!(render_with(&plated(Color::SYSTEM), &CliEnv::default(), level).text, plain);
-	assert_eq!(render_with(&plated(Color::BLUE), &CliEnv::default(), RenderOverrides::default()).text, plain);
+	assert_eq!(render_with(&plated(Color::SYSTEM), &TerminalTarget::default(), level).text, plain);
+	assert_eq!(render_with(&plated(Color::BLUE), &TerminalTarget::default(), RenderOverrides::default()).text, plain);
 }

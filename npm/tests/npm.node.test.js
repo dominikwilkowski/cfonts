@@ -6,16 +6,16 @@ import * as packageExports from "cfonts";
 // the Node entry seals the browser host away, the built module answers for it here
 import { BrowserHost } from "../../dist/hosts/browser.js";
 // the raw boundary takes the terminal facts as one object, so a test can hand it a terminal this process is not
-import { EnvironmentKind, Cfonts as WasmCfonts, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
+import { TargetKind, Cfonts as WasmCfonts, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
 
 const {
 	Align,
 	alignNames,
 	backgroundColorNames,
-	BrowserConsoleEnv,
-	BrowserEnv,
+	BrowserConsoleTarget,
+	BrowserTarget,
 	Cfonts,
-	CliEnv,
+	TerminalTarget,
 	Color,
 	ColorLevel,
 	colorNames,
@@ -211,7 +211,7 @@ function colorBanner() {
  * The banner rendered at one explicit color level, as the reference output
  */
 function reference(colorLevel) {
-	return colorBanner().renderWith(CliEnv, colorLevel === undefined ? undefined : { color: colorLevel }).text;
+	return colorBanner().renderWith(TerminalTarget, colorLevel === undefined ? undefined : { color: colorLevel }).text;
 }
 
 for (const [method, invoke] of [
@@ -289,7 +289,7 @@ for (const [method, enumeration, names, what, invoke] of enumSetters) {
 
 test("a name picks the same variant as the enum", () => {
 	const context = { color: ColorLevel.TrueColor };
-	const render = (banner) => banner.renderWith(CliEnv, context).text;
+	const render = (banner) => banner.renderWith(TerminalTarget, context).text;
 
 	assert.equal(render(Cfonts.text("A").font("3d")), render(Cfonts.text("A").font(Font.Font3D)));
 	assert.equal(render(Cfonts.text("A").font("Tiny")), render(Cfonts.text("A").font(Font.Tiny)));
@@ -297,16 +297,16 @@ test("a name picks the same variant as the enum", () => {
 
 	const wide = { canvasWidth: 40 };
 	assert.equal(
-		Cfonts.text("A").align("center").renderWith(CliEnv, wide).text,
-		Cfonts.text("A").align(Align.Center).renderWith(CliEnv, wide).text,
+		Cfonts.text("A").align("center").renderWith(TerminalTarget, wide).text,
+		Cfonts.text("A").align(Align.Center).renderWith(TerminalTarget, wide).text,
 	);
 	assert.notEqual(
-		Cfonts.text("A").align("center").renderWith(CliEnv, wide).text,
-		Cfonts.text("A").align("left").renderWith(CliEnv, wide).text,
+		Cfonts.text("A").align("center").renderWith(TerminalTarget, wide).text,
+		Cfonts.text("A").align("left").renderWith(TerminalTarget, wide).text,
 	);
 
 	const mixed = (valign) =>
-		Cfonts.text("A").font(Font.Huge).next("B").font(Font.Tiny).valign(valign).renderWith(CliEnv).text;
+		Cfonts.text("A").font(Font.Huge).next("B").font(Font.Tiny).valign(valign).renderWith(TerminalTarget).text;
 	assert.equal(mixed("bottom"), mixed(Valign.Bottom));
 	assert.notEqual(mixed("bottom"), mixed("top"));
 });
@@ -364,11 +364,14 @@ test("a throwing array getter or proxy trap crosses back as itself and leaves th
 	});
 	assert.throws(() => banner.colors(colors), { name: "RangeError", message: "array getter" });
 	assert.equal(banner.font(Font.Tiny), banner);
-	assert.equal(banner.renderWith(CliEnv).text, Cfonts.text("A").font(Font.Tiny).renderWith(CliEnv).text);
+	assert.equal(
+		banner.renderWith(TerminalTarget).text,
+		Cfonts.text("A").font(Font.Tiny).renderWith(TerminalTarget).text,
+	);
 
 	const thrown = new RangeError("the consumer's own");
 	const same = (error) => error === thrown;
-	const expected = Cfonts.text("A").font(Font.Tiny).renderWith(CliEnv).text;
+	const expected = Cfonts.text("A").font(Font.Tiny).renderWith(TerminalTarget).text;
 	const lists = [
 		[
 			"a throwing getter on an entry",
@@ -409,7 +412,7 @@ test("a throwing array getter or proxy trap crosses back as itself and leaves th
 			// releases and every later call works
 			assert.throws(() => call(banner, list()), same, `${place} with ${what}`);
 			assert.equal(banner.font(Font.Tiny), banner, `${place} with ${what}`);
-			assert.equal(banner.renderWith(CliEnv).text, expected, `${place} with ${what}`);
+			assert.equal(banner.renderWith(TerminalTarget).text, expected, `${place} with ${what}`);
 		}
 	}
 
@@ -468,7 +471,7 @@ test("a throwing array getter or proxy trap crosses back as itself and leaves th
 		const banner = Cfonts.text("A");
 		assert.throws(() => call(banner), same, place);
 		assert.equal(banner.font(Font.Tiny), banner, place);
-		assert.equal(banner.renderWith(CliEnv).text, expected, place);
+		assert.equal(banner.renderWith(TerminalTarget).text, expected, place);
 	}
 
 	// the iterator of a list is never invoked, so a throwing one changes nothing, nor do a has or an ownKeys trap alone
@@ -488,8 +491,8 @@ test("a throwing array getter or proxy trap crosses back as itself and leaves th
 			},
 		});
 	for (const [place, call] of places) {
-		assert.equal(call(Cfonts.text("A").font(Font.Tiny), iterator()).renderWith(CliEnv).text, expected, place);
-		assert.equal(call(Cfonts.text("A").font(Font.Tiny), untouched()).renderWith(CliEnv).text, expected, place);
+		assert.equal(call(Cfonts.text("A").font(Font.Tiny), iterator()).renderWith(TerminalTarget).text, expected, place);
+		assert.equal(call(Cfonts.text("A").font(Font.Tiny), untouched()).renderWith(TerminalTarget).text, expected, place);
 	}
 
 	// a proxy answering no number for its length reads as zero entries, no index is read and the string "2"
@@ -506,7 +509,7 @@ test("a throwing array getter or proxy trap crosses back as itself and leaves th
 			return Reflect.get(target, key, receiver);
 		},
 	});
-	assert.equal(Cfonts.text("A").font(Font.Tiny).colors(unnumbered).renderWith(CliEnv).text, expected);
+	assert.equal(Cfonts.text("A").font(Font.Tiny).colors(unnumbered).renderWith(TerminalTarget).text, expected);
 	assert.throws(() => Cfonts.text("A").colors({ transition: unnumbered }), {
 		name: "Error",
 		message: "A transition gradient holds at least two stops, this one holds 0",
@@ -519,11 +522,11 @@ test("a throwing array getter or proxy trap crosses back as itself and leaves th
 		revoke();
 		return proxy;
 	};
-	for (const call of [(banner) => banner.colors(revoked()), (banner) => banner.renderWith(CliEnv, revoked())]) {
+	for (const call of [(banner) => banner.colors(revoked()), (banner) => banner.renderWith(TerminalTarget, revoked())]) {
 		const banner = Cfonts.text("A");
 		assert.throws(() => call(banner), { name: "TypeError" });
 		assert.equal(banner.font(Font.Tiny), banner);
-		assert.equal(banner.renderWith(CliEnv).text, expected);
+		assert.equal(banner.renderWith(TerminalTarget).text, expected);
 	}
 });
 
@@ -653,7 +656,7 @@ test("a shape error in any position wins over a refused value in any position, t
 test("channel values build what the hex spelling builds in every place", () => {
 	// the channels convert without a spelling
 	const context = { color: ColorLevel.TrueColor };
-	const render = (banner) => banner.renderWith(CliEnv, context).text;
+	const render = (banner) => banner.renderWith(TerminalTarget, context).text;
 	const channels = { red: 1, green: 2, blue: 3 };
 	assert.equal(render(Cfonts.text("A").colors([channels])), render(Cfonts.text("A").colors(["#010203"])));
 	assert.equal(render(Cfonts.text("A").background(channels)), render(Cfonts.text("A").background("#010203")));
@@ -719,67 +722,67 @@ test("the Node entry exports NodeHost but not BrowserHost", () => {
 	assert.equal("BrowserHost" in packageExports, false);
 });
 
-test("renderWith selects each environment", () => {
+test("renderWith selects each target", () => {
 	const banner = wrappingBanner();
 
-	assert.equal(banner.renderWith(CliEnv).text, "▄▀█ ▄▀█\n█▀█ █▀█");
-	assert.equal(banner.renderWith(BrowserConsoleEnv).text, "▄▀█ ▄▀█\n█▀█ █▀█");
+	assert.equal(banner.renderWith(TerminalTarget).text, "▄▀█ ▄▀█\n█▀█ █▀█");
+	assert.equal(banner.renderWith(BrowserConsoleTarget).text, "▄▀█ ▄▀█\n█▀█ █▀█");
 	assert.equal(
-		banner.renderWith(BrowserEnv).text,
+		banner.renderWith(BrowserTarget).text,
 		'<div style="font-family:ui-monospace,Menlo,Consolas,DejaVu Sans Mono,monospace;white-space:pre;text-align:left;max-width:100%;overflow:auto">▄▀█ ▄▀█<br>█▀█ █▀█</div>',
 	);
 });
 
-test("renderWith applies width to every environment", () => {
-	for (const [name, environment] of [
-		["CLI", CliEnv],
-		["browser", BrowserEnv],
-		["browser console", BrowserConsoleEnv],
+test("renderWith applies width to every target", () => {
+	for (const [name, target] of [
+		["terminal", TerminalTarget],
+		["browser", BrowserTarget],
+		["browser console", BrowserConsoleTarget],
 	]) {
 		const banner = wrappingBanner();
 
-		const unlimited = banner.renderWith(environment).text;
+		const unlimited = banner.renderWith(target).text;
 
-		const zero = banner.renderWith(environment, { canvasWidth: 0 }).text;
+		const zero = banner.renderWith(target, { canvasWidth: 0 }).text;
 
-		const narrow = banner.renderWith(environment, { canvasWidth: 3 }).text;
+		const narrow = banner.renderWith(target, { canvasWidth: 3 }).text;
 
 		assert.equal(zero, unlimited, `${name} zero must mean unlimited`);
 		assert.notEqual(narrow, unlimited, `${name} must receive the fixed width`);
 	}
 });
 
-test("renderWith BrowserConsoleEnv returns without logging", () => {
+test("renderWith BrowserConsoleTarget returns without logging", () => {
 	let artifact;
 
 	const calls = captureConsoleLogs(() => {
-		artifact = wrappingBanner().renderWith(BrowserConsoleEnv);
+		artifact = wrappingBanner().renderWith(BrowserConsoleTarget);
 	});
 
 	assert.deepEqual(calls, []);
 	assert.equal(artifact.text, "▄▀█ ▄▀█\n█▀█ █▀█");
 });
 
-test("renderWith rejects unsupported environments", () => {
-	for (const environment of [undefined, null, 0, true, "", {}, []]) {
-		assert.throws(() => wrappingBanner().renderWith(environment), {
+test("renderWith rejects unsupported targets", () => {
+	for (const target of [undefined, null, 0, true, "", {}, []]) {
+		assert.throws(() => wrappingBanner().renderWith(target), {
 			name: "TypeError",
-			message: "`renderWith()` expects a cfonts environment",
+			message: "`renderWith()` expects a cfonts target",
 		});
 	}
 
 	// even the private symbol with a forged kind stays outside the closed set
-	const kind = Object.getOwnPropertySymbols(CliEnv).find((symbol) => symbol.description === "cfonts.environment");
+	const kind = Object.getOwnPropertySymbols(TerminalTarget).find((symbol) => symbol.description === "cfonts.target");
 	const forged = Object.freeze({ [kind]: 99 });
 	assert.throws(() => wrappingBanner().renderWith(forged), {
 		name: "TypeError",
-		message: "`renderWith()` expects a cfonts environment",
+		message: "`renderWith()` expects a cfonts target",
 	});
 });
 
 test("renderWith rejects invalid overrides", () => {
 	for (const context of [null, 0, true, "", [], () => {}]) {
-		assert.throws(() => wrappingBanner().renderWith(CliEnv, context), {
+		assert.throws(() => wrappingBanner().renderWith(TerminalTarget, context), {
 			name: "TypeError",
 			message: "`renderWith()` expects an overrides object",
 		});
@@ -788,40 +791,40 @@ test("renderWith rejects invalid overrides", () => {
 
 test("renderWith validates canvasWidth at runtime", () => {
 	for (const canvasWidth of INVALID_U32_VALUES.filter((value) => value !== undefined)) {
-		assert.throws(() => wrappingBanner().renderWith(CliEnv, { canvasWidth }), {
+		assert.throws(() => wrappingBanner().renderWith(TerminalTarget, { canvasWidth }), {
 			name: "TypeError",
 			message: "`renderWith()` expects an unsigned 32-bit integer",
 		});
 	}
 
-	wrappingBanner().renderWith(CliEnv, { canvasWidth: 0 });
-	wrappingBanner().renderWith(CliEnv, { canvasWidth: 0xffff_ffff });
+	wrappingBanner().renderWith(TerminalTarget, { canvasWidth: 0 });
+	wrappingBanner().renderWith(TerminalTarget, { canvasWidth: 0xffff_ffff });
 });
 
-test("custom hosts receive the composition and the environment exactly once", () => {
+test("custom hosts receive the composition and the target exactly once", () => {
 	const composition = Cfonts.text("A");
 	let renderCalls = 0;
 	let sayCalls = 0;
 
 	const host = {
-		render(received, environment) {
+		render(received, target) {
 			assert.equal(received, composition);
-			assert.equal(environment, CliEnv);
+			assert.equal(target, TerminalTarget);
 			renderCalls += 1;
 
 			return {
 				text: "custom render",
 			};
 		},
-		say(received, environment) {
+		say(received, target) {
 			assert.equal(received, composition);
-			assert.equal(environment, CliEnv);
+			assert.equal(target, TerminalTarget);
 			sayCalls += 1;
 		},
 	};
 
-	assert.deepEqual(composition.render(host, CliEnv), { text: "custom render" });
-	composition.say(host, CliEnv);
+	assert.deepEqual(composition.render(host, TerminalTarget), { text: "custom render" });
+	composition.say(host, TerminalTarget);
 
 	assert.equal(renderCalls, 1);
 	assert.equal(sayCalls, 1);
@@ -831,7 +834,7 @@ test("render rejects values without a render method", () => {
 	const composition = Cfonts.text("A");
 
 	for (const host of [undefined, null, 0, true, "", {}, [], { say() {} }]) {
-		assert.throws(() => composition.render(host, CliEnv), {
+		assert.throws(() => composition.render(host, TerminalTarget), {
 			name: "TypeError",
 			message: "`render()` expects a cfonts host",
 		});
@@ -842,7 +845,7 @@ test("say rejects values without a say method", () => {
 	const composition = Cfonts.text("A");
 
 	for (const host of [undefined, null, 0, true, "", {}, [], { render() {} }]) {
-		assert.throws(() => composition.say(host, CliEnv), {
+		assert.throws(() => composition.say(host, TerminalTarget), {
 			name: "TypeError",
 			message: "`say()` expects a cfonts host",
 		});
@@ -864,7 +867,7 @@ test("NodeHost validates override objects", () => {
 
 test("the constructor takes the overrides object fromOverrides takes", () => {
 	const banner = Cfonts.text("AAAA");
-	const render = (host) => withTerminal(120, undefined, () => banner.render(host, CliEnv).text);
+	const render = (host) => withTerminal(120, undefined, () => banner.render(host, TerminalTarget).text);
 
 	// no object and undefined build the detecting host, an object pins what it names either way
 	assert.equal(render(new NodeHost(undefined)), render(new NodeHost()));
@@ -899,8 +902,8 @@ test("NodeHost detects width on each render", () => {
 	const host = new NodeHost();
 	const banner = Cfonts.text("AAAA");
 
-	const narrow = withTerminal(13, undefined, () => banner.render(host, CliEnv).text);
-	const wide = withTerminal(120, undefined, () => banner.render(host, CliEnv).text);
+	const narrow = withTerminal(13, undefined, () => banner.render(host, TerminalTarget).text);
+	const wide = withTerminal(120, undefined, () => banner.render(host, TerminalTarget).text);
 
 	assert.notEqual(narrow, wide);
 });
@@ -910,8 +913,16 @@ test("stdout answers before stderr", () => {
 	const restoreStderr = overrideProperty(process.stderr, "columns", 13);
 
 	try {
-		const preferred = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
-		const viaStdout = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+		const preferred = withEnv(
+			"FORCE_SIZE",
+			undefined,
+			() => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text,
+		);
+		const viaStdout = withTerminal(
+			120,
+			undefined,
+			() => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text,
+		);
 
 		assert.equal(preferred, viaStdout);
 	} finally {
@@ -925,8 +936,16 @@ test("a zero-width stream measures nothing", () => {
 	const restoreStderr = overrideProperty(process.stderr, "columns", 13);
 
 	try {
-		const viaStderr = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
-		const reference = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+		const viaStderr = withEnv(
+			"FORCE_SIZE",
+			undefined,
+			() => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text,
+		);
+		const reference = withTerminal(
+			13,
+			undefined,
+			() => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text,
+		);
 
 		assert.equal(viaStderr, reference);
 	} finally {
@@ -940,8 +959,16 @@ test("the measurement falls back to stderr when stdout is redirected", () => {
 	const restoreStderr = overrideProperty(process.stderr, "columns", 13);
 
 	try {
-		const viaStderr = withEnv("FORCE_SIZE", undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
-		const viaStdout = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+		const viaStderr = withEnv(
+			"FORCE_SIZE",
+			undefined,
+			() => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text,
+		);
+		const viaStdout = withTerminal(
+			13,
+			undefined,
+			() => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text,
+		);
 
 		assert.equal(viaStderr, viaStdout);
 	} finally {
@@ -958,17 +985,17 @@ test("a fully redirected process falls back to eighty columns", () => {
 		const fallback = withEnv(
 			"FORCE_SIZE",
 			undefined,
-			() => Cfonts.text("AAAAAAAAAA").render(new NodeHost(), CliEnv).text,
+			() => Cfonts.text("AAAAAAAAAA").render(new NodeHost(), TerminalTarget).text,
 		);
 		const eighty = withEnv(
 			"FORCE_SIZE",
 			undefined,
-			() => Cfonts.text("AAAAAAAAAA").render(NodeHost.fromOverrides({ canvasWidth: 80 }), CliEnv).text,
+			() => Cfonts.text("AAAAAAAAAA").render(NodeHost.fromOverrides({ canvasWidth: 80 }), TerminalTarget).text,
 		);
 		const unlimited = withEnv(
 			"FORCE_SIZE",
 			undefined,
-			() => Cfonts.text("AAAAAAAAAA").render(NodeHost.fromOverrides({ canvasWidth: 0 }), CliEnv).text,
+			() => Cfonts.text("AAAAAAAAAA").render(NodeHost.fromOverrides({ canvasWidth: 0 }), TerminalTarget).text,
 		);
 
 		assert.equal(fallback, eighty);
@@ -980,9 +1007,9 @@ test("a fully redirected process falls back to eighty columns", () => {
 });
 
 test("FORCE_SIZE overrides terminal detection", () => {
-	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 
-	const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+	const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 
 	assert.equal(forced, detected);
 });
@@ -996,9 +1023,9 @@ test("FORCE_SIZE overrides an API width", () => {
 		canvasWidth: 13,
 	});
 
-	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(forcedHost, CliEnv).text);
+	const forced = withTerminal(120, "13", () => Cfonts.text("AAAA").render(forcedHost, TerminalTarget).text);
 
-	const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(expectedHost, CliEnv).text);
+	const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(expectedHost, TerminalTarget).text);
 
 	assert.equal(forced, expected);
 });
@@ -1012,9 +1039,9 @@ test("FORCE_SIZE zero overrides an API width with unlimited output", () => {
 		canvasWidth: 0,
 	});
 
-	const forced = withTerminal(13, "0", () => Cfonts.text("AAAA").render(forcedHost, CliEnv).text);
+	const forced = withTerminal(13, "0", () => Cfonts.text("AAAA").render(forcedHost, TerminalTarget).text);
 
-	const expected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(unlimitedHost, CliEnv).text);
+	const expected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(unlimitedHost, TerminalTarget).text);
 
 	assert.equal(forced, expected);
 });
@@ -1024,9 +1051,9 @@ test("an API width overrides terminal detection", () => {
 		canvasWidth: 13,
 	});
 
-	const explicit = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(explicitHost, CliEnv).text);
+	const explicit = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(explicitHost, TerminalTarget).text);
 
-	const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+	const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 
 	assert.equal(explicit, detected);
 });
@@ -1036,9 +1063,9 @@ test("an API width of zero means unlimited", () => {
 		canvasWidth: 0,
 	});
 
-	const unlimited = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(unlimitedHost, CliEnv).text);
+	const unlimited = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(unlimitedHost, TerminalTarget).text);
 
-	const wide = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+	const wide = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 
 	assert.equal(unlimited, wide);
 });
@@ -1049,9 +1076,9 @@ test("invalid FORCE_SIZE falls through to the API override", () => {
 	});
 
 	for (const garbage of ["", "abc", "-1", "12.5", "4294967296"]) {
-		const ignored = withTerminal(120, garbage, () => Cfonts.text("AAAA").render(host, CliEnv).text);
+		const ignored = withTerminal(120, garbage, () => Cfonts.text("AAAA").render(host, TerminalTarget).text);
 
-		const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(host, CliEnv).text);
+		const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(host, TerminalTarget).text);
 
 		assert.equal(ignored, expected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
 	}
@@ -1060,7 +1087,7 @@ test("invalid FORCE_SIZE falls through to the API override", () => {
 test("NodeHost render does not write to stdout", () => {
 	withTerminal(80, undefined, () => {
 		const writes = captureStdout(() => {
-			Cfonts.text("A").render(new NodeHost(), CliEnv);
+			Cfonts.text("A").render(new NodeHost(), TerminalTarget);
 		});
 
 		assert.deepEqual(writes, []);
@@ -1071,10 +1098,10 @@ test("NodeHost say writes exactly once", () => {
 	withTerminal(80, undefined, () => {
 		const banner = Cfonts.text("A");
 		const host = new NodeHost();
-		const expected = banner.render(host, CliEnv).text;
+		const expected = banner.render(host, TerminalTarget).text;
 
 		const writes = captureStdout(() => {
-			banner.say(host, CliEnv);
+			banner.say(host, TerminalTarget);
 		});
 
 		assert.deepEqual(writes, [`${expected}\n`]);
@@ -1085,10 +1112,10 @@ test("NodeHost say ends a browser artifact without a line end", () => {
 	withTerminal(80, undefined, () => {
 		const banner = Cfonts.text("A");
 		const host = new NodeHost();
-		const expected = banner.render(host, BrowserEnv).text;
+		const expected = banner.render(host, BrowserTarget).text;
 
 		const writes = captureStdout(() => {
-			banner.say(host, BrowserEnv);
+			banner.say(host, BrowserTarget);
 		});
 
 		assert.deepEqual(writes, [expected]);
@@ -1101,24 +1128,24 @@ test("raw mode changes nothing but the line endings", () => {
 		// and the host keeps its overrides, here a width the banner wraps at
 		const banner = Cfonts.text("AAAA").font(Font.Tiny).lineHeight(2);
 		const host = NodeHost.fromOverrides({ canvasWidth: 13 });
-		const plain = banner.render(host, CliEnv).text;
+		const plain = banner.render(host, TerminalTarget).text;
 
-		const raw = banner.render(host, CliEnv.rawMode()).text;
+		const raw = banner.render(host, TerminalTarget.rawMode()).text;
 		assert.ok(raw.includes("\r\n"));
 		assert.deepEqual(raw.split("\r\n"), plain.split("\n"));
-		assert.notEqual(plain, banner.render(new NodeHost(), CliEnv).text); // the override is the host's
+		assert.notEqual(plain, banner.render(new NodeHost(), TerminalTarget).text); // the override is the host's
 	});
 });
 
-test("raw mode reaches a manual render through the terminal environment", () => {
+test("raw mode reaches a manual render through the terminal target", () => {
 	const banner = Cfonts.text("AB").font(Font.Tiny);
-	const raw = banner.renderWith(CliEnv.rawMode()).text;
-	const plain = banner.renderWith(CliEnv).text;
+	const raw = banner.renderWith(TerminalTarget.rawMode()).text;
+	const plain = banner.renderWith(TerminalTarget).text;
 
 	assert.deepEqual(raw.split("\r\n"), plain.split("\n"));
-	assert.equal(CliEnv.rawMode(), CliEnv.rawMode()); // the raw terminal is a single value
-	for (const environment of [CliEnv, CliEnv.rawMode(), BrowserEnv, BrowserConsoleEnv]) {
-		assert.ok(Object.isFrozen(environment)); // shared values that nobody can reshape
+	assert.equal(TerminalTarget.rawMode(), TerminalTarget.rawMode()); // the raw terminal is a single value
+	for (const target of [TerminalTarget, TerminalTarget.rawMode(), BrowserTarget, BrowserConsoleTarget]) {
+		assert.ok(Object.isFrozen(target)); // shared values that nobody can reshape
 	}
 });
 
@@ -1126,10 +1153,10 @@ test("say ends raw output with a carriage return line feed", () => {
 	withTerminal(80, undefined, () => {
 		const banner = Cfonts.text("A");
 		const host = new NodeHost();
-		const expected = banner.render(host, CliEnv.rawMode()).text;
+		const expected = banner.render(host, TerminalTarget.rawMode()).text;
 
 		const writes = captureStdout(() => {
-			banner.say(host, CliEnv.rawMode());
+			banner.say(host, TerminalTarget.rawMode());
 		});
 
 		assert.deepEqual(writes, [`${expected}\r\n`]);
@@ -1137,16 +1164,16 @@ test("say ends raw output with a carriage return line feed", () => {
 });
 
 test("FORCE_SIZE zero means unlimited", () => {
-	const unlimited = withTerminal(13, "0", () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
-	const wide = withTerminal(13, "120", () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+	const unlimited = withTerminal(13, "0", () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
+	const wide = withTerminal(13, "120", () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 
 	assert.equal(unlimited, wide);
 });
 
 test("FORCE_SIZE garbage falls through to detection", () => {
 	for (const garbage of ["", "abc", "-1", "12.5"]) {
-		const ignored = withTerminal(13, garbage, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
-		const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+		const ignored = withTerminal(13, garbage, () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
+		const detected = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 
 		assert.equal(ignored, detected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
 	}
@@ -1160,27 +1187,29 @@ test("color overrides are validated", () => {
 });
 
 test("renderWith validates the color override fields", () => {
-	assert.throws(() => Cfonts.text("A").renderWith(CliEnv, { color: 99 }), TypeError);
-	assert.throws(() => Cfonts.text("A").renderWith(CliEnv, { seed: 1.5 }), TypeError);
+	assert.throws(() => Cfonts.text("A").renderWith(TerminalTarget, { color: 99 }), TypeError);
+	assert.throws(() => Cfonts.text("A").renderWith(TerminalTarget, { seed: 1.5 }), TypeError);
 });
 
 test("a color level without color options paints nothing", () => {
-	const plain = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), CliEnv).text);
+	const plain = withTerminal(13, undefined, () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
 	const leveled = withTerminal(
 		13,
 		undefined,
-		() => Cfonts.text("AAAA").render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 42 }), CliEnv).text,
+		() =>
+			Cfonts.text("AAAA").render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 42 }), TerminalTarget)
+				.text,
 	);
 
 	assert.equal(plain, leveled);
 });
 
 test("colors accepts enums hex values and channel objects", () => {
-	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+	const plain = Cfonts.text("A").renderWith(TerminalTarget).text;
 	const colored = Cfonts.text("A")
 		.colors([Color.Red, "#ff8800", "f80", { red: 1, green: 2, blue: 3 }, Color.Candy, "grey"])
-		.renderWith(CliEnv).text;
-	const empty = Cfonts.text("A").colors([]).renderWith(CliEnv).text;
+		.renderWith(TerminalTarget).text;
+	const empty = Cfonts.text("A").colors([]).renderWith(TerminalTarget).text;
 
 	assert.equal(colored, plain); // renderWith without a color level paints nothing
 	assert.equal(empty, plain); // an empty list is still a configured color
@@ -1189,7 +1218,7 @@ test("colors accepts enums hex values and channel objects", () => {
 test("a string is the command line spelling, parsed where the command line parses it", () => {
 	const context = { color: ColorLevel.TrueColor };
 	// a font with two color slots, so a list reaches past its first color
-	const render = (banner) => banner.font(Font.Block).renderWith(CliEnv, context).text;
+	const render = (banner) => banner.font(Font.Block).renderWith(TerminalTarget, context).text;
 
 	assert.equal(
 		render(Cfonts.text("A").colors("red-blue")),
@@ -1250,19 +1279,21 @@ test("gradient shapes are validated", () => {
 
 test("gradient stops accept the base Color values", () => {
 	const context = { color: ColorLevel.TrueColor };
-	const named = Cfonts.text("A").colors({ start: "red", end: "blue" }).renderWith(CliEnv, context).text;
-	const typed = Cfonts.text("A").colors({ start: Color.Red, end: Color.Blue }).renderWith(CliEnv, context).text;
+	const named = Cfonts.text("A").colors({ start: "red", end: "blue" }).renderWith(TerminalTarget, context).text;
+	const typed = Cfonts.text("A").colors({ start: Color.Red, end: Color.Blue }).renderWith(TerminalTarget, context).text;
 	assert.equal(typed, named);
 
 	const transition = Cfonts.text("A")
 		.colors({ transition: [Color.Red, "#8899dd", { red: 0, green: 0, blue: 255 }] })
-		.renderWith(CliEnv, context).text;
+		.renderWith(TerminalTarget, context).text;
 	const spelled = Cfonts.text("A")
 		.colors({ transition: ["red", "#8899dd", "#0000ff"] })
-		.renderWith(CliEnv, context).text;
+		.renderWith(TerminalTarget, context).text;
 	assert.equal(transition, spelled);
 
-	const global = Cfonts.text("A").globalColors({ start: Color.Yellow, end: Color.Gray }).renderWith(CliEnv, context);
+	const global = Cfonts.text("A")
+		.globalColors({ start: Color.Yellow, end: Color.Gray })
+		.renderWith(TerminalTarget, context);
 	assert.ok(global.text.includes("\u001b[38;2;"));
 });
 
@@ -1286,8 +1317,8 @@ test("a bright color is a gradient stop with the value of its slot color", () =>
 	const bright = Cfonts.text("A").font(Font.Tiny).colors({ start: Color.RedBright, end: Color.Blue });
 	const spelled = Cfonts.text("A").font(Font.Tiny).colors({ start: "#ee776d", end: Color.Blue });
 
-	assert.ok(bright.renderWith(CliEnv, context).text.includes("\u001b[38;2;"));
-	assert.equal(bright.renderWith(CliEnv, context).text, spelled.renderWith(CliEnv, context).text);
+	assert.ok(bright.renderWith(TerminalTarget, context).text.includes("\u001b[38;2;"));
+	assert.equal(bright.renderWith(TerminalTarget, context).text, spelled.renderWith(TerminalTarget, context).text);
 });
 
 test("gradient shape errors teach the shapes", () => {
@@ -1323,26 +1354,26 @@ test("Rgb.fromHex converts hex values into channels", () => {
 	const context = { color: ColorLevel.TrueColor };
 	const channeled = Cfonts.text("A")
 		.colors({ start: Rgb.fromHex("#ff8800"), end: Color.Blue })
-		.renderWith(CliEnv, context).text;
-	const spelled = Cfonts.text("A").colors({ start: "#ff8800", end: "blue" }).renderWith(CliEnv, context).text;
+		.renderWith(TerminalTarget, context).text;
+	const spelled = Cfonts.text("A").colors({ start: "#ff8800", end: "blue" }).renderWith(TerminalTarget, context).text;
 	assert.equal(channeled, spelled);
 });
 
 test("gradients accept every shape and paint nothing without a color level", () => {
-	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+	const plain = Cfonts.text("A").renderWith(TerminalTarget).text;
 
-	const preset = Cfonts.text("A").colors({ preset: GradientPreset.Pride }).renderWith(CliEnv).text;
+	const preset = Cfonts.text("A").colors({ preset: GradientPreset.Pride }).renderWith(TerminalTarget).text;
 	const twoStop = Cfonts.text("A")
 		.colors({ start: "red", end: "#0000ff" })
 		.independentGradient()
-		.renderWith(CliEnv).text;
+		.renderWith(TerminalTarget).text;
 	const transition = Cfonts.text("A")
 		.colors({ transition: ["red", { red: 0, green: 0, blue: 255 }, "gray"] })
-		.renderWith(CliEnv).text;
+		.renderWith(TerminalTarget).text;
 	const global = Cfonts.text("A")
 		.globalColors({ preset: GradientPreset.Transgender })
 		.independentGradient()
-		.renderWith(CliEnv).text;
+		.renderWith(TerminalTarget).text;
 
 	for (const rendered of [preset, twoStop, transition, global]) {
 		assert.equal(rendered, plain);
@@ -1350,8 +1381,8 @@ test("gradients accept every shape and paint nothing without a color level", () 
 });
 
 test("globalColors accepts colors and paints nothing without a color level", () => {
-	const plain = Cfonts.text("A").renderWith(CliEnv).text;
-	const global = Cfonts.text("A").globalColors([Color.Red, "#ff8800"]).renderWith(CliEnv).text;
+	const plain = Cfonts.text("A").renderWith(TerminalTarget).text;
+	const global = Cfonts.text("A").globalColors([Color.Red, "#ff8800"]).renderWith(TerminalTarget).text;
 
 	assert.equal(global, plain);
 	assert.throws(() => Cfonts.text("A").globalColors(true), TypeError); // neither a spelling, a list nor a gradient shape
@@ -1387,7 +1418,7 @@ test("a failed global gradient does not claim the slot", () => {
 });
 
 test("background accepts every shape and paints nothing without a color level", () => {
-	const plain = Cfonts.text("A").renderWith(CliEnv).text;
+	const plain = Cfonts.text("A").renderWith(TerminalTarget).text;
 	const shapes = [
 		Color.Blue,
 		Color.System,
@@ -1401,22 +1432,22 @@ test("background accepts every shape and paints nothing without a color level", 
 	];
 
 	for (const background of shapes) {
-		assert.equal(Cfonts.text("A").background(background).renderWith(CliEnv).text, plain);
+		assert.equal(Cfonts.text("A").background(background).renderWith(TerminalTarget).text, plain);
 	}
 });
 
-test("a background bands every row in every environment", () => {
+test("a background bands every row in every target", () => {
 	const context = { color: ColorLevel.TrueColor };
 	const banner = Cfonts.text("A").font(Font.Tiny).spaceless().background(Color.Blue);
 
 	assert.equal(
-		banner.renderWith(CliEnv, context).text,
+		banner.renderWith(TerminalTarget, context).text,
 		"\u001b[44m\u001b[K▄▀█\u001b[49m\n\u001b[44m\u001b[K█▀█\u001b[49m",
 	);
 	assert.ok(
-		banner.renderWith(BrowserEnv, context).text.includes('<div style="background:#0020f5;min-height:1lh">▄▀█</div>'),
+		banner.renderWith(BrowserTarget, context).text.includes('<div style="background:#0020f5;min-height:1lh">▄▀█</div>'),
 	);
-	assert.deepEqual(banner.renderWith(BrowserConsoleEnv, context).styles, [
+	assert.deepEqual(banner.renderWith(BrowserConsoleTarget, context).styles, [
 		"background:#0020f5",
 		"",
 		"background:#0020f5",
@@ -1427,7 +1458,7 @@ test("a background bands every row in every environment", () => {
 test("a background gradient ramps from the top row down", () => {
 	const context = { color: ColorLevel.TrueColor };
 	const render = (background) =>
-		Cfonts.text("A").font(Font.Tiny).spaceless().background(background).renderWith(CliEnv, context).text;
+		Cfonts.text("A").font(Font.Tiny).spaceless().background(background).renderWith(TerminalTarget, context).text;
 
 	const rows = render({ start: "red", end: "blue" }).split("\n");
 	assert.ok(rows[0].startsWith("\u001b[48;2;255;0;0m"));
@@ -1490,8 +1521,8 @@ test("block colors and the background have slots of their own beside the global 
 test("independentGradient restarts every line and can only be set once", () => {
 	const context = { color: ColorLevel.TrueColor };
 	const banner = Cfonts.text("A|AB").font(Font.Tiny).lineHeight(0).colors({ start: "red", end: "blue" });
-	const fixed = banner.renderWith(CliEnv, context).text;
-	const independent = banner.independentGradient().renderWith(CliEnv, context).text;
+	const fixed = banner.renderWith(TerminalTarget, context).text;
+	const independent = banner.independentGradient().renderWith(TerminalTarget, context).text;
 
 	assert.notEqual(independent, fixed);
 	for (const row of independent.split("\n").filter((row) => row.length > 0)) {
@@ -1503,12 +1534,12 @@ test("independentGradient restarts every line and can only be set once", () => {
 });
 
 test("renderWith paints with an explicit color level", () => {
-	const cli = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(CliEnv, {
+	const terminal = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(TerminalTarget, {
 		color: ColorLevel.TrueColor,
 	}).text;
-	assert.ok(cli.includes("\u001b[31m"));
+	assert.ok(terminal.includes("\u001b[31m"));
 
-	const browser = Cfonts.text("A").font(Font.Tiny).colors(["#ff8800"]).renderWith(BrowserEnv, {
+	const browser = Cfonts.text("A").font(Font.Tiny).colors(["#ff8800"]).renderWith(BrowserTarget, {
 		color: ColorLevel.TrueColor,
 	}).text;
 	assert.ok(browser.includes('<span style="color:#f80">'));
@@ -1519,7 +1550,7 @@ test("colors paint through the node host", () => {
 		withTerminal(
 			80,
 			undefined,
-			() => Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).render(new NodeHost(), CliEnv).text,
+			() => Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).render(new NodeHost(), TerminalTarget).text,
 		),
 	);
 
@@ -1543,19 +1574,19 @@ test("the host delegates color precedence to the shared chain", () => {
 				["false", undefined],
 			]) {
 				const rendered = withColorEnv(forced, "1", () =>
-					NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(colorBanner(), CliEnv),
+					NodeHost.fromOverrides({ canvasWidth: 0, color: false }).render(colorBanner(), TerminalTarget),
 				);
 				assert.equal(rendered.text, reference(expected), `FORCE_COLOR=${JSON.stringify(forced)}`);
 			}
 
 			// NO_COLOR and the API override resolve without detection
 			const noColor = withColorEnv(undefined, "1", () =>
-				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
 			);
 			assert.equal(noColor.text, reference(undefined));
 
 			const overridden = withColorEnv(undefined, undefined, () =>
-				NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic }).render(colorBanner(), CliEnv),
+				NodeHost.fromOverrides({ canvasWidth: 0, color: ColorLevel.Basic }).render(colorBanner(), TerminalTarget),
 			);
 			assert.equal(overridden.text, reference(ColorLevel.Basic));
 		});
@@ -1572,13 +1603,13 @@ test("NO_COLOR counts only when present and non-empty", { skip: process.platform
 			// an empty value is not set: the chain falls through to detection,
 			// which answers the terminal and never the leftover variable
 			const empty = withColorEnv(undefined, "", () =>
-				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
 			);
 			assert.equal(empty.text, reference(ColorLevel.Ansi256));
 
 			// any non-empty value counts, zero included
 			const zero = withColorEnv(undefined, "0", () =>
-				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+				NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
 			);
 			assert.equal(zero.text, reference(undefined));
 		});
@@ -1602,7 +1633,7 @@ test("detection runs the shared cascade", { skip: process.platform === "win32" }
 		try {
 			withDetectionEnv(vars, () => {
 				const rendered = withColorEnv(undefined, undefined, () =>
-					NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+					NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
 				);
 				assert.equal(rendered.text, reference(expected), JSON.stringify(vars));
 			});
@@ -1621,14 +1652,16 @@ test("a dumb terminal carries no ANSI through the Node host", { skip: process.pl
 			withColorEnv(undefined, undefined, () => {
 				// the terminal refuses escape codes, so the render fallback never paints it
 				const dumb = withDetectionEnv({ TERM: "dumb" }, () =>
-					new NodeHost({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+					new NodeHost({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
 				);
 				assert.ok(!dumb.text.includes("\u001b["));
 				assert.equal(dumb.text, reference(undefined));
 
 				// an unset or unknown TERM leaves the terminal undetected and the fallback paints it
 				for (const vars of [{}, { TERM: "fail" }]) {
-					const painted = withDetectionEnv(vars, () => new NodeHost({ canvasWidth: 0 }).render(colorBanner(), CliEnv));
+					const painted = withDetectionEnv(vars, () =>
+						new NodeHost({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
+					);
 					assert.ok(painted.text.includes("\u001b[38;2;"), JSON.stringify(vars));
 					assert.equal(painted.text, reference(ColorLevel.TrueColor), JSON.stringify(vars));
 				}
@@ -1655,7 +1688,7 @@ function rawRender(terminal, overrides = {}) {
 	banner.font(Font.Tiny);
 	banner.colors(["#ff8800"]);
 
-	return WasmNodeHost.fromOverrides({ canvasWidth: 0, ...overrides }).render(banner, EnvironmentKind.Cli, false, {
+	return WasmNodeHost.fromOverrides({ canvasWidth: 0, ...overrides }).render(banner, TargetKind.Terminal, false, {
 		stdoutColumns: 80,
 		attached: true,
 		platform: "darwin",
@@ -1697,18 +1730,18 @@ test("the chain crosses the boundary with the terminal facts", () => {
 	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type,
 	// a lookup that is no function with the sentence of the facts
 	const banner = WasmCfonts.text("A");
-	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, []), {
+	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, TargetKind.Terminal, false, []), {
 		name: "TypeError",
 		message: "`render()` expects the terminal facts",
 	});
-	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, {}), {
+	assert.throws(() => WasmNodeHost.fromOverrides().render(banner, TargetKind.Terminal, false, {}), {
 		name: "TypeError",
 		message: "`render()` expects a boolean",
 	});
 	for (const environment of [undefined, "TERM", ["TERM"], {}]) {
 		assert.throws(
 			() =>
-				WasmNodeHost.fromOverrides().render(banner, EnvironmentKind.Cli, false, {
+				WasmNodeHost.fromOverrides().render(banner, TargetKind.Terminal, false, {
 					attached: true,
 					platform: "darwin",
 					release: "25.6.0",
@@ -1737,9 +1770,9 @@ test("piped output has no terminal to ask and falls back to full color", () => {
 
 	try {
 		const rendered = withColorEnv(undefined, undefined, () =>
-			NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv),
+			NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget),
 		);
-		assert.equal(rendered.text, colorBanner().renderWith(CliEnv, { color: ColorLevel.TrueColor }).text);
+		assert.equal(rendered.text, colorBanner().renderWith(TerminalTarget, { color: ColorLevel.TrueColor }).text);
 	} finally {
 		restoreTty();
 	}
@@ -1777,12 +1810,12 @@ test("a variable is read through the runtime's own lookup on process.env", () =>
 
 	// NO_COLOR precedes the override, so the caseless read silences the render
 	assert.equal(
-		withProcessEnv(caseless, () => host.render(colorBanner(), CliEnv).text),
+		withProcessEnv(caseless, () => host.render(colorBanner(), TerminalTarget).text),
 		reference(undefined),
 	);
 	// the same store read exactly leaves no_color unread and the override paints
 	assert.equal(
-		withProcessEnv(store, () => host.render(colorBanner(), CliEnv).text),
+		withProcessEnv(store, () => host.render(colorBanner(), TerminalTarget).text),
 		reference(ColorLevel.Basic),
 	);
 });
@@ -1794,7 +1827,7 @@ test("a lowercase no_color silences the render on a windows main thread alone, t
 	try {
 		withDetectionEnv({ TERM: "xterm-256color" }, () =>
 			withColorEnv(undefined, undefined, () => {
-				const render = () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), CliEnv).text;
+				const render = () => NodeHost.fromOverrides({ canvasWidth: 0 }).render(colorBanner(), TerminalTarget).text;
 				const painted = render();
 				assert.notEqual(painted, reference(undefined));
 
@@ -1829,34 +1862,34 @@ test("an exception thrown while a variable is read crosses back as itself once a
 			},
 		);
 		const host = NodeHost.fromOverrides({ canvasWidth: 0 });
-		const expected = withColorEnv(undefined, undefined, () => host.render(colorBanner(), CliEnv).text);
+		const expected = withColorEnv(undefined, undefined, () => host.render(colorBanner(), TerminalTarget).text);
 
 		// the render throws the very object in place of an artifact resolved over facts it failed to read,
 		// and asks for no variable after the first failure
 		assert.throws(
-			() => withProcessEnv(throwing, () => host.render(colorBanner(), CliEnv)),
+			() => withProcessEnv(throwing, () => host.render(colorBanner(), TerminalTarget)),
 			(error) => error === thrown,
 		);
 		assert.equal(reads, 1);
 
 		// the same host renders again, and a variable set between two of its renders is seen
 		assert.equal(
-			withColorEnv(undefined, undefined, () => host.render(colorBanner(), CliEnv).text),
+			withColorEnv(undefined, undefined, () => host.render(colorBanner(), TerminalTarget).text),
 			expected,
 		);
 		assert.equal(
-			withColorEnv(undefined, "1", () => host.render(colorBanner(), CliEnv).text),
+			withColorEnv(undefined, "1", () => host.render(colorBanner(), TerminalTarget).text),
 			reference(undefined),
 		);
 	});
 });
 
 test("console styles pair with their markers through renderWith", () => {
-	const unstyled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleEnv);
+	const unstyled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleTarget);
 	assert.ok(!unstyled.text.includes("%c"));
 	assert.deepEqual(unstyled.styles, []);
 
-	const styled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleEnv, {
+	const styled = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]).renderWith(BrowserConsoleTarget, {
 		color: ColorLevel.TrueColor,
 	});
 	assert.equal(styled.text.match(/%c/g).length, styled.styles.length);
@@ -1872,12 +1905,12 @@ test("a kept seed repeats candy through the node host and another seed draws dif
 
 		const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
 		const pinned = NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed });
-		assert.equal(party.render(pinned, CliEnv).text, party.render(pinned, CliEnv).text);
+		assert.equal(party.render(pinned, TerminalTarget).text, party.render(pinned, TerminalTarget).text);
 
 		// the pair is fixed because the core's roll is deterministic per seed: 42 and 43 draw different assortments
 		assert.notEqual(
-			party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 42 }), CliEnv).text,
-			party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 43 }), CliEnv).text,
+			party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 42 }), TerminalTarget).text,
+			party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor, seed: 43 }), TerminalTarget).text,
 		);
 	});
 });
@@ -1887,7 +1920,7 @@ test("the node host rolls a fresh seed per render", () => {
 		assertFresh(() => NodeHost.entropy());
 
 		const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
-		assertFresh(() => party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor }), CliEnv).text);
+		assertFresh(() => party.render(NodeHost.fromOverrides({ color: ColorLevel.TrueColor }), TerminalTarget).text);
 	});
 });
 
@@ -1895,67 +1928,67 @@ test("the browser host decides behind the boundary and writes to the console", (
 	const banner = Cfonts.text("A").font(Font.Tiny).colors([Color.Red]);
 
 	// a page paints in true color unless told otherwise, and only a column count wraps it
-	assert.ok(banner.render(new BrowserHost(), BrowserEnv).text.includes('<span style="color:#ea3223">'));
-	assert.ok(!banner.render(BrowserHost.fromOverrides({ color: false }), BrowserEnv).text.includes("<span"));
+	assert.ok(banner.render(new BrowserHost(), BrowserTarget).text.includes('<span style="color:#ea3223">'));
+	assert.ok(!banner.render(BrowserHost.fromOverrides({ color: false }), BrowserTarget).text.includes("<span"));
 	assert.notEqual(
-		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserEnv).text,
-		wrappingBanner().render(new BrowserHost(), BrowserEnv).text,
+		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserTarget).text,
+		wrappingBanner().render(new BrowserHost(), BrowserTarget).text,
 	);
 	assert.equal(
-		wrappingBanner().render(new BrowserHost({ canvasWidth: 3 }), BrowserEnv).text,
-		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserEnv).text,
+		wrappingBanner().render(new BrowserHost({ canvasWidth: 3 }), BrowserTarget).text,
+		wrappingBanner().render(BrowserHost.fromOverrides({ canvasWidth: 3 }), BrowserTarget).text,
 	);
 
 	// say spreads the text and the styles into console.log, once
 	const host = new BrowserHost();
-	const expected = banner.render(host, BrowserConsoleEnv);
-	const calls = captureConsoleLogs(() => banner.say(host, BrowserConsoleEnv));
+	const expected = banner.render(host, BrowserConsoleTarget);
+	const calls = captureConsoleLogs(() => banner.say(host, BrowserConsoleTarget));
 	assert.deepEqual(calls, [[expected.text, ...expected.styles]]);
 	assert.ok(expected.styles.length > 0);
 
 	// every render rolls its own candy unless a seed is pinned, and the pinned pair is fixed because
 	// the core's roll is deterministic per seed: 42 and 43 draw different assortments
 	const party = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]);
-	assertFresh(() => party.render(new BrowserHost(), BrowserEnv).text);
+	assertFresh(() => party.render(new BrowserHost(), BrowserTarget).text);
 	const pinned = BrowserHost.fromOverrides({ seed: BrowserHost.entropy() });
-	assert.equal(party.render(pinned, BrowserEnv).text, party.render(pinned, BrowserEnv).text);
+	assert.equal(party.render(pinned, BrowserTarget).text, party.render(pinned, BrowserTarget).text);
 	assert.notEqual(
-		party.render(BrowserHost.fromOverrides({ seed: 42 }), BrowserEnv).text,
-		party.render(BrowserHost.fromOverrides({ seed: 43 }), BrowserEnv).text,
+		party.render(BrowserHost.fromOverrides({ seed: 42 }), BrowserTarget).text,
+		party.render(BrowserHost.fromOverrides({ seed: 43 }), BrowserTarget).text,
 	);
 
 	assert.throws(() => banner.render(new BrowserHost(), {}), {
 		name: "TypeError",
-		message: "`render()` expects a cfonts environment",
+		message: "`render()` expects a cfonts target",
 	});
 	assert.throws(() => banner.say(new BrowserHost(), {}), {
 		name: "TypeError",
-		message: "`say()` expects a cfonts environment",
+		message: "`say()` expects a cfonts target",
 	});
 });
 
-test("the package hosts refuse a stray environment in the same words", () => {
+test("the package hosts refuse a stray target in the same words", () => {
 	const banner = Cfonts.text("A").font(Font.Tiny);
 
 	for (const host of [new NodeHost(), new BrowserHost()]) {
 		assert.throws(() => banner.render(host, {}), {
 			name: "TypeError",
-			message: "`render()` expects a cfonts environment",
+			message: "`render()` expects a cfonts target",
 		});
-		assert.throws(() => banner.say(host, {}), { name: "TypeError", message: "`say()` expects a cfonts environment" });
+		assert.throws(() => banner.say(host, {}), { name: "TypeError", message: "`say()` expects a cfonts target" });
 	}
 	assert.throws(() => banner.renderWith({}), {
 		name: "TypeError",
-		message: "`renderWith()` expects a cfonts environment",
+		message: "`renderWith()` expects a cfonts target",
 	});
 });
 
 test("candy seeds are deterministic through renderWith", () => {
 	const seeded = { color: ColorLevel.TrueColor, seed: 42 };
 
-	const one = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(CliEnv, seeded).text;
-	const two = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(CliEnv, seeded).text;
-	const other = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(CliEnv, {
+	const one = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(TerminalTarget, seeded).text;
+	const two = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(TerminalTarget, seeded).text;
+	const other = Cfonts.text("AB").font(Font.Tiny).colors([Color.Candy]).renderWith(TerminalTarget, {
 		color: ColorLevel.TrueColor,
 		seed: 43,
 	}).text;
@@ -1964,7 +1997,10 @@ test("candy seeds are deterministic through renderWith", () => {
 	assert.notEqual(one, other);
 	assert.ok(one.includes("\u001b["));
 
-	const consoleArtifact = Cfonts.text("A").font(Font.Tiny).colors([Color.Candy]).renderWith(BrowserConsoleEnv, seeded);
+	const consoleArtifact = Cfonts.text("A")
+		.font(Font.Tiny)
+		.colors([Color.Candy])
+		.renderWith(BrowserConsoleTarget, seeded);
 	assert.ok(consoleArtifact.styles.length > 0);
 });
 
@@ -1973,7 +2009,7 @@ test("gradients paint through renderWith with a color level", () => {
 	const ramped = Cfonts.text("A")
 		.font(Font.Tiny)
 		.colors({ start: "red", end: "blue" })
-		.renderWith(CliEnv, context).text;
+		.renderWith(TerminalTarget, context).text;
 	assert.ok(ramped.includes("\u001b[38;2;255;0;0m"));
 
 	// every gradient shape of a block paints the text and never a background
@@ -1982,7 +2018,7 @@ test("gradients paint through renderWith with a color level", () => {
 		{ start: "red", end: "blue" },
 		{ transition: ["red", "blue"] },
 	]) {
-		const text = Cfonts.text("A").font(Font.Tiny).colors(shape).renderWith(CliEnv, context).text;
+		const text = Cfonts.text("A").font(Font.Tiny).colors(shape).renderWith(TerminalTarget, context).text;
 		assert.ok(text.includes("\u001b[38;2;"), `${JSON.stringify(shape)} paints a ramp`);
 		assert.ok(!text.includes("\u001b[48;2;"), `${JSON.stringify(shape)} paints no background`);
 	}
@@ -1990,7 +2026,7 @@ test("gradients paint through renderWith with a color level", () => {
 	const globalRamp = Cfonts.text("A")
 		.font(Font.Tiny)
 		.globalColors({ preset: GradientPreset.Pride })
-		.renderWith(BrowserConsoleEnv, context);
+		.renderWith(BrowserConsoleTarget, context);
 	assert.equal(globalRamp.text.match(/%c/g).length, globalRamp.styles.length);
 	assert.ok(globalRamp.styles.includes("color:#750787"));
 });

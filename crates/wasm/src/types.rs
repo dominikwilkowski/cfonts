@@ -34,44 +34,45 @@ macro_rules! color_enum {
 }
 named_colors!(color_enum);
 
-/// The closed set of render environments the boundary can ask for
+/// The closed set of render targets the boundary can ask for
 ///
-/// JavaScript cannot implement environments: formatting runs inside the wasm,
+/// JavaScript cannot implement targets: formatting runs inside the wasm,
 /// and custom runtimes implement the open Host interface instead
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, All)]
-pub enum EnvironmentKind {
-	Cli,
+pub enum TargetKind {
+	Terminal,
 	Browser,
 	BrowserConsole,
 }
 
-/// Binds the environment a kind and the raw flag name to the given identifier and evaluates the body with it, once per arm
+/// Binds the target a kind and the raw flag name to the given identifier and evaluates the body with it, once per arm
 ///
-/// The three environments are three types and the Environment trait is too wide to delegate through
+/// The three targets are three types and the Target trait is too wide to delegate through
 /// an enum, so the one match that turns a kind into a value is a macro the builder and the hosts all expand
-macro_rules! with_environment {
-	($kind:expr, $raw_mode:expr, |$environment:ident| $body:expr) => {
+macro_rules! with_target {
+	($kind:expr, $raw_mode:expr, |$target:ident| $body:expr) => {
 		match $kind {
-			$crate::EnvironmentKind::Cli => {
-				let $environment = if $raw_mode { cfonts::CliEnv::default().raw_mode() } else { cfonts::CliEnv::default() };
+			$crate::TargetKind::Terminal => {
+				let $target =
+					if $raw_mode { cfonts::TerminalTarget::default().raw_mode() } else { cfonts::TerminalTarget::default() };
 
 				$body
 			}
-			$crate::EnvironmentKind::Browser => {
-				let $environment = cfonts::BrowserEnv;
+			$crate::TargetKind::Browser => {
+				let $target = cfonts::BrowserTarget;
 
 				$body
 			}
-			$crate::EnvironmentKind::BrowserConsole => {
-				let $environment = cfonts::BrowserConsoleEnv;
+			$crate::TargetKind::BrowserConsole => {
+				let $target = cfonts::BrowserConsoleTarget;
 
 				$body
 			}
 		}
 	};
 }
-pub(crate) use with_environment;
+pub(crate) use with_target;
 
 /// The rendered output returned to JavaScript
 ///

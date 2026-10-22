@@ -19,7 +19,7 @@ pub struct RustHost {
 }
 
 impl RustHost {
-	/// Writes the artifact and the closing line break the environment expects
+	/// Writes the artifact and the closing line break the target expects
 	fn write_into(rendered: &Rendered, line_end: &str, out: &mut impl Write) -> io::Result<()> {
 		write!(out, "{}{line_end}", rendered.text)
 	}
@@ -87,7 +87,7 @@ mod tests {
 	use std::{ffi::OsString, os::unix::ffi::OsStringExt};
 
 	use super::*;
-	use crate::{Cfonts, CliEnv, Environment, Font, Options};
+	use crate::{Cfonts, Font, Options, Target, TerminalTarget};
 
 	#[test]
 	fn forced_junk_resolves_through_the_real_environment_without_detection() {
@@ -186,11 +186,11 @@ mod tests {
 	}
 
 	#[test]
-	fn the_raw_environment_reaches_the_rendered_output() {
+	fn the_raw_target_reaches_the_rendered_output() {
 		temp_env::with_vars([("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", Some("0")), ("NO_COLOR", None)], || {
 			let options = Options::from(Cfonts::text("A").font(Font::Tiny));
-			let raw = RustHost::default().render(&CliEnv::default().raw_mode(), &options);
-			let neutral = RustHost::default().render(&CliEnv::default(), &options);
+			let raw = RustHost::default().render(&TerminalTarget::default().raw_mode(), &options);
+			let neutral = RustHost::default().render(&TerminalTarget::default(), &options);
 
 			assert!(raw.text.contains("\r\n"));
 			assert!(!neutral.text.contains('\r'));
@@ -198,14 +198,14 @@ mod tests {
 	}
 
 	#[test]
-	fn the_closing_line_break_follows_the_environment() {
+	fn the_closing_line_break_follows_the_target() {
 		let mut rendered = Rendered::default();
 		rendered.text.push_str("ART");
 
 		let mut raw = Vec::new();
 		let mut plain = Vec::new();
-		RustHost::write_into(&rendered, CliEnv::default().raw_mode().line_end(), &mut raw).unwrap();
-		RustHost::write_into(&rendered, CliEnv::default().line_end(), &mut plain).unwrap();
+		RustHost::write_into(&rendered, TerminalTarget::default().raw_mode().line_end(), &mut raw).unwrap();
+		RustHost::write_into(&rendered, TerminalTarget::default().line_end(), &mut plain).unwrap();
 
 		assert_eq!(raw, b"ART\r\n");
 		assert_eq!(plain, b"ART\n");

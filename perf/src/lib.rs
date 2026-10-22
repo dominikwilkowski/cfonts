@@ -10,7 +10,7 @@
 use std::fmt::{self, Display};
 
 use cfonts::{
-	Align, Background, Cfonts, CliEnv, Color, ColorLevel, ColorOverride, Font, GradientOption, Options, RenderOverrides,
+	Align, Background, Cfonts, TerminalTarget, Color, ColorLevel, ColorOverride, Font, GradientOption, Options, RenderOverrides,
 	Rendered, TransitionStops, render_with,
 };
 use cfonts_v3::{
@@ -509,7 +509,7 @@ pub fn render_v4(options: &Options) -> Rendered {
 		.with_color(ColorOverride::Level(ColorLevel::TrueColor))
 		.with_seed(SEED);
 
-	render_with(options, &CliEnv::default(), overrides)
+	render_with(options, &TerminalTarget::default(), overrides)
 }
 
 /// Builds and renders one scenario once, the text a child prints for the fairness check
