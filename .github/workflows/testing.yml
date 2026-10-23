@@ -185,19 +185,19 @@ jobs:
           cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Install trunk
-        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
-          tool: trunk@0.21.14
+          tool: trunk@0.22.0
           fallback: none
           checksum: true
 
       - name: Install pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          version: "12.8.1"
+          version: "12.15.0"
 
       - name: Install node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
@@ -277,7 +277,7 @@ jobs:
           cache-save-if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
           tool: cargo-llvm-cov@0.9.1
           fallback: none
@@ -296,7 +296,7 @@ jobs:
           file: lcov.info
           format: lcov
           flag-name: rust
-          coverage-reporter-version: v0.6.17
+          coverage-reporter-version: v0.6.22
 
   deploy-pages:
     name: Deploy browser example
