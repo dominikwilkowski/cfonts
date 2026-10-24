@@ -14,7 +14,7 @@ use cfonts::{
 	},
 };
 
-use crate::{Cfonts, Rendered, TargetKind, input, types::with_target};
+use crate::{Cfonts, Rendered, TargetKind, input::Input, types::with_target};
 
 /// The page host of the core behind the boundary
 ///
@@ -38,7 +38,7 @@ impl BrowserHost {
 	pub fn from_overrides(
 		#[wasm_bindgen(unchecked_optional_param_type = "RenderOverrides")] overrides: JsValue,
 	) -> Result<BrowserHost, JsValue> {
-		let overrides = input::overrides(&overrides, "fromOverrides")?;
+		let overrides = Input::new(overrides, "fromOverrides").overrides()?;
 
 		Ok(Self { inner: CoreBrowserHost::from_overrides(overrides) })
 	}
@@ -128,7 +128,7 @@ impl NodeHost {
 	pub fn from_overrides(
 		#[wasm_bindgen(unchecked_optional_param_type = "RenderOverrides")] overrides: JsValue,
 	) -> Result<NodeHost, JsValue> {
-		Ok(Self { overrides: input::overrides(&overrides, "fromOverrides")? })
+		Ok(Self { overrides: Input::new(overrides, "fromOverrides").overrides()? })
 	}
 
 	/// Renders the composition into the target's format, the three answers resolved from the terminal facts
@@ -141,7 +141,7 @@ impl NodeHost {
 		raw_mode: bool,
 		#[wasm_bindgen(unchecked_param_type = "Terminal")] terminal: JsValue,
 	) -> Result<Ts<Rendered>, JsValue> {
-		let terminal = input::terminal(&terminal, "render")?;
+		let terminal = Input::new(terminal, "render").terminal()?;
 		let host = TerminalHost::new(self.overrides, &terminal);
 		let rendered: Rendered =
 			with_target!(target, raw_mode, |target| host.render(&target, composition.options())).into();

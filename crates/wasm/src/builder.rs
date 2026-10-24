@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use cfonts::{Align, Cfonts as CoreCfonts, Font, Options, Valign, options::BlockOptions, render_with};
 
-use crate::{Rendered, TargetKind, input, types::with_target};
+use crate::{Rendered, TargetKind, input::Input, types::with_target};
 
 const ALIGN_SET: u8 = 1 << 0;
 const VALIGN_SET: u8 = 1 << 1;
@@ -66,20 +66,20 @@ impl Cfonts {
 impl Cfonts {
 	/// Starts a composition with its first text block
 	pub fn text(#[wasm_bindgen(unchecked_param_type = "string")] input: JsValue) -> Result<Cfonts, JsValue> {
-		let options: Options = CoreCfonts::text(input::expect_string(&input, "text")?).into();
+		let options: Options = CoreCfonts::text(Input::new(input, "text").expect_string()?).into();
 
 		Ok(Self { options, configured_globals: 0 })
 	}
 
 	/// Starts the next text block
 	pub fn next(&mut self, #[wasm_bindgen(unchecked_param_type = "string")] input: JsValue) -> Result<(), JsValue> {
-		self.options.blocks.push(BlockOptions::new(input::expect_string(&input, "next")?));
+		self.options.blocks.push(BlockOptions::new(Input::new(input, "next").expect_string()?));
 		Ok(())
 	}
 
 	/// Sets the font for the current block, from the enum or its command line name
 	pub fn font(&mut self, #[wasm_bindgen(unchecked_param_type = "Font | string")] font: JsValue) -> Result<(), JsValue> {
-		self.current_block_mut().font = input::expect_named(&font, &Font::ALL, Font::from_name, "font", "font")?;
+		self.current_block_mut().font = Input::new(font, "font").expect_named(&Font::ALL, Font::from_name, "font")?;
 		Ok(())
 	}
 
@@ -89,7 +89,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] letter_spacing: JsValue,
 	) -> Result<(), JsValue> {
-		self.current_block_mut().letter_spacing = Some(input::expect_u32(&letter_spacing, "letterSpacing")? as usize);
+		self.current_block_mut().letter_spacing = Some(Input::new(letter_spacing, "letterSpacing").expect_u32()? as usize);
 		Ok(())
 	}
 
@@ -105,7 +105,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] line_height: JsValue,
 	) -> Result<(), JsValue> {
-		self.current_block_mut().line_height = Some(input::expect_u32(&line_height, "lineHeight")? as usize);
+		self.current_block_mut().line_height = Some(Input::new(line_height, "lineHeight").expect_u32()? as usize);
 		Ok(())
 	}
 
@@ -116,7 +116,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "ColorOption")] input: JsValue,
 	) -> Result<(), JsValue> {
-		self.current_block_mut().colors = Some(input::colors(&input, "colors")?);
+		self.current_block_mut().colors = Some(Input::new(input, "colors").colors()?);
 		Ok(())
 	}
 
@@ -125,7 +125,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "Align | string")] align: JsValue,
 	) -> Result<(), JsValue> {
-		let align = input::expect_named(&align, &Align::ALL, Align::from_name, "align", "alignment")?;
+		let align = Input::new(align, "align").expect_named(&Align::ALL, Align::from_name, "alignment")?;
 		self.set_global(ALIGN_SET, "align")?;
 		self.options.align = align;
 		Ok(())
@@ -136,7 +136,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "Valign | string")] valign: JsValue,
 	) -> Result<(), JsValue> {
-		let valign = input::expect_named(&valign, &Valign::ALL, Valign::from_name, "valign", "vertical alignment")?;
+		let valign = Input::new(valign, "valign").expect_named(&Valign::ALL, Valign::from_name, "vertical alignment")?;
 		self.set_global(VALIGN_SET, "valign")?;
 		self.options.valign = valign;
 		Ok(())
@@ -157,7 +157,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] max_length: JsValue,
 	) -> Result<(), JsValue> {
-		let max_length = input::expect_u32(&max_length, "maxLength")?; // The javascript name instead of the rust spelling
+		let max_length = Input::new(max_length, "maxLength").expect_u32()?; // The javascript name instead of the rust spelling
 		self.set_global(MAX_LENGTH_SET, "maxLength")?;
 		self.options.max_length = NonZeroUsize::new(max_length as usize);
 		Ok(())
@@ -172,7 +172,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "ColorOption")] input: JsValue,
 	) -> Result<(), JsValue> {
-		let colors = input::colors(&input, "globalColors")?;
+		let colors = Input::new(input, "globalColors").colors()?;
 		self.set_global_colors()?;
 		self.options.global_colors = Some(colors);
 		Ok(())
@@ -195,7 +195,7 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "BackgroundOption")] input: JsValue,
 	) -> Result<(), JsValue> {
-		let background = input::background(&input, "background")?;
+		let background = Input::new(input, "background").background()?;
 		self.set_global(BACKGROUND_SET, "background")?;
 		self.options.background = Some(background);
 		Ok(())
@@ -213,7 +213,7 @@ impl Cfonts {
 		target: TargetKind,
 		raw_mode: bool,
 	) -> Result<Ts<Rendered>, JsValue> {
-		let overrides = input::overrides(&overrides, "renderWith")?;
+		let overrides = Input::new(overrides, "renderWith").overrides()?;
 		let rendered: Rendered =
 			with_target!(target, raw_mode, |target| render_with(&self.options, &target, overrides).into());
 

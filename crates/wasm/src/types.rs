@@ -4,12 +4,12 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
-	Align, Background, Color as CoreColor, ColorError, Font, Gradient, GradientPreset, Rendered as CoreRendered, Rgb,
-	Text, Valign, named_colors,
+	Align, Background, Color as CoreColor, Font, Gradient, GradientPreset, Rendered as CoreRendered, Rgb, Text, Valign,
+	named_colors,
 };
 use cfonts_macros::All;
 
-use crate::input::expect_string;
+use crate::input::Input;
 
 /// Expands the core's vocabulary into the `Color` enum, the three groups in the core's order and the names left to the core
 macro_rules! color_enum {
@@ -145,20 +145,12 @@ pub fn gradient_color_names() -> Vec<String> {
 /// `Rgb.fromHex()` is the method a consumer calls, so the sentence names it
 #[wasm_bindgen(js_name = rgbFromHex, unchecked_return_type = "Readonly<Rgb>")]
 pub fn rgb_from_hex(#[wasm_bindgen(unchecked_param_type = "string")] hex: JsValue) -> Result<JsValue, JsValue> {
-	let hex = expect_string(&hex, "Rgb.fromHex")?;
-	let rgb = Rgb::from_hex(&hex).map_err(|error| color_error(&hex, error))?;
+	let hex = Input::new(hex, "Rgb.fromHex").expect_string()?;
+	let rgb = Rgb::from_hex(&hex).map_err(|error| Input::refused(&hex, error))?;
 	let channels = Object::new();
 	for (channel, value) in [("red", rgb.red), ("green", rgb.green), ("blue", rgb.blue)] {
 		Reflect::set(&channels, &JsValue::from_str(channel), &value.into())?;
 	}
 
 	Ok(Object::freeze(&channels).into())
-}
-
-/// Names the refused input in front of the core's sentence
-///
-/// The boundary relays the core instead of wording color errors itself,
-/// so the browser page prints the one sentence the framework pages and the command line print
-pub(crate) fn color_error(input: &str, error: ColorError) -> JsError {
-	JsError::new(&format!("\"{input}\": {error}"))
 }
