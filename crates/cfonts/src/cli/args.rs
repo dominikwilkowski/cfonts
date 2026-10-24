@@ -9,7 +9,7 @@ use crate::{
 			const_join, const_mark,
 		},
 	},
-	color::DELIMITERS,
+	color::ColorShape,
 };
 use cfonts_macros::All;
 
@@ -278,7 +278,7 @@ impl Args {
 				argument: self,
 				value,
 				preset: value
-					.split(DELIMITERS)
+					.split(ColorShape::DELIMITERS)
 					.map(str::trim)
 					.find(|segment| GradientPreset::from_name(segment) == Some(preset))
 					.expect("the core refused this preset, so one segment of the value names it"),

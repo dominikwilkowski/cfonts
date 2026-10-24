@@ -101,14 +101,6 @@ pub struct Rgb {
 	pub blue: u8,
 }
 
-/// The digits of lowercase hexadecimal notation, indexed by their value
-const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
-
-/// Writes one hexadecimal digit, `value` is below 16
-fn push_hex_digit(value: u8, out: &mut String) {
-	out.push(char::from(HEX_DIGITS[usize::from(value)]));
-}
-
 impl Rgb {
 	/// Parses a `#rgb` or `#rrggbb` hex color; the leading `#` is optional
 	pub fn from_hex(hex: &str) -> Result<Self, ColorError> {
@@ -156,10 +148,18 @@ impl Rgb {
 		out.push('#');
 		for channel in [self.red, self.green, self.blue] {
 			if !short {
-				push_hex_digit(channel >> 4, out);
+				out.push(Self::hex_digit(channel >> 4));
 			}
-			push_hex_digit(channel & 0x0f, out);
+			out.push(Self::hex_digit(channel & 0x0f));
 		}
+	}
+
+	/// The digits of lowercase hexadecimal notation, indexed by their value
+	const HEX_DIGITS: &'static [u8; 16] = b"0123456789abcdef";
+
+	/// One hexadecimal digit, `value` is below 16
+	fn hex_digit(value: u8) -> char {
+		char::from(Self::HEX_DIGITS[usize::from(value)])
 	}
 
 	/// The nearest ANSI 256 palette index: the 6×6×6 cube with a grayscale ramp
@@ -457,7 +457,7 @@ macro_rules! named_colors {
 	};
 }
 
-/// Expands the vocabulary into the [`Value`] enum, the name tables the kinds assemble their names from
+/// Expands the vocabulary into the [`Value`] enum with the name tables the kinds assemble their names from
 /// and the lookup of the sixteen names the parser reads
 macro_rules! vocabulary {
 	(
@@ -479,20 +479,22 @@ macro_rules! vocabulary {
 			Rgb(Rgb),
 		}
 
-		/// The name of the system color, the first name of every kind that takes it
-		const SYSTEM_NAME: &str = $system_name;
+		impl Value {
+			/// The name of the system color, the first name of every kind that takes it
+			const SYSTEM_NAME: &'static str = $system_name;
 
-		/// The sixteen names every kind takes, in the order the help lists them
-		const NAMED: &[&str] = &[$($name),*];
+			/// The sixteen names every kind takes, in the order the help lists them
+			const NAMED: &'static [&'static str] = &[$($name),*];
 
-		/// The name of the candy color, the last name of every kind that takes it
-		const CANDY_NAME: &str = $candy_name;
+			/// The name of the candy color, the last name of every kind that takes it
+			const CANDY_NAME: &'static str = $candy_name;
 
-		/// The value of one of the sixteen names every kind takes, as the list spells it in lowercase
-		fn named_value(name: &str) -> Option<Value> {
-			match name {
-				$($name => Some(Value::$variant),)*
-				_ => None,
+			/// The value of one of the sixteen names every kind takes, as the list spells it in lowercase
+			fn from_named(name: &str) -> Option<Self> {
+				match name {
+					$($name => Some(Self::$variant),)*
+					_ => None,
+				}
 			}
 		}
 	};
@@ -579,32 +581,6 @@ impl Value {
 	}
 }
 
-/// The names of one kind in the order the help lists them: `system` first and `candy` last where the kind takes them
-///
-/// `COUNT` is the kind's name count, a wrong count stops the build
-const fn names<K: Kind, const COUNT: usize>() -> [&'static str; COUNT] {
-	let mut names = [""; COUNT];
-	let mut index = 0;
-
-	if K::TAKES_SYSTEM {
-		names[index] = SYSTEM_NAME;
-		index += 1;
-	}
-	let mut named = 0;
-	while named < NAMED.len() {
-		names[index] = NAMED[named];
-		index += 1;
-		named += 1;
-	}
-	if K::TAKES_CANDY {
-		names[index] = CANDY_NAME;
-		index += 1;
-	}
-	assert!(index == COUNT, "every name of the kind has its slot");
-
-	names
-}
-
 /// One color and where it goes: the text, a gradient stop or the background
 ///
 /// The kind polices the two slot only values at compile time: [`Color::SYSTEM`] paints nothing and goes to
@@ -671,13 +647,39 @@ impl<K: Kind> Color<K> {
 	/// hex values are not names: they go through [`Rgb::from_hex`]
 	pub fn from_name(name: &str) -> Option<Self> {
 		let value = match name.to_ascii_lowercase().as_str() {
-			SYSTEM_NAME if K::TAKES_SYSTEM => Value::System,
+			Value::SYSTEM_NAME if K::TAKES_SYSTEM => Value::System,
 			"grey" => Value::Gray,
-			CANDY_NAME if K::TAKES_CANDY => Value::Candy,
-			named => named_value(named)?,
+			Value::CANDY_NAME if K::TAKES_CANDY => Value::Candy,
+			named => Value::from_named(named)?,
 		};
 
 		Some(Self::new(value))
+	}
+
+	/// The names of this kind in the order the help lists them: `system` first and `candy` last where the kind takes them
+	///
+	/// `COUNT` is the kind's name count, a wrong count stops the build
+	const fn names<const COUNT: usize>() -> [&'static str; COUNT] {
+		let mut names = [""; COUNT];
+		let mut index = 0;
+
+		if K::TAKES_SYSTEM {
+			names[index] = Value::SYSTEM_NAME;
+			index += 1;
+		}
+		let mut named = 0;
+		while named < Value::NAMED.len() {
+			names[index] = Value::NAMED[named];
+			index += 1;
+			named += 1;
+		}
+		if K::TAKES_CANDY {
+			names[index] = Value::CANDY_NAME;
+			index += 1;
+		}
+		assert!(index == COUNT, "every name of the kind has its slot");
+
+		names
 	}
 }
 
@@ -715,7 +717,7 @@ impl<K: TakesCandy> Color<K> {
 
 impl Color<Text> {
 	/// Every name a text color takes, in the order the help lists them
-	pub const NAMES: [&'static str; 18] = names::<Text, 18>();
+	pub const NAMES: [&'static str; 18] = Self::names::<18>();
 
 	/// The RGB value this color paints, from the painted table where red is `#ea3223`
 	///
@@ -727,7 +729,7 @@ impl Color<Text> {
 
 impl Color<Background> {
 	/// Every name a background takes, in the order the help lists them
-	pub const NAMES: [&'static str; 17] = names::<Background, 17>();
+	pub const NAMES: [&'static str; 17] = Self::names::<17>();
 
 	/// The RGB value this color paints, from the painted table where red is `#ea3223`
 	///
@@ -739,7 +741,7 @@ impl Color<Background> {
 
 impl Color<Gradient> {
 	/// Every name a gradient stop takes, in the order the help lists them
-	pub const NAMES: [&'static str; 16] = names::<Gradient, 16>();
+	pub const NAMES: [&'static str; 16] = Self::names::<16>();
 
 	/// The RGB value a gradient blends from, the canonical table where red is `#ff0000`
 	///
@@ -770,27 +772,10 @@ impl Color<Gradient> {
 	}
 }
 
-/// The name-or-hex rule every color boundary parses with
-///
-/// Names win and are checked first; a `#` prefixed value that fails reports the
-/// precise hex problem, anything else that matches no name is one unknown color
-fn parse_name_or_hex<T>(
-	input: &str,
-	from_name: impl Fn(&str) -> Option<T>,
-	from_rgb: impl Fn(Rgb) -> T,
-) -> Result<T, ColorError> {
-	if let Some(value) = from_name(input) {
-		return Ok(value);
-	}
-
-	if input.starts_with('#') {
-		return Rgb::from_hex(input).map(from_rgb);
-	}
-
-	Rgb::from_hex(input).map(from_rgb).map_err(|_| ColorError::UnknownColor)
-}
-
 /// A color parses from its name or a hex value, the leading `#` is optional
+///
+/// Names win and are checked first, a `#` prefixed value that fails reports the precise hex problem,
+/// anything else that matches no name is one unknown color
 ///
 /// A slot only name the kind does not take gets the kind's own error,
 /// so a valid text color in the wrong place teaches instead of confuses
@@ -798,10 +783,17 @@ impl<K: Kind> FromStr for Color<K> {
 	type Err = ColorError;
 
 	fn from_str(input: &str) -> Result<Self, Self::Err> {
-		parse_name_or_hex(input, Self::from_name, Self::from).map_err(|error| match error {
-			ColorError::UnknownColor if Color::<Text>::from_name(input).is_some() => K::REFUSAL,
-			error => error,
-		})
+		if let Some(color) = Self::from_name(input) {
+			return Ok(color);
+		}
+
+		if input.starts_with('#') {
+			return Rgb::from_hex(input).map(Self::from);
+		}
+
+		Rgb::from_hex(input)
+			.map(Self::from)
+			.map_err(|_| if Color::<Text>::from_name(input).is_some() { K::REFUSAL } else { ColorError::UnknownColor })
 	}
 }
 
@@ -963,7 +955,7 @@ impl From<GradientPreset> for BackgroundOption {
 /// The delimiter decides the vocabulary:
 /// - commas separate slot colors
 /// - a dash and colons separate gradient stops
-enum ColorShape<'a> {
+pub(crate) enum ColorShape<'a> {
 	/// One color name, hex value or preset name
 	Single(&'a str),
 
@@ -977,57 +969,59 @@ enum ColorShape<'a> {
 	Stops(Vec<&'a str>),
 }
 
-/// The three delimiters a color value may use, one kind per value
-pub(crate) const DELIMITERS: [char; 3] = [',', '-', ':'];
+impl<'a> ColorShape<'a> {
+	/// The three delimiters a color value may use, one kind per value
+	pub(crate) const DELIMITERS: [char; 3] = [',', '-', ':'];
 
-/// Splits one color value by the delimiter it uses, so the shape decides how its segments parse
-///
-/// A value uses at most one kind of delimiter and every segment names something:
-/// a mixed value or an empty segment is the whole value's problem and is reported as such
-fn color_shape(value: &str) -> Result<ColorShape<'_>, ColorError> {
-	let delimiters: Vec<char> = DELIMITERS.into_iter().filter(|delimiter| value.contains(*delimiter)).collect();
-	let Some(delimiter) = delimiters.first().copied() else {
-		return Ok(ColorShape::Single(value.trim()));
-	};
-	if delimiters.len() > 1 {
-		return Err(ColorError::MixedDelimiters);
+	/// Splits one color value by the delimiter it uses, so the shape decides how its segments parse
+	///
+	/// A value uses at most one kind of delimiter and every segment names something:
+	/// a mixed value or an empty segment is the whole value's problem and is reported as such
+	fn from_value(value: &'a str) -> Result<Self, ColorError> {
+		let delimiters: Vec<char> = Self::DELIMITERS.into_iter().filter(|delimiter| value.contains(*delimiter)).collect();
+		let Some(delimiter) = delimiters.first().copied() else {
+			return Ok(Self::Single(value.trim()));
+		};
+		if delimiters.len() > 1 {
+			return Err(ColorError::MixedDelimiters);
+		}
+
+		let segments: Vec<&str> = value.split(delimiter).map(str::trim).collect();
+		if segments.iter().any(|segment| segment.is_empty()) {
+			return Err(ColorError::EmptySegment);
+		}
+
+		Ok(match delimiter {
+			',' => Self::List(segments),
+			':' => Self::Stops(segments),
+			_ => match segments.as_slice() {
+				&[start, end] => Self::Pair(start, end),
+				_ => return Err(ColorError::TwoStopCount(segments.len())),
+			},
+		})
 	}
 
-	let segments: Vec<&str> = value.split(delimiter).map(str::trim).collect();
-	if segments.iter().any(|segment| segment.is_empty()) {
-		return Err(ColorError::EmptySegment);
+	/// Parses one segment of a color value through the name-or-hex parser of its vocabulary
+	///
+	/// A preset name is refused here: a preset stands alone as the whole value
+	fn segment<T: FromStr<Err = ColorError>>(segment: &str) -> Result<T, ColorError> {
+		match GradientPreset::from_name(segment) {
+			Some(preset) => Err(ColorError::PresetNotAlone(preset)),
+			None => segment.parse(),
+		}
 	}
 
-	Ok(match delimiter {
-		',' => ColorShape::List(segments),
-		':' => ColorShape::Stops(segments),
-		_ => match segments.as_slice() {
-			&[start, end] => ColorShape::Pair(start, end),
-			_ => return Err(ColorError::TwoStopCount(segments.len())),
-		},
-	})
-}
-
-/// Parses one segment of a color value through the name-or-hex parser of its vocabulary
-///
-/// A preset name is refused here: a preset stands alone as the whole value
-fn parse_segment<T: FromStr<Err = ColorError>>(segment: &str) -> Result<T, ColorError> {
-	match GradientPreset::from_name(segment) {
-		Some(preset) => Err(ColorError::PresetNotAlone(preset)),
-		None => segment.parse(),
+	/// The two stop gradient a dash pair spells
+	fn two_stop(start: &str, end: &str) -> Result<GradientOption, ColorError> {
+		Ok(GradientOption::TwoStop { start: Self::segment(start)?, end: Self::segment(end)? })
 	}
-}
 
-/// The two stop gradient a dash pair spells
-fn parse_pair(start: &str, end: &str) -> Result<GradientOption, ColorError> {
-	Ok(GradientOption::TwoStop { start: parse_segment(start)?, end: parse_segment(end)? })
-}
+	/// The transition a colon list spells
+	fn transition(segments: Vec<&str>) -> Result<GradientOption, ColorError> {
+		let stops: Vec<Color<Gradient>> = segments.into_iter().map(Self::segment).collect::<Result<_, _>>()?;
 
-/// The transition a colon list spells
-fn parse_transition(segments: Vec<&str>) -> Result<GradientOption, ColorError> {
-	let stops: Vec<Color<Gradient>> = segments.into_iter().map(parse_segment).collect::<Result<_, _>>()?;
-
-	Ok(GradientOption::Transition(TransitionStops::try_from(stops).expect("the colon shape holds two or more stops")))
+		Ok(GradientOption::Transition(TransitionStops::try_from(stops).expect("the colon shape holds two or more stops")))
+	}
 }
 
 /// A colors value parses from its command line spelling: the delimiter picks the shape
@@ -1039,14 +1033,16 @@ impl FromStr for ColorOption {
 	type Err = ColorError;
 
 	fn from_str(value: &str) -> Result<Self, Self::Err> {
-		Ok(match color_shape(value)? {
+		Ok(match ColorShape::from_value(value)? {
 			ColorShape::Single(token) => match GradientPreset::from_name(token) {
 				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => Self::Colors(vec![parse_segment(token)?]),
+				None => Self::Colors(vec![ColorShape::segment(token)?]),
 			},
-			ColorShape::List(segments) => Self::Colors(segments.into_iter().map(parse_segment).collect::<Result<_, _>>()?),
-			ColorShape::Pair(start, end) => Self::Gradient(parse_pair(start, end)?),
-			ColorShape::Stops(segments) => Self::Gradient(parse_transition(segments)?),
+			ColorShape::List(segments) => {
+				Self::Colors(segments.into_iter().map(ColorShape::segment).collect::<Result<_, _>>()?)
+			}
+			ColorShape::Pair(start, end) => Self::Gradient(ColorShape::two_stop(start, end)?),
+			ColorShape::Stops(segments) => Self::Gradient(ColorShape::transition(segments)?),
 		})
 	}
 }
@@ -1059,14 +1055,14 @@ impl FromStr for BackgroundOption {
 	type Err = ColorError;
 
 	fn from_str(value: &str) -> Result<Self, Self::Err> {
-		Ok(match color_shape(value)? {
+		Ok(match ColorShape::from_value(value)? {
 			ColorShape::Single(token) => match GradientPreset::from_name(token) {
 				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => Self::Color(parse_segment(token)?),
+				None => Self::Color(ColorShape::segment(token)?),
 			},
 			ColorShape::List(_) => return Err(ColorError::BackgroundList),
-			ColorShape::Pair(start, end) => Self::Gradient(parse_pair(start, end)?),
-			ColorShape::Stops(segments) => Self::Gradient(parse_transition(segments)?),
+			ColorShape::Pair(start, end) => Self::Gradient(ColorShape::two_stop(start, end)?),
+			ColorShape::Stops(segments) => Self::Gradient(ColorShape::transition(segments)?),
 		})
 	}
 }

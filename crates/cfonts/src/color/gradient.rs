@@ -93,42 +93,6 @@ impl Rsv {
 	}
 }
 
-/// Linear interpolation between two points at a certain step of `steps`
-fn linear(from: f64, to: f64, this_step: usize, steps: usize) -> f64 {
-	if steps == 0 {
-		return to;
-	}
-
-	from + this_step as f64 * ((to - from) / steps as f64)
-}
-
-/// Radial interpolation between two angles at a certain step of `steps`, always the long way around
-fn radial(from: f64, to: f64, this_step: usize, steps: usize) -> f64 {
-	if steps == 0 {
-		return to;
-	}
-
-	let long_distance = if from > to {
-		if from - to < PI { TAU - (from - to) } else { to - from }
-	} else if to - from < PI {
-		(to - from) - TAU
-	} else {
-		-(from - to)
-	};
-
-	let mut result = from + (this_step as f64 * (long_distance / steps as f64));
-
-	if result < 0.0 {
-		result += TAU;
-	}
-
-	if result > TAU {
-		result -= TAU;
-	}
-
-	result
-}
-
 /// The colors of one gradient, one color per output column
 ///
 /// Owning the buffer lets repeated fills reuse its capacity
@@ -192,9 +156,9 @@ impl GradientColors {
 		let Rsv(to_r, to_s, to_v) = to.to_hsv().to_rsv();
 
 		for n in 0..steps {
-			let r = radial(from_r, to_r, n, steps - 1);
-			let s = linear(from_s, to_s, n, steps - 1);
-			let v = linear(from_v, to_v, n, steps - 1);
+			let r = Self::radial(from_r, to_r, n, steps - 1);
+			let s = Self::linear(from_s, to_s, n, steps - 1);
+			let v = Self::linear(from_v, to_v, n, steps - 1);
 
 			self.colors.push(Rsv(r, s, v).to_hsv().to_rgb());
 		}
@@ -205,9 +169,9 @@ impl GradientColors {
 	/// A negative step count appends nothing
 	fn fill_transition(&mut self, from: Rgb, to: Rgb, steps: i64) {
 		for n in 1..=steps {
-			let r = linear(from.red.into(), to.red.into(), n as usize, (steps + 1) as usize);
-			let g = linear(from.green.into(), to.green.into(), n as usize, (steps + 1) as usize);
-			let b = linear(from.blue.into(), to.blue.into(), n as usize, (steps + 1) as usize);
+			let r = Self::linear(from.red.into(), to.red.into(), n as usize, (steps + 1) as usize);
+			let g = Self::linear(from.green.into(), to.green.into(), n as usize, (steps + 1) as usize);
+			let b = Self::linear(from.blue.into(), to.blue.into(), n as usize, (steps + 1) as usize);
 
 			self.colors.push(Rgb { red: r as u8, green: g as u8, blue: b as u8 });
 		}
@@ -226,6 +190,42 @@ impl GradientColors {
 		let gaps = color_count - 1;
 
 		(0..gaps).map(move |gap| if gap >= gaps - rest { base + 1 } else { base })
+	}
+
+	/// Linear interpolation between two points at a certain step of `steps`
+	fn linear(from: f64, to: f64, this_step: usize, steps: usize) -> f64 {
+		if steps == 0 {
+			return to;
+		}
+
+		from + this_step as f64 * ((to - from) / steps as f64)
+	}
+
+	/// Radial interpolation between two angles at a certain step of `steps`, always the long way around
+	fn radial(from: f64, to: f64, this_step: usize, steps: usize) -> f64 {
+		if steps == 0 {
+			return to;
+		}
+
+		let long_distance = if from > to {
+			if from - to < PI { TAU - (from - to) } else { to - from }
+		} else if to - from < PI {
+			(to - from) - TAU
+		} else {
+			-(from - to)
+		};
+
+		let mut result = from + (this_step as f64 * (long_distance / steps as f64));
+
+		if result < 0.0 {
+			result += TAU;
+		}
+
+		if result > TAU {
+			result -= TAU;
+		}
+
+		result
 	}
 }
 
@@ -443,25 +443,25 @@ mod tests {
 		assert_eq!(Rsv(5.235987755982989, 0.0, 0.0).to_hsv(), Hsv(300.0, 0.0, 0.0));
 	}
 
-	// linear
+	// GradientColors::linear
 
 	#[test]
 	fn linear_walks_evenly() {
-		assert!((linear(0.0, 5.0, 0, 5) - 0.0).abs() < f64::EPSILON);
-		assert!((linear(0.0, 5.0, 1, 5) - 1.0).abs() < f64::EPSILON);
-		assert!((linear(0.0, 5.0, 4, 5) - 4.0).abs() < f64::EPSILON);
-		assert!((linear(0.0, 5.0, 5, 5) - 5.0).abs() < f64::EPSILON);
-		assert!((linear(0.0, 5.0, 3, 0) - 5.0).abs() < f64::EPSILON);
+		assert!((GradientColors::linear(0.0, 5.0, 0, 5) - 0.0).abs() < f64::EPSILON);
+		assert!((GradientColors::linear(0.0, 5.0, 1, 5) - 1.0).abs() < f64::EPSILON);
+		assert!((GradientColors::linear(0.0, 5.0, 4, 5) - 4.0).abs() < f64::EPSILON);
+		assert!((GradientColors::linear(0.0, 5.0, 5, 5) - 5.0).abs() < f64::EPSILON);
+		assert!((GradientColors::linear(0.0, 5.0, 3, 0) - 5.0).abs() < f64::EPSILON);
 	}
 
-	// radial
+	// GradientColors::radial
 
 	#[test]
 	fn radial_walks_the_long_way_around() {
-		assert!((radial(3.0, 2.0, 0, 3) - 3.0).abs() < f64::EPSILON);
-		assert!((radial(3.0, 2.0, 1, 3) - 4.761061769059862).abs() < f64::EPSILON);
-		assert!((radial(3.0, 2.0, 2, 3) - 0.23893823094013733).abs() < f64::EPSILON);
-		assert!((radial(3.0, 2.0, 3, 3) - 2.0).abs() < f64::EPSILON);
+		assert!((GradientColors::radial(3.0, 2.0, 0, 3) - 3.0).abs() < f64::EPSILON);
+		assert!((GradientColors::radial(3.0, 2.0, 1, 3) - 4.761061769059862).abs() < f64::EPSILON);
+		assert!((GradientColors::radial(3.0, 2.0, 2, 3) - 0.23893823094013733).abs() < f64::EPSILON);
+		assert!((GradientColors::radial(3.0, 2.0, 3, 3) - 2.0).abs() < f64::EPSILON);
 	}
 
 	// GradientColors::fill: two stop
