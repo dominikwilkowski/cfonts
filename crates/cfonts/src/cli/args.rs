@@ -162,6 +162,14 @@ impl Args {
 		}
 	}
 
+	/// Whether a flag spelling asks for a gradient option that the colors option covers
+	///
+	/// These spellings are no variants so the help never lists them,
+	/// the parser catches them before the unknown flag fallback so a stray gradient value never passes as text
+	pub(crate) fn gradient_flag_moved(spelling: &str) -> bool {
+		matches!(spelling, "g" | "gradient" | "t" | "transition-gradient")
+	}
+
 	/// Apply the argument to our parse state including any values passed in
 	pub(crate) fn apply<'a>(self, value: Option<&'a str>, state: &mut ParseState) -> Result<(), ParseError<'a>> {
 		debug_assert!(value.is_none() || self.infos().arguments.is_some(), "{self:?} takes no value but was given one");
@@ -682,6 +690,7 @@ mod tests {
 		// the tokenizer refuses them before the parse table, so they never reach an option
 		for spelling in ["g", "gradient", "t", "transition-gradient"] {
 			assert_eq!(Args::parse(spelling), None, "{spelling}");
+			assert!(Args::gradient_flag_moved(spelling), "{spelling}");
 		}
 	}
 

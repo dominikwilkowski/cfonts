@@ -1,7 +1,7 @@
 use std::{
 	error::Error,
 	fmt::{self, Display, Formatter},
-	io, iter, mem,
+	io, iter,
 	num::NonZeroUsize,
 	process::ExitCode,
 	slice,
@@ -674,151 +674,168 @@ pub struct StdinProvider {
 	pub read: fn() -> io::Result<String>,
 }
 
-/// Whether a flag spelling asks for a gradient option that the colors option covers
+/// One command line being parsed
 ///
-/// These spellings stay out of [`Args`] so the help never lists them,
-/// and are caught before the unknown flag fallback so a stray gradient value never passes as text
-fn gradient_flag_moved(spelling: &str) -> bool {
-	matches!(spelling, "g" | "gradient" | "t" | "transition-gradient")
+/// The tokens walk forward once, every flag lands in the state and
+/// every warning collects in order until the walk ends or an error aborts it
+struct Parser<'a> {
+	/// The tokens still to read, a flag that takes a value pulls the next one
+	tokens: slice::Iter<'a, String>,
+
+	/// How the parse reaches stdin when a flag or the pipe itself asks for it
+	std_provider: StdinProvider,
+
+	/// Everything the flags read so far landed in
+	state: ParseState,
+
+	/// Problems that did not abort the parse, in the order they appeared
+	warnings: Vec<ParseError<'a>>,
 }
 
-/// The one door into the warnings channel, only warning-typed problems may pass
-fn warn<'a>(warnings: &mut Vec<ParseError<'a>>, warning: ParseError<'a>) {
-	debug_assert_eq!(warning.error_type(), ErrorType::Warning, "{warning:?} is not a warning");
-	warnings.push(warning);
-}
+impl<'a> Parser<'a> {
+	/// A parser at the first token with nothing landed and nothing warned
+	fn new(args: &'a [String], std_provider: StdinProvider) -> Self {
+		Self { tokens: args.iter(), std_provider, state: ParseState::default(), warnings: Vec::new() }
+	}
 
-/// Pulls the value one argument demands from the argument stream, then applies it
-fn apply_with_value<'a>(
-	arg: Args,
-	args_iter: &mut slice::Iter<'a, String>,
-	state: &mut ParseState,
-) -> Result<(), ParseError<'a>> {
-	let value = if arg.infos().arguments.is_some() { args_iter.next().map(String::as_str) } else { None };
+	/// Runs the parse, pairing the warnings with the abort when one stops it
+	///
+	/// The walk fills the state, the conversion at the end consumes it by value,
+	/// so the no text and empty stdin errors surface here
+	fn run(mut self) -> Result<ParsedArgs<'a>, ParseFailure<'a>> {
+		if let Err(error) = self.walk() {
+			return Err(ParseFailure { warnings: self.warnings, error });
+		}
 
-	arg.apply(value, state)
+		let Self { state, warnings, .. } = self;
+		let show_help = state.show_help;
+		let show_demo = state.show_demo;
+		let show_version = state.show_version;
+		let raw_mode = state.raw_mode;
+		let options = if show_help || show_version {
+			// help and version render nothing, so their invocations need no text and skip the conversion
+			Options::default()
+		} else if show_demo {
+			let mut options = Options::default();
+			options.global_colors = state.options.global_colors;
+			options.independent_gradient = state.options.independent_gradient;
+			options.background = state.options.background;
+			options
+		} else {
+			match state.try_into() {
+				Ok(options) => options,
+				Err(error) => return Err(ParseFailure { warnings, error }),
+			}
+		};
+
+		Ok(ParsedArgs { warnings, options, raw_mode, show_help, show_demo, show_version })
+	}
+
+	/// Walks the tokens into the state, then reads the pipe when a flag or the pipe itself asks for it
+	fn walk(&mut self) -> Result<(), ParseError<'a>> {
+		while let Some(arg_str) = self.tokens.next() {
+			// Long flags
+			if let Some(name) = arg_str.strip_prefix("--") {
+				if name.is_empty() {
+					self.warn(ParseError::DelimiterIgnored);
+				} else if Args::gradient_flag_moved(name) {
+					return Err(ParseError::GradientFlagMoved(name));
+				} else if let Some(arg) = Args::parse(name) {
+					self.apply_with_value(arg)?;
+				} else {
+					self.warn(ParseError::UnknownFlag(arg_str));
+				}
+			// Short flags
+			} else if let Some(cluster) = arg_str.strip_prefix('-') {
+				if cluster.is_empty() {
+					// Conventionally this is a stdin placeholder for paths but since `-` can be styled we can't use it in cfonts
+					self.warn(ParseError::UnknownFlag(arg_str));
+				} else {
+					for (index, short) in cluster.char_indices() {
+						let length = short.len_utf8();
+						let short_str = &cluster[index..index + length];
+
+						if Args::gradient_flag_moved(short_str) {
+							return Err(ParseError::GradientFlagMoved(short_str));
+						}
+
+						if let Some(arg) = Args::parse(short_str) {
+							if arg.infos().arguments.is_some() && index + length < cluster.len() {
+								return Err(ParseError::MidClusterArgumentRequired(arg));
+							}
+
+							self.apply_with_value(arg)?;
+						} else {
+							self.warn(ParseError::UnknownShortFlag(short));
+						}
+					}
+				}
+			// Text arguments for the first block
+			} else if self.state.options.blocks.len() == 1 {
+				if self.state.options.blocks[0].text.is_some() || self.state.options.blocks[0].stdin {
+					return Err(ParseError::TextAlreadySupplied(arg_str));
+				} else {
+					self.state.options.blocks[0].text = Some(arg_str.to_string());
+				}
+			// Text arguments for subsequent blocks are not allowed and require `--next`
+			} else {
+				return Err(ParseError::TextAlreadySupplied(arg_str));
+			}
+		}
+
+		let implicit = self.state.options.blocks[0].text.is_none() && !self.std_provider.interactive;
+		if !self.state.show_help
+			&& !self.state.show_version
+			&& !self.state.show_demo
+			&& (implicit || self.state.options.blocks.iter().any(|block| block.stdin))
+		{
+			// some shadowing fun and I won't apologize for it either!
+			let buffer = (self.std_provider.read)().map_err(|error| ParseError::StdinUnreadable(StdinError(error)))?;
+			let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
+			let buffer = buffer.strip_suffix('\r').unwrap_or(buffer);
+			let new_line = NEW_LINE_CHAR.to_string();
+			let buffer = buffer.replace("\r\n", &new_line).replace('\n', &new_line);
+
+			// an empty buffer fills nothing, try_from reads the leftover markers to name the cause
+			if !buffer.is_empty() {
+				for block in self.state.options.blocks.iter_mut().filter(|block| block.stdin) {
+					block.text = Some(buffer.clone());
+				}
+			}
+
+			// an empty implicit read keeps the block unset so the no-text error can teach
+			// this is for the case when no stdin flag was given but we detected stdin so we will pipe it to the first block
+			if implicit && !buffer.is_empty() {
+				self.state.options.blocks[0].text = Some(buffer.clone());
+			}
+		}
+
+		if self.state.independent_gradient_is_orphaned() {
+			self.warn(ParseError::IndependentGradientIgnored);
+		}
+
+		Ok(())
+	}
+
+	/// The one door into the warnings channel, only warning-typed problems may pass
+	fn warn(&mut self, warning: ParseError<'a>) {
+		debug_assert_eq!(warning.error_type(), ErrorType::Warning, "{warning:?} is not a warning");
+		self.warnings.push(warning);
+	}
+
+	/// Pulls the value one argument demands from the token stream, then applies it
+	fn apply_with_value(&mut self, arg: Args) -> Result<(), ParseError<'a>> {
+		let value = if arg.infos().arguments.is_some() { self.tokens.next().map(String::as_str) } else { None };
+
+		arg.apply(value, &mut self.state)
+	}
 }
 
 /// Parses one command line, reading stdin only when the flags or a pipe ask for it
 ///
-/// The binary passes `std::env::args().skip(1)`; anything else may pass any list
+/// The binary passes `std::env::args().skip(1)`, anything else may pass any list
 pub fn parse_args<'a>(args: &'a [String], std_provider: StdinProvider) -> Result<ParsedArgs<'a>, ParseFailure<'a>> {
-	let mut warnings: Vec<ParseError<'a>> = Vec::new();
-
-	match parse_args_with(args, std_provider, &mut warnings) {
-		Ok(parsed) => Ok(parsed),
-		Err(error) => Err(ParseFailure { warnings, error }),
-	}
-}
-
-/// The parse itself, pushing warnings into the channel both outcomes carry
-fn parse_args_with<'a>(
-	args: &'a [String],
-	std_provider: StdinProvider,
-	warnings: &mut Vec<ParseError<'a>>,
-) -> Result<ParsedArgs<'a>, ParseError<'a>> {
-	let mut state = ParseState::default();
-
-	let mut args_iter = args.iter();
-	while let Some(arg_str) = args_iter.next() {
-		// Long flags
-		if let Some(name) = arg_str.strip_prefix("--") {
-			if name.is_empty() {
-				warn(warnings, ParseError::DelimiterIgnored);
-			} else if gradient_flag_moved(name) {
-				return Err(ParseError::GradientFlagMoved(name));
-			} else if let Some(arg) = Args::parse(name) {
-				apply_with_value(arg, &mut args_iter, &mut state)?;
-			} else {
-				warn(warnings, ParseError::UnknownFlag(arg_str));
-			}
-		// Short flags
-		} else if let Some(cluster) = arg_str.strip_prefix('-') {
-			if cluster.is_empty() {
-				// Conventionally this is a stdin placeholder for paths but since `-` can be styled we can't use it in cfonts
-				warn(warnings, ParseError::UnknownFlag(arg_str));
-			} else {
-				for (index, short) in cluster.char_indices() {
-					let length = short.len_utf8();
-					let short_str = &cluster[index..index + length];
-
-					if gradient_flag_moved(short_str) {
-						return Err(ParseError::GradientFlagMoved(short_str));
-					}
-
-					if let Some(arg) = Args::parse(short_str) {
-						if arg.infos().arguments.is_some() && index + length < cluster.len() {
-							return Err(ParseError::MidClusterArgumentRequired(arg));
-						}
-
-						apply_with_value(arg, &mut args_iter, &mut state)?;
-					} else {
-						warn(warnings, ParseError::UnknownShortFlag(short));
-					}
-				}
-			}
-		// Text arguments for the first block
-		} else if state.options.blocks.len() == 1 {
-			if state.options.blocks[0].text.is_some() || state.options.blocks[0].stdin {
-				return Err(ParseError::TextAlreadySupplied(arg_str));
-			} else {
-				state.options.blocks[0].text = Some(arg_str.to_string());
-			}
-		// Text arguments for subsequent blocks are not allowed and require `--next`
-		} else {
-			return Err(ParseError::TextAlreadySupplied(arg_str));
-		}
-	}
-
-	let implicit = state.options.blocks[0].text.is_none() && !std_provider.interactive;
-	if !state.show_help
-		&& !state.show_version
-		&& !state.show_demo
-		&& (implicit || state.options.blocks.iter().any(|block| block.stdin))
-	{
-		// some shadowing fun and I won't apologize for it either!
-		let buffer = (std_provider.read)().map_err(|error| ParseError::StdinUnreadable(StdinError(error)))?;
-		let buffer = buffer.strip_suffix('\n').unwrap_or(&buffer);
-		let buffer = buffer.strip_suffix('\r').unwrap_or(buffer);
-		let new_line = NEW_LINE_CHAR.to_string();
-		let buffer = buffer.replace("\r\n", &new_line).replace('\n', &new_line);
-
-		// an empty buffer fills nothing, try_from reads the leftover markers to name the cause
-		if !buffer.is_empty() {
-			for block in state.options.blocks.iter_mut().filter(|block| block.stdin) {
-				block.text = Some(buffer.clone());
-			}
-		}
-
-		// an empty implicit read keeps the block unset so the no-text error can teach
-		// this is for the case when no stdin flag was given but we detected stdin so we will pipe it to the first block
-		if implicit && !buffer.is_empty() {
-			state.options.blocks[0].text = Some(buffer.clone());
-		}
-	}
-
-	if state.independent_gradient_is_orphaned() {
-		warn(warnings, ParseError::IndependentGradientIgnored);
-	}
-
-	let show_help = state.show_help;
-	let show_demo = state.show_demo;
-	let show_version = state.show_version;
-	let raw_mode = state.raw_mode;
-	let options = if show_help || show_version {
-		// help and version render nothing, so their invocations need no text and skip the conversion
-		Options::default()
-	} else if show_demo {
-		let mut options = Options::default();
-		options.global_colors = state.options.global_colors;
-		options.independent_gradient = state.options.independent_gradient;
-		options.background = state.options.background;
-		options
-	} else {
-		state.try_into()?
-	};
-
-	Ok(ParsedArgs { warnings: mem::take(warnings), options, raw_mode, show_help, show_demo, show_version })
+	Parser::new(args, std_provider).run()
 }
 
 #[cfg(test)]
