@@ -232,6 +232,41 @@ fn a_terminal_width_wraps_through_the_process_boundary() {
 	assert!(!narrow.contains("hello world"));
 }
 
+#[cfg(unix)]
+#[test]
+fn a_terminal_on_stdin_is_told_how_to_end_the_input() {
+	// a person at a terminal asks for the pipe with the flag, so the hint names the key that ends the input,
+	// and the line typed before that key renders
+	let mut controller = 0;
+	let mut follower = 0;
+
+	// SAFETY: openpty writes the two file descriptors, the terminal keeps its default size and settings
+	let result =
+		unsafe { libc::openpty(&raw mut controller, &raw mut follower, ptr::null_mut(), ptr::null_mut(), ptr::null_mut()) };
+	assert_eq!(result, 0, "openpty must succeed");
+
+	// SAFETY: both descriptors were just opened and are owned here
+	let controller = unsafe { OwnedFd::from_raw_fd(controller) };
+	let follower = unsafe { OwnedFd::from_raw_fd(follower) };
+
+	let child = hermetic_binary(&["--stdin", "-f", "console"], &[("NO_COLOR", "1")])
+		.stdin(Stdio::from(follower))
+		.stdout(Stdio::piped())
+		.stderr(Stdio::piped())
+		.spawn()
+		.expect("the binary must spawn");
+
+	// one typed line, then the end of input key on an empty line, the way the hint says
+	let mut keyboard = File::from(controller);
+	keyboard.write_all(b"hi\n\x04").expect("the terminal accepts the keystrokes");
+
+	let output = child.wait_with_output().expect("the binary must run");
+
+	assert_eq!(output.status.code(), Some(0));
+	assert!(text(&output.stderr).contains("Start typing, end with Ctrl-D on an empty line…"));
+	assert!(text(&output.stdout).contains("hi"));
+}
+
 #[test]
 fn the_columns_variable_is_deliberately_ignored() {
 	// sixteen glyphs stay on one line: a redirected process falls back to

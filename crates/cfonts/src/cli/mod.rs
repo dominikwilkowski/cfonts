@@ -5,6 +5,8 @@
 
 mod args;
 pub use args::Args;
+mod process;
+pub use process::Process;
 mod cli_parser;
 pub(crate) use cli_parser::{CliBlockOptions, ParseState};
 pub use cli_parser::{ParseError, ParseFailure, ParsedArgs, StdinError, StdinProvider, parse_args};

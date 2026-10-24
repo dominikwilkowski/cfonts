@@ -3,13 +3,14 @@ use std::{
 	fmt::{self, Display, Formatter},
 	io, iter, mem,
 	num::NonZeroUsize,
+	process::ExitCode,
 	slice,
 };
 
 use crate::{
 	Align, BackgroundOption, BlockOptions, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
 	cli::{
-		Args,
+		Args, Process,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
 	},
 	color::{ANSI_RESET, Value},
@@ -299,6 +300,44 @@ impl ParseError<'_> {
 			Self::EmptyStdin => ErrorType::Error,
 			Self::StdinInsideBlock => ErrorType::Error,
 			Self::StdinUnreadable(_) => ErrorType::Error,
+		}
+	}
+
+	/// The exit status the binary ends with when this problem aborts the parse
+	///
+	/// A stdin that could not be read is an I/O failure, `EX_IOERR`,
+	/// every other problem is a command line that could not be used, `EX_USAGE`
+	///
+	/// ```
+	/// use std::process::ExitCode;
+	/// use cfonts::cli::{ParseError, StdinError};
+	///
+	/// assert_eq!(ParseError::NoTextSupplied.exit_code(), ExitCode::from(64));
+	///
+	/// let unreadable = ParseError::StdinUnreadable(StdinError(std::io::ErrorKind::BrokenPipe.into()));
+	/// assert_eq!(unreadable.exit_code(), ExitCode::from(74));
+	/// ```
+	#[must_use]
+	pub fn exit_code(&self) -> ExitCode {
+		match self {
+			Self::StdinUnreadable(_) => Process::io_error(),
+			Self::NoTextSupplied
+			| Self::TextAlreadySupplied(_)
+			| Self::UnknownFlag(_)
+			| Self::UnknownShortFlag(_)
+			| Self::DelimiterIgnored
+			| Self::MissingValue(_)
+			| Self::InvalidValue { .. }
+			| Self::MidClusterArgumentRequired(_)
+			| Self::EmptyColorSegment { .. }
+			| Self::MixedColorDelimiters { .. }
+			| Self::TwoStopCount { .. }
+			| Self::PresetNotAlone { .. }
+			| Self::BackgroundList(_)
+			| Self::IndependentGradientIgnored
+			| Self::GradientFlagMoved(_)
+			| Self::EmptyStdin
+			| Self::StdinInsideBlock => Process::usage_error(),
 		}
 	}
 
@@ -594,6 +633,24 @@ pub struct ParseFailure<'a> {
 
 	/// The problem that aborted the parse
 	pub error: ParseError<'a>,
+}
+
+impl ParseFailure<'_> {
+	/// The exit status the binary ends with, decided by the problem that aborted the parse
+	///
+	/// ```
+	/// use std::process::ExitCode;
+	/// use cfonts::cli::{StdinProvider, parse_args};
+	///
+	/// let args = [String::from("--font")];
+	/// let failure = parse_args(&args, StdinProvider { interactive: true, read: || unreachable!() }).unwrap_err();
+	///
+	/// assert_eq!(failure.exit_code(), ExitCode::from(64));
+	/// ```
+	#[must_use]
+	pub fn exit_code(&self) -> ExitCode {
+		self.error.exit_code()
+	}
 }
 
 impl Display for ParseFailure<'_> {
@@ -1690,6 +1747,16 @@ mod stdin_handling {
 
 		assert_eq!(os_flavored, bare);
 		assert_ne!(bare, StdinError(io::ErrorKind::InvalidData.into()));
+	}
+
+	#[test]
+	fn an_unreadable_stdin_exits_as_an_io_error_and_every_other_failure_as_usage() {
+		let flag_without_value = args(&["--font"]);
+		let unreadable = parse_args(&[], piped(|| Err(io::ErrorKind::BrokenPipe.into()))).unwrap_err();
+		let usage = parse_args(&flag_without_value, tty()).unwrap_err();
+
+		assert_eq!(unreadable.exit_code(), ExitCode::from(74));
+		assert_eq!(usage.exit_code(), ExitCode::from(64));
 	}
 
 	#[test]
