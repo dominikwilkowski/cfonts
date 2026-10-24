@@ -1,0 +1,143 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "promise", "node"],
+	"categories": { "correctness": "error", "suspicious": "error", "perf": "error", "pedantic": "error" },
+	"env": { "es2024": true, "node": true, "browser": true },
+	"options": { "denyWarnings": true, "typeAware": true, "reportUnusedDisableDirectives": "error" },
+	"rules": {
+		// pedantic rules that fight this code base, each with its reason
+		"no-inline-comments": "off", // comments sit beside the code they explain throughout
+		"require-unicode-regexp": "off", // the regexes here match ASCII, the u flag would add nothing
+		"max-lines": "off", // the index and the node test are long on purpose
+		"max-lines-per-function": "off",
+		"no-redeclare": "off", // a type and a value may share a name in TypeScript, Rgb does
+		"unicorn/escape-case": "off", // the tests spell ANSI escapes as \u001b, the form terminals document
+		"unicorn/no-useless-undefined": "off", // the tests pass undefined on purpose
+		"unicorn/prefer-query-selector": "off", // getElementById names the lookup
+		"typescript/prefer-readonly-parameter-types": "off", // would mark every mutable parameter of the public API
+		// style and restriction rules worth their keep
+		"no-var": "error",
+		"prefer-const": "error",
+		"prefer-template": "error",
+		"prefer-arrow-callback": "error",
+		"object-shorthand": "error",
+		"prefer-object-spread": "error",
+		"prefer-spread": "error",
+		"prefer-rest-params": "error",
+		"no-sequences": "error",
+		"no-labels": "error",
+		"no-eq-null": "error",
+		"no-implicit-coercion": "error",
+		"no-param-reassign": "error",
+		"curly": "error",
+		"typescript/no-explicit-any": "error",
+		"typescript/no-non-null-assertion": "error",
+		"typescript/consistent-type-imports": "error",
+		"typescript/consistent-type-exports": "error",
+		"typescript/no-import-type-side-effects": "error",
+		"typescript/no-invalid-void-type": "error",
+		"typescript/no-empty-interface": "error",
+		"typescript/adjacent-overload-signatures": "error",
+		"typescript/prefer-function-type": "error",
+		"typescript/no-namespace": "error",
+		"typescript/no-require-imports": "error",
+		"typescript/no-inferrable-types": "error",
+		"typescript/prefer-for-of": "error",
+		"typescript/unified-signatures": "error",
+		"typescript/explicit-module-boundary-types": "error",
+		"typescript/dot-notation": "error",
+		"typescript/prefer-readonly": "error",
+		"typescript/prefer-string-starts-ends-with": "error",
+		"typescript/use-unknown-in-catch-callback-variable": "error",
+		"unicorn/prefer-node-protocol": "error",
+		"unicorn/prefer-number-properties": "error",
+		"unicorn/no-document-cookie": "error",
+		"unicorn/prefer-string-slice": "error",
+		"unicorn/prefer-string-trim-start-end": "error",
+		"unicorn/prefer-regexp-test": "error",
+		"unicorn/prefer-string-replace-all": "error",
+		"unicorn/prefer-optional-catch-binding": "error",
+		"unicorn/throw-new-error": "error",
+		"unicorn/error-message": "error",
+		"unicorn/prefer-type-error": "error",
+		"unicorn/no-typeof-undefined": "error",
+		"unicorn/no-useless-promise-resolve-reject": "error",
+		"unicorn/prefer-module": "error",
+		"unicorn/no-abusive-eslint-disable": "error",
+		"unicorn/explicit-length-check": "error",
+		"unicorn/no-new-buffer": "error",
+		"unicorn/new-for-builtins": "error",
+		"unicorn/no-zero-fractions": "error",
+		"unicorn/no-process-exit": "error",
+		"import/no-cycle": "error",
+		"import/no-self-import": "error",
+		"import/no-duplicates": "error",
+		"import/first": "error",
+		"import/no-commonjs": "error",
+		"import/no-default-export": "error",
+		"import/no-mutable-exports": "error",
+		"import/no-empty-named-blocks": "error",
+		"import/no-named-as-default": "error",
+		"import/no-named-as-default-member": "error",
+		"import/no-absolute-path": "error",
+	},
+	"overrides": [
+		{
+			// the type tests import names on purpose to prove they exist and probe globals as bare expressions,
+			// and sit in no tsconfig program, so the type aware rules see error types there
+			"files": ["npm/tests/types/**"],
+			"rules": {
+				"no-unused-vars": "off",
+				"no-unused-expressions": "off",
+				"import/no-duplicates": "off",
+				"import/first": "off",
+				"typescript/no-unsafe-argument": "off",
+				"typescript/no-unsafe-assignment": "off",
+				"typescript/no-unsafe-call": "off",
+				"typescript/no-unsafe-member-access": "off",
+				"typescript/no-unsafe-return": "off",
+				"typescript/restrict-template-expressions": "off",
+				"typescript/no-base-to-string": "off",
+				"typescript/no-redundant-type-constituents": "off",
+			},
+		},
+		{
+			// plain JavaScript has no types to be unsafe about
+			"files": ["**/*.js"],
+			"rules": {
+				"typescript/no-unsafe-argument": "off",
+				"typescript/no-unsafe-assignment": "off",
+				"typescript/no-unsafe-call": "off",
+				"typescript/no-unsafe-member-access": "off",
+				"typescript/no-unsafe-return": "off",
+				"typescript/strict-boolean-expressions": "off",
+				"typescript/restrict-template-expressions": "off",
+				"typescript/no-base-to-string": "off",
+				"typescript/explicit-module-boundary-types": "off",
+			},
+		},
+		{
+			// tests shadow names in nested closures, keep helpers next to the cases that use them,
+			// await page steps in sequence, and the node test imports the package as a namespace that the
+			// import plugin resolves through the browser condition
+			"files": ["npm/tests/**", "tests/**"],
+			"rules": {
+				"no-shadow": "off",
+				"unicorn/consistent-function-scoping": "off",
+				"no-await-in-loop": "off",
+				"typescript/no-confusing-void-expression": "off",
+				"import/namespace": "off",
+			},
+		},
+		{
+			// the host example names its parameters after the API it demonstrates
+			"files": ["crates/cfonts/examples/**"],
+			"rules": { "no-shadow": "off" },
+		},
+		{
+			// Playwright reads its configuration from the default export
+			"files": ["playwright.config.ts"],
+			"rules": { "import/no-default-export": "off" },
+		},
+	],
+}

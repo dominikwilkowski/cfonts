@@ -1,0 +1,5 @@
+error: font!: expected a count such as `1`, found `two`
+ --> tests/compile_fail/font_count_that_is_no_number.rs:5:11
+  |
+5 |         colors: two,
+  |                 ^^^
