@@ -89,7 +89,7 @@ impl Target for BrowserConsoleTarget {
 
 		match color.value.leveled_rgb(level) {
 			Some(rgb) => {
-				let mut start = String::with_capacity(6 + 7); // "color:" = 6 + "#000000" = 7
+				let mut start = String::with_capacity("color:".len() + 7);
 				start.push_str("color:");
 				rgb.push_css_hex(&mut start);
 

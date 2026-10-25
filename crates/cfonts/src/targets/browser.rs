@@ -27,11 +27,9 @@ const BLOCK_END: &str = "</div>";
 
 /// The start of a band's block, up to its color value
 const BAND_START: &str = r#"<div style="background:"#;
-const BAND_START_LEN: usize = 23;
 
 /// The rest of a band's opening tag after its color value, `min-height:1lh` keeps a row without text one line tall
 const BAND_STYLE_END: &str = r#";min-height:1lh">"#;
-const BAND_STYLE_END_LEN: usize = 17;
 
 /// The browser target renders HTML
 #[derive(Debug, Clone, Copy, Default)]
@@ -102,7 +100,7 @@ impl Target for BrowserTarget {
 
 		match color.value.leveled_rgb(level) {
 			Some(rgb) => {
-				let mut start = String::with_capacity(BAND_START_LEN + 7 + BAND_STYLE_END_LEN);
+				let mut start = String::with_capacity(BAND_START.len() + 7 + BAND_STYLE_END.len());
 				start.push_str(BAND_START);
 				rgb.push_css_hex(&mut start);
 				start.push_str(BAND_STYLE_END);
@@ -226,13 +224,6 @@ mod tests {
 			.valign(Valign::Top)
 			.background(background)
 			.render_with(&BrowserTarget, RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)))
-	}
-
-	// consts
-	#[test]
-	fn const_length_are_correct() {
-		assert_eq!(BAND_START.len(), BAND_START_LEN);
-		assert_eq!(BAND_STYLE_END.len(), BAND_STYLE_END_LEN);
 	}
 
 	// color_tokens
