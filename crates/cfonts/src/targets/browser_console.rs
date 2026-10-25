@@ -88,7 +88,13 @@ impl Target for BrowserConsoleTarget {
 		};
 
 		match color.value.leveled_rgb(level) {
-			Some(rgb) => ColorTokens { start: Cow::Owned(format!("color:{}", rgb.to_css_hex())), end: Cow::Borrowed("") },
+			Some(rgb) => {
+				let mut start = String::with_capacity(6 + 7); // "color:" = 6 + "#000000" = 7
+				start.push_str("color:");
+				rgb.push_css_hex(&mut start);
+
+				ColorTokens { start: Cow::Owned(start), end: Cow::Borrowed("") }
+			}
 			None => ColorTokens::default(),
 		}
 	}
@@ -101,7 +107,11 @@ impl Target for BrowserConsoleTarget {
 
 		match color.value.leveled_rgb(level) {
 			Some(rgb) => {
-				ColorTokens { start: Cow::Owned(format!("background:{}", rgb.to_css_hex())), end: Cow::Borrowed("") }
+				let mut start = String::with_capacity(11 + 7); // "background:" = 11 + "#000000" = 7
+				start.push_str("background:");
+				rgb.push_css_hex(&mut start);
+
+				ColorTokens { start: Cow::Owned(start), end: Cow::Borrowed("") }
 			}
 			None => ColorTokens::default(),
 		}
