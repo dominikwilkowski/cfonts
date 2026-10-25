@@ -43,6 +43,14 @@ impl BrowserHost {
 		Ok(Self { inner: CoreBrowserHost::from_overrides(overrides) })
 	}
 
+	/// A fresh seed for candy colors, the one the hosts roll when no seed override is given
+	///
+	/// The boundary carries seeds as u32, so the core's roll is cut to that width,
+	/// which loses nothing a seed needs: every call still rolls a value of its own
+	pub fn entropy() -> u32 {
+		CoreBrowserHost::entropy() as u32
+	}
+
 	/// Renders the composition into the target's format with the host's three answers pinned
 	///
 	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
@@ -129,6 +137,25 @@ impl NodeHost {
 		#[wasm_bindgen(unchecked_optional_param_type = "RenderOverrides")] overrides: JsValue,
 	) -> Result<NodeHost, JsValue> {
 		Ok(Self { overrides: Input::new(overrides, "fromOverrides").overrides()? })
+	}
+
+	/// A fresh seed for candy colors, the one the hosts roll when no seed override is given
+	///
+	/// The boundary carries seeds as u32, so the core's roll is cut to that width,
+	/// which loses nothing a seed needs: every call still rolls a value of its own
+	///
+	/// The roll is the core's one, reached through its page host, the native host does not exist on wasm32
+	pub fn entropy() -> u32 {
+		CoreBrowserHost::entropy() as u32
+	}
+
+	/// What a host writes after the artifact to end it, the target's own answer
+	///
+	/// Only the terminal ends its artifact, a page or a console ends its own output,
+	/// and the Node host carries this value to its write instead of deciding it
+	#[wasm_bindgen(js_name = lineEnd)]
+	pub fn line_end(target: TargetKind, raw_mode: bool) -> String {
+		with_target!(target, raw_mode, |target| target.line_end().to_owned())
 	}
 
 	/// Renders the composition into the target's format, the three answers resolved from the terminal facts
@@ -227,24 +254,6 @@ impl Host for TerminalHost<'_> {
 	fn write(&self, _rendered: &CoreRendered, _line_end: &str) -> Result<(), Self::Error> {
 		Ok(())
 	}
-}
-
-/// What a host writes after the artifact to end it, the target's own answer
-///
-/// Only the terminal ends its artifact, a page or a console ends its own output,
-/// and the Node host carries this value to its write instead of deciding it
-#[wasm_bindgen(js_name = lineEnd)]
-pub fn line_end(target: TargetKind, raw_mode: bool) -> String {
-	with_target!(target, raw_mode, |target| target.line_end().to_owned())
-}
-
-/// A fresh seed for candy colors, the one the hosts roll when no seed override is given
-///
-/// The boundary carries seeds as u32, so the core's roll is cut to that width,
-/// which loses nothing a seed needs: every call still rolls a value of its own
-#[wasm_bindgen]
-pub fn entropy() -> u32 {
-	CoreBrowserHost::entropy() as u32
 }
 
 #[cfg(test)]

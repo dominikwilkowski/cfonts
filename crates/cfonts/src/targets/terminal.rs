@@ -4,8 +4,8 @@ use crate::{
 	color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Background, Color, ColorLevel, Rgb, Text, Value},
 	layout::LayoutRow,
 	options::Options,
-	render::RenderContext,
-	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, each_ramp_column},
+	render::{GradientPlans, RenderContext},
+	targets::{ColorTokens, PADDING_ROWS, Rendered, Target},
 };
 
 /// Erases from the cursor to the end of the line, which a terminal with background color erase
@@ -24,18 +24,18 @@ const BACKGROUND: &str = "48";
 /// The longest start code, `\x1b[38;2;255;255;255m`, so a token's string is sized once and never grows
 const LONGEST_CODE: usize = 19;
 
-/// Writes `value` in decimal, the digits an SGR parameter carries
-fn push_decimal(value: u8, out: &mut String) {
-	if value >= 100 {
-		out.push(char::from(b'0' + value / 100));
-	}
-	if value >= 10 {
-		out.push(char::from(b'0' + value / 10 % 10));
-	}
-	out.push(char::from(b'0' + value % 10));
-}
-
 impl TerminalTarget {
+	/// Writes `value` in decimal, the digits an SGR parameter carries
+	fn push_decimal(value: u8, out: &mut String) {
+		if value >= 100 {
+			out.push(char::from(b'0' + value / 100));
+		}
+		if value >= 10 {
+			out.push(char::from(b'0' + value / 10 % 10));
+		}
+		out.push(char::from(b'0' + value % 10));
+	}
+
 	/// The foreground start code of one RGB value at one support level
 	fn rgb_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
 		Self::rgb_code(rgb, level, FOREGROUND, Rgb::ansi16_sgr)
@@ -72,7 +72,7 @@ impl TerminalTarget {
 				out.push_str(";2");
 				for channel in [rgb.red, rgb.green, rgb.blue] {
 					out.push(';');
-					push_decimal(channel, out);
+					Self::push_decimal(channel, out);
 				}
 				out.push('m');
 			}
@@ -80,7 +80,7 @@ impl TerminalTarget {
 				out.push_str("\x1b[");
 				out.push_str(layer);
 				out.push_str(";5;");
-				push_decimal(rgb.ansi256_index(), out);
+				Self::push_decimal(rgb.ansi256_index(), out);
 				out.push('m');
 			}
 			ColorLevel::Basic => out.push_str(basic(rgb)),
@@ -169,7 +169,7 @@ impl Target for TerminalTarget {
 			return text.chars().count();
 		};
 
-		each_ramp_column(text, colors, |character, rgb| match rgb {
+		GradientPlans::each_column(text, colors, |character, rgb| match rgb {
 			Some(rgb) => {
 				Self::push_rgb_code(*rgb, level, FOREGROUND, Rgb::ansi16_sgr, &mut out.text);
 				out.text.push(character);

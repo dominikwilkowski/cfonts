@@ -4,8 +4,8 @@ use crate::{
 	color::{Background, Color, Rgb, Text},
 	layout::LayoutRow,
 	options::Options,
-	render::RenderContext,
-	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, each_ramp_column, leveled_rgb, push_escaped},
+	render::{GradientPlans, RenderContext},
+	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, push_escaped},
 };
 
 /// The browser-console artifact formatter
@@ -83,7 +83,11 @@ impl Target for BrowserConsoleTarget {
 	/// The console has no terminal palette, so named colors flatten to their RGB values as CSS
 	/// declarations and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		match leveled_rgb(color, context) {
+		let Some(level) = context.color_level() else {
+			return ColorTokens::default();
+		};
+
+		match color.value.leveled_rgb(level) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(format!("color:{}", rgb.to_css_hex())), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
@@ -91,7 +95,11 @@ impl Target for BrowserConsoleTarget {
 
 	/// The band is a declaration too, `background` is the shortest spelling every console accepts
 	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		match leveled_rgb(color, context) {
+		let Some(level) = context.color_level() else {
+			return ColorTokens::default();
+		};
+
+		match color.value.leveled_rgb(level) {
 			Some(rgb) => {
 				ColorTokens { start: Cow::Owned(format!("background:{}", rgb.to_css_hex())), end: Cow::Borrowed("") }
 			}
@@ -114,7 +122,7 @@ impl Target for BrowserConsoleTarget {
 		// one buffer holds every column's declarations, only a style that changes is copied out
 		let mut style = String::new();
 
-		each_ramp_column(text, colors, |character, rgb| {
+		GradientPlans::each_column(text, colors, |character, rgb| {
 			style.clear();
 			if let Some((rgb, level)) = rgb.zip(context.color_level()) {
 				style.push_str("color:");

@@ -1,8 +1,10 @@
-use proc_macro::TokenStream;
+use proc_macro::{Span, TokenStream};
 
 mod all;
 mod error;
 mod font;
+
+use crate::{error::CompileError, font::SUPPORTED_CHARS};
 
 /// Derives `ALL`, a `pub const` array holding every variant of a fieldless enum, and its names
 ///
@@ -39,7 +41,7 @@ mod font;
 /// Invalid input turns into a `compile_error!` at the call site
 #[proc_macro_derive(All, attributes(all))]
 pub fn all(input: TokenStream) -> TokenStream {
-	all::derive_all(input)
+	all::EnumSource::derive(input)
 }
 
 /// Compiles one font's art into the tables cfonts renders from, checking every rule a font follows
@@ -80,5 +82,9 @@ pub fn font(input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro]
 pub fn supported_chars(input: TokenStream) -> TokenStream {
-	font::supported_chars(input)
+	if !input.is_empty() {
+		return CompileError::new("supported_chars! takes no input", Span::call_site()).into_tokens();
+	}
+
+	format!("{SUPPORTED_CHARS:?}").parse().expect("a list of char literals always parses")
 }

@@ -13,7 +13,7 @@ pub use terminal::TerminalTarget;
 use std::{array, borrow::Cow, iter};
 
 use crate::{
-	color::{Background, Color, Kind, Rgb, Text, Value},
+	color::{Background, Color, Rgb, Text},
 	layout::{LayoutRow, RowEntry},
 	options::Options,
 	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext},
@@ -55,33 +55,6 @@ impl Default for ColorTokens {
 	fn default() -> Self {
 		Self { start: Cow::Borrowed(""), end: Cow::Borrowed("") }
 	}
-}
-
-/// The RGB value one color paints in a target without a palette of its own
-///
-/// The browser shows any value, so a level below full support paints the palette entry's own value:
-/// a named color's table value is a palette entry already, an RGB value takes the entry its level allows
-/// Nothing paints without a level, and `System` and `Candy` never paint from here
-pub(crate) fn leveled_rgb<K: Kind>(color: Color<K>, context: &RenderContext) -> Option<Rgb> {
-	let level = context.color_level()?;
-
-	match color.value {
-		Value::Rgb(rgb) => Some(rgb.at_level(level)),
-		named => named.to_rgb(),
-	}
-}
-
-/// Walks `text` one column at a time, handing each character its ramp color
-/// while the ramp lasts, and returns the columns consumed
-pub(crate) fn each_ramp_column(text: &str, colors: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {
-	let mut consumed = 0;
-
-	for character in text.chars() {
-		paint(character, colors.get(consumed));
-		consumed += 1;
-	}
-
-	consumed
 }
 
 /// Pushes `text` through a target's one-character escaper
@@ -309,11 +282,8 @@ pub trait Target {
 		});
 		let banded = backdrop.is_some();
 		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
-		// A resolved slot may cover no segment at all, and escaping must match the styles that actually get emitted,
-		// so the plan's resolution is confirmed against the rows
-		// the scan stops at the first painted segment
 		// A backdrop exists only with a band that paints, so it counts on its own
-		let will_style = (plan.will_style() && any_segment_paints(&plan, rows)) || banded;
+		let will_style = plan.paints_any_segment(rows) || banded;
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(&plan, options, rows);
 		let mut row_index = 0;
@@ -372,21 +342,6 @@ pub trait Target {
 
 		out
 	}
-}
-
-/// Whether any segment of these rows actually paints under the plan
-///
-/// Resolution alone is not enough: a resolved slot may cover no segment,
-/// and a consumer only spreads style arguments that exist
-fn any_segment_paints<T>(plan: &PaintPlan<T>, rows: &[LayoutRow]) -> bool {
-	rows.iter().any(|row| {
-		row.entries.iter().any(|entry| match entry {
-			RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row
-				.segments()
-				.any(|(text, slot)| !text.is_empty() && plan.resolves(*block_index as usize, slot, *paintable)),
-			RowEntry::Blank { .. } => false,
-		})
-	})
 }
 
 #[cfg(test)]

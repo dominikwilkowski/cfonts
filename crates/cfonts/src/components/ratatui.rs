@@ -46,52 +46,54 @@ pub struct CfontsWidget<'a> {
 	pub overrides: RenderOverrides,
 }
 
-/// One RGB value as the terminal's color at one support level, the command line's downgrade
-fn terminal_rgb(rgb: Rgb, level: ColorLevel) -> TerminalColor {
-	match level {
-		ColorLevel::TrueColor => TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue),
-		ColorLevel::Ansi256 => TerminalColor::Indexed(rgb.ansi256_index()),
-		ColorLevel::Basic => {
-			terminal_color(rgb.nearest_named(), level).expect("the nearest named color is never system or candy")
+impl CfontsWidget<'_> {
+	/// One RGB value as the terminal's color at one support level, the command line's downgrade
+	fn terminal_rgb(rgb: Rgb, level: ColorLevel) -> TerminalColor {
+		match level {
+			ColorLevel::TrueColor => TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue),
+			ColorLevel::Ansi256 => TerminalColor::Indexed(rgb.ansi256_index()),
+			ColorLevel::Basic => {
+				Self::terminal_color(rgb.nearest_named(), level).expect("the nearest named color is never system or candy")
+			}
 		}
 	}
-}
 
-/// One cfonts color value as the terminal's own color
-///
-/// Named colors stay semantic so the terminal's palette applies,
-/// only RGB values pin channels, as many as the level allows
-fn terminal_color(value: Value, level: ColorLevel) -> Option<TerminalColor> {
-	Some(match value {
-		Value::System | Value::Candy => return None,
-		Value::Black => TerminalColor::Black,
-		Value::Red => TerminalColor::Red,
-		Value::Green => TerminalColor::Green,
-		Value::Yellow => TerminalColor::Yellow,
-		Value::Blue => TerminalColor::Blue,
-		Value::Magenta => TerminalColor::Magenta,
-		Value::Cyan => TerminalColor::Cyan,
-		Value::White => TerminalColor::Gray,
-		Value::Gray => TerminalColor::DarkGray,
-		Value::RedBright => TerminalColor::LightRed,
-		Value::GreenBright => TerminalColor::LightGreen,
-		Value::YellowBright => TerminalColor::LightYellow,
-		Value::BlueBright => TerminalColor::LightBlue,
-		Value::MagentaBright => TerminalColor::LightMagenta,
-		Value::CyanBright => TerminalColor::LightCyan,
-		Value::WhiteBright => TerminalColor::White,
-		Value::Rgb(rgb) => terminal_rgb(rgb, level),
-	})
-}
+	/// One cfonts color value as the terminal's own color
+	///
+	/// Named colors stay semantic so the terminal's palette applies,
+	/// only RGB values pin channels, as many as the level allows
+	fn terminal_color(value: Value, level: ColorLevel) -> Option<TerminalColor> {
+		Some(match value {
+			Value::System | Value::Candy => return None,
+			Value::Black => TerminalColor::Black,
+			Value::Red => TerminalColor::Red,
+			Value::Green => TerminalColor::Green,
+			Value::Yellow => TerminalColor::Yellow,
+			Value::Blue => TerminalColor::Blue,
+			Value::Magenta => TerminalColor::Magenta,
+			Value::Cyan => TerminalColor::Cyan,
+			Value::White => TerminalColor::Gray,
+			Value::Gray => TerminalColor::DarkGray,
+			Value::RedBright => TerminalColor::LightRed,
+			Value::GreenBright => TerminalColor::LightGreen,
+			Value::YellowBright => TerminalColor::LightYellow,
+			Value::BlueBright => TerminalColor::LightBlue,
+			Value::MagentaBright => TerminalColor::LightMagenta,
+			Value::CyanBright => TerminalColor::LightCyan,
+			Value::WhiteBright => TerminalColor::White,
+			Value::Rgb(rgb) => Self::terminal_rgb(rgb, level),
+		})
+	}
 
-/// One cfonts text color as a foreground style
-fn style_for(color: Color<Text>, level: ColorLevel) -> Option<Style> {
-	terminal_color(color.value, level).map(|color| Style::default().fg(color))
-}
+	/// One cfonts text color as a foreground style
+	fn style_for(color: Color<Text>, level: ColorLevel) -> Option<Style> {
+		Self::terminal_color(color.value, level).map(|color| Style::default().fg(color))
+	}
 
-/// One cfonts background color as the background style of a band
-fn band_style_for(color: Color<Background>, level: ColorLevel) -> Option<Style> {
-	terminal_color(color.value, level).map(|color| Style::default().bg(color))
+	/// One cfonts background color as the background style of a band
+	fn band_style_for(color: Color<Background>, level: ColorLevel) -> Option<Style> {
+		Self::terminal_color(color.value, level).map(|color| Style::default().bg(color))
+	}
 }
 
 impl Widget for &CfontsWidget<'_> {
@@ -114,11 +116,12 @@ impl Widget for &CfontsWidget<'_> {
 		);
 		// the plan and the backdrop never ask for a style without a level, so the None arm of the closures is never taken
 		let level = context.color_level();
-		let mut plan = PaintPlan::build(self.options, &context, |color| level.and_then(|level| style_for(color, level)));
+		let mut plan =
+			PaintPlan::build(self.options, &context, |color| level.and_then(|level| CfontsWidget::style_for(color, level)));
 		let mut gradients = GradientPlans::build(&plan, self.options, &rows);
 		// An empty composition still shows one banded row, as the terminal and the browser do
 		let backdrop = Backdrop::build(self.options, &context, rows.len().max(1), |color| {
-			level.and_then(|level| band_style_for(color, level))
+			level.and_then(|level| CfontsWidget::band_style_for(color, level))
 		});
 		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
 
@@ -161,8 +164,10 @@ impl Widget for &CfontsWidget<'_> {
 						if x < area.right() {
 							// a ramp exists only with a level, so a drained window is the one bare case
 							let rgb = gradients.window(block_index).first().copied();
-							let style =
-								rgb.zip(level).map(|(rgb, level)| Style::default().fg(terminal_rgb(rgb, level))).unwrap_or_default();
+							let style = rgb
+								.zip(level)
+								.map(|(rgb, level)| Style::default().fg(CfontsWidget::terminal_rgb(rgb, level)))
+								.unwrap_or_default();
 
 							let mut encoded = [0_u8; 4];
 							let (next_x, _) = buffer.set_stringn(x, y, character.encode_utf8(&mut encoded), 1, style);
@@ -316,10 +321,16 @@ mod tests {
 	#[test]
 	fn the_distinctive_semantic_mappings_hold() {
 		// the terminal's palette names shift against the cfonts names exactly here
-		assert_eq!(style_for(Color::WHITE, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::Gray));
-		assert_eq!(style_for(Color::GRAY, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::DarkGray));
-		assert_eq!(style_for(Color::RED_BRIGHT, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::LightRed));
-		assert_eq!(style_for(Color::WHITE_BRIGHT, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::White));
+		assert_eq!(CfontsWidget::style_for(Color::WHITE, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::Gray));
+		assert_eq!(CfontsWidget::style_for(Color::GRAY, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::DarkGray));
+		assert_eq!(
+			CfontsWidget::style_for(Color::RED_BRIGHT, ColorLevel::TrueColor).unwrap().fg,
+			Some(TerminalColor::LightRed)
+		);
+		assert_eq!(
+			CfontsWidget::style_for(Color::WHITE_BRIGHT, ColorLevel::TrueColor).unwrap().fg,
+			Some(TerminalColor::White)
+		);
 	}
 
 	#[test]
@@ -327,11 +338,11 @@ mod tests {
 		// pure red sits unambiguously nearest the bright red of the sixteen color table
 		let red = Rgb { red: 255, green: 0, blue: 0 };
 
-		assert_eq!(terminal_rgb(red, ColorLevel::TrueColor), TerminalColor::Rgb(255, 0, 0));
-		assert_eq!(terminal_rgb(red, ColorLevel::Ansi256), TerminalColor::Indexed(196));
-		assert_eq!(terminal_rgb(red, ColorLevel::Basic), TerminalColor::LightRed);
+		assert_eq!(CfontsWidget::terminal_rgb(red, ColorLevel::TrueColor), TerminalColor::Rgb(255, 0, 0));
+		assert_eq!(CfontsWidget::terminal_rgb(red, ColorLevel::Ansi256), TerminalColor::Indexed(196));
+		assert_eq!(CfontsWidget::terminal_rgb(red, ColorLevel::Basic), TerminalColor::LightRed);
 		// named colors ignore the level
-		assert_eq!(terminal_color(Value::Red, ColorLevel::Basic), Some(TerminalColor::Red));
+		assert_eq!(CfontsWidget::terminal_color(Value::Red, ColorLevel::Basic), Some(TerminalColor::Red));
 	}
 
 	/// The foreground of every cell in a one row Tiny "A" painted with one color at one level
@@ -484,9 +495,9 @@ mod tests {
 
 	#[test]
 	fn a_band_is_the_terminals_own_background() {
-		assert_eq!(band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().bg, Some(TerminalColor::Blue));
-		assert_eq!(band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().fg, None);
-		assert!(band_style_for(Color::SYSTEM, ColorLevel::TrueColor).is_none());
+		assert_eq!(CfontsWidget::band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().bg, Some(TerminalColor::Blue));
+		assert_eq!(CfontsWidget::band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().fg, None);
+		assert!(CfontsWidget::band_style_for(Color::SYSTEM, ColorLevel::TrueColor).is_none());
 	}
 
 	#[test]

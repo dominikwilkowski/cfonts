@@ -4,7 +4,6 @@ use crate::{
 		VERSION,
 		helper::{PROMPT_COLORED, PROMPT_PLAIN},
 	},
-	render::render_resolved,
 };
 
 /// The full demo screen, resolved like any render: real width, real color level
@@ -29,7 +28,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		.valign(Valign::Bottom)
 		.colors(vec![Color::SYSTEM])
 		.into();
-	let banner = render_resolved(&banner, &TerminalTarget::default(), context);
+	let banner = context.render(&banner, &TerminalTarget::default());
 
 	output.push_str(&banner.text);
 	output.push_str("\n\n════════════════════════════════════════════════════════════\n\n");
@@ -42,7 +41,7 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		example.global_colors = options.global_colors.clone();
 		example.independent_gradient = options.independent_gradient;
 		example.background = options.background.clone();
-		let rendered = render_resolved(&example, &TerminalTarget::default(), context);
+		let rendered = context.render(&example, &TerminalTarget::default());
 		output.push_str(&format!(
 			"{prompt} cfonts \"{name}\" --font {name}\n\n{}\n\n────────────────────────────────────────────────────────────\n\n",
 			rendered.text

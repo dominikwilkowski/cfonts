@@ -5,7 +5,7 @@ mod types;
 
 pub use builder::Cfonts;
 pub use cfonts::{Align, ColorLevel, Font, GradientPreset, Valign};
-pub use host::{BrowserHost, NodeHost, Terminal, entropy, line_end};
+pub use host::{BrowserHost, NodeHost, Terminal};
 pub use input::{
 	BackgroundOption, ColorOption, GradientOption, Preset, RenderOverrides, Rgb, TextColor, Transition, TwoStop,
 };

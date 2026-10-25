@@ -4,7 +4,6 @@ use crate::{
 		Args, VERSION,
 		helper::{MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, const_mark},
 	},
-	render::render_resolved,
 };
 
 /// The full help screen, resolved like any render: real width, real color level
@@ -25,7 +24,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 		.valign(Valign::Bottom)
 		.colors(vec![Color::SYSTEM])
 		.into();
-	let banner = render_resolved(&banner, &TerminalTarget::default(), context);
+	let banner = context.render(&banner, &TerminalTarget::default());
 
 	// every backticked span of the usage is an input and renders in the mark color
 	const USAGE: &str = concat!(

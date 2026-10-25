@@ -10,8 +10,8 @@ use cfonts::{
 };
 use cfonts_wasm::{
 	Align, BrowserHost, Cfonts, Color, ColorLevel, Font, GradientPreset, NodeHost, Rendered, TargetKind, Valign,
-	align_names, background_color_names, color_names, entropy, font_names, gradient_color_names, gradient_preset_names,
-	line_end, rgb_from_hex, valign_names,
+	align_names, background_color_names, color_names, font_names, gradient_color_names, gradient_preset_names,
+	rgb_from_hex, valign_names,
 };
 
 /// A JavaScript value spelled as JSON, the way a page would pass it
@@ -1087,7 +1087,7 @@ fn the_page_host_pins_what_a_page_render_takes_as_given() {
 	let mut banner = text("AB");
 	banner.font("tiny".into()).expect("a font name");
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
-	let seed = entropy();
+	let seed = BrowserHost::entropy();
 	let host = BrowserHost::from_overrides(overrides(None, None, Some(seed))).expect("valid overrides");
 
 	for target in TargetKind::ALL {
@@ -1159,7 +1159,8 @@ fn the_page_host_rolls_a_fresh_seed_unless_one_is_pinned() {
 		rendered(other.render(&banner, TargetKind::Terminal, false)).text
 	);
 	assert_fresh(|| rendered(rolling.render(&banner, TargetKind::Terminal, false)).text);
-	assert_fresh(entropy);
+	assert_fresh(BrowserHost::entropy);
+	assert_fresh(NodeHost::entropy);
 }
 
 #[wasm_bindgen_test]
@@ -1314,10 +1315,10 @@ fn the_node_host_seeds_candy_from_the_override_or_a_fresh_roll() {
 
 #[wasm_bindgen_test]
 fn the_line_ending_crosses_as_the_target_answers_it() {
-	assert_eq!(line_end(TargetKind::Terminal, false), "\n");
-	assert_eq!(line_end(TargetKind::Terminal, true), "\r\n");
-	assert_eq!(line_end(TargetKind::Browser, false), "");
-	assert_eq!(line_end(TargetKind::BrowserConsole, true), "");
+	assert_eq!(NodeHost::line_end(TargetKind::Terminal, false), "\n");
+	assert_eq!(NodeHost::line_end(TargetKind::Terminal, true), "\r\n");
+	assert_eq!(NodeHost::line_end(TargetKind::Browser, false), "");
+	assert_eq!(NodeHost::line_end(TargetKind::BrowserConsole, true), "");
 }
 
 #[wasm_bindgen_test]

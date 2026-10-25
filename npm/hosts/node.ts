@@ -1,9 +1,9 @@
 import { release } from "node:os";
 
-import { entropy, type RenderOverrides, type Terminal, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
+import { type RenderOverrides, type Terminal, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
 import { inner } from "../boundary.js";
 import type { Cfonts, Rendered } from "../index.js";
-import { type Target, targetArguments, lineEnd } from "../targets/index.js";
+import { type Target, targetArguments } from "../targets/index.js";
 import type { Host } from "./types.js";
 
 /**
@@ -42,7 +42,7 @@ export class NodeHost implements Host {
 	 * const host = NodeHost.fromOverrides({ seed });
 	 */
 	static entropy(): number {
-		return entropy();
+		return WasmNodeHost.entropy();
 	}
 
 	/**
@@ -65,9 +65,10 @@ export class NodeHost implements Host {
 	}
 
 	say(composition: Cfonts, target: Target): void {
-		const rendered = this.#inner.render(composition[inner](), ...targetArguments(target, "say"), this.#terminal());
+		const [kind, rawMode] = targetArguments(target, "say");
+		const rendered = this.#inner.render(composition[inner](), kind, rawMode, this.#terminal());
 
-		process.stdout.write(`${rendered.text}${lineEnd(target)}`);
+		process.stdout.write(`${rendered.text}${WasmNodeHost.lineEnd(kind, rawMode)}`);
 	}
 
 	/**

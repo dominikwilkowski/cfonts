@@ -4,7 +4,7 @@ use crate::{
 	color::{
 		Background, BackgroundOption, CANDY, CandyRng, Color, ColorLevel, ColorOption, GradientColors, GradientOption, Rgb,
 	},
-	layout::{Layout, LayoutRow},
+	layout::{Layout, LayoutRow, RowEntry},
 	options::{Align, Options},
 	targets::{Rendered, Target},
 };
@@ -180,6 +180,25 @@ impl RenderContext {
 	pub const fn seed(self) -> u64 {
 		self.seed
 	}
+
+	/// Builds layout once under this context and renders it through a pure target
+	pub(crate) fn render<T: Target + ?Sized>(self, options: &Options, target: &T) -> Rendered {
+		let mut rows = Layout::build(options, self.canvas_width()).into_rows();
+
+		// Targets that own their frame align rows within the widest line when
+		// no canvas exists, so gradients and padding share one column story
+		if self.canvas_width().is_none() && target.frames_alignment_to_widest() && options.align != Align::Left {
+			let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
+
+			// Zero-width rows have nothing to align, matching Layout::align_offset's canvas rule:
+			// empty `||` lines still carry their zero-width buffer entries, so width is the real test
+			for row in rows.iter_mut().filter(|row| row.has_columns()) {
+				row.align_offset = options.align.offset(widest - row.width);
+			}
+		}
+
+		target.render_rows(&rows, options, &self)
+	}
 }
 
 /// Which paint path covers one block's segments
@@ -329,11 +348,21 @@ impl<T> PaintPlan<T> {
 		self.blocks.get(block_index).map_or(PaintDomain::Slots, |block| block.domain)
 	}
 
-	/// Whether any slot resolved to paint
+	/// Whether any segment of these rows actually paints under this plan
 	///
-	/// Targets whose escaping depends on the whole artifact key off this
-	pub(crate) fn will_style(&self) -> bool {
+	/// Resolution alone is not enough: a resolved slot may cover no segment at all, and escaping must match
+	/// the styles that actually get emitted, so the plan's resolution is confirmed against the rows
+	/// A plan without a resolved slot skips the scan, and the scan stops at the first painted segment
+	pub(crate) fn paints_any_segment(&self, rows: &[LayoutRow]) -> bool {
 		self.will_style
+			&& rows.iter().any(|row| {
+				row.entries.iter().any(|entry| match entry {
+					RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row
+						.segments()
+						.any(|(text, slot)| !text.is_empty() && self.resolves(*block_index as usize, slot, *paintable)),
+					RowEntry::Blank { .. } => false,
+				})
+			})
 	}
 
 	/// Whether one text segment resolves to paint, without consuming a roll
@@ -531,6 +560,22 @@ impl GradientPlans {
 	pub(crate) fn advance(&mut self, columns: usize) {
 		self.column += columns;
 	}
+
+	/// Walks `text` one column at a time, handing each character its color from `window` while the ramp lasts,
+	/// and returns the columns consumed
+	///
+	/// A target paints one segment with the window of [`window`](Self::window)
+	/// and claims the count through [`advance`](Self::advance)
+	pub(crate) fn each_column(text: &str, window: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {
+		let mut consumed = 0;
+
+		for character in text.chars() {
+			paint(character, window.get(consumed));
+			consumed += 1;
+		}
+
+		consumed
+	}
 }
 
 /// The background bands of one render: one paint per output row, padding rows included
@@ -585,32 +630,12 @@ impl<T> Backdrop<T> {
 ///
 /// Nothing detects or decides here, so `Auto` means off: no canvas limit, no color and the zero seed
 pub fn render_with<T: Target + ?Sized>(options: &Options, target: &T, overrides: RenderOverrides) -> Rendered {
-	let context = RenderContext::resolved(
+	RenderContext::resolved(
 		overrides.canvas_width().columns_or(None),
 		overrides.color().level_or(None),
 		overrides.seed().unwrap_or(0),
-	);
-
-	render_resolved(options, target, context)
-}
-
-/// Builds layout once under a resolved context and renders it through a pure target
-pub(crate) fn render_resolved<T: Target + ?Sized>(options: &Options, target: &T, context: RenderContext) -> Rendered {
-	let mut rows = Layout::build(options, context.canvas_width()).into_rows();
-
-	// Targets that own their frame align rows within the widest line when
-	// no canvas exists, so gradients and padding share one column story
-	if context.canvas_width().is_none() && target.frames_alignment_to_widest() && options.align != Align::Left {
-		let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
-
-		// Zero-width rows have nothing to align, matching Layout::align_offset's canvas rule:
-		// empty `||` lines still carry their zero-width buffer entries, so width is the real test
-		for row in rows.iter_mut().filter(|row| row.has_columns()) {
-			row.align_offset = options.align.offset(widest - row.width);
-		}
-	}
-
-	target.render_rows(&rows, options, &context)
+	)
+	.render(options, target)
 }
 
 #[cfg(test)]

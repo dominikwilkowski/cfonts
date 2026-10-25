@@ -10,7 +10,7 @@ mod checks;
 mod source;
 mod tables;
 
-use proc_macro::{Span, TokenStream};
+use proc_macro::TokenStream;
 
 use crate::{
 	error::CompileError,
@@ -38,13 +38,4 @@ pub(crate) fn expand(input: TokenStream) -> TokenStream {
 
 	// the tables print literals, punctuation and the font's own tokens back, all of which lex
 	expression.parse().expect("the font tables always lex")
-}
-
-/// Does the work for `supported_chars!`
-pub(crate) fn supported_chars(input: TokenStream) -> TokenStream {
-	if !input.is_empty() {
-		return CompileError::new("supported_chars! takes no input", Span::call_site()).into_tokens();
-	}
-
-	format!("{SUPPORTED_CHARS:?}").parse().expect("a list of char literals always parses")
 }

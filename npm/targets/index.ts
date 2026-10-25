@@ -1,4 +1,4 @@
-import { TargetKind, lineEnd as wasmLineEnd } from "../../pkg/cfonts_wasm.js";
+import { TargetKind } from "../../pkg/cfonts_wasm.js";
 
 const targetKind = Symbol("cfonts.target");
 const rawMode = Symbol("cfonts.rawMode");
@@ -50,15 +50,6 @@ export const TerminalTarget: TerminalTarget = Object.freeze({
 		return rawTerminal;
 	},
 });
-
-/**
- * The line ending a host writes after an artifact, the one the target ends its rows with
- *
- * The target answers it behind the boundary, TypeScript carries the value to the write
- */
-export function lineEnd(target: Target): string {
-	return wasmLineEnd(...targetArguments(target, "say"));
-}
 
 /** Formats a self-contained HTML fragment */
 export const BrowserTarget = defineTarget(TargetKind.Browser);

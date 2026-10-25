@@ -7,7 +7,12 @@ pub mod gradient;
 pub(crate) use gradient::GradientColors;
 pub use gradient::GradientPreset;
 
-use std::{marker::PhantomData, str::FromStr};
+use std::{
+	error::Error,
+	fmt::{self, Debug, Display, Formatter},
+	marker::PhantomData,
+	str::FromStr,
+};
 
 use cfonts_macros::All;
 #[cfg(feature = "wasm")]
@@ -47,8 +52,8 @@ pub enum ColorError {
 	BackgroundList,
 }
 
-impl std::fmt::Display for ColorError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ColorError {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		match self {
 			Self::HexLength(length) => {
 				write!(f, "A hex color holds exactly three or six hex digits, this one holds {length}")
@@ -77,7 +82,7 @@ impl std::fmt::Display for ColorError {
 	}
 }
 
-impl std::error::Error for ColorError {}
+impl Error for ColorError {}
 
 /// The color support a render paints with
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
@@ -353,7 +358,7 @@ mod sealed {
 /// so one place decides what a name may become where it goes
 ///
 /// The trait is sealed, the three kinds are the three places a color goes
-pub trait Kind: sealed::Sealed + Copy + Eq + std::fmt::Debug {
+pub trait Kind: sealed::Sealed + Copy + Eq + Debug {
 	/// Whether `system`, the terminal's or page's own color, is a color of this kind
 	const TAKES_SYSTEM: bool;
 
@@ -527,6 +532,18 @@ impl Value {
 		}
 	}
 
+	/// The RGB value this color paints at one support level in a target without a palette of its own
+	///
+	/// The browser shows any value, so a level below full support paints the palette entry's own value:
+	/// a named color's table value is a palette entry already, an RGB value takes the entry its level allows
+	/// `System` and `Candy` never paint from here
+	pub(crate) fn leveled_rgb(self, level: ColorLevel) -> Option<Rgb> {
+		match self {
+			Self::Rgb(rgb) => Some(rgb.at_level(level)),
+			named => named.to_rgb(),
+		}
+	}
+
 	/// The fixed ANSI 16 foreground sequence of a named color
 	///
 	/// Named colors never level up or down so they respect the terminal's own palette,
@@ -608,9 +625,9 @@ pub struct Color<K: Kind = Text> {
 }
 
 /// The value alone, the kind is in the type
-impl<K: Kind> std::fmt::Debug for Color<K> {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		std::fmt::Debug::fmt(&self.value, f)
+impl<K: Kind> Debug for Color<K> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		Debug::fmt(&self.value, f)
 	}
 }
 

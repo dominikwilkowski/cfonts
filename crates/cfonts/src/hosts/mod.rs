@@ -9,7 +9,7 @@ use std::{
 use crate::{
 	color::ColorLevel,
 	options::Options,
-	render::{RenderContext, render_resolved},
+	render::RenderContext,
 	targets::{Rendered, Target},
 };
 
@@ -70,9 +70,7 @@ pub trait Host {
 	/// Answers the three questions once and returns one rendered artifact
 	#[must_use]
 	fn render<T: Target + ?Sized>(&self, target: &T, options: &Options) -> Rendered {
-		let context = RenderContext::resolved(self.canvas_width(), self.color_level(), self.seed());
-
-		render_resolved(options, target, context)
+		RenderContext::resolved(self.canvas_width(), self.color_level(), self.seed()).render(options, target)
 	}
 
 	/// Renders once and writes once

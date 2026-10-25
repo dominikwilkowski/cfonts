@@ -1,4 +1,4 @@
-import { entropy, type RenderOverrides, BrowserHost as WasmBrowserHost } from "../../pkg/cfonts_wasm.js";
+import { type RenderOverrides, BrowserHost as WasmBrowserHost } from "../../pkg/cfonts_wasm.js";
 import { inner } from "../boundary.js";
 import type { Cfonts, Rendered } from "../index.js";
 import { type Target, targetArguments } from "../targets/index.js";
@@ -39,7 +39,7 @@ export class BrowserHost implements Host {
 	 * const host = BrowserHost.fromOverrides({ seed });
 	 */
 	static entropy(): number {
-		return entropy();
+		return WasmBrowserHost.entropy();
 	}
 
 	/**

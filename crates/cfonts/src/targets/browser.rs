@@ -4,8 +4,8 @@ use crate::{
 	color::{Background, Color, Rgb, Text},
 	layout::LayoutRow,
 	options::Options,
-	render::RenderContext,
-	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, each_ramp_column, leveled_rgb, push_escaped},
+	render::{GradientPlans, RenderContext},
+	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, push_escaped},
 };
 
 /// The wrapper around every render, scrolling only when a row is wider than it
@@ -75,7 +75,11 @@ impl Target for BrowserTarget {
 	/// The browser has no terminal palette, so named colors flatten to their RGB values
 	/// and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		match leveled_rgb(color, context) {
+		let Some(level) = context.color_level() else {
+			return ColorTokens::default();
+		};
+
+		match color.value.leveled_rgb(level) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_css_hex()), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
@@ -84,7 +88,11 @@ impl Target for BrowserTarget {
 	/// A band is a block of its own, so it spans the full width, and `min-height:1lh` keeps a row
 	/// without text one line tall while text rows keep their natural line box
 	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		match leveled_rgb(color, context) {
+		let Some(level) = context.color_level() else {
+			return ColorTokens::default();
+		};
+
+		match color.value.leveled_rgb(level) {
 			Some(rgb) => ColorTokens {
 				start: Cow::Owned(format!(r#"<div style="background:{};min-height:1lh">"#, rgb.to_css_hex())),
 				end: Cow::Borrowed(BLOCK_END),
@@ -102,7 +110,7 @@ impl Target for BrowserTarget {
 		context: &RenderContext,
 		out: &mut Rendered,
 	) -> usize {
-		each_ramp_column(text, colors, |character, rgb| match rgb.zip(context.color_level()) {
+		GradientPlans::each_column(text, colors, |character, rgb| match rgb.zip(context.color_level()) {
 			Some((rgb, level)) => {
 				Self::push_span(
 					|out| rgb.at_level(level).push_css_hex(out),
