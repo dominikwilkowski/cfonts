@@ -995,11 +995,12 @@ impl<'a> ColorShape<'a> {
 	/// A value uses at most one kind of delimiter and every segment names something:
 	/// a mixed value or an empty segment is the whole value's problem and is reported as such
 	fn from_value(value: &'a str) -> Result<Self, ColorError> {
-		let delimiters: Vec<char> = Self::DELIMITERS.into_iter().filter(|delimiter| value.contains(*delimiter)).collect();
-		let Some(delimiter) = delimiters.first().copied() else {
+		let mut delimiters = Self::DELIMITERS.into_iter().filter(|delimiter| value.contains(*delimiter));
+
+		let Some(delimiter) = delimiters.next() else {
 			return Ok(Self::Single(value.trim()));
 		};
-		if delimiters.len() > 1 {
+		if delimiters.next().is_some() {
 			return Err(ColorError::MixedDelimiters);
 		}
 
