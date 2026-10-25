@@ -8,6 +8,7 @@ pub(crate) use gradient::GradientColors;
 pub use gradient::GradientPreset;
 
 use std::{
+	borrow::Cow,
 	error::Error,
 	fmt::{self, Debug, Display, Formatter},
 	marker::PhantomData,
@@ -116,8 +117,8 @@ impl Rgb {
 		}
 
 		let full = match clean.len() {
-			3 => format!("{0}{0}{1}{1}{2}{2}", &clean[0..1], &clean[1..2], &clean[2..3]),
-			6 => clean.to_string(),
+			3 => Cow::Owned(format!("{0}{0}{1}{1}{2}{2}", &clean[0..1], &clean[1..2], &clean[2..3],)),
+			6 => Cow::Borrowed(clean),
 			length => return Err(ColorError::HexLength(length)),
 		};
 
