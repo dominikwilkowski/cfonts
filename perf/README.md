@@ -140,47 +140,47 @@ Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-1
 
 | scenario                      | v4 api median | v4 cli median |
 |-------------------------------|---------------|---------------|
-| `short-plain`                 | 4.43 µs       | 1.63 ms       |
-| `short-colors`                | 5.72 µs       | 1.64 ms       |
-| `short-gradient`              | 11.2 µs       | 1.66 ms       |
-| `short-transition`            | 10.5 µs       | 1.65 ms       |
-| `short-background`            | 4.56 µs       | 1.63 ms       |
-| `short-colors-background`     | 5.90 µs       | 1.65 ms       |
-| `short-gradient-background`   | 11.4 µs       | 1.64 ms       |
-| `short-transition-background` | 10.6 µs       | 1.67 ms       |
-| `long-plain`                  | 188 µs        | 1.91 ms       |
-| `long-colors`                 | 235 µs        | 1.99 ms       |
-| `long-gradient`               | 428 µs        | 2.36 ms       |
-| `long-transition`             | 424 µs        | 2.34 ms       |
-| `long-background`             | 193 µs        | 1.95 ms       |
-| `long-colors-background`      | 239 µs        | 2.04 ms       |
-| `long-gradient-background`    | 432 µs        | 2.37 ms       |
-| `long-transition-background`  | 427 µs        | 2.35 ms       |
+| `short-plain`                 | 4.43 µs       | 1.66 ms       |
+| `short-colors`                | 5.81 µs       | 1.65 ms       |
+| `short-gradient`              | 11.2 µs       | 1.64 ms       |
+| `short-transition`            | 10.4 µs       | 1.65 ms       |
+| `short-background`            | 4.63 µs       | 1.64 ms       |
+| `short-colors-background`     | 5.95 µs       | 1.63 ms       |
+| `short-gradient-background`   | 11.3 µs       | 1.65 ms       |
+| `short-transition-background` | 10.6 µs       | 1.64 ms       |
+| `long-plain`                  | 190 µs        | 1.95 ms       |
+| `long-colors`                 | 239 µs        | 1.99 ms       |
+| `long-gradient`               | 430 µs        | 2.33 ms       |
+| `long-transition`             | 425 µs        | 2.32 ms       |
+| `long-background`             | 195 µs        | 1.94 ms       |
+| `long-colors-background`      | 242 µs        | 2.00 ms       |
+| `long-gradient-background`    | 433 µs        | 2.39 ms       |
+| `long-transition-background`  | 428 µs        | 2.36 ms       |
 | `startup`                     | n/a           | 1.61 ms       |
-| `single-character`            | 826 ns        | 1.64 ms       |
-| `console-font`                | 590 ns        | 1.63 ms       |
-| `line-breaks`                 | 6.04 µs       | 1.63 ms       |
-| `long-center`                 | 189 µs        | 1.95 ms       |
-| `long-right`                  | 190 µs        | 1.93 ms       |
-| `long-spacing`                | 252 µs        | 2.01 ms       |
-| `long-independent-gradient`   | 478 µs        | 2.41 ms       |
-| `long-candy`                  | 240 µs        | 1.99 ms       |
-| `scaling-125`                 | 43.4 µs       | 1.71 ms       |
-| `scaling-250`                 | 85.9 µs       | 1.82 ms       |
-| `scaling-500`                 | 170 µs        | 1.89 ms       |
-| `scaling-1000`                | 340 µs        | 2.14 ms       |
-| `alphabet-console`            | 1.16 µs       | 1.62 ms       |
+| `single-character`            | 834 ns        | 1.62 ms       |
+| `console-font`                | 597 ns        | 1.61 ms       |
+| `line-breaks`                 | 6.18 µs       | 1.64 ms       |
+| `long-center`                 | 191 µs        | 1.97 ms       |
+| `long-right`                  | 192 µs        | 1.90 ms       |
+| `long-spacing`                | 255 µs        | 2.00 ms       |
+| `long-independent-gradient`   | 478 µs        | 2.45 ms       |
+| `long-candy`                  | 243 µs        | 1.99 ms       |
+| `scaling-125`                 | 44.0 µs       | 1.71 ms       |
+| `scaling-250`                 | 87.0 µs       | 1.77 ms       |
+| `scaling-500`                 | 172 µs        | 2.07 ms       |
+| `scaling-1000`                | 345 µs        | 2.11 ms       |
+| `alphabet-console`            | 1.17 µs       | 1.64 ms       |
 | `alphabet-block`              | 10.1 µs       | 1.64 ms       |
-| `alphabet-simpleblock`        | 6.24 µs       | 1.64 ms       |
-| `alphabet-simple`             | 5.17 µs       | 1.63 ms       |
-| `alphabet-3d`                 | 16.5 µs       | 1.67 ms       |
-| `alphabet-chrome`             | 3.91 µs       | 1.67 ms       |
-| `alphabet-huge`               | 19.9 µs       | 2.03 ms       |
-| `alphabet-shade`              | 10.1 µs       | 1.64 ms       |
-| `alphabet-slick`              | 8.55 µs       | 1.86 ms       |
-| `alphabet-grid`               | 7.45 µs       | 1.66 ms       |
-| `alphabet-pallet`             | 8.51 µs       | 1.65 ms       |
-| `alphabet-tiny`               | 2.83 µs       | 1.64 ms       |
+| `alphabet-simpleblock`        | 6.30 µs       | 1.62 ms       |
+| `alphabet-simple`             | 5.20 µs       | 1.63 ms       |
+| `alphabet-3d`                 | 16.8 µs       | 1.66 ms       |
+| `alphabet-chrome`             | 3.90 µs       | 1.64 ms       |
+| `alphabet-huge`               | 20.1 µs       | 1.66 ms       |
+| `alphabet-shade`              | 10.3 µs       | 1.63 ms       |
+| `alphabet-slick`              | 8.62 µs       | 1.63 ms       |
+| `alphabet-grid`               | 7.26 µs       | 1.63 ms       |
+| `alphabet-pallet`             | 8.66 µs       | 1.63 ms       |
+| `alphabet-tiny`               | 2.81 µs       | 1.63 ms       |
 
 <!-- perf:results:speed:end -->
 
@@ -195,18 +195,18 @@ Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-1
 | `short-colors`                | 45                 | 14,064 B     | 252                | 34,352 B     |
 | `short-gradient`              | 55                 | 39,371 B     | 261                | 59,643 B     |
 | `short-transition`            | 55                 | 39,374 B     | 265                | 59,700 B     |
-| `short-background`            | 43                 | 9,883 B      | 248                | 30,103 B     |
-| `short-colors-background`     | 45                 | 14,075 B     | 259                | 34,511 B     |
-| `short-gradient-background`   | 55                 | 39,382 B     | 268                | 59,802 B     |
-| `short-transition-background` | 55                 | 39,385 B     | 272                | 59,859 B     |
+| `short-background`            | 43                 | 9,883 B      | 247                | 30,096 B     |
+| `short-colors-background`     | 45                 | 14,075 B     | 258                | 34,504 B     |
+| `short-gradient-background`   | 55                 | 39,382 B     | 267                | 59,795 B     |
+| `short-transition-background` | 55                 | 39,385 B     | 271                | 59,852 B     |
 | `long-plain`                  | 794                | 305,772 B    | 993                | 326,962 B    |
 | `long-colors`                 | 796                | 551,623 B    | 1,004              | 573,005 B    |
 | `long-gradient`               | 807                | 2,239,915 B  | 1,013              | 2,261,265 B  |
 | `long-transition`             | 807                | 2,239,918 B  | 1,017              | 2,261,322 B  |
-| `long-background`             | 795                | 404,091 B    | 1,000              | 425,389 B    |
-| `long-colors-background`      | 797                | 666,331 B    | 1,011              | 687,845 B    |
-| `long-gradient-background`    | 807                | 2,239,926 B  | 1,020              | 2,261,424 B  |
-| `long-transition-background`  | 807                | 2,239,929 B  | 1,024              | 2,261,481 B  |
+| `long-background`             | 795                | 404,091 B    | 999                | 425,382 B    |
+| `long-colors-background`      | 797                | 666,331 B    | 1,010              | 687,838 B    |
+| `long-gradient-background`    | 807                | 2,239,926 B  | 1,019              | 2,261,417 B  |
+| `long-transition-background`  | 807                | 2,239,929 B  | 1,023              | 2,261,474 B  |
 | `startup`                     | n/a                | n/a          | 190                | 19,937 B     |
 | `single-character`            | 22                 | 1,390 B      | 221                | 21,482 B     |
 | `console-font`                | 11                 | 1,828 B      | 209                | 21,928 B     |
@@ -242,47 +242,47 @@ Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-1
 
 | scenario                      | v4 api peak heap | v4 cli peak heap | v4 cli peak RSS |
 |-------------------------------|------------------|------------------|-----------------|
-| `short-plain`                 | 4,760 B          | 24,096 B         | 1,687,552 B     |
+| `short-plain`                 | 4,760 B          | 24,096 B         | 1,671,168 B     |
 | `short-colors`                | 6,904 B          | 26,320 B         | 1,687,552 B     |
-| `short-gradient`              | 19,551 B         | 38,976 B         | 1,736,704 B     |
-| `short-transition`            | 19,554 B         | 38,992 B         | 1,720,320 B     |
-| `short-background`            | 4,779 B          | 24,192 B         | 1,687,552 B     |
+| `short-gradient`              | 19,551 B         | 38,976 B         | 1,703,936 B     |
+| `short-transition`            | 19,554 B         | 38,992 B         | 1,736,704 B     |
+| `short-background`            | 4,779 B          | 24,192 B         | 1,671,168 B     |
 | `short-colors-background`     | 6,923 B          | 26,448 B         | 1,687,552 B     |
 | `short-gradient-background`   | 19,570 B         | 39,104 B         | 1,720,320 B     |
 | `short-transition-background` | 19,573 B         | 39,120 B         | 1,720,320 B     |
-| `long-plain`                  | 191,352 B        | 217,568 B        | 2,048,000 B     |
-| `long-colors`                 | 314,328 B        | 348,816 B        | 2,113,536 B     |
-| `long-gradient`               | 1,158,463 B      | 1,184,768 B      | 2,637,824 B     |
-| `long-transition`             | 1,158,466 B      | 1,184,784 B      | 2,621,440 B     |
-| `long-background`             | 240,523 B        | 266,816 B        | 2,064,384 B     |
-| `long-colors-background`      | 371,691 B        | 398,096 B        | 2,129,920 B     |
-| `long-gradient-background`    | 1,158,482 B      | 1,184,896 B      | 2,621,440 B     |
-| `long-transition-background`  | 1,158,485 B      | 1,184,912 B      | 2,621,440 B     |
-| `startup`                     | n/a              | 19,120 B         | 1,572,864 B     |
-| `single-character`            | 1,080 B          | 20,352 B         | 1,687,552 B     |
-| `console-font`                | 1,292 B          | 20,496 B         | 1,687,552 B     |
-| `line-breaks`                 | 6,264 B          | 25,888 B         | 1,687,552 B     |
-| `long-center`                 | 191,352 B        | 217,632 B        | 2,031,616 B     |
-| `long-right`                  | 191,352 B        | 217,632 B        | 2,031,616 B     |
+| `long-plain`                  | 191,352 B        | 217,568 B        | 1,998,848 B     |
+| `long-colors`                 | 314,328 B        | 348,816 B        | 2,097,152 B     |
+| `long-gradient`               | 1,158,463 B      | 1,184,768 B      | 2,605,056 B     |
+| `long-transition`             | 1,158,466 B      | 1,184,784 B      | 2,588,672 B     |
+| `long-background`             | 240,523 B        | 266,816 B        | 2,048,000 B     |
+| `long-colors-background`      | 371,691 B        | 398,096 B        | 2,113,536 B     |
+| `long-gradient-background`    | 1,158,482 B      | 1,184,896 B      | 2,605,056 B     |
+| `long-transition-background`  | 1,158,485 B      | 1,184,912 B      | 2,605,056 B     |
+| `startup`                     | n/a              | 19,120 B         | 1,589,248 B     |
+| `single-character`            | 1,080 B          | 20,352 B         | 1,671,168 B     |
+| `console-font`                | 1,292 B          | 20,496 B         | 1,671,168 B     |
+| `line-breaks`                 | 6,264 B          | 25,888 B         | 1,671,168 B     |
+| `long-center`                 | 191,352 B        | 217,632 B        | 1,998,848 B     |
+| `long-right`                  | 191,352 B        | 217,632 B        | 2,015,232 B     |
 | `long-spacing`                | 222,888 B        | 257,184 B        | 2,113,536 B     |
-| `long-independent-gradient`   | 1,158,463 B      | 1,184,816 B      | 2,637,824 B     |
-| `long-candy`                  | 314,856 B        | 349,456 B        | 2,113,536 B     |
+| `long-independent-gradient`   | 1,158,463 B      | 1,184,816 B      | 2,605,056 B     |
+| `long-candy`                  | 314,856 B        | 349,456 B        | 2,097,152 B     |
 | `scaling-125`                 | 46,344 B         | 67,552 B         | 1,802,240 B     |
 | `scaling-250`                 | 91,960 B         | 122,848 B        | 1,884,160 B     |
-| `scaling-500`                 | 183,576 B        | 209,248 B        | 2,015,232 B     |
-| `scaling-1000`                | 367,048 B        | 406,912 B        | 2,228,224 B     |
-| `alphabet-console`            | 2,112 B          | 21,392 B         | 1,687,552 B     |
-| `alphabet-block`              | 12,168 B         | 32,288 B         | 1,736,704 B     |
-| `alphabet-simpleblock`        | 8,396 B          | 28,064 B         | 1,687,552 B     |
+| `scaling-500`                 | 183,576 B        | 209,248 B        | 1,998,848 B     |
+| `scaling-1000`                | 367,048 B        | 406,912 B        | 2,195,456 B     |
+| `alphabet-console`            | 2,112 B          | 21,392 B         | 1,671,168 B     |
+| `alphabet-block`              | 12,168 B         | 32,288 B         | 1,703,936 B     |
+| `alphabet-simpleblock`        | 8,396 B          | 28,064 B         | 1,671,168 B     |
 | `alphabet-simple`             | 5,392 B          | 24,960 B         | 1,703,936 B     |
 | `alphabet-3d`                 | 24,828 B         | 44,896 B         | 1,736,704 B     |
-| `alphabet-chrome`             | 5,300 B          | 24,640 B         | 1,703,936 B     |
+| `alphabet-chrome`             | 5,300 B          | 24,640 B         | 1,687,552 B     |
 | `alphabet-huge`               | 23,268 B         | 44,272 B         | 1,736,704 B     |
-| `alphabet-shade`              | 10,560 B         | 30,016 B         | 1,720,320 B     |
-| `alphabet-slick`              | 10,152 B         | 30,592 B         | 1,736,704 B     |
-| `alphabet-grid`               | 8,968 B          | 28,672 B         | 1,671,168 B     |
-| `alphabet-pallet`             | 10,152 B         | 30,592 B         | 1,753,088 B     |
-| `alphabet-tiny`               | 4,632 B          | 23,936 B         | 1,671,168 B     |
+| `alphabet-shade`              | 10,560 B         | 30,016 B         | 1,687,552 B     |
+| `alphabet-slick`              | 10,152 B         | 30,592 B         | 1,720,320 B     |
+| `alphabet-grid`               | 8,968 B          | 28,672 B         | 1,654,784 B     |
+| `alphabet-pallet`             | 10,152 B         | 30,592 B         | 1,703,936 B     |
+| `alphabet-tiny`               | 4,632 B          | 23,936 B         | 1,654,784 B     |
 
 <!-- perf:results:memory:end -->
 
