@@ -1,4 +1,4 @@
-use std::{num::NonZeroUsize, ops::Range};
+use std::{borrow::Cow, num::NonZeroUsize, ops::Range};
 
 use crate::{
 	color::{
@@ -394,7 +394,8 @@ impl<T> PaintPlan<T> {
 /// One gradient domain: its stops, the ramp they fill and the absolute column the ramp starts at
 #[derive(Debug)]
 pub(crate) struct GradientState {
-	stops: Vec<Rgb>,
+	/// The stops as given, a preset's borrowed from its table, the others owned
+	stops: Cow<'static, [Rgb]>,
 	transition: bool,
 	colors: GradientColors,
 
@@ -405,9 +406,9 @@ pub(crate) struct GradientState {
 impl GradientState {
 	fn new(gradient: &GradientOption) -> Self {
 		let (stops, transition) = match gradient {
-			GradientOption::TwoStop { start, end } => (vec![start.to_rgb(), end.to_rgb()], false),
-			GradientOption::Transition(stops) => (stops.iter().map(|stop| stop.to_rgb()).collect(), true),
-			GradientOption::Preset(preset) => (preset.stops().to_vec(), true),
+			GradientOption::TwoStop { start, end } => (Cow::Owned(vec![start.to_rgb(), end.to_rgb()]), false),
+			GradientOption::Transition(stops) => (Cow::Owned(stops.iter().map(|stop| stop.to_rgb()).collect()), true),
+			GradientOption::Preset(preset) => (Cow::Borrowed(preset.stops()), true),
 		};
 
 		Self { stops, transition, colors: GradientColors::new(), origin: 0 }
