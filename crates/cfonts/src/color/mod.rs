@@ -1053,7 +1053,7 @@ impl FromStr for ColorOption {
 		Ok(match ColorShape::from_value(value)? {
 			ColorShape::Single(token) => match GradientPreset::from_name(token) {
 				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => Self::Colors(vec![ColorShape::segment(token)?]),
+				None => Self::Colors(vec![token.parse()?]),
 			},
 			ColorShape::List(segments) => {
 				Self::Colors(segments.into_iter().map(ColorShape::segment).collect::<Result<_, _>>()?)
@@ -1075,7 +1075,7 @@ impl FromStr for BackgroundOption {
 		Ok(match ColorShape::from_value(value)? {
 			ColorShape::Single(token) => match GradientPreset::from_name(token) {
 				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => Self::Color(ColorShape::segment(token)?),
+				None => Self::Color(token.parse()?),
 			},
 			ColorShape::List(_) => return Err(ColorError::BackgroundList),
 			ColorShape::Pair(start, end) => Self::Gradient(ColorShape::two_stop(start, end)?),
