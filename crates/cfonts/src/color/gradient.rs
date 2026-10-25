@@ -134,18 +134,14 @@ impl GradientColors {
 			return;
 		}
 
-		let mut gaps = Self::transition_steps(stops.len(), steps);
+		let gaps = Self::transition_steps(stops.len(), steps);
+		self.colors.push(stops[0]);
 
-		for (i, stop) in stops.iter().enumerate() {
-			if i > 0 {
-				let step = gaps.next().expect("one gap sits between every pair of stops");
-				self.fill_transition(stops[i - 1], *stop, step);
+		for (pair, step) in stops.windows(2).zip(gaps) {
+			self.fill_transition(pair[0], pair[1], step);
 
-				if step != -1 {
-					self.colors.push(*stop);
-				}
-			} else {
-				self.colors.push(*stop);
+			if step != -1 {
+				self.colors.push(pair[1]);
 			}
 		}
 	}
