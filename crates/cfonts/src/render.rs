@@ -610,8 +610,8 @@ impl<T> Backdrop<T> {
 				let mut ramp = GradientState::new(gradient);
 				ramp.fill(Some(0..rows));
 
-				let paints: Vec<Option<T>> =
-					(0..rows).map(|row| ramp.window(row).first().and_then(|rgb| resolve(Color::from(*rgb)))).collect();
+				// the ramp holds exactly one color per row, so the bands are the ramp read in order
+				let paints: Vec<Option<T>> = ramp.window(0).iter().map(|&rgb| resolve(Color::from(rgb))).collect();
 
 				paints.iter().any(Option::is_some).then_some(Self::Ramp(paints))
 			}
