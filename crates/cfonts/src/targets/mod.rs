@@ -286,6 +286,9 @@ pub trait Target {
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(&plan, options, rows);
 		let mut row_index = 0;
+		// The band of the row being painted, looked up once at its start,
+		// a composition without rows paints its one bare row with the first band
+		let mut row_band = backdrop.band(lead);
 
 		self.wrapper_start(options, banded, &mut out);
 
@@ -295,22 +298,23 @@ pub trait Target {
 
 		RowEvent::each(rows, |event| match event {
 			RowEvent::RowStart { row } => {
+				row_band = backdrop.band(lead + row_index);
 				gradients.start_row(row);
-				self.row_start(row, backdrop.band(lead + row_index), options, &mut out);
+				self.row_start(row, row_band, options, &mut out);
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
 					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-					self.paint(text, tokens, backdrop.band(lead + row_index), will_style, context, &mut out);
+					self.paint(text, tokens, row_band, will_style, context, &mut out);
 				}
 				PaintDomain::Block | PaintDomain::Global => {
 					let window = gradients.window(block_index);
-					let consumed = self.gradient_paint(text, window, backdrop.band(lead + row_index), context, &mut out);
+					let consumed = self.gradient_paint(text, window, row_band, context, &mut out);
 					gradients.advance(consumed);
 				}
 			},
 			RowEvent::Blank { width, .. } => {
-				self.blank(width, backdrop.band(lead + row_index), &mut out);
+				self.blank(width, row_band, &mut out);
 				gradients.advance(width);
 			}
 			RowEvent::EntryEnd { width, block_index } => {
@@ -320,17 +324,17 @@ pub trait Target {
 				}
 			}
 			RowEvent::Break => {
-				self.row_end(backdrop.band(lead + row_index), &mut out);
-				self.row_break(&rows[row_index], backdrop.band(lead + row_index), &mut out);
+				self.row_end(row_band, &mut out);
+				self.row_break(&rows[row_index], row_band, &mut out);
 				row_index += 1;
 			}
 		});
 
 		if rows.is_empty() {
 			let bare = LayoutRow { entries: Vec::new(), width: 0, align_offset: 0, block_spans: Vec::new() };
-			self.row_start(&bare, backdrop.band(lead), options, &mut out);
+			self.row_start(&bare, row_band, options, &mut out);
 		}
-		self.row_end(backdrop.band(lead + row_index), &mut out);
+		self.row_end(row_band, &mut out);
 
 		if !options.spaceless {
 			let below = lead + printed_rows;
