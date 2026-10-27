@@ -508,17 +508,11 @@ impl GradientPlans {
 	///
 	/// Zero width spans paint nothing and anchor nothing, so an empty line never pulls the ramp to its column
 	fn row_extent(row: &LayoutRow, participates: impl Fn(usize) -> bool) -> Option<Range<usize>> {
-		let mut column = row.align_offset;
-		let mut extent: Option<Range<usize>> = None;
-
-		for span in &row.block_spans {
-			if span.width > 0 && participates(span.block_index) {
-				extent.get_or_insert(column..column).end = column + span.width;
-			}
-			column += span.width;
-		}
-
-		extent
+		row
+			.span_columns()
+			.filter(|(block_index, columns)| !columns.is_empty() && participates(*block_index))
+			.map(|(_, columns)| columns)
+			.reduce(|extent, columns| extent.start..columns.end)
 	}
 
 	/// The absolute columns one domain paints across every row: the union of its row extents
@@ -539,12 +533,10 @@ impl GradientPlans {
 			}
 
 			// a block occupies one run of columns per row, which is its whole extent there
-			let mut column = row.align_offset;
-			for span in &row.block_spans {
-				if let Some(Some(state)) = self.blocks.get_mut(span.block_index) {
-					state.fill(Some(column..column + span.width));
+			for (block_index, columns) in row.span_columns() {
+				if let Some(Some(state)) = self.blocks.get_mut(block_index) {
+					state.fill(Some(columns));
 				}
-				column += span.width;
 			}
 		}
 

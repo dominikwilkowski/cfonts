@@ -1,6 +1,6 @@
 //! Positioning: text and fonts become rows of glyph entries at a canvas width
 
-use std::mem;
+use std::{mem, ops::Range};
 
 use crate::{
 	NEW_LINE_CHAR,
@@ -144,6 +144,19 @@ impl LayoutRow {
 	#[must_use]
 	pub fn has_columns(&self) -> bool {
 		self.width > 0
+	}
+
+	/// The absolute columns of every block span on this row, in row order
+	///
+	/// The first span starts at the alignment offset and every span after it where the one before ends,
+	/// so every reader of the spans counts columns the same way
+	pub(crate) fn span_columns(&self) -> impl Iterator<Item = (usize, Range<usize>)> {
+		self.block_spans.iter().scan(self.align_offset, |column, span| {
+			let start = *column;
+			*column += span.width;
+
+			Some((span.block_index, start..*column))
+		})
 	}
 }
 
