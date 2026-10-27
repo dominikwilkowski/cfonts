@@ -348,6 +348,11 @@ impl<T> PaintPlan<T> {
 		self.blocks.get(block_index).map_or(PaintDomain::Slots, |block| block.domain)
 	}
 
+	/// The paint path of every block in block order, none without a color level
+	pub(crate) fn domains(&self) -> impl Iterator<Item = PaintDomain> {
+		self.blocks.iter().map(|block| block.domain)
+	}
+
 	/// Whether any segment of these rows actually paints under this plan
 	///
 	/// Resolution alone is not enough: a resolved slot may cover no segment at all, and escaping must match
@@ -459,11 +464,11 @@ impl GradientPlans {
 	/// Without a color level the plan routes every block through its slots, so nothing ramps
 	pub(crate) fn build<T>(plan: &PaintPlan<T>, options: &Options, rows: &[LayoutRow]) -> Self {
 		// a composition without a ramp needs no tables, the lookups read a missing block as unramped
-		if (0..options.blocks.len()).all(|block_index| plan.domain(block_index) == PaintDomain::Slots) {
+		if plan.domains().all(|domain| domain == PaintDomain::Slots) {
 			return Self { domains: Vec::new(), blocks: Vec::new(), global: None, independent: false, column: 0 };
 		}
 
-		let domains: Vec<PaintDomain> = (0..options.blocks.len()).map(|block_index| plan.domain(block_index)).collect();
+		let domains: Vec<PaintDomain> = plan.domains().collect();
 
 		let mut blocks: Vec<Option<GradientState>> = options
 			.blocks
