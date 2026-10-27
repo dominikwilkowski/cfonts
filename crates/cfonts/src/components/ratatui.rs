@@ -123,7 +123,6 @@ impl Widget for &CfontsWidget<'_> {
 		let backdrop = Backdrop::build(self.options, &context, rows.len().max(1), |color| {
 			level.and_then(|level| CfontsWidget::band_style_for(color, level))
 		});
-		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
 
 		// Rows below the area can show nothing, so the painting traversal stops at the area's height
 		// The gradient plans and the backdrop above saw every row: a fixed ramp spans the columns of hidden
@@ -141,7 +140,7 @@ impl Widget for &CfontsWidget<'_> {
 
 				// the band paints the whole row of the area first, the glyphs land on it
 				// with foreground styles that keep it
-				if let Some(style) = band(row_index) {
+				if let Some(style) = backdrop.band(row_index) {
 					buffer.set_style(Rect::new(area.x, y, area.width, 1), *style);
 				}
 
@@ -192,7 +191,7 @@ impl Widget for &CfontsWidget<'_> {
 		});
 
 		if rows.is_empty()
-			&& let Some(style) = band(0)
+			&& let Some(style) = backdrop.band(0)
 		{
 			buffer.set_style(Rect::new(area.x, area.y, area.width, 1), *style);
 		}

@@ -280,9 +280,8 @@ pub trait Target {
 			let tokens = self.background_tokens(color, context);
 			tokens.paints().then_some(tokens)
 		});
-		let banded = backdrop.is_some();
-		let band = |row: usize| backdrop.as_ref().and_then(|backdrop| backdrop.band(row));
-		// A backdrop exists only with a band that paints, so it counts on its own
+		let banded = backdrop.paints();
+		// A backdrop paints only with a band that paints, so it counts on its own
 		let will_style = plan.paints_any_segment(rows) || banded;
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(&plan, options, rows);
@@ -291,27 +290,27 @@ pub trait Target {
 		self.wrapper_start(options, banded, &mut out);
 
 		if !options.spaceless {
-			self.top_padding(array::from_fn(band), &mut out);
+			self.top_padding(array::from_fn(|row| backdrop.band(row)), &mut out);
 		}
 
 		RowEvent::each(rows, |event| match event {
 			RowEvent::RowStart { row } => {
 				gradients.start_row(row);
-				self.row_start(row, band(lead + row_index), options, &mut out);
+				self.row_start(row, backdrop.band(lead + row_index), options, &mut out);
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
 					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-					self.paint(text, tokens, band(lead + row_index), will_style, context, &mut out);
+					self.paint(text, tokens, backdrop.band(lead + row_index), will_style, context, &mut out);
 				}
 				PaintDomain::Block | PaintDomain::Global => {
 					let window = gradients.window(block_index);
-					let consumed = self.gradient_paint(text, window, band(lead + row_index), context, &mut out);
+					let consumed = self.gradient_paint(text, window, backdrop.band(lead + row_index), context, &mut out);
 					gradients.advance(consumed);
 				}
 			},
 			RowEvent::Blank { width, .. } => {
-				self.blank(width, band(lead + row_index), &mut out);
+				self.blank(width, backdrop.band(lead + row_index), &mut out);
 				gradients.advance(width);
 			}
 			RowEvent::EntryEnd { width, block_index } => {
@@ -321,21 +320,21 @@ pub trait Target {
 				}
 			}
 			RowEvent::Break => {
-				self.row_end(band(lead + row_index), &mut out);
-				self.row_break(&rows[row_index], band(lead + row_index), &mut out);
+				self.row_end(backdrop.band(lead + row_index), &mut out);
+				self.row_break(&rows[row_index], backdrop.band(lead + row_index), &mut out);
 				row_index += 1;
 			}
 		});
 
 		if rows.is_empty() {
 			let bare = LayoutRow { entries: Vec::new(), width: 0, align_offset: 0, block_spans: Vec::new() };
-			self.row_start(&bare, band(lead), options, &mut out);
+			self.row_start(&bare, backdrop.band(lead), options, &mut out);
 		}
-		self.row_end(band(lead + row_index), &mut out);
+		self.row_end(backdrop.band(lead + row_index), &mut out);
 
 		if !options.spaceless {
 			let below = lead + printed_rows;
-			self.bottom_padding(array::from_fn(|row| band(below + row)), &mut out);
+			self.bottom_padding(array::from_fn(|row| backdrop.band(below + row)), &mut out);
 		}
 
 		self.wrapper_end(options, banded, &mut out);

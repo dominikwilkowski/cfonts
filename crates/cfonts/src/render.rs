@@ -579,9 +579,12 @@ impl GradientPlans {
 /// The background bands of one render: one paint per output row, padding rows included
 ///
 /// A fixed color resolves once and repeats on every row, a gradient fills its ramp once over
-/// the row count, so the bands run from the top row to the bottom row
+/// the row count, so the bands run from the top row to the bottom row, a bare backdrop
+/// has no band on any row
 #[derive(Debug)]
 pub(crate) enum Backdrop<T> {
+	/// No row carries a band, every row paints as if no background was set
+	Bare,
 	Fixed(T),
 	Ramp(Vec<Option<T>>),
 }
@@ -590,34 +593,41 @@ impl<T> Backdrop<T> {
 	/// Resolves the background of a render with `rows` output rows through `resolve`
 	///
 	/// Without a background, a color level or rows, or with a color that resolves to no paint,
-	/// there is no backdrop and every row paints as if none was set
+	/// the backdrop is bare
 	pub(crate) fn build(
 		options: &Options,
 		context: &RenderContext,
 		rows: usize,
 		mut resolve: impl FnMut(Color<Background>) -> Option<T>,
-	) -> Option<Self> {
+	) -> Self {
 		if context.color_level().is_none() || rows == 0 {
-			return None;
+			return Self::Bare;
 		}
 
-		match options.background.as_ref()? {
-			BackgroundOption::Color(color) => resolve(*color).map(Self::Fixed),
-			BackgroundOption::Gradient(gradient) => {
+		match options.background.as_ref() {
+			None => Self::Bare,
+			Some(BackgroundOption::Color(color)) => resolve(*color).map_or(Self::Bare, Self::Fixed),
+			Some(BackgroundOption::Gradient(gradient)) => {
 				let mut ramp = GradientState::new(gradient);
 				ramp.fill(Some(0..rows));
 
 				// the ramp holds exactly one color per row, so the bands are the ramp read in order
 				let paints: Vec<Option<T>> = ramp.window(0).iter().map(|&rgb| resolve(Color::from(rgb))).collect();
 
-				paints.iter().any(Option::is_some).then_some(Self::Ramp(paints))
+				if paints.iter().any(Option::is_some) { Self::Ramp(paints) } else { Self::Bare }
 			}
 		}
+	}
+
+	/// Whether any row carries a band
+	pub(crate) fn paints(&self) -> bool {
+		!matches!(self, Self::Bare)
 	}
 
 	/// The paint of one output row, counted from the first padding row
 	pub(crate) fn band(&self, row: usize) -> Option<&T> {
 		match self {
+			Self::Bare => None,
 			Self::Fixed(paint) => Some(paint),
 			Self::Ramp(paints) => paints.get(row).and_then(Option::as_ref),
 		}
@@ -861,7 +871,7 @@ mod tests {
 	#[test]
 	fn a_fixed_background_repeats_on_every_row() {
 		let options = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
-		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::Basic), 3, resolve).unwrap();
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::Basic), 3, resolve);
 
 		for row in 0..3 {
 			assert_eq!(backdrop.band(row), Some(&Color::BLUE), "row {row}");
@@ -872,7 +882,7 @@ mod tests {
 	fn a_background_gradient_runs_from_the_top_row_to_the_bottom_row() {
 		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
-		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 5, resolve).unwrap();
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 5, resolve);
 
 		assert_eq!(backdrop.band(0), Some(&Color::rgb(255, 0, 0)));
 		assert_eq!(backdrop.band(4), Some(&Color::rgb(0, 0, 255)));
@@ -884,28 +894,28 @@ mod tests {
 	fn a_single_row_gradient_still_paints_a_band() {
 		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
-		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 1, resolve).unwrap();
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 1, resolve);
 
 		assert!(backdrop.band(0).is_some());
 	}
 
 	#[test]
-	fn nothing_to_paint_means_no_backdrop() {
+	fn nothing_to_paint_means_a_bare_backdrop() {
 		let level = RenderContext::colored(ColorLevel::Basic);
 
 		let unset = Options::default();
-		assert!(Backdrop::build(&unset, &level, 3, resolve).is_none());
+		assert!(!Backdrop::build(&unset, &level, 3, resolve).paints());
 
 		let system = Options { background: Some(BackgroundOption::Color(Color::SYSTEM)), ..Default::default() };
-		assert!(Backdrop::build(&system, &level, 3, resolve).is_none());
+		assert!(!Backdrop::build(&system, &level, 3, resolve).paints());
 
 		let blue = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
-		assert!(Backdrop::build(&blue, &RenderContext::unlimited(), 3, resolve).is_none(), "no color level");
-		assert!(Backdrop::build(&blue, &level, 0, resolve).is_none(), "no rows");
+		assert!(!Backdrop::build(&blue, &RenderContext::unlimited(), 3, resolve).paints(), "no color level");
+		assert!(!Backdrop::build(&blue, &level, 0, resolve).paints(), "no rows");
 
-		// a target that paints no RGB values turns a gradient into no backdrop as well
+		// a target that paints no RGB values turns a gradient into a bare backdrop as well
 		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let ramped = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
-		assert!(Backdrop::build(&ramped, &level, 3, |_| None::<Color>).is_none(), "no paint");
+		assert!(!Backdrop::build(&ramped, &level, 3, |_| None::<Color>).paints(), "no paint");
 	}
 }
