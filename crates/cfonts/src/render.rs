@@ -543,8 +543,8 @@ impl GradientPlans {
 		self.column = row.align_offset;
 	}
 
-	/// The ramp one block samples at the current column; a block painted through its slots has none
-	pub(crate) fn window(&self, block_index: usize) -> &[Rgb] {
+	/// The ramp one block samples at the current column, a block painted through its slots has none
+	fn window(&self, block_index: usize) -> &[Rgb] {
 		let state = match self.domains.get(block_index) {
 			Some(PaintDomain::Global) => self.global.as_ref(),
 			Some(PaintDomain::Block) => self.blocks.get(block_index).and_then(Option::as_ref),
@@ -552,6 +552,16 @@ impl GradientPlans {
 		};
 
 		state.map_or(&[], |state| state.window(self.column))
+	}
+
+	/// Paints one segment of a block through `paint`, handing it the ramp window at the current column,
+	/// and claims the columns `paint` reports consumed
+	///
+	/// The window is pre-sliced to the segment's first column and empty for a block painted through its slots,
+	/// `paint` answers with the columns it walked so the cursor stays honest even past the ramp
+	pub(crate) fn paint_segment(&mut self, block_index: usize, paint: impl FnOnce(&[Rgb]) -> usize) {
+		let consumed = paint(self.window(block_index));
+		self.column += consumed;
 	}
 
 	/// Claims columns of the current row, painted or blank: every ramp indexes by absolute column
@@ -562,8 +572,8 @@ impl GradientPlans {
 	/// Walks `text` one column at a time, handing each character its color from `window` while the ramp lasts,
 	/// and returns the columns consumed
 	///
-	/// A target paints one segment with the window of [`window`](Self::window)
-	/// and claims the count through [`advance`](Self::advance)
+	/// A target paints one segment with the window [`paint_segment`](Self::paint_segment) hands it
+	/// and answers with this count
 	pub(crate) fn each_column(text: &str, window: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {
 		let mut consumed = 0;
 

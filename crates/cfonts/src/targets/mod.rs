@@ -308,9 +308,7 @@ pub trait Target {
 					self.paint(text, tokens, row_band, will_style, context, &mut out);
 				}
 				PaintDomain::Block | PaintDomain::Global => {
-					let window = gradients.window(block_index);
-					let consumed = self.gradient_paint(text, window, row_band, context, &mut out);
-					gradients.advance(consumed);
+					gradients.paint_segment(block_index, |window| self.gradient_paint(text, window, row_band, context, &mut out));
 				}
 			},
 			RowEvent::Blank { width, .. } => {
