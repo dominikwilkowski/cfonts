@@ -96,19 +96,19 @@ pub enum RowEvent<'a> {
 	Break,
 }
 
-impl RowEvent<'_> {
+impl<'a> RowEvent<'a> {
 	/// Walks the layout rows in output order, calling `event` for every paintable event,
 	/// so the traversal logic exists exactly once
 	///
 	/// Text events always carry text: empty segments are filtered here, once,
 	/// so no consumer needs its own guard against them
-	pub fn each<'a>(rows: &'a [LayoutRow], mut event: impl FnMut(RowEvent<'a>)) {
+	pub fn each(rows: &'a [LayoutRow], mut event: impl FnMut(Self)) {
 		for (row_index, row) in rows.iter().enumerate() {
 			if row_index > 0 {
-				event(RowEvent::Break);
+				event(Self::Break);
 			}
 
-			event(RowEvent::RowStart { row });
+			event(Self::RowStart { row });
 
 			for entry in &row.entries {
 				match entry {
@@ -119,15 +119,15 @@ impl RowEvent<'_> {
 							for (text, slot) in glyph_row.segments() {
 								// empty segments emit nothing so no consumer wraps color codes around zero columns
 								if !text.is_empty() {
-									event(RowEvent::Text { text, block_index, slot, paintable: *paintable });
+									event(Self::Text { text, block_index, slot, paintable: *paintable });
 								}
 							}
 
-							event(RowEvent::EntryEnd { width: usize::from(*width), block_index });
+							event(Self::EntryEnd { width: usize::from(*width), block_index });
 						}
 					}
 					RowEntry::Blank { width, block_index } => {
-						event(RowEvent::Blank { width: *width as usize, block_index: *block_index as usize });
+						event(Self::Blank { width: *width as usize, block_index: *block_index as usize });
 					}
 				}
 			}
