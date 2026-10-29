@@ -813,13 +813,12 @@ impl<K: Kind> FromStr for Color<K> {
 			return Ok(color);
 		}
 
-		if input.starts_with('#') {
-			return Rgb::from_hex(input).map(Self::from);
+		match Rgb::from_hex(input) {
+			Ok(rgb) => Ok(Self::from(rgb)),
+			Err(error) if input.starts_with('#') => Err(error),
+			Err(_) if Color::<Text>::from_name(input).is_some() => Err(K::REFUSAL),
+			Err(_) => Err(ColorError::UnknownColor),
 		}
-
-		Rgb::from_hex(input)
-			.map(Self::from)
-			.map_err(|_| if Color::<Text>::from_name(input).is_some() { K::REFUSAL } else { ColorError::UnknownColor })
 	}
 }
 
