@@ -53,18 +53,18 @@ impl CfontsWidget<'_> {
 			ColorLevel::TrueColor => TerminalColor::Rgb(rgb.red, rgb.green, rgb.blue),
 			ColorLevel::Ansi256 => TerminalColor::Indexed(rgb.ansi256_index()),
 			ColorLevel::Basic => {
-				Self::terminal_color(rgb.nearest_named(), level).expect("the nearest named color is never system or candy")
+				Self::terminal_named(rgb.nearest_named()).expect("the nearest named color is never system or candy")
 			}
 		}
 	}
 
-	/// One cfonts color value as the terminal's own color
+	/// One of the sixteen named colors as the terminal's own, so its palette applies at every level
 	///
-	/// Named colors stay semantic so the terminal's palette applies,
-	/// only RGB values pin channels, as many as the level allows
-	fn terminal_color(value: Value, level: ColorLevel) -> Option<TerminalColor> {
+	/// `System` and `Candy` paint nothing and an RGB value levels down in [`terminal_rgb`](Self::terminal_rgb),
+	/// all three yield None
+	fn terminal_named(value: Value) -> Option<TerminalColor> {
 		Some(match value {
-			Value::System | Value::Candy => return None,
+			Value::System | Value::Candy | Value::Rgb(_) => return None,
 			Value::Black => TerminalColor::Black,
 			Value::Red => TerminalColor::Red,
 			Value::Green => TerminalColor::Green,
@@ -81,8 +81,18 @@ impl CfontsWidget<'_> {
 			Value::MagentaBright => TerminalColor::LightMagenta,
 			Value::CyanBright => TerminalColor::LightCyan,
 			Value::WhiteBright => TerminalColor::White,
-			Value::Rgb(rgb) => Self::terminal_rgb(rgb, level),
 		})
+	}
+
+	/// One cfonts color value as the terminal's own color
+	///
+	/// Named colors stay semantic so the terminal's palette applies,
+	/// only RGB values pin channels, as many as the level allows
+	fn terminal_color(value: Value, level: ColorLevel) -> Option<TerminalColor> {
+		match value {
+			Value::Rgb(rgb) => Some(Self::terminal_rgb(rgb, level)),
+			named => Self::terminal_named(named),
+		}
 	}
 
 	/// One cfonts text color as a foreground style
