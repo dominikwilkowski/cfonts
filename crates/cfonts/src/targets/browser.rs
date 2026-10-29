@@ -81,11 +81,7 @@ impl Target for BrowserTarget {
 	/// The browser has no terminal palette, so named colors flatten to their RGB values
 	/// and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
-		match color.value.leveled_rgb(level) {
+		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_css_hex()), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
@@ -94,11 +90,7 @@ impl Target for BrowserTarget {
 	/// A band is a block of its own, so it spans the full width, and `min-height:1lh` keeps a row
 	/// without text one line tall while text rows keep their natural line box
 	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
-		match color.value.leveled_rgb(level) {
+		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
 			Some(rgb) => {
 				let mut start = String::with_capacity(BAND_START.len() + 7 + BAND_STYLE_END.len());
 				start.push_str(BAND_START);

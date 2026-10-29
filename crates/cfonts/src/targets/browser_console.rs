@@ -83,11 +83,7 @@ impl Target for BrowserConsoleTarget {
 	/// The console has no terminal palette, so named colors flatten to their RGB values as CSS
 	/// declarations and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
-		match color.value.leveled_rgb(level) {
+		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
 			Some(rgb) => {
 				let mut start = String::with_capacity("color:".len() + 7);
 				start.push_str("color:");
@@ -101,11 +97,7 @@ impl Target for BrowserConsoleTarget {
 
 	/// The band is a declaration too, `background` is the shortest spelling every console accepts
 	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
-		match color.value.leveled_rgb(level) {
+		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
 			Some(rgb) => {
 				let mut start = String::with_capacity(11 + 7); // "background:" = 11 + "#000000" = 7
 				start.push_str("background:");
