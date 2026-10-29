@@ -8,7 +8,6 @@ pub(crate) use gradient::GradientColors;
 pub use gradient::GradientPreset;
 
 use std::{
-	borrow::Cow,
 	error::Error,
 	fmt::{self, Debug, Display, Formatter},
 	marker::PhantomData,
@@ -108,7 +107,7 @@ pub struct Rgb {
 }
 
 impl Rgb {
-	/// Parses a `#rgb` or `#rrggbb` hex color; the leading `#` is optional
+	/// Parses a `#rgb` or `#rrggbb` hex color, the leading `#` is optional
 	pub fn from_hex(hex: &str) -> Result<Self, ColorError> {
 		let clean = hex.strip_prefix('#').unwrap_or(hex);
 
@@ -116,17 +115,18 @@ impl Rgb {
 			return Err(ColorError::HexCharacter);
 		}
 
-		let full = match clean.len() {
-			3 => Cow::Owned(format!("{0}{0}{1}{1}{2}{2}", &clean[0..1], &clean[1..2], &clean[2..3],)),
-			6 => Cow::Borrowed(clean),
-			length => return Err(ColorError::HexLength(length)),
+		// every byte is a hex digit here, so the byte count is the digit count
+		let [red, green, blue] = match clean.as_bytes() {
+			// a short digit stands for itself twice, `f` is `ff`
+			[red, green, blue] => [red, green, blue].map(|digit| Self::hex_value(*digit) * 0x11),
+			[red_high, red_low, green_high, green_low, blue_high, blue_low] => {
+				[[red_high, red_low], [green_high, green_low], [blue_high, blue_low]]
+					.map(|[high, low]| (Self::hex_value(*high) << 4) | Self::hex_value(*low))
+			}
+			digits => return Err(ColorError::HexLength(digits.len())),
 		};
 
-		Ok(Self {
-			red: u8::from_str_radix(&full[0..2], 16).expect("the input holds only validated hex digits"),
-			green: u8::from_str_radix(&full[2..4], 16).expect("the input holds only validated hex digits"),
-			blue: u8::from_str_radix(&full[4..6], 16).expect("the input holds only validated hex digits"),
-		})
+		Ok(Self { red, green, blue })
 	}
 
 	/// The lowercase `#rrggbb` form of this color
@@ -166,6 +166,14 @@ impl Rgb {
 	/// One hexadecimal digit, `value` is below 16
 	fn hex_digit(value: u8) -> char {
 		char::from(Self::HEX_DIGITS[usize::from(value)])
+	}
+
+	/// The value of one hexadecimal digit in either case, `digit` is an ASCII hex digit
+	fn hex_value(digit: u8) -> u8 {
+		match digit {
+			b'0'..=b'9' => digit - b'0',
+			_ => digit.to_ascii_lowercase() - b'a' + 10,
+		}
 	}
 
 	/// The nearest ANSI 256 palette index: the 6×6×6 cube with a grayscale ramp
