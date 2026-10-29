@@ -1,7 +1,4 @@
-//! Pure formatters: each target turns layout rows into its own artifact
-//!
-//! Targets own syntax such as color codes, markup and escaping;
-//! hosts own capability discovery and output side effects
+//! Pure formatters: each [`Target`] turns layout rows into its own artifact
 
 mod browser;
 pub use browser::BrowserTarget;
@@ -28,7 +25,7 @@ pub struct Rendered {
 
 	/// Style values consumed by the text's format markers, in marker order
 	///
-	/// Only targets that style through arguments fill this; the browser
+	/// Only targets that style through arguments fill this, the browser
 	/// console pairs each value with one `%c` marker in the text
 	pub styles: Vec<String>,
 }
@@ -220,7 +217,7 @@ pub trait Target {
 
 	/// Whether rows align within the widest line when no canvas exists
 	///
-	/// Physical targets align only inside a real canvas; targets whose output
+	/// Physical targets align only inside a real canvas, targets whose output
 	/// embeds elsewhere own their frame, so the composition itself is the canvas
 	fn frames_alignment_to_widest(&self) -> bool {
 		false
