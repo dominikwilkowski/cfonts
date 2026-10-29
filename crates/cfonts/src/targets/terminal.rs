@@ -15,16 +15,130 @@ use crate::{
 /// after the text a terminal whose cursor rests on the last column would erase that column
 const ERASE_TO_LINE_END: &str = "\x1b[K";
 
-/// The SGR parameter that selects the foreground color
-const FOREGROUND: &str = "38";
-
-/// The SGR parameter that selects the background color
-const BACKGROUND: &str = "48";
-
 /// The longest start code, `\x1b[38;2;255;255;255m`, so a token's string is sized once and never grows
 const LONGEST_CODE: usize = 19;
 
+/// The layer a color code paints on: the one place that knows a layer's code openings, fixed codes and reset
+#[derive(Debug, Clone, Copy)]
+enum Layer {
+	Foreground,
+	Background,
+}
+
+impl Layer {
+	/// The opening of a 24 bit code on this layer, SGR parameter 38 or 48, every channel follows behind a `;`
+	const fn truecolor_opening(self) -> &'static str {
+		match self {
+			Self::Foreground => "\x1b[38;2",
+			Self::Background => "\x1b[48;2",
+		}
+	}
+
+	/// The opening of a 256 color code on this layer, the palette index follows
+	const fn ansi256_opening(self) -> &'static str {
+		match self {
+			Self::Foreground => "\x1b[38;5;",
+			Self::Background => "\x1b[48;5;",
+		}
+	}
+
+	/// The fixed sixteen color code of a named color on this layer, None for the values without one
+	const fn named_code(self, value: Value) -> Option<&'static str> {
+		match self {
+			Self::Foreground => value.ansi16_sgr(),
+			Self::Background => value.ansi16_background_sgr(),
+		}
+	}
+
+	/// The fixed sixteen color code nearest to one RGB value on this layer
+	fn basic_code(self, rgb: Rgb) -> &'static str {
+		match self {
+			Self::Foreground => rgb.ansi16_sgr(),
+			Self::Background => rgb.ansi16_background_sgr(),
+		}
+	}
+
+	/// The code that returns this layer to the terminal's own color
+	const fn reset(self) -> &'static str {
+		match self {
+			Self::Foreground => ANSI_RESET,
+			Self::Background => ANSI_BACKGROUND_RESET,
+		}
+	}
+}
+
+/// The terminal artifact formatter
+#[derive(Debug, Clone, Copy)]
+pub struct TerminalTarget {
+	line_end: &'static str,
+}
+
+impl Default for TerminalTarget {
+	fn default() -> Self {
+		Self { line_end: "\n" }
+	}
+}
+
 impl TerminalTarget {
+	/// Ends every line with `\r\n`, the ending a terminal in raw mode needs
+	#[must_use]
+	pub const fn raw_mode(mut self) -> Self {
+		self.line_end = "\r\n";
+		self
+	}
+
+	/// The tokens of one color on one layer
+	///
+	/// Named colors keep their fixed sixteen color codes at every level so the terminal's own palette applies,
+	/// only RGB values level down, and nothing paints without a level
+	fn tokens(value: Value, context: &RenderContext, layer: Layer) -> ColorTokens {
+		let Some(level) = context.color_level() else {
+			return ColorTokens::default();
+		};
+
+		let start = match value {
+			Value::System | Value::Candy => return ColorTokens::default(),
+			Value::Rgb(rgb) => Self::rgb_code(rgb, level, layer),
+			named => Cow::Borrowed(layer.named_code(named).expect("every named color carries a fixed code")),
+		};
+
+		ColorTokens { start, end: Cow::Borrowed(layer.reset()) }
+	}
+
+	/// The start code of one RGB value at one support level as a token,
+	/// the fixed sixteen color codes borrowed, the others written once into a string of the right size
+	fn rgb_code(rgb: Rgb, level: ColorLevel, layer: Layer) -> Cow<'static, str> {
+		match level {
+			ColorLevel::Basic => Cow::Borrowed(layer.basic_code(rgb)),
+			extended => {
+				let mut code = String::with_capacity(LONGEST_CODE);
+				Self::push_rgb_code(rgb, extended, layer, &mut code);
+				Cow::Owned(code)
+			}
+		}
+	}
+
+	/// Writes the start code of one RGB value at one support level straight into `out`,
+	/// the opening goes in one push and the digits in place, so a gradient formats no string per column
+	fn push_rgb_code(rgb: Rgb, level: ColorLevel, layer: Layer, out: &mut String) {
+		match level {
+			ColorLevel::TrueColor => {
+				out.push_str(layer.truecolor_opening());
+				for channel in [rgb.red, rgb.green, rgb.blue] {
+					out.push(';');
+					Self::push_decimal(channel, out);
+				}
+				out.push('m');
+			}
+			ColorLevel::Ansi256 => {
+				out.push_str(layer.ansi256_opening());
+				Self::push_decimal(rgb.ansi256_index(), out);
+				out.push('m');
+			}
+			ColorLevel::Basic => out.push_str(layer.basic_code(rgb)),
+		}
+	}
+
 	/// Writes `value` in decimal, the digits an SGR parameter carries
 	fn push_decimal(value: u8, out: &mut String) {
 		if value >= 100 {
@@ -34,57 +148,6 @@ impl TerminalTarget {
 			out.push(char::from(b'0' + value / 10 % 10));
 		}
 		out.push(char::from(b'0' + value % 10));
-	}
-
-	/// The foreground start code of one RGB value at one support level
-	fn rgb_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
-		Self::rgb_code(rgb, level, FOREGROUND, Rgb::ansi16_sgr)
-	}
-
-	/// The background start code of one RGB value at one support level
-	fn rgb_background_start(rgb: Rgb, level: ColorLevel) -> Cow<'static, str> {
-		Self::rgb_code(rgb, level, BACKGROUND, Rgb::ansi16_background_sgr)
-	}
-
-	/// The start code of one RGB value at one support level as a token,
-	/// the fixed sixteen color codes borrowed, the others written once into a string of the right size
-	fn rgb_code(rgb: Rgb, level: ColorLevel, layer: &str, basic: fn(Rgb) -> &'static str) -> Cow<'static, str> {
-		match level {
-			ColorLevel::Basic => Cow::Borrowed(basic(rgb)),
-			extended => {
-				let mut code = String::with_capacity(LONGEST_CODE);
-				Self::push_rgb_code(rgb, extended, layer, basic, &mut code);
-				Cow::Owned(code)
-			}
-		}
-	}
-
-	/// Writes the start code of one RGB value at one support level straight into `out`
-	///
-	/// - `layer` is the SGR parameter of the foreground or the background
-	/// - `basic` picks the sixteen color code of that layer
-	/// - the digits go in place, so a gradient formats no string per column
-	fn push_rgb_code(rgb: Rgb, level: ColorLevel, layer: &str, basic: fn(Rgb) -> &'static str, out: &mut String) {
-		match level {
-			ColorLevel::TrueColor => {
-				out.push_str("\x1b[");
-				out.push_str(layer);
-				out.push_str(";2");
-				for channel in [rgb.red, rgb.green, rgb.blue] {
-					out.push(';');
-					Self::push_decimal(channel, out);
-				}
-				out.push('m');
-			}
-			ColorLevel::Ansi256 => {
-				out.push_str("\x1b[");
-				out.push_str(layer);
-				out.push_str(";5;");
-				Self::push_decimal(rgb.ansi256_index(), out);
-				out.push('m');
-			}
-			ColorLevel::Basic => out.push_str(basic(rgb)),
-		}
 	}
 
 	/// One padding row: its band filled to the edge of the terminal, or nothing at all
@@ -97,62 +160,21 @@ impl TerminalTarget {
 	}
 }
 
-/// The terminal artifact formatter
-#[derive(Debug, Clone, Copy)]
-pub struct TerminalTarget {
-	line_end: &'static str,
-}
-
-impl TerminalTarget {
-	/// Ends every line with `\r\n`, the ending a terminal in raw mode needs
-	#[must_use]
-	pub const fn raw_mode(mut self) -> Self {
-		self.line_end = "\r\n";
-		self
-	}
-}
-
-impl Default for TerminalTarget {
-	fn default() -> Self {
-		Self { line_end: "\n" }
-	}
-}
-
 impl Target for TerminalTarget {
 	/// The line ending every row break writes, so the host closes the artifact like the rows
 	fn line_end(&self) -> &'static str {
 		self.line_end
 	}
 
-	/// Named colors keep their fixed sixteen-color codes at every level so the terminal's own palette applies
+	/// Named colors keep their fixed sixteen-color codes at every level so the terminal's own palette applies,
 	/// only RGB values level down
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
-		let start: Cow<'static, str> = match color.value {
-			Value::System | Value::Candy => return ColorTokens::default(),
-			Value::Rgb(rgb) => Self::rgb_start(rgb, level),
-			named => Cow::Borrowed(named.ansi16_sgr().expect("every named color carries a fixed code")),
-		};
-
-		ColorTokens { start, end: Cow::Borrowed(ANSI_RESET) }
+		Self::tokens(color.value, context, Layer::Foreground)
 	}
 
-	/// Named colors keep their fixed sixteen-color codes at every level here too, only RGB values level down
+	/// The background follows the foreground rules on its own layer
 	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
-		let start: Cow<'static, str> = match color.value {
-			Value::System | Value::Candy => return ColorTokens::default(),
-			Value::Rgb(rgb) => Self::rgb_background_start(rgb, level),
-			named => Cow::Borrowed(named.ansi16_background_sgr().expect("every named color carries a fixed code")),
-		};
-
-		ColorTokens { start, end: Cow::Borrowed(ANSI_BACKGROUND_RESET) }
+		Self::tokens(color.value, context, Layer::Background)
 	}
 
 	/// Every column gets its own run: the ramp color's start, the character, the reset
@@ -171,7 +193,7 @@ impl Target for TerminalTarget {
 
 		GradientPlans::each_column(text, colors, |character, rgb| match rgb {
 			Some(rgb) => {
-				Self::push_rgb_code(*rgb, level, FOREGROUND, Rgb::ansi16_sgr, &mut out.text);
+				Self::push_rgb_code(*rgb, level, Layer::Foreground, &mut out.text);
 				out.text.push(character);
 				out.text.push_str(ANSI_RESET);
 			}
@@ -221,18 +243,24 @@ mod tests {
 		for value in 0..=u8::MAX {
 			let rgb = Rgb { red: value, green: value, blue: value };
 
-			assert_eq!(TerminalTarget::rgb_start(rgb, ColorLevel::TrueColor), format!("\x1b[38;2;{value};{value};{value}m"));
 			assert_eq!(
-				TerminalTarget::rgb_background_start(rgb, ColorLevel::TrueColor),
+				TerminalTarget::rgb_code(rgb, ColorLevel::TrueColor, Layer::Foreground),
+				format!("\x1b[38;2;{value};{value};{value}m")
+			);
+			assert_eq!(
+				TerminalTarget::rgb_code(rgb, ColorLevel::TrueColor, Layer::Background),
 				format!("\x1b[48;2;{value};{value};{value}m")
 			);
-			assert_eq!(TerminalTarget::rgb_start(rgb, ColorLevel::Ansi256), format!("\x1b[38;5;{}m", rgb.ansi256_index()));
 			assert_eq!(
-				TerminalTarget::rgb_background_start(rgb, ColorLevel::Ansi256),
+				TerminalTarget::rgb_code(rgb, ColorLevel::Ansi256, Layer::Foreground),
+				format!("\x1b[38;5;{}m", rgb.ansi256_index())
+			);
+			assert_eq!(
+				TerminalTarget::rgb_code(rgb, ColorLevel::Ansi256, Layer::Background),
 				format!("\x1b[48;5;{}m", rgb.ansi256_index())
 			);
-			assert_eq!(TerminalTarget::rgb_start(rgb, ColorLevel::Basic), rgb.ansi16_sgr());
-			assert_eq!(TerminalTarget::rgb_background_start(rgb, ColorLevel::Basic), rgb.ansi16_background_sgr());
+			assert_eq!(TerminalTarget::rgb_code(rgb, ColorLevel::Basic, Layer::Foreground), rgb.ansi16_sgr());
+			assert_eq!(TerminalTarget::rgb_code(rgb, ColorLevel::Basic, Layer::Background), rgb.ansi16_background_sgr());
 		}
 	}
 
