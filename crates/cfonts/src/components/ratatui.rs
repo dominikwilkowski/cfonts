@@ -169,15 +169,12 @@ impl Widget for &CfontsWidget<'_> {
 					gradients.paint_segment(block_index, |window| {
 						GradientPlans::each_column(text, window, |character, rgb| {
 							if x < area.right() {
+								let cell = buffer[(x, y)].set_char(character);
 								// a ramp exists only with a level, so a drained window is the one bare case
-								let style = rgb
-									.zip(level)
-									.map(|(rgb, level)| Style::default().fg(CfontsWidget::terminal_rgb(*rgb, level)))
-									.unwrap_or_default();
-
-								let mut encoded = [0_u8; 4];
-								let (next_x, _) = buffer.set_stringn(x, y, character.encode_utf8(&mut encoded), 1, style);
-								x = next_x;
+								if let Some((rgb, level)) = rgb.zip(level) {
+									cell.set_fg(CfontsWidget::terminal_rgb(*rgb, level));
+								}
+								x += 1;
 							}
 						})
 					});
