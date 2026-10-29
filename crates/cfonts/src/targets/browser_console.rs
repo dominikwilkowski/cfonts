@@ -161,7 +161,10 @@ impl Target for BrowserConsoleTarget {
 	/// Empty columns on a band switch to it when nothing is open yet, an open style already
 	/// carries the band and spaces show no color, so they cost no marker
 	fn blank(&self, width: usize, band: Option<&ColorTokens>, out: &mut Rendered) {
-		if let Some(band) = band.filter(|_| width > 0 && Self::current(out).is_empty()) {
+		if let Some(band) = band
+			&& width > 0
+			&& Self::current(out).is_empty()
+		{
 			Self::switch(&band.start, out);
 		}
 

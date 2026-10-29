@@ -72,8 +72,9 @@ impl BrowserTarget {
 }
 
 impl Target for BrowserTarget {
-	/// Rows align physically within the widest line, so gradient columns line up
-	/// with the padding; placing the banner on the page belongs to the consumer
+	/// Rows align physically within the widest line, so gradient columns line up with the padding
+	///
+	/// Placing the banner on the page belongs to the consumer
 	fn frames_alignment_to_widest(&self) -> bool {
 		true
 	}
@@ -124,7 +125,7 @@ impl Target for BrowserTarget {
 		})
 	}
 
-	/// The start token is the CSS color value; the span markup is the paint
+	/// The start token is the CSS color value, the span markup is the paint
 	fn paint(
 		&self,
 		text: &str,
