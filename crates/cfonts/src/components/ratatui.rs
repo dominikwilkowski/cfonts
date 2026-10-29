@@ -176,12 +176,7 @@ impl Widget for &CfontsWidget<'_> {
 					});
 				}
 			},
-			RowEvent::EntryEnd { width, block_index } => {
-				// ramped segments advanced per column already; slot painted entries claim their columns whole
-				if plan.domain(block_index) == PaintDomain::Slots {
-					gradients.advance(width);
-				}
-			}
+			RowEvent::EntryEnd { width, block_index } => gradients.end_entry(block_index, width),
 			// Blank columns leave cells untouched: they keep the row's band, or stay transparent without one
 			RowEvent::Blank { width, .. } => {
 				x = (x as usize).saturating_add(width).min(area.right() as usize) as u16;

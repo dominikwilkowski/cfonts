@@ -569,6 +569,14 @@ impl GradientPlans {
 		self.column += columns;
 	}
 
+	/// Ends one entry of the current row: a slot painted entry claims its columns whole,
+	/// a ramped block's segments claimed theirs per column already
+	pub(crate) fn end_entry(&mut self, block_index: usize, width: usize) {
+		if self.domains.get(block_index).is_none_or(|domain| *domain == PaintDomain::Slots) {
+			self.advance(width);
+		}
+	}
+
 	/// Walks `text` one column at a time, handing each character its color from `window` while the ramp lasts,
 	/// and returns the columns consumed
 	///

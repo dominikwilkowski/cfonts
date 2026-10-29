@@ -315,12 +315,7 @@ pub trait Target {
 				self.blank(width, row_band, &mut out);
 				gradients.advance(width);
 			}
-			RowEvent::EntryEnd { width, block_index } => {
-				// Ramped segments advanced per column already; slot painted entries claim their columns whole
-				if plan.domain(block_index) == PaintDomain::Slots {
-					gradients.advance(width);
-				}
-			}
+			RowEvent::EntryEnd { width, block_index } => gradients.end_entry(block_index, width),
 			RowEvent::Break => {
 				self.row_end(row_band, &mut out);
 				self.row_break(&rows[row_index], row_band, &mut out);
