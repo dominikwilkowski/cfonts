@@ -8,6 +8,15 @@ use crate::{
 	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, push_escaped},
 };
 
+/// The CSS property a text color declares
+const COLOR: &str = "color:";
+
+/// The CSS property a band declares, `background` is the shortest spelling every console accepts
+const BACKGROUND: &str = "background:";
+
+/// The longest hex value a declaration carries, `#rrggbb`, so a declaration's string is sized once
+const LONGEST_HEX: usize = 7;
+
 /// The browser-console artifact formatter
 ///
 /// Painted text follows `%c` format markers whose style values land in
@@ -57,6 +66,19 @@ impl BrowserConsoleTarget {
 		}
 	}
 
+	/// Writes one CSS declaration into `out`: the property and the color's shortest hex value
+	fn push_declaration(property: &str, rgb: Rgb, out: &mut String) {
+		out.push_str(property);
+		rgb.push_css_hex(out);
+	}
+
+	/// One CSS declaration as its own string, sized once for the longest hex value
+	fn declaration(property: &str, rgb: Rgb) -> String {
+		let mut declaration = String::with_capacity(property.len() + LONGEST_HEX);
+		Self::push_declaration(property, rgb, &mut declaration);
+		declaration
+	}
+
 	/// Pushes one character with `%` doubled so the console cannot mistake it for a format marker
 	///
 	/// Only logs with style arguments interpret `%`, so this runs only when the render styles
@@ -73,27 +95,15 @@ impl Target for BrowserConsoleTarget {
 	/// declarations and a level below full support paints the palette entry's own value
 	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
 		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
-			Some(rgb) => {
-				let mut start = String::with_capacity("color:".len() + 7);
-				start.push_str("color:");
-				rgb.push_css_hex(&mut start);
-
-				ColorTokens { start: Cow::Owned(start), end: Cow::Borrowed("") }
-			}
+			Some(rgb) => ColorTokens { start: Cow::Owned(Self::declaration(COLOR, rgb)), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
 	}
 
-	/// The band is a declaration too, `background` is the shortest spelling every console accepts
+	/// The band is a declaration too
 	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
 		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
-			Some(rgb) => {
-				let mut start = String::with_capacity(11 + 7); // "background:" = 11 + "#000000" = 7
-				start.push_str("background:");
-				rgb.push_css_hex(&mut start);
-
-				ColorTokens { start: Cow::Owned(start), end: Cow::Borrowed("") }
-			}
+			Some(rgb) => ColorTokens { start: Cow::Owned(Self::declaration(BACKGROUND, rgb)), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
 	}
@@ -110,14 +120,14 @@ impl Target for BrowserConsoleTarget {
 		context: &RenderContext,
 		out: &mut Rendered,
 	) -> usize {
-		// one buffer holds every column's color declaration, only a style that changes is joined and copied out
-		let mut color = String::new();
+		// one buffer holds every column's color declaration, sized once so no column grows it,
+		// only a style that changes is joined and copied out
+		let mut color = String::with_capacity(COLOR.len() + LONGEST_HEX);
 
 		GradientPlans::each_column(text, colors, |character, rgb| {
 			color.clear();
 			if let Some((rgb, level)) = rgb.zip(context.color_level()) {
-				color.push_str("color:");
-				rgb.at_level(level).push_css_hex(&mut color);
+				Self::push_declaration(COLOR, rgb.at_level(level), &mut color);
 			}
 
 			Self::style_run(&color, band, out);
