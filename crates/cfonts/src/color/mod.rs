@@ -516,6 +516,11 @@ macro_rules! vocabulary {
 named_colors!(vocabulary);
 
 impl Value {
+	/// Whether `name` spells one of the two slot only colors, `system` or `candy`, case insensitively
+	fn is_slot_only_name(name: &str) -> bool {
+		name.eq_ignore_ascii_case(Self::SYSTEM_NAME) || name.eq_ignore_ascii_case(Self::CANDY_NAME)
+	}
+
 	/// The RGB value this color paints, from the painted table where red is `#ea3223`
 	///
 	/// `System` paints nothing and `Candy` must be rolled into a named color first, both yield None
@@ -816,7 +821,7 @@ impl<K: Kind> FromStr for Color<K> {
 		match Rgb::from_hex(input) {
 			Ok(rgb) => Ok(Self::from(rgb)),
 			Err(error) if input.starts_with('#') => Err(error),
-			Err(_) if Color::<Text>::from_name(input).is_some() => Err(K::REFUSAL),
+			Err(_) if Value::is_slot_only_name(input) => Err(K::REFUSAL),
 			Err(_) => Err(ColorError::UnknownColor),
 		}
 	}
