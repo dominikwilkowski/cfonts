@@ -731,6 +731,14 @@ impl<K: TakesSystem> Color<K> {
 	/// let _ramp = GradientOption::TwoStop { start: Color::SYSTEM, end: Color::BLUE }; // compiler error
 	/// ```
 	pub const SYSTEM: Self = Self::new(Value::System);
+
+	/// The RGB value this color paints, from the painted table where red is `#ea3223`
+	///
+	/// `SYSTEM` paints nothing and yields None, so does `CANDY` where the kind takes it,
+	/// the plan rolls it into a named color before anything paints
+	pub fn to_rgb(self) -> Option<Rgb> {
+		self.value.to_rgb()
+	}
 }
 
 impl<K: TakesCandy> Color<K> {
@@ -749,25 +757,11 @@ impl<K: TakesCandy> Color<K> {
 impl Color<Text> {
 	/// Every name a text color takes, in the order the help lists them
 	pub const NAMES: [&'static str; 18] = Self::names::<18>();
-
-	/// The RGB value this color paints, from the painted table where red is `#ea3223`
-	///
-	/// `SYSTEM` paints nothing and `CANDY` is rolled into a named color first, both yield None
-	pub fn to_rgb(self) -> Option<Rgb> {
-		self.value.to_rgb()
-	}
 }
 
 impl Color<Background> {
 	/// Every name a background takes, in the order the help lists them
 	pub const NAMES: [&'static str; 17] = Self::names::<17>();
-
-	/// The RGB value this color paints, from the painted table where red is `#ea3223`
-	///
-	/// `SYSTEM` paints nothing and yields None
-	pub fn to_rgb(self) -> Option<Rgb> {
-		self.value.to_rgb()
-	}
 }
 
 impl Color<Gradient> {
