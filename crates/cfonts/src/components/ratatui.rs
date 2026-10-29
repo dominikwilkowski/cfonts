@@ -9,7 +9,7 @@ use ::ratatui::{
 };
 
 use crate::{
-	color::{Background, Color, ColorLevel, Rgb, Text, Value},
+	color::{ColorLevel, Rgb, Value},
 	hosts::entropy,
 	layout::Layout,
 	options::Options,
@@ -94,16 +94,6 @@ impl CfontsWidget<'_> {
 			named => Self::terminal_named(named),
 		}
 	}
-
-	/// One cfonts text color as a foreground style
-	fn style_for(color: Color<Text>, level: ColorLevel) -> Option<Style> {
-		Self::terminal_color(color.value, level).map(|color| Style::default().fg(color))
-	}
-
-	/// One cfonts background color as the background style of a band
-	fn band_style_for(color: Color<Background>, level: ColorLevel) -> Option<Style> {
-		Self::terminal_color(color.value, level).map(|color| Style::default().bg(color))
-	}
 }
 
 impl Widget for &CfontsWidget<'_> {
@@ -124,15 +114,18 @@ impl Widget for &CfontsWidget<'_> {
 			self.overrides.color().level_or(Some(ColorLevel::TrueColor)),
 			self.overrides.seed().unwrap_or_else(entropy),
 		);
-		// the plan and the backdrop never ask for a style without a level, so the None arm of the closures is never taken
+		// the plan and the backdrop never ask for a color without a level, so the None arm of the closures is never taken
 		let level = context.color_level();
-		let mut plan =
-			PaintPlan::build(self.options, &context, |color| level.and_then(|level| CfontsWidget::style_for(color, level)));
+		let mut plan = PaintPlan::build(self.options, &context, |color| {
+			level.and_then(|level| CfontsWidget::terminal_color(color.value, level))
+		});
 		let mut gradients = GradientPlans::build(&plan, self.options, &rows);
 		// An empty composition still shows one banded row, as the terminal and the browser do
 		let backdrop = Backdrop::build(self.options, &context, rows.len().max(1), |color| {
-			level.and_then(|level| CfontsWidget::band_style_for(color, level))
+			level.and_then(|level| CfontsWidget::terminal_color(color.value, level))
 		});
+		// a band is the background of its whole row
+		let band = |row: usize| backdrop.band(row).map(|color| Style::default().bg(*color));
 
 		// Rows below the area can show nothing, so the painting traversal stops at the area's height
 		// The gradient plans and the backdrop above saw every row: a fixed ramp spans the columns of hidden
@@ -149,9 +142,9 @@ impl Widget for &CfontsWidget<'_> {
 				y = area.y.saturating_add(row_index as u16);
 
 				// the band paints the whole row of the area first, the glyphs land on it
-				// with foreground styles that keep it
-				if let Some(style) = backdrop.band(row_index) {
-					buffer.set_style(Rect::new(area.x, y, area.width, 1), *style);
+				// with foreground colors that keep it
+				if let Some(style) = band(row_index) {
+					buffer.set_style(Rect::new(area.x, y, area.width, 1), style);
 				}
 
 				gradients.start_row(row);
@@ -161,10 +154,14 @@ impl Widget for &CfontsWidget<'_> {
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
-					if x < area.right() {
-						let style = plan.paint_for(block_index, slot, paintable).copied().unwrap_or_default();
-						let (next_x, _) = buffer.set_stringn(x, y, text, (area.right() - x) as usize, style);
-						x = next_x;
+					// a segment paints one cell per character in its slot's color, a bare slot leaves the foreground alone
+					let color = plan.paint_for(block_index, slot, paintable).copied();
+					for character in text.chars().take(usize::from(area.right().saturating_sub(x))) {
+						let cell = buffer[(x, y)].set_char(character);
+						if let Some(color) = color {
+							cell.set_fg(color);
+						}
+						x += 1;
 					}
 				}
 				PaintDomain::Block | PaintDomain::Global => {
@@ -195,9 +192,9 @@ impl Widget for &CfontsWidget<'_> {
 		});
 
 		if rows.is_empty()
-			&& let Some(style) = backdrop.band(0)
+			&& let Some(style) = band(0)
 		{
-			buffer.set_style(Rect::new(area.x, area.y, area.width, 1), *style);
+			buffer.set_style(Rect::new(area.x, area.y, area.width, 1), style);
 		}
 	}
 }
@@ -210,7 +207,7 @@ mod tests {
 	use ::ratatui::{Terminal, backend::TestBackend, buffer::Cell};
 
 	use crate::{
-		BackgroundOption, ColorOption, ColorOverride, GradientOption,
+		BackgroundOption, Color, ColorOption, ColorOverride, GradientOption,
 		fonts::Font,
 		options::{Align, Valign},
 		tests::{block, options},
@@ -324,16 +321,13 @@ mod tests {
 	#[test]
 	fn the_distinctive_semantic_mappings_hold() {
 		// the terminal's palette names shift against the cfonts names exactly here
-		assert_eq!(CfontsWidget::style_for(Color::WHITE, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::Gray));
-		assert_eq!(CfontsWidget::style_for(Color::GRAY, ColorLevel::TrueColor).unwrap().fg, Some(TerminalColor::DarkGray));
-		assert_eq!(
-			CfontsWidget::style_for(Color::RED_BRIGHT, ColorLevel::TrueColor).unwrap().fg,
-			Some(TerminalColor::LightRed)
-		);
-		assert_eq!(
-			CfontsWidget::style_for(Color::WHITE_BRIGHT, ColorLevel::TrueColor).unwrap().fg,
-			Some(TerminalColor::White)
-		);
+		assert_eq!(CfontsWidget::terminal_color(Value::White, ColorLevel::TrueColor), Some(TerminalColor::Gray));
+		assert_eq!(CfontsWidget::terminal_color(Value::Gray, ColorLevel::TrueColor), Some(TerminalColor::DarkGray));
+		assert_eq!(CfontsWidget::terminal_color(Value::RedBright, ColorLevel::TrueColor), Some(TerminalColor::LightRed));
+		assert_eq!(CfontsWidget::terminal_color(Value::WhiteBright, ColorLevel::TrueColor), Some(TerminalColor::White));
+		// the terminal's own color and the candy roll resolve to no color at all
+		assert_eq!(CfontsWidget::terminal_color(Value::System, ColorLevel::TrueColor), None);
+		assert_eq!(CfontsWidget::terminal_color(Value::Candy, ColorLevel::TrueColor), None);
 	}
 
 	#[test]
@@ -497,13 +491,6 @@ mod tests {
 	// backgrounds
 
 	#[test]
-	fn a_band_is_the_terminals_own_background() {
-		assert_eq!(CfontsWidget::band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().bg, Some(TerminalColor::Blue));
-		assert_eq!(CfontsWidget::band_style_for(Color::BLUE, ColorLevel::TrueColor).unwrap().fg, None);
-		assert!(CfontsWidget::band_style_for(Color::SYSTEM, ColorLevel::TrueColor).is_none());
-	}
-
-	#[test]
 	fn widget_bands_every_visible_row_across_the_area() {
 		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
 		options.background = Some(BackgroundOption::Color(Color::BLUE));
@@ -519,9 +506,10 @@ mod tests {
 			assert_eq!(buffer.cell((x, 1)).unwrap().style().bg, Some(TerminalColor::Blue), "column {x}");
 			assert_eq!(buffer.cell((x, 2)).unwrap().style().bg, Some(TerminalColor::Reset), "column {x}");
 		}
-		// the glyphs still land on the band
+		// the glyphs still land on the band, which colors no foreground
 		assert_eq!(buffer.cell((0, 0)).unwrap().symbol(), "▄");
 		assert_eq!(buffer.cell((3, 0)).unwrap().symbol(), " ");
+		assert_eq!(buffer.cell((3, 0)).unwrap().style().fg, Some(TerminalColor::Reset));
 	}
 
 	#[test]
