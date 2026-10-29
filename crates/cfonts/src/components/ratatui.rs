@@ -132,6 +132,15 @@ impl Widget for &CfontsWidget<'_> {
 		// rows and the backdrop spans the hidden rows exactly as in a taller area, so the visible rows keep
 		// the colors of the whole composition
 		let shown = &rows[..rows.len().min(area.height as usize)];
+
+		// the bands paint their whole rows of the area before the glyphs, whose foreground colors keep them,
+		// and the one row of an empty composition is banded too
+		for (row_index, row_area) in area.rows().take(shown.len().max(1)).enumerate() {
+			if let Some(style) = band(row_index) {
+				buffer.set_style(row_area, style);
+			}
+		}
+
 		let mut row_index = 0_usize;
 		let mut y = area.y;
 		let mut x = area.x;
@@ -140,13 +149,6 @@ impl Widget for &CfontsWidget<'_> {
 			RowEvent::Break => row_index += 1,
 			RowEvent::RowStart { row } => {
 				y = area.y.saturating_add(row_index as u16);
-
-				// the band paints the whole row of the area first, the glyphs land on it
-				// with foreground colors that keep it
-				if let Some(style) = band(row_index) {
-					buffer.set_style(Rect::new(area.x, y, area.width, 1), style);
-				}
-
 				gradients.start_row(row);
 				// the layout computed each row's alignment inside the canvas already, an offset beyond u16
 				// saturates so the row lands past the area and paints nothing instead of wrapping around
@@ -188,12 +190,6 @@ impl Widget for &CfontsWidget<'_> {
 				gradients.advance(width);
 			}
 		});
-
-		if rows.is_empty()
-			&& let Some(style) = band(0)
-		{
-			buffer.set_style(Rect::new(area.x, area.y, area.width, 1), style);
-		}
 	}
 }
 
