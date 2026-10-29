@@ -976,21 +976,18 @@ impl From<GradientPreset> for BackgroundOption {
 
 /// The shape of one color value, told apart by the delimiter it uses
 ///
-/// The delimiter decides the vocabulary:
-/// - commas separate slot colors
-/// - a dash and colons separate gradient stops
+/// The delimiter decides the vocabulary: commas separate slot colors, which the consumer reads in its own kind,
+/// a dash, colons and a bare preset name spell a gradient, whose stops read the same for every consumer,
+/// so the shape hands the gradient over parsed
 pub(crate) enum ColorShape<'a> {
-	/// One color name, hex value or preset name
+	/// One color name or hex value
 	Single(&'a str),
 
 	/// Comma separated colors, one per font color slot
 	List(Vec<&'a str>),
 
-	/// Two gradient stops joined by a dash
-	Pair(&'a str, &'a str),
-
-	/// Two or more transition stops joined by colons
-	Stops(Vec<&'a str>),
+	/// A bare preset name, two stops joined by a dash or two or more stops joined by colons
+	Gradient(GradientOption),
 }
 
 impl<'a> ColorShape<'a> {
@@ -1005,7 +1002,12 @@ impl<'a> ColorShape<'a> {
 		let mut delimiters = Self::DELIMITERS.into_iter().filter(|delimiter| value.contains(*delimiter));
 
 		let Some(delimiter) = delimiters.next() else {
-			return Ok(Self::Single(value.trim()));
+			let token = value.trim();
+
+			return Ok(match GradientPreset::from_name(token) {
+				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
+				None => Self::Single(token),
+			});
 		};
 		if delimiters.next().is_some() {
 			return Err(ColorError::MixedDelimiters);
@@ -1018,9 +1020,9 @@ impl<'a> ColorShape<'a> {
 
 		Ok(match delimiter {
 			',' => Self::List(segments),
-			':' => Self::Stops(segments),
+			':' => Self::Gradient(Self::transition(segments)?),
 			_ => match segments.as_slice() {
-				&[start, end] => Self::Pair(start, end),
+				&[start, end] => Self::Gradient(Self::two_stop(start, end)?),
 				_ => return Err(ColorError::TwoStopCount(segments.len())),
 			},
 		})
@@ -1059,15 +1061,11 @@ impl FromStr for ColorOption {
 
 	fn from_str(value: &str) -> Result<Self, Self::Err> {
 		Ok(match ColorShape::from_value(value)? {
-			ColorShape::Single(token) => match GradientPreset::from_name(token) {
-				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => Self::Colors(vec![token.parse()?]),
-			},
+			ColorShape::Single(token) => Self::Colors(vec![token.parse()?]),
 			ColorShape::List(segments) => {
 				Self::Colors(segments.into_iter().map(ColorShape::segment).collect::<Result<_, _>>()?)
 			}
-			ColorShape::Pair(start, end) => Self::Gradient(ColorShape::two_stop(start, end)?),
-			ColorShape::Stops(segments) => Self::Gradient(ColorShape::transition(segments)?),
+			ColorShape::Gradient(gradient) => Self::Gradient(gradient),
 		})
 	}
 }
@@ -1081,13 +1079,9 @@ impl FromStr for BackgroundOption {
 
 	fn from_str(value: &str) -> Result<Self, Self::Err> {
 		Ok(match ColorShape::from_value(value)? {
-			ColorShape::Single(token) => match GradientPreset::from_name(token) {
-				Some(preset) => Self::Gradient(GradientOption::Preset(preset)),
-				None => Self::Color(token.parse()?),
-			},
+			ColorShape::Single(token) => Self::Color(token.parse()?),
 			ColorShape::List(_) => return Err(ColorError::BackgroundList),
-			ColorShape::Pair(start, end) => Self::Gradient(ColorShape::two_stop(start, end)?),
-			ColorShape::Stops(segments) => Self::Gradient(ColorShape::transition(segments)?),
+			ColorShape::Gradient(gradient) => Self::Gradient(gradient),
 		})
 	}
 }
