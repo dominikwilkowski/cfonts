@@ -42,23 +42,12 @@ impl BrowserConsoleTarget {
 		Self::switch("", out);
 	}
 
-	/// Adds the row's band to the declarations in `style`, after a `;` when the run has its own color
-	fn push_band(band: Option<&ColorTokens>, style: &mut String) {
-		if let Some(band) = band {
-			if !style.is_empty() {
-				style.push(';');
-			}
-			style.push_str(&band.start);
-		}
-	}
-
 	/// Switches to the run's declarations, its own color and the row's band joined by a `;`,
-	/// or back to no style when the run has none
+	/// or back to no style when the run has none, `color` is the run's own declaration or empty
 	///
 	/// The pieces compare against the current style as they are, so only a style that changes
 	/// gets joined, into the one String that goes out
-	fn style_run(color: Option<&str>, band: Option<&ColorTokens>, out: &mut Rendered) {
-		let color = color.unwrap_or("");
+	fn style_run(color: &str, band: Option<&ColorTokens>, out: &mut Rendered) {
 		let band = band.map_or("", |band| band.start.as_ref());
 		let separator = if color.is_empty() || band.is_empty() { "" } else { ";" };
 		let current = Self::current(out);
@@ -121,18 +110,17 @@ impl Target for BrowserConsoleTarget {
 		context: &RenderContext,
 		out: &mut Rendered,
 	) -> usize {
-		// one buffer holds every column's declarations, only a style that changes is copied out
-		let mut style = String::new();
+		// one buffer holds every column's color declaration, only a style that changes is joined and copied out
+		let mut color = String::new();
 
 		GradientPlans::each_column(text, colors, |character, rgb| {
-			style.clear();
+			color.clear();
 			if let Some((rgb, level)) = rgb.zip(context.color_level()) {
-				style.push_str("color:");
-				rgb.at_level(level).push_css_hex(&mut style);
+				color.push_str("color:");
+				rgb.at_level(level).push_css_hex(&mut color);
 			}
-			Self::push_band(band, &mut style);
 
-			Self::switch(&style, out);
+			Self::style_run(&color, band, out);
 			Self::push_escaped_char(character, &mut out.text);
 		})
 	}
@@ -154,7 +142,7 @@ impl Target for BrowserConsoleTarget {
 			return;
 		}
 
-		Self::style_run(tokens.paints().then_some(tokens.start.as_ref()), band, out);
+		Self::style_run(&tokens.start, band, out);
 		push_escaped(text, Self::push_escaped_char, &mut out.text);
 	}
 
