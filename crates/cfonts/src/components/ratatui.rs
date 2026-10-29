@@ -181,9 +181,10 @@ impl Widget for &CfontsWidget<'_> {
 				}
 			},
 			RowEvent::EntryEnd { width, block_index } => gradients.end_entry(block_index, width),
-			// Blank columns leave cells untouched: they keep the row's band, or stay transparent without one
+			// Blank columns leave cells untouched: they keep the row's band, or stay transparent without one,
+			// and a run past u16 saturates past the area like the alignment offset does
 			RowEvent::Blank { width, .. } => {
-				x = (x as usize).saturating_add(width).min(area.right() as usize) as u16;
+				x = x.saturating_add(u16::try_from(width).unwrap_or(u16::MAX));
 				gradients.advance(width);
 			}
 		});
