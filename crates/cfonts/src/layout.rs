@@ -118,7 +118,7 @@ pub struct BlockSpan {
 }
 
 /// A row of glyphs for a single line in the layout
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct LayoutRow {
 	/// All glyphs of a line
 	pub entries: Vec<RowEntry>,
@@ -538,7 +538,7 @@ impl<'a> Layout<'a> {
 		if !self.output.is_empty() {
 			for _ in 0..self.prev_line_height {
 				// An empty Vec doesn't allocate until its first push, and these never receive one
-				self.output.push(LayoutRow { entries: Vec::new(), width: 0, align_offset: 0, block_spans: Vec::new() });
+				self.output.push(LayoutRow::default());
 			}
 		}
 

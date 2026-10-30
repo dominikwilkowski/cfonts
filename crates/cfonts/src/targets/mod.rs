@@ -321,8 +321,7 @@ pub trait Target {
 		});
 
 		if rows.is_empty() {
-			let bare = LayoutRow { entries: Vec::new(), width: 0, align_offset: 0, block_spans: Vec::new() };
-			self.row_start(&bare, row_band, options, &mut out);
+			self.row_start(&LayoutRow::default(), row_band, options, &mut out);
 		}
 		self.row_end(row_band, &mut out);
 
