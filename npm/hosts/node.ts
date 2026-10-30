@@ -27,11 +27,11 @@ export class NodeHost implements Host {
 	static readonly #environment = (name: string): string | undefined => process.env[name];
 
 	/**
- * Creates the Node host that detects everything from the terminal, or one with explicit capability overrides
- *
- * The overrides object crosses the boundary as it is, the core reads it
- *
- * @example
+	 * Creates the Node host that detects everything from the terminal, or one with explicit capability overrides
+	 *
+	 * The overrides object crosses the boundary as it is, the core reads it
+	 *
+	 * @example
 	 * new NodeHost();
 	 *
 	 * @example

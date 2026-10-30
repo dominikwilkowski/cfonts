@@ -138,14 +138,13 @@ impl Widget for &CfontsWidget<'_> {
 			}
 		}
 
-		let mut row_index = 0_usize;
 		let mut y = area.y;
 		let mut x = area.x;
 
 		RowEvent::each(shown, |event| match event {
-			RowEvent::Break => row_index += 1,
-			RowEvent::RowStart { row } => {
-				y = area.y.saturating_add(row_index as u16);
+			RowEvent::Break { .. } => {}
+			RowEvent::RowStart { row, index } => {
+				y = area.y.saturating_add(index as u16);
 				gradients.start_row(row);
 				// the layout computed each row's alignment inside the canvas already, an offset beyond u16
 				// saturates so the row lands past the area and paints nothing instead of wrapping around

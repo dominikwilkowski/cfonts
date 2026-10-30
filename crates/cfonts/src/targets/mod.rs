@@ -65,8 +65,10 @@ pub(crate) fn push_escaped(text: &str, escape: impl Fn(char, &mut String), out: 
 /// the flattened view of rows every target consumes
 #[derive(Debug)]
 pub enum RowEvent<'a> {
-	/// The start of a new row
-	RowStart { row: &'a LayoutRow },
+	/// The start of a new row with its index among the rows
+	///
+	/// The walk counts the rows, so no consumer keeps a counter of its own
+	RowStart { row: &'a LayoutRow, index: usize },
 
 	/// One text segment with the block it came from
 	Text {
@@ -89,8 +91,8 @@ pub enum RowEvent<'a> {
 	/// Gradient cursors advance on this without rescanning segment text
 	EntryEnd { width: usize, block_index: usize },
 
-	/// The boundary between two rows
-	Break,
+	/// The boundary between two rows, carrying the row that ends
+	Break { row: &'a LayoutRow },
 }
 
 impl<'a> RowEvent<'a> {
@@ -100,12 +102,8 @@ impl<'a> RowEvent<'a> {
 	/// Text events always carry text: empty segments are filtered here, once,
 	/// so no consumer needs its own guard against them
 	pub fn each(rows: &'a [LayoutRow], mut event: impl FnMut(Self)) {
-		for (row_index, row) in rows.iter().enumerate() {
-			if row_index > 0 {
-				event(Self::Break);
-			}
-
-			event(Self::RowStart { row });
+		for (index, row) in rows.iter().enumerate() {
+			event(Self::RowStart { row, index });
 
 			for entry in &row.entries {
 				match entry {
@@ -127,6 +125,11 @@ impl<'a> RowEvent<'a> {
 						event(Self::Blank { width: *width as usize, block_index: *block_index as usize });
 					}
 				}
+			}
+
+			// every row but the last ends in a break, so the stream closes on a row's own events
+			if index + 1 < rows.len() {
+				event(Self::Break { row });
 			}
 		}
 	}
@@ -284,7 +287,6 @@ pub trait Target {
 		let will_style = plan.paints_any_segment(rows) || banded;
 		let no_paint = ColorTokens::default();
 		let mut gradients = GradientPlans::build(&plan, options, rows);
-		let mut row_index = 0;
 		// The band of the row being painted, looked up once at its start,
 		// a composition without rows paints its one bare row with the first band
 		let mut row_band = backdrop.band(lead);
@@ -296,8 +298,8 @@ pub trait Target {
 		}
 
 		RowEvent::each(rows, |event| match event {
-			RowEvent::RowStart { row } => {
-				row_band = backdrop.band(lead + row_index);
+			RowEvent::RowStart { row, index } => {
+				row_band = backdrop.band(lead + index);
 				gradients.start_row(row);
 				self.row_start(row, row_band, options, &mut out);
 			}
@@ -315,10 +317,9 @@ pub trait Target {
 				gradients.advance(width);
 			}
 			RowEvent::EntryEnd { width, block_index } => gradients.end_entry(block_index, width),
-			RowEvent::Break => {
+			RowEvent::Break { row } => {
 				self.row_end(row_band, &mut out);
-				self.row_break(&rows[row_index], row_band, &mut out);
-				row_index += 1;
+				self.row_break(row, row_band, &mut out);
 			}
 		});
 
@@ -364,7 +365,8 @@ mod tests {
 		let mut first_text_block = None;
 
 		RowEvent::each(&layout.output, |event| match event {
-			RowEvent::RowStart { row } => {
+			RowEvent::RowStart { row, index } => {
+				assert_eq!(index, row_starts, "the walk counts the rows in order");
 				row_starts += 1;
 				assert!(row.width > 0);
 			}
@@ -377,7 +379,7 @@ mod tests {
 				entry_ends += 1;
 				entry_end_columns += width;
 			}
-			RowEvent::Break => breaks += 1,
+			RowEvent::Break { .. } => breaks += 1,
 		});
 
 		assert_eq!(row_starts, layout.output.len());
