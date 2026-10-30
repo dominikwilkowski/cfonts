@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use js_sys::{Array, Error, Function, JSON, Object, RangeError, Reflect, TypeError};
 use tsify::Ts;
 use wasm_bindgen::{JsCast, JsValue};
@@ -44,19 +46,32 @@ fn text(input: &str) -> Cfonts {
 	Cfonts::text(input.into()).expect("a string starts a composition")
 }
 
+/// A composition in the Tiny font, the two row font the assertions read whole
+fn tiny(input: &str) -> Cfonts {
+	let mut banner = text(input);
+	banner.font("tiny".into()).expect("a font name");
+
+	banner
+}
+
 /// The artifact as the boundary hands it to JavaScript, read back into Rust
-fn rendered<E>(crossed: Result<Ts<Rendered>, E>) -> Rendered {
-	crossed.unwrap_or_else(|_| panic!("the render cannot fail")).to_rust().expect("the artifact reads back")
+fn rendered<E: Debug>(crossed: Result<Ts<Rendered>, E>) -> Rendered {
+	crossed.expect("the render cannot fail").to_rust().expect("the artifact reads back")
+}
+
+/// The value a refused call throws, read without a `Debug` of what the call would have returned
+fn exception<T>(refused: Result<T, JsValue>) -> JsValue {
+	refused.err().expect("the call is refused")
 }
 
 /// The sentence a refused call throws, read the way JavaScript reads it
-fn message(refused: Result<(), JsValue>) -> String {
-	String::from(Error::from(refused.expect_err("the call is refused")).message())
+fn message<T>(refused: Result<T, JsValue>) -> String {
+	String::from(Error::from(exception(refused)).message())
 }
 
 /// Whether a refused call threw a `TypeError`, the class of a wrong shape, where a refused value is a plain `Error`
-fn is_type_error(refused: Result<(), JsValue>) -> bool {
-	refused.expect_err("the call is refused").is_instance_of::<TypeError>()
+fn is_type_error<T>(refused: Result<T, JsValue>) -> bool {
+	exception(refused).is_instance_of::<TypeError>()
 }
 
 /// Asserts that unseeded draws differ among themselves, the freshness check of a roll without a seam into the
@@ -93,9 +108,27 @@ fn reads(counts: &JsValue, key: &str) -> f64 {
 	Reflect::get(counts, &JsValue::from_str(key)).expect("a count").as_f64().expect("a number")
 }
 
+/// An exception of the consumer's own beside the builder of values that throw it
+///
+/// Each body runs as a JavaScript function whose one parameter `error` is the exception, so a getter, a trap,
+/// a list or a lookup spelled in the body throws the very object the test compares against
+fn consumers_own() -> (RangeError, impl Fn(&str) -> JsValue) {
+	let thrown = RangeError::new("the consumer's own");
+	let error = thrown.clone();
+
+	(thrown, move |body: &str| {
+		Function::new_with_args("error", body).call1(&JsValue::UNDEFINED, &error).expect("the test builds the value")
+	})
+}
+
+/// The core twin of `wrapping_banner`, the composition the oracle renders
+fn wrapping_core() -> Options {
+	CoreCfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into()
+}
+
 /// The same render through the core directly, the boundary's oracle
 fn render_core(target: TargetKind, canvas_width: Option<usize>) -> String {
-	let options: Options = CoreCfonts::text("AA").font(Font::Tiny).line_height(0).spaceless().into();
+	let options = wrapping_core();
 	let overrides = RenderOverrides::default().with_canvas_width(canvas_width.unwrap_or(0));
 
 	match target {
@@ -105,10 +138,27 @@ fn render_core(target: TargetKind, canvas_width: Option<usize>) -> String {
 	}
 }
 
-fn wrapping_banner() -> Cfonts {
-	let mut banner = text("AA");
+/// The oracle of a background: the core twin of `wrapping_banner` with the background behind it, in true color
+fn background_core(background: BackgroundOption) -> String {
+	let mut options = wrapping_core();
+	options.background = Some(background);
 
-	banner.font("tiny".into()).expect("a font name");
+	render_with(
+		&options,
+		&TerminalTarget::default(),
+		RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor)),
+	)
+	.text
+}
+
+/// The terminal artifact of a composition through `renderWith()` at true color, where every configured color paints
+fn true_color(banner: &Cfonts) -> String {
+	rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
+}
+
+fn wrapping_banner() -> Cfonts {
+	let mut banner = tiny("AA");
+
 	banner.line_height(0.into()).expect("a count");
 	banner.spaceless().expect("first spaceless call");
 
@@ -198,23 +248,28 @@ fn the_overrides_are_read_behind_the_boundary() {
 
 	// anything but an object is no overrides object, an array included
 	for input in [JsValue::NULL, 0.into(), true.into(), "".into(), js("[]")] {
-		let refused = banner.render(input, TargetKind::Terminal, false).map(|_| ());
-		assert_eq!(message(refused), "`renderWith()` expects an overrides object");
+		assert_eq!(
+			message(banner.render(input, TargetKind::Terminal, false)),
+			"`renderWith()` expects an overrides object"
+		);
 	}
 
 	// every member crosses with the sentence of its type
 	for input in [js("{ \"canvasWidth\": -1 }"), js("{ \"canvasWidth\": 1.5 }"), js("{ \"seed\": 4294967296 }")] {
-		let refused = banner.render(input, TargetKind::Terminal, false).map(|_| ());
-		assert_eq!(message(refused), "`renderWith()` expects an unsigned 32-bit integer");
+		assert_eq!(
+			message(banner.render(input, TargetKind::Terminal, false)),
+			"`renderWith()` expects an unsigned 32-bit integer"
+		);
 	}
 	for input in [js("{ \"color\": 99 }"), js("{ \"color\": true }")] {
-		let refused = banner.render(input, TargetKind::Terminal, false).map(|_| ());
-		assert_eq!(message(refused), "`renderWith()` expects a supported enum value");
+		assert_eq!(
+			message(banner.render(input, TargetKind::Terminal, false)),
+			"`renderWith()` expects a supported enum value"
+		);
 	}
 
 	// false disables color where a level pins it
-	let mut colored = text("A");
-	colored.font("tiny".into()).expect("a font name");
+	let mut colored = tiny("A");
 	colored.colors(js("[\"red\"]")).expect("valid colors");
 	assert!(!rendered(colored.render(js("{ \"color\": false }"), TargetKind::Terminal, false)).text.contains('\u{1b}'));
 	assert!(rendered(colored.render(js("{ \"color\": 0 }"), TargetKind::Terminal, false)).text.contains("\u{1b}[31m"));
@@ -222,9 +277,8 @@ fn the_overrides_are_read_behind_the_boundary() {
 
 #[wasm_bindgen_test]
 fn setters_produce_the_same_composition_as_the_core_builder() {
-	let mut actual = text("A B|C");
+	let mut actual = tiny("A B|C");
 
-	actual.font("tiny".into()).expect("a font name");
 	actual.letter_spacing(2.into()).expect("a count");
 	actual.word_wrap();
 	actual.line_height(2.into()).expect("a count");
@@ -305,14 +359,12 @@ fn local_settings_can_be_configured_repeatedly() {
 
 #[wasm_bindgen_test]
 fn builders_keep_independent_state() {
-	let mut tiny = text("A");
-
-	tiny.font("tiny".into()).expect("a font name");
+	let small = tiny("A");
 
 	let block = text("A");
 
 	assert_ne!(
-		rendered(tiny.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text,
+		rendered(small.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text,
 		rendered(block.render(JsValue::UNDEFINED, TargetKind::Browser, false)).text,
 	);
 }
@@ -332,7 +384,7 @@ fn rendering_does_not_consume_or_change_the_builder() {
 #[wasm_bindgen_test]
 fn the_texts_and_the_counts_are_read_behind_the_boundary() {
 	for input in [0.into(), true.into(), JsValue::NULL, JsValue::UNDEFINED, js("{}"), js("[]")] {
-		assert_eq!(message(Cfonts::text(input).map(|_| ())), "`text()` expects a string");
+		assert_eq!(message(Cfonts::text(input)), "`text()` expects a string");
 	}
 	assert!(Cfonts::text("".into()).is_ok());
 
@@ -487,11 +539,8 @@ fn a_wrong_shape_is_a_type_error_and_a_refused_value_a_plain_error() {
 #[wasm_bindgen_test]
 fn a_throwing_getter_or_trap_surfaces_as_the_consumers_own_exception() {
 	let mut banner = text("A");
-	let thrown = RangeError::new("the consumer's own");
 	// an object whose getter or proxy trap throws the value while a member is read
-	let throwing = |body: &str| {
-		Function::new_with_args("error", body).call1(&JsValue::UNDEFINED, &thrown).expect("the test builds the value")
-	};
+	let (thrown, throwing) = consumers_own();
 	let getter = "return Object.defineProperty({}, 'start', { get() { throw error } })";
 	let trap = "return new Proxy({}, { has() { throw error } })";
 
@@ -500,18 +549,16 @@ fn a_throwing_getter_or_trap_surfaces_as_the_consumers_own_exception() {
 	assert_eq!(banner.global_colors(throwing(getter)).expect_err("the getter throws"), JsValue::from(thrown.clone()));
 	assert_eq!(banner.background(throwing(trap)).expect_err("the trap throws"), JsValue::from(thrown.clone()));
 	assert_eq!(
-		banner
-			.render(throwing("return { get canvasWidth() { throw error } }"), TargetKind::Terminal, false)
-			.map(|_| ())
-			.expect_err("the getter throws"),
+		exception(banner.render(throwing("return { get canvasWidth() { throw error } }"), TargetKind::Terminal, false)),
 		JsValue::from(thrown.clone())
 	);
 	assert_eq!(
-		NodeHost::from_overrides(JsValue::UNDEFINED)
-			.expect("undefined is no overrides")
-			.render(&banner, TargetKind::Terminal, false, throwing("return { get attached() { throw error } }"))
-			.map(|_| ())
-			.expect_err("the getter throws"),
+		exception(NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides").render(
+			&banner,
+			TargetKind::Terminal,
+			false,
+			throwing("return { get attached() { throw error } }")
+		)),
 		JsValue::from(thrown)
 	);
 }
@@ -519,12 +566,8 @@ fn a_throwing_getter_or_trap_surfaces_as_the_consumers_own_exception() {
 #[wasm_bindgen_test]
 fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_builder_usable() {
 	let mut banner = text("A");
-	let thrown = RangeError::new("the consumer's own");
-	let throwing = |body: &str| {
-		Function::new_with_args("error", body).call1(&JsValue::UNDEFINED, &thrown).expect("the test builds the value")
-	};
-	let mut plain = text("A");
-	plain.font("tiny".into()).expect("a font name");
+	let (thrown, throwing) = consumers_own();
+	let plain = tiny("A");
 	let expected = rendered(plain.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text;
 
 	// a list whose getter or proxy trap throws while its length or an index is read
@@ -583,45 +626,30 @@ fn a_throwing_list_read_crosses_as_the_consumers_own_exception_and_leaves_the_bu
 	// a revoked proxy makes `Array.isArray` itself throw, the engine's `TypeError` crosses the same way
 	let revoked = "const { proxy, revoke } = Proxy.revocable([2, 5], {}); revoke(); return proxy";
 	assert!(banner.colors(throwing(revoked)).expect_err("the revoked proxy throws").is_instance_of::<TypeError>());
-	assert!(
-		banner
-			.render(throwing(revoked), TargetKind::Terminal, false)
-			.map(|_| ())
-			.expect_err("the revoked proxy throws")
-			.is_instance_of::<TypeError>()
-	);
+	assert!(is_type_error(banner.render(throwing(revoked), TargetKind::Terminal, false)));
 	banner.font("tiny".into()).expect("a font name");
 	assert_eq!(rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false)).text, expected);
 }
 
 #[wasm_bindgen_test]
 fn a_throwing_lookup_crosses_as_the_consumers_own_exception_once_and_leaves_the_host_usable() {
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
-	let thrown = RangeError::new("the consumer's own");
+	let mut banner = tiny("A");
+	let (thrown, throwing) = consumers_own();
 	let host = NodeHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 	let expected = rendered(host.render(&banner, TargetKind::Terminal, false, terminal(Some(80), &[]))).text;
 	// terminal facts whose lookup throws at every call and counts its calls beside the facts
-	let pair = Function::new_with_args(
-		"error",
-		concat!(
-			"const counts = { calls: 0 }; ",
-			"const facts = { attached: true, platform: 'darwin', release: '25.6.0', ",
-			"environment: () => { counts.calls += 1; throw error } }; ",
-			"return [facts, counts]"
-		),
-	)
-	.call1(&JsValue::UNDEFINED, &thrown)
-	.expect("the test builds the facts");
+	let pair = throwing(concat!(
+		"const counts = { calls: 0 }; ",
+		"const facts = { attached: true, platform: 'darwin', release: '25.6.0', ",
+		"environment: () => { counts.calls += 1; throw error } }; ",
+		"return [facts, counts]"
+	));
 	let facts = Reflect::get_u32(&pair, 0).expect("the facts");
 	let counts = Reflect::get_u32(&pair, 1).expect("the counts");
 
 	// the render returns the very exception in place of an artifact resolved over facts the lookup failed to answer,
 	// and asks for no name after the first failure
-	assert_eq!(
-		host.render(&banner, TargetKind::Terminal, false, facts).map(|_| ()).expect_err("the lookup throws"),
-		JsValue::from(thrown)
-	);
+	assert_eq!(exception(host.render(&banner, TargetKind::Terminal, false, facts)), JsValue::from(thrown));
 	assert_eq!(reads(&counts, "calls"), 1.0);
 
 	// the exception crosses as a result, so the host and the builder keep working, the padding rows go
@@ -723,9 +751,6 @@ fn a_failed_global_color_does_not_claim_the_slot() {
 
 #[wasm_bindgen_test]
 fn the_spelling_builds_what_the_shapes_build() {
-	let boundary = |banner: &Cfonts| {
-		rendered(banner.render(overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
-	};
 	// a font with two color slots, so a list reaches past its first color
 	let banner = || {
 		let mut banner = text("A");
@@ -738,45 +763,30 @@ fn the_spelling_builds_what_the_shapes_build() {
 	spelled.colors("red-blue".into()).expect("a gradient spelling");
 	let mut shaped = banner();
 	shaped.colors(js("{ \"start\": \"red\", \"end\": \"blue\" }")).expect("valid stops");
-	assert_eq!(boundary(&spelled), boundary(&shaped));
+	assert_eq!(true_color(&spelled), true_color(&shaped));
 
 	let mut spelled = banner();
 	spelled.colors("red:yellow:green".into()).expect("a transition spelling");
 	let mut shaped = banner();
 	shaped.colors(js("{ \"transition\": [\"red\", \"yellow\", \"green\"] }")).expect("valid stops");
-	assert_eq!(boundary(&spelled), boundary(&shaped));
+	assert_eq!(true_color(&spelled), true_color(&shaped));
 
 	let mut spelled = banner();
 	spelled.colors("pride".into()).expect("a preset spelling");
 	let mut shaped = banner();
 	shaped.colors(js("{ \"preset\": 0 }")).expect("a preset");
-	assert_eq!(boundary(&spelled), boundary(&shaped));
+	assert_eq!(true_color(&spelled), true_color(&shaped));
 
 	let mut spelled = banner();
 	spelled.global_colors("red,#f80".into()).expect("a list spelling");
 	let mut shaped = banner();
 	shaped.global_colors(js("[2, { \"red\": 255, \"green\": 136, \"blue\": 0 }]")).expect("valid colors");
-	assert_eq!(boundary(&spelled), boundary(&shaped));
-	assert_ne!(boundary(&spelled), boundary(&banner())); // the spelling paints
+	assert_eq!(true_color(&spelled), true_color(&shaped));
+	assert_ne!(true_color(&spelled), true_color(&banner())); // the spelling paints
 }
 
 #[wasm_bindgen_test]
 fn the_background_spelling_builds_what_the_shapes_build() {
-	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
-	// the core twin of wrapping_banner with the background applied
-	let core = |background: BackgroundOption| {
-		CoreCfonts::text("AA")
-			.font(Font::Tiny)
-			.line_height(0)
-			.spaceless()
-			.background(background)
-			.render_with(&TerminalTarget::default(), overrides)
-			.text
-	};
-	let boundary = |banner: &Cfonts| {
-		rendered(banner.render(self::overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
-	};
-
 	let mut color = wrapping_banner();
 	color.background("red".into()).expect("a color spelling");
 	let mut value = wrapping_banner();
@@ -786,11 +796,14 @@ fn the_background_spelling_builds_what_the_shapes_build() {
 	let mut preset = wrapping_banner();
 	preset.background("pride".into()).expect("a preset spelling");
 
-	assert_eq!(boundary(&color), core(CoreColor::RED.into()));
-	assert_eq!(boundary(&value), core(CoreColor::RED.into()));
-	assert_eq!(boundary(&two_stop), core(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE }.into()));
-	assert_eq!(boundary(&preset), core(GradientPreset::Pride.into()));
-	assert_ne!(boundary(&color), boundary(&two_stop));
+	assert_eq!(true_color(&color), background_core(CoreColor::RED.into()));
+	assert_eq!(true_color(&value), background_core(CoreColor::RED.into()));
+	assert_eq!(
+		true_color(&two_stop),
+		background_core(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE }.into())
+	);
+	assert_eq!(true_color(&preset), background_core(GradientPreset::Pride.into()));
+	assert_ne!(true_color(&color), true_color(&two_stop));
 }
 
 #[wasm_bindgen_test]
@@ -822,8 +835,7 @@ fn a_refused_spelling_carries_the_cores_sentence() {
 
 #[wasm_bindgen_test]
 fn a_color_level_paints_the_configured_colors() {
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A");
 	banner.colors(js("[\"red\"]")).expect("valid colors");
 
 	assert!(
@@ -841,8 +853,7 @@ fn a_color_level_paints_the_configured_colors() {
 
 #[wasm_bindgen_test]
 fn console_styles_cross_the_boundary_in_marker_order() {
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A");
 	banner.colors(js("[\"red\"]")).expect("valid colors");
 
 	let unstyled = rendered(banner.render(JsValue::UNDEFINED, TargetKind::BrowserConsole, false));
@@ -857,8 +868,7 @@ fn console_styles_cross_the_boundary_in_marker_order() {
 
 #[wasm_bindgen_test]
 fn candy_seeds_are_deterministic_across_the_boundary() {
-	let mut banner = text("AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("AB");
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 
 	let one =
@@ -875,8 +885,7 @@ fn candy_seeds_are_deterministic_across_the_boundary() {
 
 #[wasm_bindgen_test]
 fn gradients_paint_across_the_boundary() {
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A");
 	banner.colors(js("{ \"start\": \"red\", \"end\": \"blue\" }")).expect("valid stops");
 
 	let plain = rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, false));
@@ -892,8 +901,7 @@ fn gradients_paint_across_the_boundary() {
 
 #[wasm_bindgen_test]
 fn the_independent_gradient_crosses_the_boundary() {
-	let mut banner = text("A|AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A|AB");
 	banner.line_height(0.into()).expect("a count");
 	banner.colors(js("{ \"start\": \"red\", \"end\": \"blue\" }")).expect("valid stops");
 
@@ -947,8 +955,7 @@ fn a_failed_background_does_not_claim_the_slot() {
 
 #[wasm_bindgen_test]
 fn a_background_crosses_the_boundary_into_every_target() {
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A");
 	banner.spaceless().expect("first spaceless call");
 	banner.background("blue".into()).expect("a valid background");
 
@@ -990,21 +997,6 @@ fn a_system_background_is_accepted_and_paints_nothing() {
 
 #[wasm_bindgen_test]
 fn every_background_gradient_shape_matches_the_core_builder() {
-	let overrides = RenderOverrides::default().with_color(ColorOverride::Level(ColorLevel::TrueColor));
-	// the core twin of wrapping_banner with the background applied
-	let core = |background: BackgroundOption| {
-		CoreCfonts::text("AA")
-			.font(Font::Tiny)
-			.line_height(0)
-			.spaceless()
-			.background(background)
-			.render_with(&TerminalTarget::default(), overrides)
-			.text
-	};
-	let boundary = |banner: &Cfonts| {
-		rendered(banner.render(self::overrides(None, Some(ColorLevel::TrueColor), None), TargetKind::Terminal, false)).text
-	};
-
 	let mut two_stop = wrapping_banner();
 	two_stop.background(js("{ \"start\": \"red\", \"end\": \"blue\" }")).expect("valid stops");
 	let mut transition = wrapping_banner();
@@ -1020,15 +1012,20 @@ fn every_background_gradient_shape_matches_the_core_builder() {
 		|names: &[CoreColor<Gradient>]| TransitionStops::try_from(names.to_vec()).expect("three stops make a transition");
 	let gray = Rgb { red: 136, green: 153, blue: 221 };
 
-	assert!(boundary(&two_stop).starts_with("\u{1b}[48;2;255;0;0m"));
-	assert_eq!(boundary(&two_stop), core(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE }.into()));
+	assert!(true_color(&two_stop).starts_with("\u{1b}[48;2;255;0;0m"));
 	assert_eq!(
-		boundary(&transition),
-		core(GradientOption::Transition(stops(&[CoreColor::RED, CoreColor::from(gray), CoreColor::BLUE])).into())
+		true_color(&two_stop),
+		background_core(GradientOption::TwoStop { start: CoreColor::RED, end: CoreColor::BLUE }.into())
 	);
-	assert_eq!(boundary(&preset), core(GradientPreset::Pride.into()));
-	assert_eq!(boundary(&channels), core(CoreColor::from(gray).into()));
-	assert_ne!(boundary(&preset), boundary(&two_stop));
+	assert_eq!(
+		true_color(&transition),
+		background_core(
+			GradientOption::Transition(stops(&[CoreColor::RED, CoreColor::from(gray), CoreColor::BLUE])).into()
+		)
+	);
+	assert_eq!(true_color(&preset), background_core(GradientPreset::Pride.into()));
+	assert_eq!(true_color(&channels), background_core(CoreColor::from(gray).into()));
+	assert_ne!(true_color(&preset), true_color(&two_stop));
 }
 
 #[wasm_bindgen_test]
@@ -1043,7 +1040,7 @@ fn hex_values_convert_into_frozen_channel_values() {
 	assert!(rgb_from_hex("#ff88".into()).is_err(), "four hex digits are invalid");
 	assert!(rgb_from_hex("teal".into()).is_err(), "names are not hex values");
 	// the sentence names the method a consumer calls, the npm package wraps the function as `Rgb.fromHex`
-	assert_eq!(message(rgb_from_hex(42.into()).map(|_| ())), "`Rgb.fromHex()` expects a string");
+	assert_eq!(message(rgb_from_hex(42.into())), "`Rgb.fromHex()` expects a string");
 }
 
 #[wasm_bindgen_test]
@@ -1057,8 +1054,7 @@ fn the_color_values_list_the_text_names_in_the_core_order() {
 #[wasm_bindgen_test]
 fn raw_mode_changes_nothing_but_the_line_endings() {
 	// blank rows from line_height and the paddings travel through the same endings as the glyph rows
-	let mut banner = text("AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("AB");
 	banner.line_height(2.into()).expect("a count");
 
 	let raw = rendered(banner.render(JsValue::UNDEFINED, TargetKind::Terminal, true)).text;
@@ -1084,8 +1080,7 @@ fn raw_mode_means_nothing_to_the_browser_targets() {
 #[wasm_bindgen_test]
 fn the_page_host_pins_what_a_page_render_takes_as_given() {
 	// candy makes the seed count and a color makes the level count
-	let mut banner = text("AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("AB");
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 	let seed = BrowserHost::entropy();
 	let host = BrowserHost::from_overrides(overrides(None, None, Some(seed))).expect("valid overrides");
@@ -1126,8 +1121,7 @@ fn only_a_column_override_wraps_the_page() {
 
 #[wasm_bindgen_test]
 fn the_page_host_paints_in_true_color_unless_told_otherwise() {
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A");
 	banner.colors(js("[\"red\"]")).expect("valid colors");
 	let painted = BrowserHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides");
 	let disabled = BrowserHost::from_overrides(js("{ \"color\": false }")).expect("valid overrides");
@@ -1142,8 +1136,7 @@ fn the_page_host_paints_in_true_color_unless_told_otherwise() {
 
 #[wasm_bindgen_test]
 fn the_page_host_rolls_a_fresh_seed_unless_one_is_pinned() {
-	let mut banner = text("AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("AB");
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 	let pinned = BrowserHost::from_overrides(overrides(None, None, Some(42))).expect("valid overrides");
 	let other = BrowserHost::from_overrides(overrides(None, None, Some(43))).expect("valid overrides");
@@ -1170,18 +1163,15 @@ fn the_hosts_read_their_overrides_behind_the_boundary() {
 	assert!(NodeHost::from_overrides(JsValue::UNDEFINED).is_ok());
 
 	for input in [JsValue::NULL, 0.into(), true.into(), "".into(), js("[]")] {
-		assert_eq!(
-			message(BrowserHost::from_overrides(input.clone()).map(|_| ())),
-			"`fromOverrides()` expects an overrides object"
-		);
-		assert_eq!(message(NodeHost::from_overrides(input).map(|_| ())), "`fromOverrides()` expects an overrides object");
+		assert_eq!(message(BrowserHost::from_overrides(input.clone())), "`fromOverrides()` expects an overrides object");
+		assert_eq!(message(NodeHost::from_overrides(input)), "`fromOverrides()` expects an overrides object");
 	}
 	assert_eq!(
-		message(NodeHost::from_overrides(js("{ \"canvasWidth\": -1 }")).map(|_| ())),
+		message(NodeHost::from_overrides(js("{ \"canvasWidth\": -1 }"))),
 		"`fromOverrides()` expects an unsigned 32-bit integer"
 	);
 	assert_eq!(
-		message(NodeHost::from_overrides(js("{ \"color\": 99 }")).map(|_| ())),
+		message(NodeHost::from_overrides(js("{ \"color\": 99 }"))),
 		"`fromOverrides()` expects a supported enum value"
 	);
 }
@@ -1223,8 +1213,7 @@ fn the_node_host_resolves_the_width_from_the_terminal_facts() {
 
 #[wasm_bindgen_test]
 fn the_node_host_resolves_the_color_from_the_terminal_facts() {
-	let mut banner = text("AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("AB");
 	banner.colors(js("[\"#ff8800\"]")).expect("valid colors");
 	let unlimited = NodeHost::from_overrides(overrides(Some(0), None, None)).expect("valid overrides");
 	let level = |facts: JsValue| rendered(unlimited.render(&banner, TargetKind::Terminal, false, facts)).text;
@@ -1276,7 +1265,7 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 
 	// the facts are the package's own, a malformed object is refused at the boundary with the sentence of its type,
 	// a lookup that is no function with the sentence of the facts
-	let refused = |facts: JsValue| message(unlimited.render(&banner, TargetKind::Terminal, false, facts).map(|_| ()));
+	let refused = |facts: JsValue| message(unlimited.render(&banner, TargetKind::Terminal, false, facts));
 	for facts in [JsValue::NULL, 1.into(), js("[]")] {
 		assert_eq!(refused(facts), "`render()` expects the terminal facts");
 	}
@@ -1293,8 +1282,7 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 
 #[wasm_bindgen_test]
 fn the_node_host_seeds_candy_from_the_override_or_a_fresh_roll() {
-	let mut banner = text("AB");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("AB");
 	banner.colors(js("[\"candy\"]")).expect("valid colors");
 	let facts = || terminal(Some(80), &[("FORCE_COLOR", "3")]);
 	let pinned = NodeHost::from_overrides(overrides(None, None, Some(42))).expect("valid overrides");
@@ -1324,8 +1312,7 @@ fn the_line_ending_crosses_as_the_target_answers_it() {
 #[wasm_bindgen_test]
 fn the_page_host_say_cannot_fail() {
 	// the write cannot fail, the node test runner has a console so it lands in the test output
-	let mut banner = text("A");
-	banner.font("tiny".into()).expect("a font name");
+	let mut banner = tiny("A");
 	banner.spaceless().expect("first spaceless call");
 
 	BrowserHost::from_overrides(JsValue::UNDEFINED).expect("undefined is no overrides").say(
