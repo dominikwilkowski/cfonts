@@ -1,6 +1,6 @@
 //! Everything a color is: the types, the conversion tables and the candy assortment
 //!
-//! Targets decide how a color is written; hosts decide whether color exists
+//! Targets decide how a color is written, hosts decide whether color exists
 //! This module only ever answers what a color is worth in another representation
 
 pub mod gradient;
@@ -211,33 +211,13 @@ impl Rgb {
 		Self { red: gray, green: gray, blue: gray }
 	}
 
-	/// The sixteen named colors in ANSI order, the palette entries below the cube
-	const ANSI16: [Value; 16] = [
-		Value::Black,
-		Value::Red,
-		Value::Green,
-		Value::Yellow,
-		Value::Blue,
-		Value::Magenta,
-		Value::Cyan,
-		Value::White,
-		Value::Gray,
-		Value::RedBright,
-		Value::GreenBright,
-		Value::YellowBright,
-		Value::BlueBright,
-		Value::MagentaBright,
-		Value::CyanBright,
-		Value::WhiteBright,
-	];
-
 	/// The RGB value of one ANSI 256 palette index
 	///
 	/// The sixteen low entries carry the named colors' table values, the cube and the gray ramp are exact,
 	/// so every cube and gray index round trips through [`ansi256_index`](Self::ansi256_index)
 	pub fn from_ansi256_index(index: u8) -> Self {
 		match index {
-			0..=15 => Self::ANSI16[usize::from(index)].to_rgb().expect("every named color carries an RGB value"),
+			0..=15 => Value::NAMED_VALUES[usize::from(index)].to_rgb().expect("every named color carries an RGB value"),
 			16..=231 => {
 				let cube = usize::from(index - 16);
 
@@ -259,7 +239,7 @@ impl Rgb {
 		}
 	}
 
-	/// The nearest cube level; the range edges sit at the midpoints and give ties to the lower level
+	/// The nearest cube level, the range edges sit at the midpoints and give ties to the lower level
 	fn cube_level(channel: u8) -> usize {
 		match channel {
 			0..=47 => 0,
@@ -506,6 +486,10 @@ macro_rules! vocabulary {
 
 			/// The sixteen names every kind takes, in the order the help lists them
 			const NAMED: &'static [&'static str] = &[$($name),*];
+
+			/// The sixteen values every kind takes, in the order of their names, which is the ANSI palette's order,
+			/// so the palette's low sixteen entries index it
+			const NAMED_VALUES: [Self; Self::NAMED.len()] = [$(Self::$variant),*];
 
 			/// The name of the candy color, the last name of every kind that takes it
 			const CANDY_NAME: &'static str = $candy_name;
@@ -874,7 +858,7 @@ impl TryFrom<Vec<Color<Gradient>>> for TransitionStops {
 /// by [`independent_gradient`](crate::Options::independent_gradient)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GradientOption {
-	/// Two colors interpolated through hue space; every color in between gets visited
+	/// Two colors interpolated through hue space, every color in between gets visited
 	TwoStop { start: Color<Gradient>, end: Color<Gradient> },
 
 	/// Two or more stops connected by straight lines through RGB space
@@ -910,7 +894,7 @@ pub enum GradientOption {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ColorOption {
-	/// One color per font color slot; missing slots stay unpainted, colors beyond the font's slots are ignored
+	/// One color per font color slot, missing slots stay unpainted and colors beyond the font's slots are ignored
 	Colors(Vec<Color<Text>>),
 
 	/// A gradient across the scope's columns
