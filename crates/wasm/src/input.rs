@@ -4,7 +4,7 @@
 //! and refuse a wrong shape with a `TypeError` that names the method,
 //! a value the core refuses carries the core's own sentence as a plain `Error`
 
-use std::{convert::Infallible, str::FromStr};
+use std::{borrow::Cow, convert::Infallible, str::FromStr};
 
 use js_sys::{Function, Reflect, TypeError};
 use tsify::Tsify;
@@ -398,11 +398,11 @@ impl Input {
 	/// `place` is where the color goes, a slot, a stop or the background, and names the sentence a wrong shape gets
 	fn spelling(&self, place: Place) -> Result<Spelling, JsValue> {
 		if self.value.as_f64().is_some() {
-			return self.expect_variant(&CoreColor::<Text>::NAMES).map(Spelling::Name);
+			return self.expect_variant(&CoreColor::<Text>::NAMES).map(|name| Spelling::Text(Cow::Borrowed(name)));
 		}
 
 		if let Some(text) = self.value.as_string() {
-			return Ok(Spelling::Text(text));
+			return Ok(Spelling::Text(Cow::Owned(text)));
 		}
 
 		if !self.value.is_object() {
@@ -512,11 +512,11 @@ impl Input {
 
 /// One color as JavaScript spells it, its shape checked and its value left for the place it goes
 ///
-/// A `Color` value is its name from the core's list, a string is the text as it is, and channel values
-/// are the `Rgb` the core takes, so no value crosses through a hex spelling and back
+/// A `Color` value is its name from the core's list and a string is the text as it is, both text the core
+/// parses, borrowed from the list or owned as it crossed, and channel values are the `Rgb` the core takes,
+/// so no value crosses through a hex spelling and back
 enum Spelling {
-	Name(&'static str),
-	Text(String),
+	Text(Cow<'static, str>),
 	Channels(CoreRgb),
 }
 
@@ -528,11 +528,10 @@ impl Spelling {
 
 	/// The color in the kind of its place
 	///
-	/// A name and a text parse through the core, so it keeps refusing system in a gradient and candy
-	/// in a background with its own sentence, channels convert through the core's `From<Rgb>`
+	/// Text parses through the core, so a gradient keeps refusing system and candy with the core's own sentence,
+	/// channels convert through the core's `From<Rgb>`
 	fn color<K: Kind>(&self) -> Result<CoreColor<K>, JsValue> {
 		match self {
-			Self::Name(name) => Self::parse(name),
 			Self::Text(text) => Self::parse(text),
 			Self::Channels(rgb) => Ok(CoreColor::from(*rgb)),
 		}
@@ -540,10 +539,9 @@ impl Spelling {
 
 	/// The background one color spells
 	///
-	/// A name and a text parse as the command line spelling, so a comma list and candy carry the core's sentence
+	/// Text parses as the command line spelling, so a comma list and candy carry the core's sentence
 	fn background(&self) -> Result<CoreBackgroundOption, JsValue> {
 		match self {
-			Self::Name(name) => Self::parse(name),
 			Self::Text(text) => Self::parse(text),
 			Self::Channels(rgb) => Ok(CoreColor::<Background>::from(*rgb).into()),
 		}
