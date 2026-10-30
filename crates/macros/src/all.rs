@@ -1,6 +1,6 @@
 use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree};
 
-use crate::error::CompileError;
+use crate::{error::CompileError, literal::LiteralText};
 
 /// What `All` reads: the name of a fieldless enum and every variant with the name it lists under
 pub(crate) struct EnumSource {
@@ -155,15 +155,15 @@ impl AllAttribute {
 				match (argument_tokens.next(), argument_tokens.next(), argument_tokens.next()) {
 					(Some(TokenTree::Punct(ref equals)), Some(TokenTree::Literal(literal)), None) if equals.as_char() == '=' => {
 						let source = literal.to_string();
-						let Some(list_name) = source.strip_prefix('"').and_then(|rest| rest.strip_suffix('"')) else {
+						let Ok(list_name) = LiteralText(&source).string() else {
 							return Err(format!("all(rename) expects a plain string literal, found {source}"));
 						};
 
-						if list_name.is_empty() || list_name.contains(['"', '\\']) {
+						if list_name.is_empty() {
 							return Err(format!("all(rename) expects a simple name, found {source}"));
 						}
 
-						Ok(Self::Rename(String::from(list_name)))
+						Ok(Self::Rename(list_name))
 					}
 					_ => Err(format!("all(rename) expects a plain string literal, {}", Self::KNOWN_FORMS)),
 				}

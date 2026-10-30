@@ -3,6 +3,7 @@ use proc_macro::{Span, TokenStream};
 mod all;
 mod error;
 mod font;
+mod literal;
 
 use crate::{error::CompileError, font::SUPPORTED_CHARS};
 
