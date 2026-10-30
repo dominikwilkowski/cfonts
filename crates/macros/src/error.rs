@@ -13,11 +13,13 @@ impl CompileError {
 	}
 
 	/// The `compile_error!` call, every token carrying the span so the compiler underlines the blamed source
+	///
+	/// The message sits in braces, so the call stands as an item without a semicolon and as an expression alike
 	pub(crate) fn into_tokens(self) -> TokenStream {
 		let mut message = Literal::string(&self.message);
 		message.set_span(self.span);
 
-		let mut arguments = Group::new(Delimiter::Parenthesis, TokenStream::from(TokenTree::Literal(message)));
+		let mut arguments = Group::new(Delimiter::Brace, TokenStream::from(TokenTree::Literal(message)));
 		arguments.set_span(self.span);
 
 		let mut bang = Punct::new('!', Spacing::Alone);

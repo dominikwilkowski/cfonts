@@ -11,15 +11,9 @@ pub(crate) struct EnumSource {
 impl EnumSource {
 	/// Does the work for `All`, a problem with the input turns into a `compile_error!` at the call site
 	pub(crate) fn derive(input: TokenStream) -> TokenStream {
-		match Self::read(input).and_then(|source| source.expand()) {
-			Ok(generated) => generated,
-			Err(message) => {
-				// derive output sits in item position, so the invocation takes its semicolon
-				let mut error = CompileError::new(message, Span::call_site()).into_tokens();
-				error.extend(";".parse::<TokenStream>().expect("a semicolon always parses"));
-				error
-			}
-		}
+		Self::read(input)
+			.and_then(|source| source.expand())
+			.unwrap_or_else(|message| CompileError::new(message, Span::call_site()).into_tokens())
 	}
 
 	/// Reads the derive input, the enum's name and its variants in declaration order
