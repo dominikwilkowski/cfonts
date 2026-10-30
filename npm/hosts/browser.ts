@@ -44,6 +44,12 @@ export class BrowserHost implements Host {
 
 	/**
 	 * Creates a browser host with explicit capability overrides, the constructor with its object
+	 *
+	 * @example
+	 * BrowserHost.fromOverrides({ canvasWidth: 80, seed: 42 });
+	 *
+	 * @example
+	 * BrowserHost.fromOverrides({ color: false }); // paints nothing
 	 */
 	static fromOverrides(overrides: RenderOverrides): BrowserHost {
 		return new BrowserHost(overrides);

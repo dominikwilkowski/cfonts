@@ -10,18 +10,28 @@ import type { Host } from "./types.js";
  * The Rust Node host behind the boundary: it resolves the terminal width and the color support
  * from the facts of the process and writes artifacts to stdout
  *
+ * FORCE_SIZE, FORCE_COLOR and NO_COLOR take precedence over every override the host is given
+ *
  * TypeScript gathers the facts Rust cannot read in Node and keeps the one write, the decisions live in the core
  */
 export class NodeHost implements Host {
 	readonly #inner: WasmNodeHost;
 
 	/**
-	 * Creates the Node host that detects everything from the terminal, or one with explicit capability overrides
+	 * One lookup of an environment variable by its name, the function the resolution calls per name
 	 *
-	 * FORCE_SIZE, FORCE_COLOR and NO_COLOR still take precedence over the overrides,
-	 * the object crosses the boundary as it is, the core reads it
-	 *
-	 * @example
+	 * A variable is read through `process.env` itself at the moment the resolution asks for it, so the lookup
+	 * carries Node's own rule, case insensitive on a Windows main thread and exact elsewhere, and no name list
+	 * lives here, and the one function crosses the boundary with every render instead of a fresh closure
+	 */
+	static readonly #environment = (name: string): string | undefined => process.env[name];
+
+	/**
+ * Creates the Node host that detects everything from the terminal, or one with explicit capability overrides
+ *
+ * The overrides object crosses the boundary as it is, the core reads it
+ *
+ * @example
 	 * new NodeHost();
 	 *
 	 * @example
@@ -48,8 +58,6 @@ export class NodeHost implements Host {
 	/**
 	 * Creates a Node host with explicit capability overrides, the constructor with its object
 	 *
-	 * FORCE_SIZE, FORCE_COLOR and NO_COLOR still take precedence over these values
-	 *
 	 * @example
 	 * NodeHost.fromOverrides({ canvasWidth: 40, color: ColorLevel.Basic });
 	 *
@@ -61,24 +69,20 @@ export class NodeHost implements Host {
 	}
 
 	render(composition: Cfonts, target: Target): Rendered {
-		return this.#inner.render(composition[inner](), ...targetArguments(target, "render"), this.#terminal());
+		return this.#inner.render(composition[inner](), ...targetArguments(target, "render"), NodeHost.#terminal());
 	}
 
 	say(composition: Cfonts, target: Target): void {
 		const [kind, rawMode] = targetArguments(target, "say");
-		const rendered = this.#inner.render(composition[inner](), kind, rawMode, this.#terminal());
+		const rendered = this.#inner.render(composition[inner](), kind, rawMode, NodeHost.#terminal());
 
 		process.stdout.write(`${rendered.text}${WasmNodeHost.lineEnd(kind, rawMode)}`);
 	}
 
 	/**
 	 * The facts of the process the resolution reads, gathered at every render so a resized terminal is seen
-	 *
-	 * A variable is read through `process.env` itself at the moment the resolution asks for it, so the lookup
-	 * carries Node's own rule, case insensitive on a Windows main thread and exact elsewhere, and no name list
-	 * lives here
 	 */
-	#terminal(): Terminal {
+	static #terminal(): Terminal {
 		// stdout is a tty stream only while a terminal is attached, piped it carries no `isTTY` at all, whatever @types/node says
 		const { isTTY } = process.stdout as { isTTY?: boolean };
 
@@ -88,7 +92,7 @@ export class NodeHost implements Host {
 			attached: isTTY === true,
 			platform: process.platform,
 			release: release(),
-			environment: (name) => process.env[name],
+			environment: NodeHost.#environment,
 		};
 	}
 }
