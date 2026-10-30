@@ -5,7 +5,11 @@ mod error;
 mod font;
 mod literal;
 
-use crate::{error::CompileError, font::SUPPORTED_CHARS};
+use crate::{
+	all::EnumSource,
+	error::CompileError,
+	font::{SUPPORTED_CHARS, checks::Checks, source::FontSource, tables::Tables},
+};
 
 /// Derives `ALL`, a `pub const` array holding every variant of a fieldless enum, and its names
 ///
@@ -41,7 +45,7 @@ use crate::{error::CompileError, font::SUPPORTED_CHARS};
 /// Invalid input turns into a `compile_error!` at the call site
 #[proc_macro_derive(All, attributes(all))]
 pub fn all(input: TokenStream) -> TokenStream {
-	all::EnumSource::derive(input)
+	EnumSource::derive(input)
 }
 
 /// Compiles one font's art into the tables cfonts renders from, checking every rule a font follows
@@ -72,7 +76,18 @@ pub fn all(input: TokenStream) -> TokenStream {
 /// A broken rule turns into a `compile_error!` at the setting, glyph or row breaking it
 #[proc_macro]
 pub fn font(input: TokenStream) -> TokenStream {
-	font::expand(input)
+	// every problem names the macro once, here, where reading and checking both surface
+	let compiled = FontSource::read(input).and_then(|(font, spans)| {
+		Checks::run(&font)
+			.and_then(|()| Tables::expand(&font))
+			.map_err(|problem| CompileError::new(problem.to_string(), spans.of(problem.place)))
+	});
+
+	match compiled {
+		// the tables print literals, punctuation and the font's own tokens back, all of which lex
+		Ok(expression) => expression.parse().expect("the font tables always lex"),
+		Err(error) => error.prefixed("font!: ").into_tokens(),
+	}
 }
 
 /// Expands to the array of every character cfonts draws, the one list `font!` checks each font against
