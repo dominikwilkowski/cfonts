@@ -15,13 +15,8 @@ struct Variant {
 }
 
 impl EnumSource {
-	/// Does the work for `All`, a problem with the input turns into a `compile_error!` at the token it blames
-	pub(crate) fn derive(input: TokenStream) -> TokenStream {
-		Self::read(input).map(|source| source.expand()).unwrap_or_else(CompileError::into_tokens)
-	}
-
 	/// Reads the derive input, the enum's name and its variants in declaration order
-	fn read(input: TokenStream) -> Result<Self, CompileError> {
+	pub(crate) fn read(input: TokenStream) -> Result<Self, CompileError> {
 		let mut tokens = input.into_iter().peekable();
 
 		// derive input still carries visibility and other attributes so we step past them to the enum keyword
@@ -104,7 +99,7 @@ impl EnumSource {
 	}
 
 	/// The impl holding `ALL` and `NAMES` for the enum
-	fn expand(&self) -> TokenStream {
+	pub(crate) fn expand(&self) -> TokenStream {
 		let Self { name, variants } = self;
 		let count = variants.len();
 		let variant_list =

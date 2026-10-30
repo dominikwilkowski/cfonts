@@ -46,7 +46,7 @@ use crate::{
 /// a variant's data or the attribute
 #[proc_macro_derive(All, attributes(all))]
 pub fn all(input: TokenStream) -> TokenStream {
-	EnumSource::derive(input)
+	EnumSource::read(input).map(|source| source.expand()).unwrap_or_else(CompileError::into_tokens)
 }
 
 /// Compiles one font's art into the tables cfonts renders from, checking every rule a font follows
