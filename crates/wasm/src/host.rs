@@ -75,18 +75,20 @@ pub(crate) type Lookup = Box<dyn Fn(&str) -> Result<Option<String>, JsValue>>;
 /// The column counts are the streams' own, absent where a stream is redirected, the environment crosses as a
 /// lookup the resolution calls per name, so `FORCE_SIZE`, `FORCE_COLOR`, `NO_COLOR` and the detection variables
 /// are read here, each through the runtime's own property read at the moment of the render
+// the object is JavaScript's to build and no Rust caller takes one, so the type stays inside the crate,
+// the derive alone publishes its declaration and the render takes the value JavaScript hands over
 #[derive(Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct Terminal {
+pub(crate) struct Terminal {
 	#[tsify(optional)]
-	pub stdout_columns: Option<u32>,
+	pub(crate) stdout_columns: Option<u32>,
 	#[tsify(optional)]
-	pub stderr_columns: Option<u32>,
-	pub attached: bool,
-	pub platform: String,
-	pub release: String,
+	pub(crate) stderr_columns: Option<u32>,
+	pub(crate) attached: bool,
+	pub(crate) platform: String,
+	pub(crate) release: String,
 	#[tsify(type = "(name: string) => string | undefined")]
-	pub environment: Lookup,
+	pub(crate) environment: Lookup,
 }
 
 impl Terminal {
