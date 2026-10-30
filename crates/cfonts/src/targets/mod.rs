@@ -203,7 +203,7 @@ pub trait Target {
 	///
 	/// The default opens the row's band, when there is one, and expresses the row's alignment
 	/// as physical padding inside it
-	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, _options: &Options, out: &mut Rendered) {
+	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, out: &mut Rendered) {
 		if let Some(band) = band {
 			out.text.push_str(&band.start);
 		}
@@ -260,10 +260,10 @@ pub trait Target {
 	/// Adds the start of the wrapper around the render output
 	///
 	/// `banded` says whether the rows of this render carry bands, for wrappers that make room for them
-	fn wrapper_start(&self, _options: &Options, _banded: bool, _out: &mut Rendered) {}
+	fn wrapper_start(&self, _banded: bool, _out: &mut Rendered) {}
 
 	/// Adds the end of the wrapper around the render output, `banded` as in [`wrapper_start`](Self::wrapper_start)
-	fn wrapper_end(&self, _options: &Options, _banded: bool, _out: &mut Rendered) {}
+	fn wrapper_end(&self, _banded: bool, _out: &mut Rendered) {}
 
 	/// Renders precomputed layout rows in one paint-stream traversal
 	fn render_rows(&self, rows: &[LayoutRow], options: &Options, context: &RenderContext) -> Rendered {
@@ -291,7 +291,7 @@ pub trait Target {
 		// a composition without rows paints its one bare row with the first band
 		let mut row_band = backdrop.band(lead);
 
-		self.wrapper_start(options, banded, &mut out);
+		self.wrapper_start(banded, &mut out);
 
 		if !options.spaceless {
 			self.top_padding(array::from_fn(|row| backdrop.band(row)), &mut out);
@@ -301,7 +301,7 @@ pub trait Target {
 			RowEvent::RowStart { row, index } => {
 				row_band = backdrop.band(lead + index);
 				gradients.start_row(row);
-				self.row_start(row, row_band, options, &mut out);
+				self.row_start(row, row_band, &mut out);
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
@@ -324,7 +324,7 @@ pub trait Target {
 		});
 
 		if rows.is_empty() {
-			self.row_start(&LayoutRow::default(), row_band, options, &mut out);
+			self.row_start(&LayoutRow::default(), row_band, &mut out);
 		}
 		self.row_end(row_band, &mut out);
 
@@ -333,7 +333,7 @@ pub trait Target {
 			self.bottom_padding(array::from_fn(|row| backdrop.band(below + row)), &mut out);
 		}
 
-		self.wrapper_end(options, banded, &mut out);
+		self.wrapper_end(banded, &mut out);
 
 		out
 	}
@@ -440,7 +440,7 @@ mod tests {
 	fn the_default_row_start_paints_the_alignment_offset() {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 4, block_spans: Vec::new() };
 		let mut out = Rendered::default();
-		TerminalTarget::default().row_start(&row, None, &Options::default(), &mut out);
+		TerminalTarget::default().row_start(&row, None, &mut out);
 
 		assert_eq!(out.text, "    ");
 	}
@@ -546,10 +546,10 @@ mod tests {
 			fn background_tokens(&self, _color: Color<Background>, _level: ColorLevel) -> ColorTokens {
 				ColorTokens { start: Cow::Borrowed("["), end: Cow::Borrowed("]") }
 			}
-			fn wrapper_start(&self, _options: &Options, banded: bool, out: &mut Rendered) {
+			fn wrapper_start(&self, banded: bool, out: &mut Rendered) {
 				out.text.push_str(if banded { "banded:" } else { "plain:" });
 			}
-			fn wrapper_end(&self, _options: &Options, banded: bool, out: &mut Rendered) {
+			fn wrapper_end(&self, banded: bool, out: &mut Rendered) {
 				out.text.push_str(if banded { ":banded" } else { ":plain" });
 			}
 		}

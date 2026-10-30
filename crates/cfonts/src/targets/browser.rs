@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use crate::{
 	color::{Background, Color, ColorLevel, Rgb, Text},
 	layout::LayoutRow,
-	options::Options,
 	render::GradientPlans,
 	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, push_escaped},
 };
@@ -147,7 +146,7 @@ impl Target for BrowserTarget {
 	}
 
 	/// A banded row opens its band, an empty row without a band is the bare block
-	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, _options: &Options, out: &mut Rendered) {
+	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, out: &mut Rendered) {
 		match band {
 			Some(band) => out.text.push_str(&band.start),
 			None if !row.has_columns() => out.text.push_str(EMPTY_ROW),
@@ -177,7 +176,7 @@ impl Target for BrowserTarget {
 	}
 
 	/// A banded render nests the scroll wide block inside the wrapper
-	fn wrapper_start(&self, _options: &Options, banded: bool, out: &mut Rendered) {
+	fn wrapper_start(&self, banded: bool, out: &mut Rendered) {
 		out.text.push_str(WRAPPER_START);
 
 		if banded {
@@ -185,7 +184,7 @@ impl Target for BrowserTarget {
 		}
 	}
 
-	fn wrapper_end(&self, _options: &Options, banded: bool, out: &mut Rendered) {
+	fn wrapper_end(&self, banded: bool, out: &mut Rendered) {
 		if banded {
 			out.text.push_str(BLOCK_END);
 		}
@@ -292,11 +291,11 @@ mod tests {
 	#[test]
 	fn an_empty_row_without_a_band_is_the_bare_block() {
 		let mut out = Rendered::default();
-		BrowserTarget.row_start(&row(0), None, &Options::default(), &mut out);
+		BrowserTarget.row_start(&row(0), None, &mut out);
 		assert_eq!(out.text, r#"<div style="min-height:1lh"></div>"#);
 
 		let mut out = Rendered::default();
-		BrowserTarget.row_start(&row(3), None, &Options::default(), &mut out);
+		BrowserTarget.row_start(&row(3), None, &mut out);
 		assert_eq!(out.text, "");
 	}
 

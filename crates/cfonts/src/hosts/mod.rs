@@ -97,7 +97,7 @@ mod tests {
 	}
 
 	impl Target for SpyTarget {
-		fn wrapper_start(&self, _options: &Options, _banded: bool, out: &mut Rendered) {
+		fn wrapper_start(&self, _banded: bool, out: &mut Rendered) {
 			self.render_calls.set(self.render_calls.get() + 1);
 
 			out.text.push_str(self.marker);

@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use crate::{
 	color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Background, Color, ColorLevel, Rgb, Text, Value},
 	layout::LayoutRow,
-	options::Options,
 	render::GradientPlans,
 	targets::{ColorTokens, PADDING_ROWS, Rendered, Target},
 };
@@ -203,7 +202,7 @@ impl Target for TerminalTarget {
 	}
 
 	/// A band fills to the edge of the terminal the moment it opens, so the row's text lands on it
-	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, _options: &Options, out: &mut Rendered) {
+	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, out: &mut Rendered) {
 		if let Some(band) = band {
 			out.text.push_str(&band.start);
 			out.text.push_str(ERASE_TO_LINE_END);
@@ -340,11 +339,11 @@ mod tests {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
 
 		let mut out = Rendered::default();
-		target.row_start(&row, Some(&band), &Options::default(), &mut out);
+		target.row_start(&row, Some(&band), &mut out);
 		assert_eq!(out.text, "\u{1b}[44m\u{1b}[K  ");
 
 		let mut out = Rendered::default();
-		target.row_start(&row, None, &Options::default(), &mut out);
+		target.row_start(&row, None, &mut out);
 		assert_eq!(out.text, "  ");
 	}
 

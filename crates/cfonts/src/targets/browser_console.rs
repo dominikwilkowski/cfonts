@@ -3,7 +3,6 @@ use std::{borrow::Cow, iter};
 use crate::{
 	color::{Background, Color, ColorLevel, Rgb, Text},
 	layout::LayoutRow,
-	options::Options,
 	render::GradientPlans,
 	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, push_escaped},
 };
@@ -162,7 +161,7 @@ impl Target for BrowserConsoleTarget {
 	}
 
 	/// The band is a declaration, not text, so a row opens nothing by itself, its alignment blanks decide
-	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, _options: &Options, out: &mut Rendered) {
+	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, out: &mut Rendered) {
 		self.blank(row.align_offset, band, out);
 	}
 
@@ -409,12 +408,12 @@ mod tests {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
 
 		let mut out = Rendered::default();
-		BrowserConsoleTarget.row_start(&row, Some(&blue_band()), &Options::default(), &mut out);
+		BrowserConsoleTarget.row_start(&row, Some(&blue_band()), &mut out);
 		assert_eq!(out.text, "%c  ");
 		assert_eq!(out.styles, vec![String::from("background:#0020f5")]);
 
 		let mut out = Rendered::default();
-		BrowserConsoleTarget.row_start(&row, None, &Options::default(), &mut out);
+		BrowserConsoleTarget.row_start(&row, None, &mut out);
 		assert_eq!(out.text, "  ");
 		assert!(out.styles.is_empty());
 	}
@@ -425,7 +424,7 @@ mod tests {
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 0, block_spans: Vec::new() };
 		let mut out = Rendered::default();
 
-		BrowserConsoleTarget.row_start(&row, Some(&blue_band()), &Options::default(), &mut out);
+		BrowserConsoleTarget.row_start(&row, Some(&blue_band()), &mut out);
 
 		assert_eq!(out.text, "");
 		assert!(out.styles.is_empty());
