@@ -34,17 +34,27 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 
 	let prompt = if styled { PROMPT_COLORED } else { PROMPT_PLAIN };
 
+	// one example carries the composition wide paint settings, every font swaps its name and itself in
+	let mut example: Options = Cfonts::text("").spaceless().into();
+	example.global_colors = options.global_colors.clone();
+	example.independent_gradient = options.independent_gradient;
+	example.background = options.background.clone();
+
 	for font in Font::ALL {
 		let name = font.get_font().name();
-		let mut example: Options = Cfonts::text(String::from(name)).font(font).spaceless().into();
-		example.global_colors = options.global_colors.clone();
-		example.independent_gradient = options.independent_gradient;
-		example.background = options.background.clone();
+		let block = &mut example.blocks[0];
+		block.set_text(name);
+		block.font = font;
 		let rendered = context.render(&example, &TerminalTarget::default());
-		output.push_str(&format!(
-			"{prompt} cfonts \"{name}\" --font {name}\n\n{}\n\n────────────────────────────────────────────────────────────\n\n",
-			rendered.text
-		));
+
+		output.push_str(prompt);
+		output.push_str(" cfonts \"");
+		output.push_str(name);
+		output.push_str("\" --font ");
+		output.push_str(name);
+		output.push_str("\n\n");
+		output.push_str(&rendered.text);
+		output.push_str("\n\n────────────────────────────────────────────────────────────\n\n");
 	}
 
 	output
