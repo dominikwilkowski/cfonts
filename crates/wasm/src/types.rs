@@ -1,6 +1,6 @@
 use js_sys::{Object, Reflect};
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 use cfonts::{
@@ -88,6 +88,15 @@ pub struct Rendered {
 impl From<CoreRendered> for Rendered {
 	fn from(rendered: CoreRendered) -> Self {
 		Self { text: rendered.text, styles: rendered.styles }
+	}
+}
+
+impl Rendered {
+	/// The core's artifact as it crosses to JavaScript, the one step every render export ends with
+	///
+	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
+	pub(crate) fn cross(rendered: CoreRendered) -> Result<Ts<Self>, JsError> {
+		Self::from(rendered).into_ts().map_err(JsError::from)
 	}
 }
 

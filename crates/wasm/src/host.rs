@@ -52,13 +52,8 @@ impl BrowserHost {
 	}
 
 	/// Renders the composition into the target's format with the host's three answers pinned
-	///
-	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(&self, composition: &Cfonts, target: TargetKind, raw_mode: bool) -> Result<Ts<Rendered>, JsError> {
-		let rendered: Rendered =
-			with_target!(target, raw_mode, |target| self.inner.render(&target, composition.options())).into();
-
-		Ok(rendered.into_ts()?)
+		Rendered::cross(with_target!(target, raw_mode, |target| self.inner.render(&target, composition.options())))
 	}
 
 	/// Renders once and writes once into the page console
@@ -159,8 +154,6 @@ impl NodeHost {
 	}
 
 	/// Renders the composition into the target's format, the three answers resolved from the terminal facts
-	///
-	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(
 		&self,
 		composition: &Cfonts,
@@ -170,8 +163,7 @@ impl NodeHost {
 	) -> Result<Ts<Rendered>, JsValue> {
 		let terminal = Input::new(terminal, "render").terminal()?;
 		let host = TerminalHost::new(self.overrides, &terminal);
-		let rendered: Rendered =
-			with_target!(target, raw_mode, |target| host.render(&target, composition.options())).into();
+		let rendered = with_target!(target, raw_mode, |target| host.render(&target, composition.options()));
 
 		// the artifact of a render whose lookup threw rests on facts the consumer never answered,
 		// so the consumer's own exception comes back in its place
@@ -179,7 +171,7 @@ impl NodeHost {
 			return Err(exception);
 		}
 
-		Ok(rendered.into_ts().map_err(JsError::from)?)
+		Ok(Rendered::cross(rendered)?)
 	}
 }
 

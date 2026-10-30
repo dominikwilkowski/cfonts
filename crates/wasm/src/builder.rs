@@ -1,6 +1,6 @@
 use std::num::NonZeroUsize;
 
-use tsify::{Ts, Tsify};
+use tsify::Ts;
 use wasm_bindgen::prelude::*;
 
 use cfonts::{Align, Cfonts as CoreCfonts, Font, Options, Valign, options::BlockOptions, render_with};
@@ -205,8 +205,6 @@ impl Cfonts {
 	///
 	/// Nothing is detected here, so an override left out is off: no canvas limit, no color, the zero seed,
 	/// raw mode ends terminal rows with `\r\n` and means nothing to the browser targets
-	///
-	/// The artifact crosses through [`Ts`] so a serialization failure surfaces as a JavaScript error instead of a leak
 	pub fn render(
 		&self,
 		#[wasm_bindgen(unchecked_param_type = "RenderOverrides | undefined")] overrides: JsValue,
@@ -214,9 +212,7 @@ impl Cfonts {
 		raw_mode: bool,
 	) -> Result<Ts<Rendered>, JsValue> {
 		let overrides = Input::new(overrides, "renderWith").overrides()?;
-		let rendered: Rendered =
-			with_target!(target, raw_mode, |target| render_with(&self.options, &target, overrides).into());
 
-		Ok(rendered.into_ts().map_err(JsError::from)?)
+		Ok(Rendered::cross(with_target!(target, raw_mode, |target| render_with(&self.options, &target, overrides)))?)
 	}
 }
