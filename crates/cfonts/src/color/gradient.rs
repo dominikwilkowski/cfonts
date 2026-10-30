@@ -267,23 +267,12 @@ impl GradientPreset {
 		}
 	}
 
-	/// The canonical name of this preset, the one its aliases stand for
+	/// The canonical name of this preset, the one its aliases stand for: its entry in the derived [`NAMES`](Self::NAMES)
+	///
+	/// The variants carry no explicit discriminants, so a preset's discriminant is its index in the list,
+	/// `every_name_is_the_derived_name_and_parses_back` holds them to it
 	pub const fn name(self) -> &'static str {
-		match self {
-			Self::Pride => "pride",
-			Self::Agender => "agender",
-			Self::Aromantic => "aromantic",
-			Self::Asexual => "asexual",
-			Self::Bisexual => "bisexual",
-			Self::Genderfluid => "genderfluid",
-			Self::Genderqueer => "genderqueer",
-			Self::Intersex => "intersex",
-			Self::Lesbian => "lesbian",
-			Self::Nonbinary => "nonbinary",
-			Self::Pansexual => "pansexual",
-			Self::Polysexual => "polysexual",
-			Self::Transgender => "transgender",
-		}
+		Self::NAMES[self as usize]
 	}
 
 	/// The stops of this preset
@@ -584,10 +573,12 @@ mod tests {
 
 	#[test]
 	fn every_name_is_the_derived_name_and_parses_back() {
-		// the hand written names and the derived list can never drift apart
-		for (preset, name) in GradientPreset::ALL.into_iter().zip(GradientPreset::NAMES) {
+		// a name is read by discriminant, so every discriminant must be its variant's position in the declaration,
+		// an explicit one would break that without a word from `All`
+		for (index, (preset, name)) in GradientPreset::ALL.into_iter().zip(GradientPreset::NAMES).enumerate() {
+			assert_eq!(preset as usize, index, "{preset:?}");
 			assert_eq!(preset.name(), name, "{preset:?}");
-			assert_eq!(GradientPreset::from_name(preset.name()), Some(preset), "{preset:?}");
+			assert_eq!(GradientPreset::from_name(name), Some(preset), "{preset:?}");
 		}
 	}
 }
