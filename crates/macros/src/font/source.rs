@@ -177,7 +177,7 @@ impl Reader {
 			"glyphs" => Self::once(&mut self.glyphs, cursor.glyphs(spans)?, &name),
 			other => Err(CompileError::new(
 				format!(
-					"font!: unknown setting `{other}`, a font sets font, name, colors, rows, line_height, letter_spacing, ground, checks, buffer_start, buffer_end, letter_space and glyphs"
+					"unknown setting `{other}`, a font sets font, name, colors, rows, line_height, letter_spacing, ground, checks, buffer_start, buffer_end, letter_space and glyphs"
 				),
 				name.span(),
 			)),
@@ -187,7 +187,7 @@ impl Reader {
 	/// Stores a setting the source sets for the first time
 	fn once<T>(slot: &mut Option<T>, value: T, name: &Ident) -> Result<(), CompileError> {
 		if slot.is_some() {
-			return Err(CompileError::new(format!("font!: `{name}` is set twice, keep one"), name.span()));
+			return Err(CompileError::new(format!("`{name}` is set twice, keep one"), name.span()));
 		}
 
 		*slot = Some(value);
@@ -196,7 +196,7 @@ impl Reader {
 
 	/// The font, once every required setting is read
 	fn finish(self) -> Result<(FontSource, Spans), CompileError> {
-		let missing = |setting: &str| CompileError::new(format!("font!: set `{setting}`"), Span::call_site());
+		let missing = |setting: &str| CompileError::new(format!("set `{setting}`"), Span::call_site());
 		let rows = self.rows.ok_or_else(|| missing("rows"))?;
 		let empty = || Glyph { rows: vec![Row::default(); rows] };
 
@@ -242,22 +242,20 @@ impl Cursor {
 	}
 
 	fn next(&mut self, expected: &str) -> Result<TokenTree, CompileError> {
-		self.tokens.next().ok_or_else(|| CompileError::new(format!("font!: expected {expected}"), self.end))
+		self.tokens.next().ok_or_else(|| CompileError::new(format!("expected {expected}"), self.end))
 	}
 
 	fn ident(&mut self, expected: &str) -> Result<Ident, CompileError> {
 		match self.next(expected)? {
 			TokenTree::Ident(ident) => Ok(ident),
-			other => Err(CompileError::new(format!("font!: expected {expected}, found `{other}`"), other.span())),
+			other => Err(CompileError::new(format!("expected {expected}, found `{other}`"), other.span())),
 		}
 	}
 
 	fn punct(&mut self, character: char, context: &str) -> Result<(), CompileError> {
 		match self.next(&format!("`{character}` {context}"))? {
 			TokenTree::Punct(punct) if punct.as_char() == character => Ok(()),
-			other => {
-				Err(CompileError::new(format!("font!: expected `{character}` {context}, found `{other}`"), other.span()))
-			}
+			other => Err(CompileError::new(format!("expected `{character}` {context}, found `{other}`"), other.span())),
 		}
 	}
 
@@ -275,7 +273,7 @@ impl Cursor {
 	fn group(&mut self, delimiter: Delimiter, expected: &str) -> Result<Group, CompileError> {
 		match self.next(expected)? {
 			TokenTree::Group(group) if group.delimiter() == delimiter => Ok(group),
-			other => Err(CompileError::new(format!("font!: expected {expected}"), other.span())),
+			other => Err(CompileError::new(format!("expected {expected}"), other.span())),
 		}
 	}
 
@@ -290,9 +288,9 @@ impl Cursor {
 				let source = literal.to_string();
 				value(LiteralText(&source))
 					.map(|value| (value, literal.span()))
-					.map_err(|message| CompileError::new(format!("font!: {message}"), literal.span()))
+					.map_err(|message| CompileError::new(message, literal.span()))
 			}
-			other => Err(CompileError::new(format!("font!: expected {expected}, found `{other}`"), other.span())),
+			other => Err(CompileError::new(format!("expected {expected}, found `{other}`"), other.span())),
 		}
 	}
 
@@ -308,7 +306,7 @@ impl Cursor {
 		}
 
 		if expression.is_empty() {
-			return Err(CompileError::new("font!: expected the font's variant such as `Font::Block`", span));
+			return Err(CompileError::new("expected the font's variant such as `Font::Block`", span));
 		}
 
 		Ok((expression.to_string(), span))
@@ -359,8 +357,8 @@ impl Cursor {
 				lists = Some(items.lists()?);
 			}
 
-			let promise = Promise::named(&name.to_string(), lists)
-				.map_err(|message| CompileError::new(format!("font!: {message}"), name.span()))?;
+			let promise =
+				Promise::named(&name.to_string(), lists).map_err(|message| CompileError::new(message, name.span()))?;
 			promises.push(promise);
 			items.separator("between checks")?;
 		}
@@ -391,7 +389,7 @@ impl Cursor {
 
 		while !rows.is_empty() {
 			let (source, span) = rows.raw_string()?;
-			let row = Row::parse(&source).map_err(|message| CompileError::new(format!("font!: {key}: {message}"), span))?;
+			let row = Row::parse(&source).map_err(|message| CompileError::new(format!("{key}: {message}"), span))?;
 			spans.places.insert(Place::Row(key, glyph.rows.len()), span);
 			glyph.rows.push(row);
 			rows.separator("between rows")?;

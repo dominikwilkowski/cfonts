@@ -12,6 +12,11 @@ impl CompileError {
 		Self { message: message.into(), span }
 	}
 
+	/// The same error with `prefix` in front of its message, so a macro names itself once at its boundary
+	pub(crate) fn prefixed(self, prefix: &str) -> Self {
+		Self { message: format!("{prefix}{}", self.message), span: self.span }
+	}
+
 	/// The `compile_error!` call, every token carrying the span so the compiler underlines the blamed source
 	///
 	/// The message sits in braces, so the call stands as an item without a semicolon and as an expression alike

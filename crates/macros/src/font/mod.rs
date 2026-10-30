@@ -25,17 +25,18 @@ pub(crate) const SUPPORTED_CHARS: &[char] = &[
 ];
 
 /// Does the work for `font!`
+///
+/// Every problem names the macro once, here, where reading and checking both surface
 pub(crate) fn expand(input: TokenStream) -> TokenStream {
-	let (font, spans) = match FontSource::read(input) {
-		Ok(read) => read,
-		Err(error) => return error.into_tokens(),
-	};
+	let compiled = FontSource::read(input).and_then(|(font, spans)| {
+		Checks::run(&font)
+			.and_then(|()| Tables::expand(&font))
+			.map_err(|problem| CompileError::new(problem.to_string(), spans.of(problem.place)))
+	});
 
-	let expression = match Checks::run(&font).and_then(|()| Tables::expand(&font)) {
-		Ok(expression) => expression,
-		Err(problem) => return CompileError::new(format!("font!: {problem}"), spans.of(problem.place)).into_tokens(),
-	};
-
-	// the tables print literals, punctuation and the font's own tokens back, all of which lex
-	expression.parse().expect("the font tables always lex")
+	match compiled {
+		// the tables print literals, punctuation and the font's own tokens back, all of which lex
+		Ok(expression) => expression.parse().expect("the font tables always lex"),
+		Err(error) => error.prefixed("font!: ").into_tokens(),
+	}
 }
