@@ -103,43 +103,43 @@ impl Rendered {
 /// The command line names of every font in the core's order, `3d` spelled the way the command line spells it
 #[wasm_bindgen(js_name = fontNames)]
 pub fn font_names() -> Vec<String> {
-	Font::NAMES.map(String::from).into()
+	Font::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// The names of the horizontal alignments in the core's order
 #[wasm_bindgen(js_name = alignNames)]
 pub fn align_names() -> Vec<String> {
-	Align::NAMES.map(String::from).into()
+	Align::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// The names of the vertical alignments in the core's order
 #[wasm_bindgen(js_name = valignNames)]
 pub fn valign_names() -> Vec<String> {
-	Valign::NAMES.map(String::from).into()
+	Valign::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// The names of the gradient presets in the core's order
 #[wasm_bindgen(js_name = gradientPresetNames)]
 pub fn gradient_preset_names() -> Vec<String> {
-	GradientPreset::NAMES.map(String::from).into()
+	GradientPreset::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// The names a font color slot takes in the core's order, system first and candy last
 #[wasm_bindgen(js_name = colorNames)]
 pub fn color_names() -> Vec<String> {
-	CoreColor::<Text>::NAMES.map(String::from).into()
+	CoreColor::<Text>::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// The names a background takes in the core's order, system first and no candy
 #[wasm_bindgen(js_name = backgroundColorNames)]
 pub fn background_color_names() -> Vec<String> {
-	CoreColor::<Background>::NAMES.map(String::from).into()
+	CoreColor::<Background>::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// The names a gradient stop takes in the core's order, no system and no candy
 #[wasm_bindgen(js_name = gradientColorNames)]
 pub fn gradient_color_names() -> Vec<String> {
-	CoreColor::<Gradient>::NAMES.map(String::from).into()
+	CoreColor::<Gradient>::NAMES.iter().copied().map(String::from).collect()
 }
 
 /// Parses a hex value such as `#ff8800` into RGB channel values
