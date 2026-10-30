@@ -56,10 +56,9 @@ impl BrowserHost {
 		Rendered::cross(with_target!(target, raw_mode, |target| self.inner.render(&target, composition.options())))
 	}
 
-	/// Renders once and writes once into the page console
+	/// Renders once and writes once into the page console, a write that cannot fail
 	pub fn say(&self, composition: &Cfonts, target: TargetKind, raw_mode: bool) {
-		with_target!(target, raw_mode, |target| self.inner.say(&target, composition.options()))
-			.expect("the page console cannot fail");
+		let Ok(()) = with_target!(target, raw_mode, |target| self.inner.say(&target, composition.options()));
 	}
 }
 
