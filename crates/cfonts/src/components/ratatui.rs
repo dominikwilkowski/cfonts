@@ -114,15 +114,12 @@ impl Widget for &CfontsWidget<'_> {
 			self.overrides.color().level_or(Some(ColorLevel::TrueColor)),
 			self.overrides.seed().unwrap_or_else(entropy),
 		);
-		// the plan and the backdrop never ask for a color without a level, so the None arm of the closures is never taken
-		let level = context.color_level();
-		let mut plan = PaintPlan::build(self.options, &context, |color| {
-			level.and_then(|level| CfontsWidget::terminal_color(color.value, level))
-		});
+		let mut plan =
+			PaintPlan::build(self.options, &context, |color, level| CfontsWidget::terminal_color(color.value, level));
 		let mut gradients = GradientPlans::build(&plan, self.options, &rows);
 		// An empty composition still shows one banded row, as the terminal and the browser do
-		let backdrop = Backdrop::build(self.options, &context, rows.len().max(1), |color| {
-			level.and_then(|level| CfontsWidget::terminal_color(color.value, level))
+		let backdrop = Backdrop::build(self.options, &context, rows.len().max(1), |color, level| {
+			CfontsWidget::terminal_color(color.value, level)
 		});
 		// a band is the background of its whole row
 		let band = |row: usize| backdrop.band(row).map(|color| Style::default().bg(*color));
@@ -166,14 +163,14 @@ impl Widget for &CfontsWidget<'_> {
 						x += 1;
 					}
 				}
-				PaintDomain::Block | PaintDomain::Global => {
+				PaintDomain::Block(level) | PaintDomain::Global(level) => {
 					// gradients paint one cell per column, each with its ramp color
 					gradients.paint_segment(block_index, |window| {
 						GradientPlans::each_column(text, window, |character, rgb| {
 							if x < area.right() {
 								let cell = buffer[(x, y)].set_char(character);
-								// a ramp exists only with a level, so a drained window is the one bare case
-								if let Some((rgb, level)) = rgb.zip(level) {
+								// a drained window is the one bare case
+								if let Some(rgb) = rgb {
 									cell.set_fg(CfontsWidget::terminal_rgb(*rgb, level));
 								}
 								x += 1;

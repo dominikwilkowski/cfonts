@@ -4,7 +4,7 @@ use crate::{
 	color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Background, Color, ColorLevel, Rgb, Text, Value},
 	layout::LayoutRow,
 	options::Options,
-	render::{GradientPlans, RenderContext},
+	render::GradientPlans,
 	targets::{ColorTokens, PADDING_ROWS, Rendered, Target},
 };
 
@@ -90,12 +90,8 @@ impl TerminalTarget {
 	/// The tokens of one color on one layer
 	///
 	/// Named colors keep their fixed sixteen color codes at every level so the terminal's own palette applies,
-	/// only RGB values level down, and nothing paints without a level
-	fn tokens(value: Value, context: &RenderContext, layer: Layer) -> ColorTokens {
-		let Some(level) = context.color_level() else {
-			return ColorTokens::default();
-		};
-
+	/// only RGB values level down
+	fn tokens(value: Value, level: ColorLevel, layer: Layer) -> ColorTokens {
 		let start = match value {
 			Value::System | Value::Candy => return ColorTokens::default(),
 			Value::Rgb(rgb) => Self::rgb_code(rgb, level, layer),
@@ -168,13 +164,13 @@ impl Target for TerminalTarget {
 
 	/// Named colors keep their fixed sixteen-color codes at every level so the terminal's own palette applies,
 	/// only RGB values level down
-	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		Self::tokens(color.value, context, Layer::Foreground)
+	fn color_tokens(&self, color: Color<Text>, level: ColorLevel) -> ColorTokens {
+		Self::tokens(color.value, level, Layer::Foreground)
 	}
 
 	/// The background follows the foreground rules on its own layer
-	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		Self::tokens(color.value, context, Layer::Background)
+	fn background_tokens(&self, color: Color<Background>, level: ColorLevel) -> ColorTokens {
+		Self::tokens(color.value, level, Layer::Background)
 	}
 
 	/// Every column gets its own run: the ramp color's start, the character, the reset
@@ -183,14 +179,9 @@ impl Target for TerminalTarget {
 		text: &str,
 		colors: &[Rgb],
 		_band: Option<&ColorTokens>,
-		context: &RenderContext,
+		level: ColorLevel,
 		out: &mut Rendered,
 	) -> usize {
-		let Some(level) = context.color_level() else {
-			out.text.push_str(text);
-			return text.chars().count();
-		};
-
 		GradientPlans::each_column(text, colors, |character, rgb| match rgb {
 			Some(rgb) => {
 				Self::push_rgb_code(*rgb, level, Layer::Foreground, &mut out.text);
@@ -269,7 +260,7 @@ mod tests {
 	#[test]
 	fn named_colors_borrow_their_fixed_codes_at_every_level() {
 		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-			let tokens = TerminalTarget::default().color_tokens(Color::RED, &RenderContext::colored(level));
+			let tokens = TerminalTarget::default().color_tokens(Color::RED, level);
 
 			assert_eq!(tokens.start, "\u{1b}[31m", "{level:?}");
 			assert_eq!(tokens.end, "\u{1b}[39m");
@@ -281,18 +272,9 @@ mod tests {
 	fn rgb_colors_level_down() {
 		let rgb = Color::rgb(255, 136, 0);
 
-		assert_eq!(
-			TerminalTarget::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
-			"\u{1b}[38;2;255;136;0m"
-		);
-		assert_eq!(
-			TerminalTarget::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start,
-			"\u{1b}[38;5;208m"
-		);
-		assert_eq!(
-			TerminalTarget::default().color_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start,
-			"\u{1b}[91m"
-		);
+		assert_eq!(TerminalTarget::default().color_tokens(rgb, ColorLevel::TrueColor).start, "\u{1b}[38;2;255;136;0m");
+		assert_eq!(TerminalTarget::default().color_tokens(rgb, ColorLevel::Ansi256).start, "\u{1b}[38;5;208m");
+		assert_eq!(TerminalTarget::default().color_tokens(rgb, ColorLevel::Basic).start, "\u{1b}[91m");
 	}
 
 	// background_tokens
@@ -303,20 +285,16 @@ mod tests {
 		let rgb = Color::rgb(255, 136, 0);
 
 		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
-			let tokens = target.background_tokens(Color::BLUE, &RenderContext::colored(level));
+			let tokens = target.background_tokens(Color::BLUE, level);
 			assert_eq!(tokens.start, "\u{1b}[44m", "{level:?}");
 			assert_eq!(tokens.end, "\u{1b}[49m");
 		}
 
-		assert_eq!(
-			target.background_tokens(rgb, &RenderContext::colored(ColorLevel::TrueColor)).start,
-			"\u{1b}[48;2;255;136;0m"
-		);
-		assert_eq!(target.background_tokens(rgb, &RenderContext::colored(ColorLevel::Ansi256)).start, "\u{1b}[48;5;208m");
-		assert_eq!(target.background_tokens(rgb, &RenderContext::colored(ColorLevel::Basic)).start, "\u{1b}[101m");
+		assert_eq!(target.background_tokens(rgb, ColorLevel::TrueColor).start, "\u{1b}[48;2;255;136;0m");
+		assert_eq!(target.background_tokens(rgb, ColorLevel::Ansi256).start, "\u{1b}[48;5;208m");
+		assert_eq!(target.background_tokens(rgb, ColorLevel::Basic).start, "\u{1b}[101m");
 
-		assert!(!target.background_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::Basic)).paints());
-		assert!(!target.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
+		assert!(!target.background_tokens(Color::SYSTEM, ColorLevel::Basic).paints());
 	}
 
 	// row_start, top_padding, bottom_padding
@@ -324,7 +302,7 @@ mod tests {
 	#[test]
 	fn a_row_opens_its_band_and_fills_to_the_edge_before_its_alignment() {
 		let target = TerminalTarget::default();
-		let band = target.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
+		let band = target.background_tokens(Color::BLUE, ColorLevel::Basic);
 		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
 
 		let mut out = Rendered::default();
@@ -339,7 +317,7 @@ mod tests {
 	#[test]
 	fn padding_rows_carry_their_bands_around_their_line_ends() {
 		let target = TerminalTarget::default().raw_mode();
-		let band = target.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
+		let band = target.background_tokens(Color::BLUE, ColorLevel::Basic);
 
 		let mut out = Rendered::default();
 		target.top_padding([Some(&band), None], &mut out);
@@ -353,28 +331,19 @@ mod tests {
 	#[test]
 	fn rgb_black_levels_down_to_ansi_black() {
 		let black = Color::rgb(0, 0, 0);
-		let tokens = TerminalTarget::default().color_tokens(black, &RenderContext::colored(ColorLevel::Basic));
+		let tokens = TerminalTarget::default().color_tokens(black, ColorLevel::Basic);
 
 		assert_eq!(tokens.start, "\u{1b}[30m");
 		assert_eq!(tokens.end, "\u{1b}[39m");
 		// the RGB path and the named path agree on black at the basic level
-		assert_eq!(
-			tokens,
-			TerminalTarget::default().color_tokens(Color::BLACK, &RenderContext::colored(ColorLevel::Basic))
-		);
+		assert_eq!(tokens, TerminalTarget::default().color_tokens(Color::BLACK, ColorLevel::Basic));
 	}
 
 	#[test]
-	fn system_candy_and_unleveled_contexts_paint_nothing() {
+	fn system_and_candy_paint_nothing() {
 		// the paint plan rolls candy into a named color before tokens resolve, so raw candy never paints
-		assert!(
-			!TerminalTarget::default().color_tokens(Color::SYSTEM, &RenderContext::colored(ColorLevel::TrueColor)).paints()
-		);
-		assert!(
-			!TerminalTarget::default().color_tokens(Color::CANDY, &RenderContext::colored(ColorLevel::TrueColor)).paints()
-		);
-		assert!(!TerminalTarget::default().color_tokens(Color::RED, &RenderContext::unlimited()).paints());
-		assert!(!TerminalTarget::default().color_tokens(Color::rgb(1, 2, 3), &RenderContext::unlimited()).paints());
+		assert!(!TerminalTarget::default().color_tokens(Color::SYSTEM, ColorLevel::TrueColor).paints());
+		assert!(!TerminalTarget::default().color_tokens(Color::CANDY, ColorLevel::TrueColor).paints());
 	}
 
 	// line endings

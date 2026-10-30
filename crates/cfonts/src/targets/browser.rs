@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
 use crate::{
-	color::{Background, Color, Rgb, Text},
+	color::{Background, Color, ColorLevel, Rgb, Text},
 	layout::LayoutRow,
 	options::Options,
-	render::{GradientPlans, RenderContext},
+	render::GradientPlans,
 	targets::{ColorTokens, PADDING_ROWS, Rendered, Target, push_escaped},
 };
 
@@ -81,8 +81,8 @@ impl Target for BrowserTarget {
 
 	/// The browser has no terminal palette, so named colors flatten to their RGB values
 	/// and a level below full support paints the palette entry's own value
-	fn color_tokens(&self, color: Color<Text>, context: &RenderContext) -> ColorTokens {
-		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
+	fn color_tokens(&self, color: Color<Text>, level: ColorLevel) -> ColorTokens {
+		match color.value.leveled_rgb(level) {
 			Some(rgb) => ColorTokens { start: Cow::Owned(rgb.to_css_hex()), end: Cow::Borrowed("") },
 			None => ColorTokens::default(),
 		}
@@ -90,8 +90,8 @@ impl Target for BrowserTarget {
 
 	/// A band is a block of its own, so it spans the full width, and `min-height:1lh` keeps a row
 	/// without text one line tall while text rows keep their natural line box
-	fn background_tokens(&self, color: Color<Background>, context: &RenderContext) -> ColorTokens {
-		match context.color_level().and_then(|level| color.value.leveled_rgb(level)) {
+	fn background_tokens(&self, color: Color<Background>, level: ColorLevel) -> ColorTokens {
+		match color.value.leveled_rgb(level) {
 			Some(rgb) => {
 				let mut start = String::with_capacity(BAND_START.len() + 7 + BAND_STYLE_END.len());
 				start.push_str(BAND_START);
@@ -110,11 +110,11 @@ impl Target for BrowserTarget {
 		text: &str,
 		colors: &[Rgb],
 		_band: Option<&ColorTokens>,
-		context: &RenderContext,
+		level: ColorLevel,
 		out: &mut Rendered,
 	) -> usize {
-		GradientPlans::each_column(text, colors, |character, rgb| match rgb.zip(context.color_level()) {
-			Some((rgb, level)) => {
+		GradientPlans::each_column(text, colors, |character, rgb| match rgb {
+			Some(rgb) => {
 				Self::push_span(
 					|out| rgb.at_level(level).push_css_hex(out),
 					|out| Self::push_escaped_char(character, out),
@@ -132,7 +132,6 @@ impl Target for BrowserTarget {
 		tokens: &ColorTokens,
 		_band: Option<&ColorTokens>,
 		_will_style: bool,
-		_context: &RenderContext,
 		out: &mut Rendered,
 	) {
 		if tokens.start.is_empty() {
@@ -224,11 +223,8 @@ mod tests {
 	#[test]
 	fn named_colors_flatten_to_their_rgb_values() {
 		// the browser has no terminal palette, so a named color paints its table value at every level
-		let context = RenderContext::colored(ColorLevel::Basic);
-
-		assert_eq!(BrowserTarget.color_tokens(Color::RED, &context).start, "#ea3223");
-		assert!(!BrowserTarget.color_tokens(Color::SYSTEM, &context).paints());
-		assert!(!BrowserTarget.color_tokens(Color::RED, &RenderContext::unlimited()).paints());
+		assert_eq!(BrowserTarget.color_tokens(Color::RED, ColorLevel::Basic).start, "#ea3223");
+		assert!(!BrowserTarget.color_tokens(Color::SYSTEM, ColorLevel::Basic).paints());
 	}
 
 	#[test]
@@ -237,23 +233,21 @@ mod tests {
 		let orange = Color::from(Rgb { red: 255, green: 136, blue: 0 });
 		let near_black = Color::from(Rgb { red: 1, green: 2, blue: 3 });
 
-		assert_eq!(BrowserTarget.color_tokens(orange, &RenderContext::colored(ColorLevel::TrueColor)).start, "#f80");
-		assert_eq!(BrowserTarget.color_tokens(orange, &RenderContext::colored(ColorLevel::Ansi256)).start, "#ff8700");
-		assert_eq!(BrowserTarget.color_tokens(orange, &RenderContext::colored(ColorLevel::Basic)).start, "#ee776d");
-		assert_eq!(BrowserTarget.color_tokens(near_black, &RenderContext::colored(ColorLevel::Basic)).start, "#000");
+		assert_eq!(BrowserTarget.color_tokens(orange, ColorLevel::TrueColor).start, "#f80");
+		assert_eq!(BrowserTarget.color_tokens(orange, ColorLevel::Ansi256).start, "#ff8700");
+		assert_eq!(BrowserTarget.color_tokens(orange, ColorLevel::Basic).start, "#ee776d");
+		assert_eq!(BrowserTarget.color_tokens(near_black, ColorLevel::Basic).start, "#000");
 	}
 
 	// background_tokens
 
 	#[test]
 	fn a_band_is_a_block_one_line_tall() {
-		let context = RenderContext::colored(ColorLevel::Basic);
-		let tokens = BrowserTarget.background_tokens(Color::BLUE, &context);
+		let tokens = BrowserTarget.background_tokens(Color::BLUE, ColorLevel::Basic);
 
 		assert_eq!(tokens.start, r#"<div style="background:#0020f5;min-height:1lh">"#);
 		assert_eq!(tokens.end, "</div>");
-		assert!(!BrowserTarget.background_tokens(Color::SYSTEM, &context).paints());
-		assert!(!BrowserTarget.background_tokens(Color::BLUE, &RenderContext::unlimited()).paints());
+		assert!(!BrowserTarget.background_tokens(Color::SYSTEM, ColorLevel::Basic).paints());
 	}
 
 	// gradient_paint
@@ -263,12 +257,12 @@ mod tests {
 		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
 
 		let mut out = Rendered::default();
-		BrowserTarget.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::TrueColor), &mut out);
+		BrowserTarget.gradient_paint("▄▀", &ramp, None, ColorLevel::TrueColor, &mut out);
 		assert_eq!(out.text, r##"<span style="color:#f00">▄</span><span style="color:#00f">▀</span>"##);
 
 		// pure red and pure blue sit nearest the bright red and the bright blue of the table
 		let mut out = Rendered::default();
-		BrowserTarget.gradient_paint("▄▀", &ramp, None, &RenderContext::colored(ColorLevel::Basic), &mut out);
+		BrowserTarget.gradient_paint("▄▀", &ramp, None, ColorLevel::Basic, &mut out);
 		assert_eq!(out.text, r##"<span style="color:#ee776d">▄</span><span style="color:#6974f6">▀</span>"##);
 	}
 
@@ -279,7 +273,7 @@ mod tests {
 		// the console font's `&` glyph and simple3d's `</` art must not parse as HTML
 		let mut out = Rendered::default();
 		let tokens = ColorTokens { start: Cow::Borrowed("red"), end: Cow::Borrowed("") };
-		BrowserTarget.paint("</&>", &tokens, None, true, &RenderContext::unlimited(), &mut out);
+		BrowserTarget.paint("</&>", &tokens, None, true, &mut out);
 		assert_eq!(out.text, r#"<span style="color:red">&lt;/&amp;&gt;</span>"#);
 	}
 
@@ -318,7 +312,7 @@ mod tests {
 	#[test]
 	fn banded_and_empty_rows_need_no_break() {
 		// a block ends its own line
-		let band = BrowserTarget.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
+		let band = BrowserTarget.background_tokens(Color::BLUE, ColorLevel::Basic);
 		let mut out = Rendered::default();
 		BrowserTarget.row_break(&row(3), Some(&band), &mut out);
 		BrowserTarget.row_break(&row(0), None, &mut out);
@@ -329,7 +323,7 @@ mod tests {
 
 	#[test]
 	fn padding_rows_are_blocks_with_or_without_a_band() {
-		let band = BrowserTarget.background_tokens(Color::BLUE, &RenderContext::colored(ColorLevel::Basic));
+		let band = BrowserTarget.background_tokens(Color::BLUE, ColorLevel::Basic);
 
 		let mut out = Rendered::default();
 		BrowserTarget.top_padding([Some(&band), None], &mut out);

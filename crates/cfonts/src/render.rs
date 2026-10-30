@@ -202,16 +202,18 @@ impl RenderContext {
 }
 
 /// Which paint path covers one block's segments
+///
+/// A ramp exists only under a color level, so the ramping paths carry the level they paint at
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PaintDomain {
 	/// Slot colors or nothing: the plan's slots decide per segment
 	Slots,
 
-	/// The block's own gradient, ramping over the block's columns
-	Block,
+	/// The block's own gradient, ramping over the block's columns at this level
+	Block(ColorLevel),
 
-	/// The composition wide gradient, ramping over the columns of every block that paints from it
-	Global,
+	/// The composition wide gradient at this level, ramping over the columns of every block that paints from it
+	Global(ColorLevel),
 }
 
 /// One slot's resolved paint
@@ -290,14 +292,19 @@ pub(crate) struct PaintPlan<T> {
 impl<T> PaintPlan<T> {
 	/// Resolves every configured color through `resolve` exactly once per block and slot
 	///
-	/// A block's own color wins over the global color; without a color level nothing paints
-	pub(crate) fn build(options: &Options, context: &RenderContext, mut resolve: impl FnMut(Color) -> Option<T>) -> Self {
+	/// A block's own color wins over the global color, without a color level nothing paints
+	/// and `resolve` never runs, so it takes the level as given and never checks for one
+	pub(crate) fn build(
+		options: &Options,
+		context: &RenderContext,
+		mut resolve: impl FnMut(Color, ColorLevel) -> Option<T>,
+	) -> Self {
 		let rng = CandyRng::new(context.seed());
 
 		// without a color level nothing paints, and the lookups read a missing block as unpainted
-		if context.color_level().is_none() {
+		let Some(level) = context.color_level() else {
 			return Self { blocks: Vec::new(), candy: None, rng, will_style: false };
-		}
+		};
 
 		let blocks = options
 			.blocks
@@ -318,7 +325,7 @@ impl<T> PaintPlan<T> {
 							.map(|color| match *color {
 								Color::SYSTEM => SlotPaint::None,
 								Color::CANDY => SlotPaint::Candy,
-								color => resolve(color).map_or(SlotPaint::None, SlotPaint::Fixed),
+								color => resolve(color, level).map_or(SlotPaint::None, SlotPaint::Fixed),
 							})
 							.collect();
 
@@ -328,7 +335,7 @@ impl<T> PaintPlan<T> {
 					}
 					ColorOption::Gradient(_) => {
 						// the block's own gradient wins, otherwise the global one covers it
-						BlockPlan::bare(if block.colors.is_some() { PaintDomain::Block } else { PaintDomain::Global })
+						BlockPlan::bare(if block.colors.is_some() { PaintDomain::Block(level) } else { PaintDomain::Global(level) })
 					}
 				}
 			})
@@ -338,7 +345,7 @@ impl<T> PaintPlan<T> {
 		let will_style =
 			blocks.iter().any(|block| block.domain != PaintDomain::Slots || block.slots.iter().any(SlotPaint::paints));
 		let rolls = blocks.iter().any(|block| block.slots.iter().any(|slot| matches!(slot, SlotPaint::Candy)));
-		let candy = rolls.then(|| Box::new(CANDY.map(&mut resolve)));
+		let candy = rolls.then(|| Box::new(CANDY.map(|color| resolve(color, level))));
 
 		Self { blocks, candy, rng, will_style }
 	}
@@ -475,13 +482,15 @@ impl GradientPlans {
 			.iter()
 			.zip(&domains)
 			.map(|(block, domain)| match (domain, &block.colors) {
-				(PaintDomain::Block, Some(ColorOption::Gradient(gradient))) => Some(GradientState::new(gradient)),
+				(PaintDomain::Block(_), Some(ColorOption::Gradient(gradient))) => Some(GradientState::new(gradient)),
 				_ => None,
 			})
 			.collect();
 
 		let mut global = match &options.global_colors {
-			Some(ColorOption::Gradient(gradient)) if domains.contains(&PaintDomain::Global) => {
+			Some(ColorOption::Gradient(gradient))
+				if domains.iter().any(|domain| matches!(domain, PaintDomain::Global(_))) =>
+			{
 				Some(GradientState::new(gradient))
 			}
 			_ => None,
@@ -491,7 +500,7 @@ impl GradientPlans {
 
 		if !independent {
 			if let Some(global) = global.as_mut() {
-				global.fill(Self::extent(rows, |block_index| domains.get(block_index) == Some(&PaintDomain::Global)));
+				global.fill(Self::extent(rows, |block_index| matches!(domains.get(block_index), Some(PaintDomain::Global(_)))));
 			}
 
 			for (block_index, state) in blocks.iter_mut().enumerate() {
@@ -529,7 +538,8 @@ impl GradientPlans {
 		if self.independent {
 			let domains = &self.domains;
 			if let Some(global) = self.global.as_mut() {
-				global.fill(Self::row_extent(row, |block_index| domains.get(block_index) == Some(&PaintDomain::Global)));
+				global
+					.fill(Self::row_extent(row, |block_index| matches!(domains.get(block_index), Some(PaintDomain::Global(_)))));
 			}
 
 			// a block occupies one run of columns per row, which is its whole extent there
@@ -546,8 +556,8 @@ impl GradientPlans {
 	/// The ramp one block samples at the current column, a block painted through its slots has none
 	fn window(&self, block_index: usize) -> &[Rgb] {
 		let state = match self.domains.get(block_index) {
-			Some(PaintDomain::Global) => self.global.as_ref(),
-			Some(PaintDomain::Block) => self.blocks.get(block_index).and_then(Option::as_ref),
+			Some(PaintDomain::Global(_)) => self.global.as_ref(),
+			Some(PaintDomain::Block(_)) => self.blocks.get(block_index).and_then(Option::as_ref),
 			_ => None,
 		};
 
@@ -611,26 +621,29 @@ impl<T> Backdrop<T> {
 	/// Resolves the background of a render with `rows` output rows through `resolve`
 	///
 	/// Without a background, a color level or rows, or with a color that resolves to no paint,
-	/// the backdrop is bare
+	/// the backdrop is bare, `resolve` never runs without a level, so it takes the level as given
 	pub(crate) fn build(
 		options: &Options,
 		context: &RenderContext,
 		rows: usize,
-		mut resolve: impl FnMut(Color<Background>) -> Option<T>,
+		mut resolve: impl FnMut(Color<Background>, ColorLevel) -> Option<T>,
 	) -> Self {
-		if context.color_level().is_none() || rows == 0 {
+		let Some(level) = context.color_level() else {
+			return Self::Bare;
+		};
+		if rows == 0 {
 			return Self::Bare;
 		}
 
 		match options.background.as_ref() {
 			None => Self::Bare,
-			Some(BackgroundOption::Color(color)) => resolve(*color).map_or(Self::Bare, Self::Fixed),
+			Some(BackgroundOption::Color(color)) => resolve(*color, level).map_or(Self::Bare, Self::Fixed),
 			Some(BackgroundOption::Gradient(gradient)) => {
 				let mut ramp = GradientState::new(gradient);
 				ramp.fill(Some(0..rows));
 
 				// the ramp holds exactly one color per row, so the bands are the ramp read in order
-				let paints: Vec<Option<T>> = ramp.window(0).iter().map(|&rgb| resolve(Color::from(rgb))).collect();
+				let paints: Vec<Option<T>> = ramp.window(0).iter().map(|&rgb| resolve(Color::from(rgb), level)).collect();
 
 				if paints.iter().any(Option::is_some) { Self::Ramp(paints) } else { Self::Bare }
 			}
@@ -672,7 +685,7 @@ mod tests {
 	/// A plan whose resolver marks every resolved color with its debug name
 	fn plan_for(options: &Options, context: &RenderContext) -> (PaintPlan<String>, usize) {
 		let mut calls = 0;
-		let plan = PaintPlan::build(options, context, |color| {
+		let plan = PaintPlan::build(options, context, |color, _| {
 			calls += 1;
 			Some(format!("{color:?}"))
 		});
@@ -824,7 +837,7 @@ mod tests {
 
 		assert_eq!(calls, 0);
 		assert!(plan.will_style);
-		assert_eq!(plan.domain(0), PaintDomain::Block);
+		assert_eq!(plan.domain(0), PaintDomain::Block(ColorLevel::TrueColor));
 		assert!(plan.resolves(0, None, false)); // even buffer seams paint in a gradient domain
 		assert_eq!(plan.paint_for(0, Some(0), true), None); // the ramp paints, the slots stay empty
 
@@ -847,7 +860,7 @@ mod tests {
 		let (plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
 
 		assert_eq!(plan.domain(0), PaintDomain::Slots);
-		assert_eq!(plan.domain(1), PaintDomain::Global);
+		assert_eq!(plan.domain(1), PaintDomain::Global(ColorLevel::TrueColor));
 	}
 
 	// GradientPlans::extent
@@ -882,7 +895,7 @@ mod tests {
 	// Backdrop
 
 	/// Resolves every color but the terminal's own to itself, the way a target with a palette would
-	fn resolve(color: Color<Background>) -> Option<Color<Background>> {
+	fn resolve(color: Color<Background>, _level: ColorLevel) -> Option<Color<Background>> {
 		(color != Color::SYSTEM).then_some(color)
 	}
 
@@ -934,6 +947,6 @@ mod tests {
 		// a target that paints no RGB values turns a gradient into a bare backdrop as well
 		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
 		let ramped = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
-		assert!(!Backdrop::build(&ramped, &level, 3, |_| None::<Color>).paints(), "no paint");
+		assert!(!Backdrop::build(&ramped, &level, 3, |_, _| None::<Color>).paints(), "no paint");
 	}
 }

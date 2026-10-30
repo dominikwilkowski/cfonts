@@ -10,7 +10,7 @@ pub use terminal::TerminalTarget;
 use std::{array, borrow::Cow, iter};
 
 use crate::{
-	color::{Background, Color, Rgb, Text},
+	color::{Background, Color, ColorLevel, Rgb, Text},
 	layout::{LayoutRow, RowEntry},
 	options::Options,
 	render::{Backdrop, GradientPlans, PaintDomain, PaintPlan, RenderContext},
@@ -141,19 +141,21 @@ pub const PADDING_ROWS: usize = 2;
 ///
 /// Hosts own capability discovery and output side effects
 pub trait Target {
-	/// One color as this target's start and end paint markers
+	/// One color as this target's start and end paint markers at the render's color support
 	///
-	/// Resolved once per configured color per render through the paint plan, never per glyph
+	/// Resolved once per configured color per render through the paint plan, never per glyph,
+	/// and never without a level: a render without color support asks for no tokens
 	/// The default paints nothing so monochrome targets need no color code
-	fn color_tokens(&self, _color: Color<Text>, _context: &RenderContext) -> ColorTokens {
+	fn color_tokens(&self, _color: Color<Text>, _level: ColorLevel) -> ColorTokens {
 		ColorTokens::default()
 	}
 
-	/// One color as this target's start and end markers behind a whole row
+	/// One color as this target's start and end markers behind a whole row at the render's color support
 	///
-	/// Resolved once per band per render through the backdrop, never per row
+	/// Resolved once per band per render through the backdrop, never per row,
+	/// and never without a level: a render without color support asks for no bands
 	/// The default paints nothing so targets without backgrounds need no code
-	fn background_tokens(&self, _color: Color<Background>, _context: &RenderContext) -> ColorTokens {
+	fn background_tokens(&self, _color: Color<Background>, _level: ColorLevel) -> ColorTokens {
 		ColorTokens::default()
 	}
 
@@ -168,7 +170,6 @@ pub trait Target {
 		tokens: &ColorTokens,
 		_band: Option<&ColorTokens>,
 		_will_style: bool,
-		_context: &RenderContext,
 		out: &mut Rendered,
 	) {
 		out.text.push_str(&tokens.start);
@@ -176,18 +177,19 @@ pub trait Target {
 		out.text.push_str(&tokens.end);
 	}
 
-	/// Paint text one column per ramp color and return the columns consumed
+	/// Paint text one column per ramp color at the render's color support and return the columns consumed
 	///
 	/// The window is pre-sliced to this segment's first column
 	/// a drained window paints bare so the cursor stays honest even past the ramp
 	/// `band` carries the row's background markers, see [`paint`](Self::paint)
+	/// A ramp exists only under a level, so `level` is never in question here
 	/// The default ignores the ramp so monochrome targets stay untouched
 	fn gradient_paint(
 		&self,
 		text: &str,
 		_colors: &[Rgb],
 		_band: Option<&ColorTokens>,
-		_context: &RenderContext,
+		_level: ColorLevel,
 		out: &mut Rendered,
 	) -> usize {
 		out.text.push_str(text);
@@ -265,16 +267,16 @@ pub trait Target {
 		// Benchmarks showed that pre-allocation was either inaccurate or slower
 		// Let the string grow amortized to keep rendering single-pass
 		let mut out = Rendered::default();
-		let mut plan = PaintPlan::build(options, context, |color| {
-			let tokens = self.color_tokens(color, context);
+		let mut plan = PaintPlan::build(options, context, |color, level| {
+			let tokens = self.color_tokens(color, level);
 			tokens.paints().then_some(tokens)
 		});
 		// Output rows count from the first padding row, so the bands of the padding rows come first,
 		// and a composition without rows still prints one bare row between the paddings
 		let lead = if options.spaceless { 0 } else { PADDING_ROWS };
 		let printed_rows = rows.len().max(1);
-		let backdrop = Backdrop::build(options, context, printed_rows + 2 * lead, |color| {
-			let tokens = self.background_tokens(color, context);
+		let backdrop = Backdrop::build(options, context, printed_rows + 2 * lead, |color, level| {
+			let tokens = self.background_tokens(color, level);
 			tokens.paints().then_some(tokens)
 		});
 		let banded = backdrop.paints();
@@ -302,10 +304,10 @@ pub trait Target {
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
 					let tokens = plan.paint_for(block_index, slot, paintable).unwrap_or(&no_paint);
-					self.paint(text, tokens, row_band, will_style, context, &mut out);
+					self.paint(text, tokens, row_band, will_style, &mut out);
 				}
-				PaintDomain::Block | PaintDomain::Global => {
-					gradients.paint_segment(block_index, |window| self.gradient_paint(text, window, row_band, context, &mut out));
+				PaintDomain::Block(level) | PaintDomain::Global(level) => {
+					gradients.paint_segment(block_index, |window| self.gradient_paint(text, window, row_band, level, &mut out));
 				}
 			},
 			RowEvent::Blank { width, .. } => {
@@ -426,7 +428,7 @@ mod tests {
 	fn paint_wraps_text_in_the_color_pair() {
 		let mut out = Rendered::default();
 		let tokens = ColorTokens { start: Cow::Borrowed("<start>"), end: Cow::Borrowed("<end>") };
-		TerminalTarget::default().paint("TEXT", &tokens, None, true, &RenderContext::unlimited(), &mut out);
+		TerminalTarget::default().paint("TEXT", &tokens, None, true, &mut out);
 		assert_eq!(out.text, "<start>TEXT<end>");
 	}
 
@@ -501,7 +503,7 @@ mod tests {
 		// a custom target that writes each band it is handed, padding rows first
 		struct BandTarget;
 		impl Target for BandTarget {
-			fn background_tokens(&self, color: Color<Background>, _context: &RenderContext) -> ColorTokens {
+			fn background_tokens(&self, color: Color<Background>, _level: ColorLevel) -> ColorTokens {
 				match color.to_rgb() {
 					Some(rgb) => ColorTokens { start: Cow::Owned(format!("<{}>", rgb.red)), end: Cow::Borrowed("|") },
 					None => ColorTokens::default(),
@@ -539,7 +541,7 @@ mod tests {
 		// a custom target that writes the flag it is handed at both ends
 		struct FlagTarget;
 		impl Target for FlagTarget {
-			fn background_tokens(&self, _color: Color<Background>, _context: &RenderContext) -> ColorTokens {
+			fn background_tokens(&self, _color: Color<Background>, _level: ColorLevel) -> ColorTokens {
 				ColorTokens { start: Cow::Borrowed("["), end: Cow::Borrowed("]") }
 			}
 			fn wrapper_start(&self, _options: &Options, banded: bool, out: &mut Rendered) {
