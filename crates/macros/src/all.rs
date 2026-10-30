@@ -8,7 +8,7 @@ pub(crate) struct EnumSource {
 	variants: Vec<Variant>,
 }
 
-/// One variant: its name in the enum and the name `NAMES` and `LIST` give it
+/// One variant: its name in the enum and the name `NAMES` gives it
 struct Variant {
 	name: String,
 	list_name: String,
@@ -99,7 +99,7 @@ impl EnumSource {
 		Ok(Self { name, variants })
 	}
 
-	/// The impl holding `ALL`, `NAMES` and `LIST` for the enum
+	/// The impl holding `ALL` and `NAMES` for the enum
 	fn expand(&self) -> TokenStream {
 		let Self { name, variants } = self;
 		let count = variants.len();
@@ -107,11 +107,10 @@ impl EnumSource {
 			variants.iter().map(|variant| format!("{name}::{}", variant.name)).collect::<Vec<String>>().join(", ");
 		let name_array =
 			variants.iter().map(|variant| format!("{:?}", variant.list_name)).collect::<Vec<String>>().join(", ");
-		let value_list = variants.iter().map(|variant| variant.list_name.as_str()).collect::<Vec<&str>>().join(", ");
 
 		// the impl prints the enum's own idents and string literals back, all of which lex
 		format!(
-			"impl {name} {{ pub const ALL: [{name}; {count}] = [{variant_list}]; pub const NAMES: [&str; {count}] = [{name_array}]; pub const LIST: &str = {value_list:?}; }}"
+			"impl {name} {{ pub const ALL: [{name}; {count}] = [{variant_list}]; pub const NAMES: [&str; {count}] = [{name_array}]; }}"
 		)
 		.parse()
 		.expect("the generated impl always lexes")
@@ -123,7 +122,7 @@ enum AllAttribute {
 	/// Not an `all` attribute, someone else's business
 	NotOurs,
 
-	/// `#[all(rename = "name")]`: the name `NAMES` and `LIST` give the variant instead of its lowercased name
+	/// `#[all(rename = "name")]`: the name `NAMES` gives the variant instead of its lowercased name
 	Rename(String),
 }
 

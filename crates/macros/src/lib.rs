@@ -21,7 +21,6 @@ use crate::{error::CompileError, font::SUPPORTED_CHARS};
 ///
 /// assert!(matches!(Align::ALL, [Align::Left, Align::Center, Align::Right]));
 /// assert_eq!(Align::NAMES, ["left", "center", "right"]);
-/// assert_eq!(Align::LIST, "left, center, right");
 /// ```
 ///
 /// The generated impl has this shape:
@@ -30,11 +29,10 @@ use crate::{error::CompileError, font::SUPPORTED_CHARS};
 /// impl Align {
 ///     pub const ALL: [Align; 3] = [Align::Left, Align::Center, Align::Right];
 ///     pub const NAMES: [&str; 3] = ["left", "center", "right"];
-///     pub const LIST: &str = "left, center, right";
 /// }
 /// ```
 ///
-/// NAMES holds every name as its own `&str` in the order of ALL, LIST holds every name on one line
+/// NAMES holds every name as its own `&str` in the order of ALL
 ///
 /// Variants appear in declaration order
 /// `#[all(rename = "name")]` on a variant puts `name` in NAMES in place of the lowercased variant name

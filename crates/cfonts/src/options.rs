@@ -215,11 +215,11 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn every_list_name_parses_back() {
-		for name in Align::LIST.split(", ") {
+	fn every_name_parses_back() {
+		for name in Align::NAMES {
 			assert!(Align::from_name(name).is_some(), "align {name:?} does not parse");
 		}
-		for name in Valign::LIST.split(", ") {
+		for name in Valign::NAMES {
 			assert!(Valign::from_name(name).is_some(), "valign {name:?} does not parse");
 		}
 	}

@@ -354,8 +354,8 @@ mod tests {
 	}
 
 	#[test]
-	fn every_list_name_parses_back() {
-		for name in Font::LIST.split(", ") {
+	fn every_name_parses_back() {
+		for name in Font::NAMES {
 			assert!(Font::from_name(name).is_some(), "font {name:?} does not parse");
 		}
 	}

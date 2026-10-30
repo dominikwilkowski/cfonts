@@ -93,7 +93,7 @@ fn visibility_prefixes_parse_and_all_is_pub() {
 }
 
 #[test]
-fn list_holds_the_lowercased_variant_names() {
+fn names_hold_the_lowercased_variant_names() {
 	#[derive(Debug, PartialEq, All)]
 	enum Align {
 		Left,
@@ -101,12 +101,12 @@ fn list_holds_the_lowercased_variant_names() {
 		Right,
 	}
 
-	assert_eq!(Align::LIST, "left, center, right");
+	assert_eq!(Align::NAMES, ["left", "center", "right"]);
 	assert_eq!(Align::ALL, [Align::Left, Align::Center, Align::Right]);
 }
 
 #[test]
-fn rename_marked_variants_change_list_but_not_all() {
+fn rename_marked_variants_change_names_but_not_all() {
 	#[derive(Debug, PartialEq, All)]
 	enum Font {
 		Console,
@@ -115,7 +115,7 @@ fn rename_marked_variants_change_list_but_not_all() {
 	}
 
 	assert_eq!(Font::ALL, [Font::Console, Font::Font3D]);
-	assert_eq!(Font::LIST, "console, 3d");
+	assert_eq!(Font::NAMES, ["console", "3d"]);
 }
 
 #[test]
@@ -133,5 +133,4 @@ fn a_wide_enum_lists_every_name_in_order() {
 
 	assert_eq!(Wide::ALL.len(), 7);
 	assert_eq!(Wide::NAMES, ["one", "two", "three", "four", "five", "six", "seven"]);
-	assert_eq!(Wide::LIST, "one, two, three, four, five, six, seven");
 }

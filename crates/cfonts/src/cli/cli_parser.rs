@@ -1165,8 +1165,8 @@ mod argument_parsing {
 	}
 
 	#[test]
-	fn fonts_parse_every_list_name_case_insensitively() {
-		for name in Font::LIST.split(", ") {
+	fn fonts_parse_every_name_case_insensitively() {
+		for name in Font::NAMES {
 			let expected = Font::from_name(name).unwrap();
 
 			let lower = args(&["my text", "-f", name]);
