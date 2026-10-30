@@ -163,8 +163,9 @@ impl LayoutRow {
 /// The line contribution a block stages at its open: committed by the block's
 /// first committing char (a glyph or NEW_LINE_CHAR), dropped if none appears
 struct StagedBlock {
+	/// The seam that opens the block, its glyph has the font's rows, so the commit reads the block's height off it
 	buffer_start: LayoutGlyph,
-	font_rows: usize,
+	/// The block's line height, its own setting or the font's declaration
 	line_height: usize,
 }
 
@@ -218,7 +219,7 @@ pub(crate) struct Layout<'a> {
 	word_spaces: usize,
 
 	/// The block contribution staged at block open and committed by the block's
-	/// first committing char; a block whose text commits nothing contributes nothing
+	/// first committing char, a block whose text commits nothing contributes nothing
 	staged_block: Option<StagedBlock>,
 
 	/// The cfonts options including all font blocks
@@ -279,11 +280,8 @@ impl<'a> Layout<'a> {
 
 		// The block's line contribution is only staged: its first committing char
 		// commits it, so a block whose text commits nothing adds no buffers and no height
-		self.staged_block = Some(StagedBlock {
-			buffer_start,
-			font_rows: font.rows(),
-			line_height: block.line_height.unwrap_or_else(|| font.line_height()),
-		});
+		self.staged_block =
+			Some(StagedBlock { buffer_start, line_height: block.line_height.unwrap_or_else(|| font.line_height()) });
 
 		// The letter spaces between two glyphs are one glyph repeated as often as the block asks,
 		// so flush_line handles the run like any other glyph
@@ -348,9 +346,9 @@ impl<'a> Layout<'a> {
 	/// sets the block's font height and line-height and lands its buffer_start
 	fn commit_block(&mut self) {
 		if let Some(staged) = self.staged_block.take() {
-			self.current_font_rows = staged.font_rows;
+			self.current_font_rows = staged.buffer_start.rows();
 			self.current_line_height = staged.line_height;
-			self.line_max_rows = self.line_max_rows.max(staged.font_rows);
+			self.line_max_rows = self.line_max_rows.max(self.current_font_rows);
 			self.push_glyph(staged.buffer_start);
 		}
 	}
