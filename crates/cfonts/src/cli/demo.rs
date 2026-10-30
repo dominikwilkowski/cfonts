@@ -18,7 +18,6 @@ pub fn cli_demo(options: &Options) -> String {
 /// Assembles the demo screen for one known context
 pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String {
 	let styled = context.color_level().is_some();
-	let mut output = String::new();
 	let banner: Options = Cfonts::text("cfonts")
 		.next("|  Demo")
 		.font(Font::Neat)
@@ -28,9 +27,9 @@ pub(crate) fn cli_demo_with(context: RenderContext, options: &Options) -> String
 		.valign(Valign::Bottom)
 		.colors(vec![Color::SYSTEM])
 		.into();
-	let banner = context.render(&banner, &TerminalTarget::default());
+	// the banner opens the screen, so its string is the screen and grows from there
+	let mut output = context.render(&banner, &TerminalTarget::default()).text;
 
-	output.push_str(&banner.text);
 	output.push_str("\n\n════════════════════════════════════════════════════════════\n\n");
 
 	let prompt = if styled { PROMPT_COLORED } else { PROMPT_PLAIN };

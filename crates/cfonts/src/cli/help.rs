@@ -16,7 +16,6 @@ pub fn cli_help() -> String {
 /// Assembles the help screen for one known context
 pub(crate) fn cli_help_with(context: RenderContext) -> String {
 	let styled = context.color_level().is_some();
-	let mut output = String::new();
 	let banner: Options = Cfonts::text("cfonts")
 		.global_colors(GradientOption::TwoStop { start: Color::RED, end: Color::GREEN })
 		.next(format!(" {VERSION}"))
@@ -24,7 +23,8 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 		.valign(Valign::Bottom)
 		.colors(vec![Color::SYSTEM])
 		.into();
-	let banner = context.render(&banner, &TerminalTarget::default());
+	// the banner opens the screen, so its string is the screen and grows from there
+	let mut output = context.render(&banner, &TerminalTarget::default()).text;
 
 	// every backticked span of the usage is an input and renders in the mark color
 	const USAGE: &str = concat!(
@@ -44,7 +44,6 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 
 	let prompt = if styled { PROMPT_COLORED } else { PROMPT_PLAIN };
 
-	output.push_str(&banner.text);
 	output.push_str(if styled { USAGE_STYLED } else { USAGE_PLAIN });
 	for arg in Args::ALL {
 		let line = arg.help(styled);
