@@ -173,7 +173,9 @@ impl Target for TerminalTarget {
 		Self::tokens(color.value, level, Layer::Background)
 	}
 
-	/// Every column gets its own run: the ramp color's start, the character, the reset
+	/// Every column opens the ramp color it samples, the run resets once where the ramp stops or the segment ends
+	///
+	/// A column past the ramp's end paints bare, so an open color closes before it
 	fn gradient_paint(
 		&self,
 		text: &str,
@@ -182,14 +184,22 @@ impl Target for TerminalTarget {
 		level: ColorLevel,
 		out: &mut Rendered,
 	) -> usize {
-		GradientPlans::each_column(text, colors, |character, rgb| match rgb {
-			Some(rgb) => {
+		let mut open = false;
+		let consumed = GradientPlans::each_column(text, colors, |character, rgb| {
+			if let Some(rgb) = rgb {
 				Self::push_rgb_code(*rgb, level, Layer::Foreground, &mut out.text);
-				out.text.push(character);
+			} else if open {
 				out.text.push_str(ANSI_RESET);
 			}
-			None => out.text.push(character),
-		})
+			open = rgb.is_some();
+			out.text.push(character);
+		});
+
+		if open {
+			out.text.push_str(ANSI_RESET);
+		}
+
+		consumed
 	}
 
 	/// A band fills to the edge of the terminal the moment it opens, so the row's text lands on it
@@ -295,6 +305,30 @@ mod tests {
 		assert_eq!(target.background_tokens(rgb, ColorLevel::Basic).start, "\u{1b}[101m");
 
 		assert!(!target.background_tokens(Color::SYSTEM, ColorLevel::Basic).paints());
+	}
+
+	// gradient_paint
+
+	#[test]
+	fn a_gradient_run_opens_every_column_and_resets_once() {
+		let target = TerminalTarget::default();
+		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
+
+		// the third column is past the ramp, so the run closes before it and the column paints bare
+		let mut out = Rendered::default();
+		let consumed = target.gradient_paint("▄▀█", &ramp, None, ColorLevel::TrueColor, &mut out);
+		assert_eq!(out.text, "\u{1b}[38;2;255;0;0m▄\u{1b}[38;2;0;0;255m▀\u{1b}[39m█");
+		assert_eq!(consumed, 3);
+
+		// a run the ramp covers closes once at its end, at every level
+		let mut out = Rendered::default();
+		target.gradient_paint("▄▀", &ramp, None, ColorLevel::Ansi256, &mut out);
+		assert_eq!(out.text, "\u{1b}[38;5;196m▄\u{1b}[38;5;21m▀\u{1b}[39m");
+
+		// an empty segment opens nothing, so it closes nothing
+		let mut out = Rendered::default();
+		assert_eq!(target.gradient_paint("", &ramp, None, ColorLevel::TrueColor, &mut out), 0);
+		assert!(out.text.is_empty());
 	}
 
 	// row_start, top_padding, bottom_padding

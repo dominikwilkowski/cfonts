@@ -6,13 +6,17 @@ use cfonts::{
 	GradientOption, GradientPreset, NEW_LINE_CHAR, Options, RenderOverrides, Rgb, TerminalTarget, Valign, render_with,
 };
 
-/// The expected terminal bytes of one row painted column by column from a ramp
+/// The expected terminal bytes of one run painted column by column from a ramp: every column opens its
+/// ramp color, one reset closes the run
 fn ramped_row(row_text: &str, ramp: &[Rgb]) -> String {
-	row_text
+	let mut run: String = row_text
 		.chars()
 		.zip(ramp)
-		.map(|(character, rgb)| format!("\u{1b}[38;2;{};{};{}m{character}\u{1b}[39m", rgb.red, rgb.green, rgb.blue))
-		.collect()
+		.map(|(character, rgb)| format!("\u{1b}[38;2;{};{};{}m{character}", rgb.red, rgb.green, rgb.blue))
+		.collect();
+	run.push_str("\u{1b}[39m");
+
+	run
 }
 
 /// The documented ramp colors, decoded from their hex spelling
@@ -299,7 +303,6 @@ fn gradients_paint_nothing_without_a_color_level() {
 
 #[test]
 fn two_stop_gradients_paint_every_column_of_the_ramp() {
-	let plain = render_with(&tiny("AB", vec![]), &TerminalTarget::default(), RenderOverrides::default()).text;
 	let ramped: Options = Cfonts::text("AB")
 		.font(Font::Tiny)
 		.valign(Valign::Top)
@@ -314,11 +317,15 @@ fn two_stop_gradients_paint_every_column_of_the_ramp() {
 	)
 	.text;
 
-	// one ramp over the seven row columns, every column painted with its own run,
-	// letter spaces included; two stop ramps travel through hue space
+	// one ramp over the seven row columns, every glyph and the letter space between them one run
+	// of the ramp colors it covers, two stop ramps travel through hue space
 	let ramp = ramp_from(&["#ff0000", "#ffaa00", "#aaff00", "#00ff00", "#00ffa9", "#00a9ff", "#0000ff"]);
 
-	let expected: Vec<String> = plain.lines().map(|row| ramped_row(row, &ramp)).collect();
+	let expected: Vec<String> = plain_rows("A")
+		.iter()
+		.zip(plain_rows("B").iter())
+		.map(|(a, b)| format!("{}{}{}", ramped_row(a, &ramp[..3]), ramped_row(" ", &ramp[3..4]), ramped_row(b, &ramp[4..])))
+		.collect();
 	assert_eq!(rendered, expected.join("\n"));
 }
 
@@ -643,7 +650,7 @@ fn slanted_buffer_seams_consume_the_ramp_columns_they_cover() {
 	let rows: Vec<&str> = rendered.lines().collect();
 
 	assert_eq!(rows.len(), 9);
-	assert!(rows[8].starts_with("\u{1b}[38;2;255;0;0m \u{1b}[39m"), "the last row's seam takes the ramp start");
+	assert!(rows[8].starts_with("\u{1b}[38;2;255;0;0m "), "the last row's seam takes the ramp start");
 	for row in &rows[1..] {
 		assert_eq!(ramp_codes(row), ramp_codes(rows[0]), "seams shift the glyph but never the ramp: {row}");
 	}
@@ -1025,7 +1032,10 @@ fn leading_space_glyphs_consume_the_ramp() {
 	.text;
 
 	let first_row = rendered.lines().next().expect("two rows");
-	assert!(!first_row.starts_with("\u{1b}[38;2;255;0;0m\u{1b}[39m\u{1b}[38;2;255;0;0m▄"), "sanity");
+	assert!(
+		!first_row.contains("\u{1b}[38;2;255;0;0m▄"),
+		"the ramp start never lands on the first art column: {first_row}"
+	);
 	assert!(first_row.contains("\u{1b}[38;2;255;0;0m"), "the ramp start paints the leading blank column");
 	assert!(first_row.contains("\u{1b}[38;2;0;0;255m"), "the ramp end still lands on the last column");
 }
