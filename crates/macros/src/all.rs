@@ -5,7 +5,13 @@ use crate::error::CompileError;
 /// What `All` reads: the name of a fieldless enum and every variant with the name it lists under
 pub(crate) struct EnumSource {
 	name: String,
-	variants: Vec<(String, Option<String>)>,
+	variants: Vec<Variant>,
+}
+
+/// One variant: its name in the enum and the name `NAMES` and `LIST` give it
+struct Variant {
+	name: String,
+	list_name: String,
 }
 
 impl EnumSource {
@@ -53,9 +59,9 @@ impl EnumSource {
 			_ => return Err(format!("expected the body of enum {name}")),
 		};
 
-		let mut variants: Vec<(String, Option<String>)> = Vec::new();
+		let mut variants = Vec::new();
 		let mut body_tokens = body.stream().into_iter().peekable();
-		let mut rename_next_variant: Option<String> = None;
+		let mut rename_next_variant = None;
 
 		while let Some(token) = body_tokens.next() {
 			match token {
@@ -69,15 +75,16 @@ impl EnumSource {
 					}
 				}
 				TokenTree::Ident(variant) => {
-					let rename = rename_next_variant.take();
-
 					// data carrying variants have a parentheses or braces group after their name
 					if matches!(body_tokens.peek(), Some(TokenTree::Group(_))) {
 						return Err(format!(
 							"variant {variant} of enum {name} holds data, ALL cannot list a variant that holds data"
 						));
 					}
-					variants.push((variant.to_string(), rename));
+
+					let variant = variant.to_string();
+					let list_name = rename_next_variant.take().unwrap_or_else(|| variant.to_lowercase());
+					variants.push(Variant { name: variant, list_name });
 					// data and discriminants like `Foo = 1` don't matter for ALL so we skip everything up to the comma
 					for leftover in body_tokens.by_ref() {
 						if matches!(leftover, TokenTree::Punct(ref punct) if punct.as_char() == ',') {
@@ -97,13 +104,10 @@ impl EnumSource {
 		let Self { name, variants } = self;
 		let count = variants.len();
 		let variant_list =
-			variants.iter().map(|(variant, _)| format!("{name}::{variant}")).collect::<Vec<String>>().join(", ");
-		let names = variants
-			.iter()
-			.map(|(variant, rename)| rename.clone().unwrap_or_else(|| variant.to_lowercase()))
-			.collect::<Vec<String>>();
-		let value_list = names.join(", ");
-		let name_array = names.iter().map(|name| format!("{name:?}")).collect::<Vec<String>>().join(", ");
+			variants.iter().map(|variant| format!("{name}::{}", variant.name)).collect::<Vec<String>>().join(", ");
+		let name_array =
+			variants.iter().map(|variant| format!("{:?}", variant.list_name)).collect::<Vec<String>>().join(", ");
+		let value_list = variants.iter().map(|variant| variant.list_name.as_str()).collect::<Vec<&str>>().join(", ");
 
 		format!(
 			"impl {name} {{ pub const ALL: [{name}; {count}] = [{variant_list}]; pub const NAMES: [&str; {count}] = [{name_array}]; pub const LIST: &str = {value_list:?}; }}"
@@ -118,7 +122,7 @@ enum AllAttribute {
 	/// Not an `all` attribute, someone else's business
 	NotOurs,
 
-	/// `#[all(rename = "name")]`: use this name in LIST instead of the lowercased variant name
+	/// `#[all(rename = "name")]`: the name `NAMES` and `LIST` give the variant instead of its lowercased name
 	Rename(String),
 }
 
