@@ -18,7 +18,7 @@ impl EnumSource {
 	/// Does the work for `All`, a problem with the input turns into a `compile_error!` at the call site
 	pub(crate) fn derive(input: TokenStream) -> TokenStream {
 		Self::read(input)
-			.and_then(|source| source.expand())
+			.map(|source| source.expand())
 			.unwrap_or_else(|message| CompileError::new(message, Span::call_site()).into_tokens())
 	}
 
@@ -85,7 +85,7 @@ impl EnumSource {
 					let variant = variant.to_string();
 					let list_name = rename_next_variant.take().unwrap_or_else(|| variant.to_lowercase());
 					variants.push(Variant { name: variant, list_name });
-					// data and discriminants like `Foo = 1` don't matter for ALL so we skip everything up to the comma
+					// a discriminant like `Foo = 1` does not matter for ALL so we skip everything up to the comma
 					for leftover in body_tokens.by_ref() {
 						if matches!(leftover, TokenTree::Punct(ref punct) if punct.as_char() == ',') {
 							break;
@@ -100,7 +100,7 @@ impl EnumSource {
 	}
 
 	/// The impl holding `ALL`, `NAMES` and `LIST` for the enum
-	fn expand(&self) -> Result<TokenStream, String> {
+	fn expand(&self) -> TokenStream {
 		let Self { name, variants } = self;
 		let count = variants.len();
 		let variant_list =
@@ -109,11 +109,12 @@ impl EnumSource {
 			variants.iter().map(|variant| format!("{:?}", variant.list_name)).collect::<Vec<String>>().join(", ");
 		let value_list = variants.iter().map(|variant| variant.list_name.as_str()).collect::<Vec<&str>>().join(", ");
 
+		// the impl prints the enum's own idents and string literals back, all of which lex
 		format!(
 			"impl {name} {{ pub const ALL: [{name}; {count}] = [{variant_list}]; pub const NAMES: [&str; {count}] = [{name_array}]; pub const LIST: &str = {value_list:?}; }}"
 		)
-		.parse::<TokenStream>()
-		.map_err(|error| format!("generated impl for {name} failed to parse: {error}"))
+		.parse()
+		.expect("the generated impl always lexes")
 	}
 }
 
