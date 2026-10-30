@@ -54,9 +54,26 @@ fn tiny(input: &str) -> Cfonts {
 	banner
 }
 
-/// The artifact as the boundary hands it to JavaScript, read back into Rust
-fn rendered<E: Debug>(crossed: Result<Ts<Rendered>, E>) -> Rendered {
-	crossed.expect("the render cannot fail").to_rust().expect("the artifact reads back")
+/// The artifact as JavaScript receives it: the two members a page reads off the crossed object
+struct Artifact {
+	text: String,
+	styles: Vec<String>,
+}
+
+/// The artifact as the boundary hands it to JavaScript, its members read the way JavaScript reads them
+fn rendered<E: Debug>(crossed: Result<Ts<Rendered>, E>) -> Artifact {
+	let artifact: JsValue = crossed.expect("the render cannot fail").into();
+	let member = |name: &str| Reflect::get(&artifact, &JsValue::from_str(name)).expect("a member");
+
+	Artifact {
+		text: member("text").as_string().expect("text is a string"),
+		styles: member("styles")
+			.dyn_into::<Array>()
+			.expect("styles is an array")
+			.iter()
+			.map(|style| style.as_string().expect("a style is a string"))
+			.collect(),
+	}
 }
 
 /// The value a refused call throws, read without a `Debug` of what the call would have returned

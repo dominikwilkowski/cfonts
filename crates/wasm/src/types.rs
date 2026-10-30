@@ -1,5 +1,5 @@
 use js_sys::{Object, Reflect};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
@@ -76,8 +76,9 @@ pub(crate) use with_target;
 
 /// The rendered output returned to JavaScript
 ///
-/// It crosses as a plain object through [`Ts`](tsify::Ts) and reads back for the boundary tests
-#[derive(Debug, Deserialize, Serialize, Tsify)]
+/// It crosses as a plain object through [`Ts`](tsify::Ts)
+// it crosses one way, the boundary tests read its members off the object the way JavaScript does
+#[derive(Debug, Serialize, Tsify)]
 pub struct Rendered {
 	pub text: String,
 
