@@ -1,0 +1,5 @@
+error: font!: expected `,` between glyphs, found `'B'`
+ --> tests/compile_fail/font_glyphs_without_a_comma.rs:5:27
+  |
+5 |         glyphs: { 'A' => [r"A"] 'B' => [r"B"] },
+  |                                 ^^^

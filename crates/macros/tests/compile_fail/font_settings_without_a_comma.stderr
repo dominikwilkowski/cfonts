@@ -1,0 +1,5 @@
+error: font!: expected `,` between settings, found `rows`
+ --> tests/compile_fail/font_settings_without_a_comma.rs:5:13
+  |
+5 |         colors: 1 rows: 1,
+  |                   ^^^^

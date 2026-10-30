@@ -1,13 +1,111 @@
-error: font!: set `line_height`
+error: font!: set `font`
   --> tests/compile_fail/font_without_a_setting.rs:4:2
    |
  4 | /     font! {
- 5 | |         font: Font::Tiny,
- 6 | |         name: "tiny",
- 7 | |         colors: 1,
+ 5 | |         name: "tiny",
+ 6 | |         colors: 1,
+ 7 | |         rows: 1,
 ...  |
 13 | |         },
 14 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `name`
+  --> tests/compile_fail/font_without_a_setting.rs:15:2
+   |
+15 | /     font! {
+16 | |         font: Font::Tiny,
+17 | |         colors: 1,
+18 | |         rows: 1,
+...  |
+24 | |         },
+25 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `colors`
+  --> tests/compile_fail/font_without_a_setting.rs:26:2
+   |
+26 | /     font! {
+27 | |         font: Font::Tiny,
+28 | |         name: "tiny",
+29 | |         rows: 1,
+...  |
+35 | |         },
+36 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `rows`
+  --> tests/compile_fail/font_without_a_setting.rs:37:2
+   |
+37 | /     font! {
+38 | |         font: Font::Tiny,
+39 | |         name: "tiny",
+40 | |         colors: 1,
+...  |
+46 | |         },
+47 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `line_height`
+  --> tests/compile_fail/font_without_a_setting.rs:48:2
+   |
+48 | /     font! {
+49 | |         font: Font::Tiny,
+50 | |         name: "tiny",
+51 | |         colors: 1,
+...  |
+57 | |         },
+58 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `letter_spacing`
+  --> tests/compile_fail/font_without_a_setting.rs:59:2
+   |
+59 | /     font! {
+60 | |         font: Font::Tiny,
+61 | |         name: "tiny",
+62 | |         colors: 1,
+...  |
+68 | |         },
+69 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `letter_space`
+  --> tests/compile_fail/font_without_a_setting.rs:70:2
+   |
+70 | /     font! {
+71 | |         font: Font::Tiny,
+72 | |         name: "tiny",
+73 | |         colors: 1,
+...  |
+79 | |         },
+80 | |     };
+   | |_____^
+   |
+   = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: font!: set `glyphs`
+  --> tests/compile_fail/font_without_a_setting.rs:81:2
+   |
+81 | /     font! {
+82 | |         font: Font::Tiny,
+83 | |         name: "tiny",
+84 | |         colors: 1,
+...  |
+88 | |         letter_space: [r" "],
+89 | |     };
    | |_____^
    |
    = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)

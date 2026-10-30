@@ -1,0 +1,5 @@
+error: font!: expected a character such as 'A', found `"A"`
+ --> tests/compile_fail/font_glyph_character_in_quotes.rs:5:13
+  |
+5 |         glyphs: { "A" => [r"A"] },
+  |                   ^^^

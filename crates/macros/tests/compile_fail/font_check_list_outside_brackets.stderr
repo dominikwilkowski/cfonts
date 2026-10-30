@@ -1,0 +1,5 @@
+error: font!: expected a list of characters such as `['─', '│']`
+ --> tests/compile_fail/font_check_list_outside_brackets.rs:5:32
+  |
+5 |         checks: { slots_paint_only: ['█'] },
+  |                                      ^^^

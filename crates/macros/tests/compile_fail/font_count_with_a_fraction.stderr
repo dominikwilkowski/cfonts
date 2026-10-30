@@ -1,0 +1,5 @@
+error: font!: expected a count such as `1`, found `1.5`
+ --> tests/compile_fail/font_count_with_a_fraction.rs:5:16
+  |
+5 |         line_height: 1.5,
+  |                      ^^^

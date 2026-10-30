@@ -1,0 +1,5 @@
+error: font!: expected a raw string such as r"█", found `" "`
+ --> tests/compile_fail/font_row_that_is_no_raw_string.rs:5:18
+  |
+5 |         buffer_start: [" "],
+  |                        ^^^
