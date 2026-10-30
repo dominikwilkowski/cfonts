@@ -65,7 +65,7 @@ impl Cfonts {
 #[wasm_bindgen]
 impl Cfonts {
 	/// Starts a composition with its first text block
-	pub fn text(#[wasm_bindgen(unchecked_param_type = "string")] input: JsValue) -> Result<Cfonts, JsValue> {
+	pub fn text(#[wasm_bindgen(unchecked_param_type = "string")] input: JsValue) -> Result<Self, JsValue> {
 		let options: Options = CoreCfonts::text(Input::new(input, "text").expect_string()?).into();
 
 		Ok(Self { options, configured_globals: 0 })

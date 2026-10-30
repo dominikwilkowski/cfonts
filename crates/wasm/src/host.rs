@@ -37,7 +37,7 @@ impl BrowserHost {
 	#[wasm_bindgen(js_name = fromOverrides)]
 	pub fn from_overrides(
 		#[wasm_bindgen(unchecked_optional_param_type = "RenderOverrides")] overrides: JsValue,
-	) -> Result<BrowserHost, JsValue> {
+	) -> Result<Self, JsValue> {
 		let overrides = Input::new(overrides, "fromOverrides").overrides()?;
 
 		Ok(Self { inner: CoreBrowserHost::from_overrides(overrides) })
@@ -130,7 +130,7 @@ impl NodeHost {
 	#[wasm_bindgen(js_name = fromOverrides)]
 	pub fn from_overrides(
 		#[wasm_bindgen(unchecked_optional_param_type = "RenderOverrides")] overrides: JsValue,
-	) -> Result<NodeHost, JsValue> {
+	) -> Result<Self, JsValue> {
 		Ok(Self { overrides: Input::new(overrides, "fromOverrides").overrides()? })
 	}
 
