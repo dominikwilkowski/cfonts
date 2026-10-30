@@ -181,27 +181,35 @@ impl Rgb {
 	/// The cube and the nearest gray entry compete by squared distance
 	/// ties go to the lower cube level, the lower gray entry, and the cube over the ramp
 	pub fn ansi256_index(self) -> u8 {
-		let (red_level, green_level, blue_level) =
-			(Self::cube_level(self.red), Self::cube_level(self.green), Self::cube_level(self.blue));
-		let cube_distance = Self::channel_distance(self.red, Self::CUBE_LEVELS[red_level])
-			+ Self::channel_distance(self.green, Self::CUBE_LEVELS[green_level])
-			+ Self::channel_distance(self.blue, Self::CUBE_LEVELS[blue_level]);
+		let levels = [self.red, self.green, self.blue].map(Self::cube_level);
+		let cube_distance = self.distance_to(Self::cube_entry(levels));
 
 		let gray_index = Self::gray_entry(u32::from(self.red) + u32::from(self.green) + u32::from(self.blue));
-		let gray = 8 + 10 * gray_index;
-		let gray_distance = Self::channel_distance(self.red, gray)
-			+ Self::channel_distance(self.green, gray)
-			+ Self::channel_distance(self.blue, gray);
+		let gray_distance = self.distance_to(Self::ramp_entry(gray_index));
 
 		if gray_distance < cube_distance {
 			232 + gray_index
 		} else {
+			let [red_level, green_level, blue_level] = levels;
+
 			(16 + 36 * red_level + 6 * green_level + blue_level) as u8
 		}
 	}
 
 	/// The six values one cube channel can take
 	const CUBE_LEVELS: [u8; 6] = [0, 95, 135, 175, 215, 255];
+
+	/// The cube's color at one level per channel
+	fn cube_entry([red, green, blue]: [usize; 3]) -> Self {
+		Self { red: Self::CUBE_LEVELS[red], green: Self::CUBE_LEVELS[green], blue: Self::CUBE_LEVELS[blue] }
+	}
+
+	/// The gray ramp's color at one entry, `entry` is below 24
+	fn ramp_entry(entry: u8) -> Self {
+		let gray = 8 + 10 * entry;
+
+		Self { red: gray, green: gray, blue: gray }
+	}
 
 	/// The sixteen named colors in ANSI order, the palette entries below the cube
 	const ANSI16: [Value; 16] = [
@@ -233,17 +241,9 @@ impl Rgb {
 			16..=231 => {
 				let cube = usize::from(index - 16);
 
-				Self {
-					red: Self::CUBE_LEVELS[cube / 36],
-					green: Self::CUBE_LEVELS[cube / 6 % 6],
-					blue: Self::CUBE_LEVELS[cube % 6],
-				}
+				Self::cube_entry([cube / 36, cube / 6 % 6, cube % 6])
 			}
-			232..=255 => {
-				let gray = 8 + 10 * (index - 232);
-
-				Self { red: gray, green: gray, blue: gray }
-			}
+			232..=255 => Self::ramp_entry(index - 232),
 		}
 	}
 
@@ -286,6 +286,13 @@ impl Rgb {
 	fn channel_distance(channel: u8, value: u8) -> u32 {
 		let difference = u32::from(channel.abs_diff(value));
 		difference * difference
+	}
+
+	/// The squared distance between this color and one palette color, summed over the channels
+	fn distance_to(self, palette: Self) -> u32 {
+		Self::channel_distance(self.red, palette.red)
+			+ Self::channel_distance(self.green, palette.green)
+			+ Self::channel_distance(self.blue, palette.blue)
 	}
 
 	/// The closest of the sixteen named colors, hand curated, the one table both color layers read
