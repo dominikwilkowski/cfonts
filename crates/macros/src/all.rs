@@ -1,4 +1,4 @@
-use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
 
 use crate::{error::CompileError, literal::LiteralText};
 
@@ -15,20 +15,19 @@ struct Variant {
 }
 
 impl EnumSource {
-	/// Does the work for `All`, a problem with the input turns into a `compile_error!` at the call site
+	/// Does the work for `All`, a problem with the input turns into a `compile_error!` at the token it blames
 	pub(crate) fn derive(input: TokenStream) -> TokenStream {
-		Self::read(input)
-			.map(|source| source.expand())
-			.unwrap_or_else(|message| CompileError::new(message, Span::call_site()).into_tokens())
+		Self::read(input).map(|source| source.expand()).unwrap_or_else(CompileError::into_tokens)
 	}
 
 	/// Reads the derive input, the enum's name and its variants in declaration order
-	fn read(input: TokenStream) -> Result<Self, String> {
+	fn read(input: TokenStream) -> Result<Self, CompileError> {
 		let mut tokens = input.into_iter().peekable();
 
 		// derive input still carries visibility and other attributes so we step past them to the enum keyword
 		loop {
-			match tokens.next() {
+			let token = tokens.next();
+			match &token {
 				Some(TokenTree::Ident(ident)) if ident.to_string() == "enum" => break,
 				Some(TokenTree::Ident(ident)) if ident.to_string() == "pub" => {
 					// pub(crate) and friends carry a parenthesized group we also need to step over
@@ -40,23 +39,25 @@ impl EnumSource {
 				Some(TokenTree::Punct(punct)) if punct.as_char() == '#' => {
 					tokens.next();
 				}
-				_ => return Err(String::from("All can only be derived for enums")),
+				_ => return Err(CompileError::at("All can only be derived for enums", token.as_ref())),
 			}
 		}
 
 		let name = match tokens.next() {
 			Some(TokenTree::Ident(ident)) => ident.to_string(),
-			_ => return Err(String::from("expected an enum name after the enum keyword")),
+			other => return Err(CompileError::at("expected an enum name after the enum keyword", other.as_ref())),
 		};
 
 		// a fieldless enum has no use for generics so we reject them for a clearer error
-		if matches!(tokens.peek(), Some(TokenTree::Punct(punct)) if punct.as_char() == '<') {
-			return Err(format!("All does not support generics on enum {name}"));
+		if let Some(TokenTree::Punct(punct)) = tokens.peek()
+			&& punct.as_char() == '<'
+		{
+			return Err(CompileError::new(format!("All does not support generics on enum {name}"), punct.span()));
 		}
 
 		let body = match tokens.next() {
 			Some(TokenTree::Group(group)) if group.delimiter() == Delimiter::Brace => group,
-			_ => return Err(format!("expected the body of enum {name}")),
+			other => return Err(CompileError::at(format!("expected the body of enum {name}"), other.as_ref())),
 		};
 
 		let mut variants = Vec::new();
@@ -76,9 +77,10 @@ impl EnumSource {
 				}
 				TokenTree::Ident(variant) => {
 					// data carrying variants have a parentheses or braces group after their name
-					if matches!(body_tokens.peek(), Some(TokenTree::Group(_))) {
-						return Err(format!(
-							"variant {variant} of enum {name} holds data, ALL cannot list a variant that holds data"
+					if let Some(TokenTree::Group(data)) = body_tokens.peek() {
+						return Err(CompileError::new(
+							format!("variant {variant} of enum {name} holds data, ALL cannot list a variant that holds data"),
+							data.span(),
 						));
 					}
 
@@ -92,7 +94,9 @@ impl EnumSource {
 						}
 					}
 				}
-				_ => return Err(format!("unexpected token in the body of enum {name}")),
+				other => {
+					return Err(CompileError::new(format!("unexpected token in the body of enum {name}"), other.span()));
+				}
 			}
 		}
 
@@ -130,21 +134,24 @@ impl AllAttribute {
 	/// The one form the attribute takes, named in every refusal
 	const KNOWN_FORMS: &'static str = "only #[all(rename = \"name\")] is supported";
 
-	/// Recognizes the `#[all(…)]` helper attributes, rejecting every unknown form
-	fn read(attribute: &Group) -> Result<Self, String> {
+	/// Recognizes the `#[all(…)]` helper attributes, rejecting every unknown form at the token it blames
+	fn read(attribute: &Group) -> Result<Self, CompileError> {
 		if attribute.delimiter() != Delimiter::Bracket {
 			return Ok(Self::NotOurs);
 		}
 
 		let mut tokens = attribute.stream().into_iter();
 
-		if !matches!(tokens.next(), Some(TokenTree::Ident(ref ident)) if ident.to_string() == "all") {
+		let Some(TokenTree::Ident(name)) = tokens.next() else {
+			return Ok(Self::NotOurs);
+		};
+		if name.to_string() != "all" {
 			return Ok(Self::NotOurs);
 		}
 
 		let arguments = match tokens.next() {
 			Some(TokenTree::Group(arguments)) if arguments.delimiter() == Delimiter::Parenthesis => arguments,
-			_ => return Err(format!("unknown attribute all, {}", Self::KNOWN_FORMS)),
+			_ => return Err(CompileError::new(format!("unknown attribute all, {}", Self::KNOWN_FORMS), name.span())),
 		};
 
 		let mut argument_tokens = arguments.stream().into_iter();
@@ -155,19 +162,31 @@ impl AllAttribute {
 					(Some(TokenTree::Punct(ref equals)), Some(TokenTree::Literal(literal)), None) if equals.as_char() == '=' => {
 						let source = literal.to_string();
 						let Ok(list_name) = LiteralText(&source).string() else {
-							return Err(format!("all(rename) expects a plain string literal, found {source}"));
+							return Err(CompileError::new(
+								format!("all(rename) expects a plain string literal, found {source}"),
+								literal.span(),
+							));
 						};
 
 						if list_name.is_empty() {
-							return Err(format!("all(rename) expects a simple name, found {source}"));
+							return Err(CompileError::new(
+								format!("all(rename) expects a simple name, found {source}"),
+								literal.span(),
+							));
 						}
 
 						Ok(Self::Rename(list_name))
 					}
-					_ => Err(format!("all(rename) expects a plain string literal, {}", Self::KNOWN_FORMS)),
+					_ => Err(CompileError::new(
+						format!("all(rename) expects a plain string literal, {}", Self::KNOWN_FORMS),
+						arguments.span(),
+					)),
 				}
 			}
-			_ => Err(format!("unknown attribute all({}), {}", arguments.stream(), Self::KNOWN_FORMS)),
+			_ => Err(CompileError::new(
+				format!("unknown attribute all({}), {}", arguments.stream(), Self::KNOWN_FORMS),
+				arguments.span(),
+			)),
 		}
 	}
 }

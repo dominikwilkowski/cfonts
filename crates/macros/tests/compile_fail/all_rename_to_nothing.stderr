@@ -1,7 +1,5 @@
 error: all(rename) expects a simple name, found ""
- --> tests/compile_fail/all_rename_to_nothing.rs:3:10
+ --> tests/compile_fail/all_rename_to_nothing.rs:5:17
   |
-3 | #[derive(All)]
-  |          ^^^
-  |
-  = note: this error originates in the derive macro `All` (in Nightly builds, run with -Z macro-backtrace for more info)
+5 |     #[all(rename = "")]
+  |                    ^^

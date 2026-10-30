@@ -1,7 +1,5 @@
 error: All does not support generics on enum Align
- --> tests/compile_fail/all_on_a_generic_enum.rs:3:10
+ --> tests/compile_fail/all_on_a_generic_enum.rs:4:11
   |
-3 | #[derive(All)]
-  |          ^^^
-  |
-  = note: this error originates in the derive macro `All` (in Nightly builds, run with -Z macro-backtrace for more info)
+4 | enum Align<T> {
+  |           ^

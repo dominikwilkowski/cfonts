@@ -42,7 +42,8 @@ use crate::{
 /// `#[all(rename = "name")]` on a variant puts `name` in NAMES in place of the lowercased variant name
 /// Other attributes, doc comments, and explicit discriminants on variants are allowed and skipped
 /// Data-carrying variants and generic enums are rejected
-/// Invalid input turns into a `compile_error!` at the call site
+/// Invalid input turns into a `compile_error!` at the token it blames: the `struct` keyword, the generics,
+/// a variant's data or the attribute
 #[proc_macro_derive(All, attributes(all))]
 pub fn all(input: TokenStream) -> TokenStream {
 	EnumSource::derive(input)

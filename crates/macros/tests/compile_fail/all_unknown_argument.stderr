@@ -1,7 +1,5 @@
 error: unknown attribute all(skip), only #[all(rename = "name")] is supported
- --> tests/compile_fail/all_unknown_argument.rs:3:10
+ --> tests/compile_fail/all_unknown_argument.rs:5:7
   |
-3 | #[derive(All)]
-  |          ^^^
-  |
-  = note: this error originates in the derive macro `All` (in Nightly builds, run with -Z macro-backtrace for more info)
+5 |     #[all(skip)]
+  |          ^^^^^^

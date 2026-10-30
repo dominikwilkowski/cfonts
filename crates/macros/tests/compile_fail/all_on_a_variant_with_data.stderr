@@ -1,7 +1,5 @@
 error: variant Left of enum Align holds data, ALL cannot list a variant that holds data
- --> tests/compile_fail/all_on_a_variant_with_data.rs:3:10
+ --> tests/compile_fail/all_on_a_variant_with_data.rs:5:6
   |
-3 | #[derive(All)]
-  |          ^^^
-  |
-  = note: this error originates in the derive macro `All` (in Nightly builds, run with -Z macro-backtrace for more info)
+5 |     Left(usize),
+  |         ^^^^^^^

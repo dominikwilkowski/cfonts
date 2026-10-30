@@ -1,7 +1,5 @@
 error: all(rename) expects a plain string literal, only #[all(rename = "name")] is supported
- --> tests/compile_fail/all_rename_without_a_name.rs:3:10
+ --> tests/compile_fail/all_rename_without_a_name.rs:5:7
   |
-3 | #[derive(All)]
-  |          ^^^
-  |
-  = note: this error originates in the derive macro `All` (in Nightly builds, run with -Z macro-backtrace for more info)
+5 |     #[all(rename)]
+  |          ^^^^^^^^

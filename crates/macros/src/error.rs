@@ -12,6 +12,11 @@ impl CompileError {
 		Self { message: message.into(), span }
 	}
 
+	/// An error at the token, or at the call site when the input ended before it
+	pub(crate) fn at(message: impl Into<String>, token: Option<&TokenTree>) -> Self {
+		Self::new(message, token.map_or_else(Span::call_site, TokenTree::span))
+	}
+
 	/// The same error with `prefix` in front of its message, so a macro names itself once at its boundary
 	pub(crate) fn prefixed(self, prefix: &str) -> Self {
 		Self { message: format!("{prefix}{}", self.message), span: self.span }
