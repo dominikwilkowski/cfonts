@@ -227,6 +227,10 @@ pub(crate) struct Layout<'a> {
 }
 
 impl<'a> Layout<'a> {
+	/// The widest letter spacing the layout lays out, a glyph repeats as a `u32`,
+	/// the command line refuses more and the Rust API is clamped to it
+	pub(crate) const MAX_LETTER_SPACING: usize = u32::MAX as usize;
+
 	/// Creates a new layout with the given options
 	pub fn new(options: &'a Options) -> Self {
 		Self {
@@ -284,13 +288,14 @@ impl<'a> Layout<'a> {
 			Some(StagedBlock { buffer_start, line_height: block.line_height.unwrap_or_else(|| font.line_height()) });
 
 		// The letter spaces between two glyphs are one glyph repeated as often as the block asks,
-		// so flush_line handles the run like any other glyph
+		// so flush_line handles the run like any other glyph,
+		// a spacing past MAX_LETTER_SPACING cannot show anyway, so it clamps there instead of panicking
+		let spacing = block.letter_spacing.unwrap_or_else(|| font.letter_spacing()).min(Self::MAX_LETTER_SPACING);
 		let letter_space = LayoutGlyph {
 			glyph: font.letter_space(),
 			block_index,
 			paintable: true,
-			repeat: u32::try_from(block.letter_spacing.unwrap_or_else(|| font.letter_spacing()))
-				.expect("a letter spacing is below 4,294,967,296"),
+			repeat: u32::try_from(spacing).expect("a spacing clamped to MAX_LETTER_SPACING fits a u32"),
 		};
 
 		// Now we iterate each character in this block
@@ -560,9 +565,10 @@ impl<'a> Layout<'a> {
 				}
 
 				if row < padding || row >= padding + glyph.rows() {
-					// Blank padding rows for fonts that are not as tall as another on the same line
+					// Blank padding rows for fonts that are not as tall as another on the same line,
+					// a run past the u32 range cannot show anyway, so it clamps like the letter spacing
 					entries.push(RowEntry::Blank {
-						width: u32::try_from(glyph.columns()).expect("a padding run is narrower than 2^32 columns"),
+						width: u32::try_from(glyph.columns()).unwrap_or(u32::MAX),
 						block_index: Self::entry_block(glyph.block_index),
 					});
 				} else if let Ok(repeat) = u8::try_from(glyph.repeat) {
@@ -774,6 +780,15 @@ mod tests {
 
 		assert_eq!(entries_after_first, 3); // buffer_start, A, buffer_end
 		assert_eq!(layout.line.len(), entries_after_first + 3); // the same again for the second block
+	}
+
+	#[test]
+	fn layout_block_clamps_a_letter_spacing_past_the_u32_range() {
+		// the field is public, so a spacing past MAX_LETTER_SPACING reaches the layout and must lay out, not panic
+		let options = options(Valign::Top, None, vec![spaced_block("AB", usize::MAX, false)]);
+
+		// the clamped run fits no line, so the glyphs split onto lines of their own
+		assert_eq!(layout_lines(&options, Some(80)).len(), 2);
 	}
 
 	// vertical_padding

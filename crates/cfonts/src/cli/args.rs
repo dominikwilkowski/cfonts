@@ -1,4 +1,4 @@
-use std::{num::NonZeroUsize, str::FromStr};
+use std::num::{IntErrorKind, NonZeroUsize};
 
 use crate::{
 	Align, Background, BackgroundOption, Color, ColorError, ColorOption, Font, GradientPreset, RustHost, Text, Valign,
@@ -10,6 +10,7 @@ use crate::{
 		},
 	},
 	color::ColorShape,
+	layout::Layout,
 };
 use cfonts_macros::All;
 
@@ -191,7 +192,7 @@ impl Args {
 			Self::MaxLength => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
 				// zero means unlimited
-				state.options.max_length = NonZeroUsize::new(self.parse_number(value)?);
+				state.options.max_length = NonZeroUsize::new(self.parse_count(value, usize::MAX)?);
 			}
 			Self::Stdin => {
 				// The options that are passed in keep the promise that there is always at least one block present
@@ -232,11 +233,11 @@ impl Args {
 			}
 			Self::LetterSpacing => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.current_block_mut().block.letter_spacing = Some(self.parse_number(value)?);
+				state.current_block_mut().block.letter_spacing = Some(self.parse_count(value, Layout::MAX_LETTER_SPACING)?);
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.current_block_mut().block.line_height = Some(self.parse_number(value)?);
+				state.current_block_mut().block.line_height = Some(self.parse_count(value, usize::MAX)?);
 			}
 
 			// Boolean flags
@@ -257,9 +258,16 @@ impl Args {
 		from_name(value).ok_or(ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
-	/// Parses one numeric value, or reports it against this argument
-	fn parse_number<'a, T: FromStr>(self, value: &'a str) -> Result<T, ParseError<'a>> {
-		value.parse().map_err(|_| ParseError::InvalidValue { argument: self, value, source: None })
+	/// Parses one count up to `limit`, a larger one is reported as too large, anything else as invalid
+	fn parse_count<'a>(self, value: &'a str, limit: usize) -> Result<usize, ParseError<'a>> {
+		match value.parse::<usize>() {
+			Ok(count) if count <= limit => Ok(count),
+			Ok(_) => Err(ParseError::ValueTooLarge { argument: self, value, limit }),
+			Err(error) if *error.kind() == IntErrorKind::PosOverflow => {
+				Err(ParseError::ValueTooLarge { argument: self, value, limit })
+			}
+			Err(_) => Err(ParseError::InvalidValue { argument: self, value, source: None }),
+		}
 	}
 
 	/// Parses one colors value through the core's grammar, or reports it against this argument
@@ -691,6 +699,37 @@ mod tests {
 		for spelling in ["g", "gradient", "t", "transition-gradient"] {
 			assert_eq!(Args::parse(spelling), None, "{spelling}");
 			assert!(Args::gradient_flag_moved(spelling), "{spelling}");
+		}
+	}
+
+	// Args::parse_count
+
+	#[test]
+	fn counts_parse_up_to_their_limit_and_name_what_went_wrong() {
+		assert_eq!(Args::LineHeight.parse_count("0", usize::MAX), Ok(0));
+		assert_eq!(Args::LetterSpacing.parse_count("4294967295", Layout::MAX_LETTER_SPACING), Ok(4_294_967_295));
+
+		// past the limit of the option, and past what the number type holds, read the same to the user
+		assert_eq!(
+			Args::LetterSpacing.parse_count("4294967296", Layout::MAX_LETTER_SPACING),
+			Err(ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "4294967296", limit: 4_294_967_295 })
+		);
+		assert_eq!(
+			Args::LetterSpacing.parse_count("99999999999999999999", Layout::MAX_LETTER_SPACING),
+			Err(ParseError::ValueTooLarge {
+				argument: Args::LetterSpacing,
+				value: "99999999999999999999",
+				limit: 4_294_967_295
+			})
+		);
+
+		// anything that is no count at all stays an invalid value
+		for value in ["-1", "2.5", "abc", ""] {
+			assert_eq!(
+				Args::LineHeight.parse_count(value, usize::MAX),
+				Err(ParseError::InvalidValue { argument: Args::LineHeight, value, source: None }),
+				"{value:?}"
+			);
 		}
 	}
 

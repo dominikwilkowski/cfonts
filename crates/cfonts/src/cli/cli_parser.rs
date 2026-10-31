@@ -131,6 +131,24 @@ pub enum ParseError<'a> {
 	/// ```
 	InvalidValue { argument: Args, value: &'a str, source: Option<ColorError> },
 
+	/// A flag's number is past what cfonts can take, carries the value as typed and the limit it passed
+	///
+	/// ```
+	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
+	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
+	/// let args = ["hello", "--letter-spacing", "4294967296"].map(String::from);
+	/// let failure = parse_args(&args, terminal).unwrap_err();
+	/// assert_eq!(
+	///     failure.error,
+	///     ParseError::ValueTooLarge {
+	///         argument: Args::LetterSpacing,
+	///         value: "4294967296",
+	///         limit: 4_294_967_295,
+	///     }
+	/// );
+	/// ```
+	ValueTooLarge { argument: Args, value: &'a str, limit: usize },
+
 	/// A flag that takes a value sat inside a short flag cluster instead of at its end
 	///
 	/// ```
@@ -289,6 +307,7 @@ impl ParseError<'_> {
 			Self::DelimiterIgnored => ErrorType::Warning,
 			Self::MissingValue(_) => ErrorType::Error,
 			Self::InvalidValue { .. } => ErrorType::Error,
+			Self::ValueTooLarge { .. } => ErrorType::Error,
 			Self::MidClusterArgumentRequired(_) => ErrorType::Error,
 			Self::EmptyColorSegment { .. } => ErrorType::Error,
 			Self::MixedColorDelimiters { .. } => ErrorType::Error,
@@ -328,6 +347,7 @@ impl ParseError<'_> {
 			| Self::DelimiterIgnored
 			| Self::MissingValue(_)
 			| Self::InvalidValue { .. }
+			| Self::ValueTooLarge { .. }
 			| Self::MidClusterArgumentRequired(_)
 			| Self::EmptyColorSegment { .. }
 			| Self::MixedColorDelimiters { .. }
@@ -400,6 +420,14 @@ impl ParseError<'_> {
 				}
 
 				write!(f, "\n\n{}", args.help(color_enabled))
+			}
+			Self::ValueTooLarge { argument: args, value, limit } => {
+				write!(
+					f,
+					"{flag} The option \"{open}{}{close}\" was given a value that is too large\n\"{open}{value}{close}\" is above its limit of {open}{limit}{close}\n\n{}",
+					args.infos().long,
+					args.help(color_enabled)
+				)
 			}
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
@@ -1149,6 +1177,26 @@ mod argument_parsing {
 	}
 
 	#[test]
+	fn number_flags_refuse_values_past_their_limit() {
+		// the layout repeats the letter space with a u32, so the flag ends where that ends
+		let widest = args(&["my text", "-l", "4294967295"]);
+		assert_eq!(parse_args(&widest, tty()).unwrap().options.blocks[0].letter_spacing, Some(4_294_967_295));
+
+		let too_wide = args(&["my text", "-l", "4294967296"]);
+		assert_eq!(
+			parse_args(&too_wide, tty()).unwrap_err().error,
+			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "4294967296", limit: 4_294_967_295 }
+		);
+
+		// the other counts end where usize ends
+		let past_usize = args(&["my text", "-z", "99999999999999999999"]);
+		assert_eq!(
+			parse_args(&past_usize, tty()).unwrap_err().error,
+			ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999", limit: usize::MAX }
+		);
+	}
+
+	#[test]
 	fn number_flags_apply_to_the_block_and_globals() {
 		let input = args(&["my text", "-l", "9", "-z", "2", "-m", "100"]);
 		let parsed = parse_args(&input, tty()).unwrap();
@@ -1845,6 +1893,7 @@ mod error_messages {
 			ParseError::MissingValue(Args::Font),
 			ParseError::InvalidValue { argument: Args::Color, value: "nope", source: None },
 			ParseError::InvalidValue { argument: Args::Color, value: "#zz", source: Some(ColorError::HexCharacter) },
+			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "4294967296", limit: 4_294_967_295 },
 			ParseError::MidClusterArgumentRequired(Args::Font),
 			ParseError::EmptyColorSegment { argument: Args::Color, value: "red-" },
 			ParseError::MixedColorDelimiters { argument: Args::Color, value: "red,blue-green" },
@@ -1871,6 +1920,7 @@ mod error_messages {
 				| ParseError::DelimiterIgnored
 				| ParseError::MissingValue(_)
 				| ParseError::InvalidValue { .. }
+				| ParseError::ValueTooLarge { .. }
 				| ParseError::MidClusterArgumentRequired(_)
 				| ParseError::EmptyColorSegment { .. }
 				| ParseError::MixedColorDelimiters { .. }
