@@ -1,0 +1,5 @@
+error: all(rename) expects a plain string literal, only #[all(rename = "name")] is supported
+ --> tests/compile_fail/all_rename_without_a_name.rs:5:7
+  |
+5 |     #[all(rename)]
+  |          ^^^^^^^^

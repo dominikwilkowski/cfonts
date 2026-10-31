@@ -1,0 +1,5 @@
+error: unknown attribute all(skip), only #[all(rename = "name")] is supported
+ --> tests/compile_fail/all_unknown_argument.rs:5:7
+  |
+5 |     #[all(skip)]
+  |          ^^^^^^

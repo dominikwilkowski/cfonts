@@ -1,0 +1,5 @@
+error: font!: expected `,` between characters, found `'_'`
+ --> tests/compile_fail/font_ground_without_a_comma.rs:5:16
+  |
+5 |         ground: [' ' '_'],
+  |                      ^^^

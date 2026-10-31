@@ -1,0 +1,98 @@
+import { release } from "node:os";
+
+import { type RenderOverrides, type Terminal, NodeHost as WasmNodeHost } from "../../pkg/cfonts_wasm.js";
+import { inner } from "../boundary.js";
+import type { Cfonts, Rendered } from "../index.js";
+import { type Target, targetArguments } from "../targets/index.js";
+import type { Host } from "./types.js";
+
+/**
+ * The Rust Node host behind the boundary: it resolves the terminal width and the color support
+ * from the facts of the process and writes artifacts to stdout
+ *
+ * FORCE_SIZE, FORCE_COLOR and NO_COLOR take precedence over every override the host is given
+ *
+ * TypeScript gathers the facts Rust cannot read in Node and keeps the one write, the decisions live in the core
+ */
+export class NodeHost implements Host {
+	readonly #inner: WasmNodeHost;
+
+	/**
+	 * One lookup of an environment variable by its name, the function the resolution calls per name
+	 *
+	 * A variable is read through `process.env` itself at the moment the resolution asks for it, so the lookup
+	 * carries Node's own rule, case insensitive on a Windows main thread and exact elsewhere, and no name list
+	 * lives here, and the one function crosses the boundary with every render instead of a fresh closure
+	 */
+	static readonly #environment = (name: string): string | undefined => process.env[name];
+
+	/**
+	 * Creates the Node host that detects everything from the terminal, or one with explicit capability overrides
+	 *
+	 * The overrides object crosses the boundary as it is, the core reads it
+	 *
+	 * @example
+	 * new NodeHost();
+	 *
+	 * @example
+	 * new NodeHost({ canvasWidth: 40, color: ColorLevel.Basic });
+	 */
+	constructor(overrides?: RenderOverrides) {
+		this.#inner = WasmNodeHost.fromOverrides(overrides);
+	}
+
+	/**
+	 * A fresh seed for candy colors, the one a render rolls when no seed override is given
+	 *
+	 * Hosts and callers that hold a seed of their own take it from here, so the
+	 * candy picks differ between runs and hold for as long as the seed is kept
+	 *
+	 * @example
+	 * const seed = NodeHost.entropy();
+	 * const host = NodeHost.fromOverrides({ seed });
+	 */
+	static entropy(): number {
+		return WasmNodeHost.entropy();
+	}
+
+	/**
+	 * Creates a Node host with explicit capability overrides, the constructor with its object
+	 *
+	 * @example
+	 * NodeHost.fromOverrides({ canvasWidth: 40, color: ColorLevel.Basic });
+	 *
+	 * @example
+	 * NodeHost.fromOverrides({ color: false }); // paints nothing
+	 */
+	static fromOverrides(overrides: RenderOverrides): NodeHost {
+		return new NodeHost(overrides);
+	}
+
+	render(composition: Cfonts, target: Target): Rendered {
+		return this.#inner.render(composition[inner](), ...targetArguments(target, "render"), NodeHost.#terminal());
+	}
+
+	say(composition: Cfonts, target: Target): void {
+		const [kind, rawMode] = targetArguments(target, "say");
+		const rendered = this.#inner.render(composition[inner](), kind, rawMode, NodeHost.#terminal());
+
+		process.stdout.write(`${rendered.text}${WasmNodeHost.lineEnd(kind, rawMode)}`);
+	}
+
+	/**
+	 * The facts of the process the resolution reads, gathered at every render so a resized terminal is seen
+	 */
+	static #terminal(): Terminal {
+		// stdout is a tty stream only while a terminal is attached, piped it carries no `isTTY` at all, whatever @types/node says
+		const { isTTY } = process.stdout as { isTTY?: boolean };
+
+		return {
+			stdoutColumns: process.stdout.columns,
+			stderrColumns: process.stderr.columns,
+			attached: isTTY === true,
+			platform: process.platform,
+			release: release(),
+			environment: NodeHost.#environment,
+		};
+	}
+}

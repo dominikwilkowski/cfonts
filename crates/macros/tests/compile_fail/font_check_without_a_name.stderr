@@ -1,0 +1,5 @@
+error: font!: expected the name of a check, found `1`
+ --> tests/compile_fail/font_check_without_a_name.rs:5:13
+  |
+5 |         checks: { 1 },
+  |                   ^

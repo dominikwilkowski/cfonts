@@ -1,0 +1,952 @@
+use std::{borrow::Cow, num::NonZeroUsize, ops::Range};
+
+use crate::{
+	color::{
+		Background, BackgroundOption, CANDY, CandyRng, Color, ColorLevel, ColorOption, GradientColors, GradientOption, Rgb,
+	},
+	layout::{Layout, LayoutRow, RowEntry},
+	options::{Align, Options},
+	targets::{Rendered, Target},
+};
+
+/// How a host should resolve its canvas width
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum CanvasWidth {
+	/// Ask the host to detect the width
+	#[default]
+	Auto,
+
+	/// Render without a canvas-width limit
+	Unlimited,
+
+	/// Render into a fixed number of columns
+	Columns(NonZeroUsize),
+}
+
+impl CanvasWidth {
+	/// The width in columns, with `auto` standing in where the request leaves the decision open
+	pub(crate) fn columns_or(self, auto: Option<usize>) -> Option<usize> {
+		match self {
+			Self::Auto => auto,
+			Self::Unlimited => None,
+			Self::Columns(columns) => Some(columns.get()),
+		}
+	}
+}
+
+/// How a host should resolve its color support
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ColorOverride {
+	/// Ask the host to detect the color support
+	#[default]
+	Auto,
+
+	/// Render without colors
+	Disabled,
+
+	/// Render with a fixed color support
+	Level(ColorLevel),
+}
+
+impl ColorOverride {
+	/// The color level, with `auto` standing in where the request leaves the decision open
+	pub(crate) fn level_or(self, auto: Option<ColorLevel>) -> Option<ColorLevel> {
+		match self {
+			Self::Auto => auto,
+			Self::Disabled => None,
+			Self::Level(level) => Some(level),
+		}
+	}
+}
+
+/// What a consumer asks of a render: the one request type hosts and the host free path take
+///
+/// A host resolves these against its runtime, the host free [`render_with`] decides nothing,
+/// so `Auto` means off there: no canvas, no color, the zero seed
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RenderOverrides {
+	canvas_width: CanvasWidth,
+	color: ColorOverride,
+	seed: Option<u64>,
+}
+
+impl RenderOverrides {
+	/// Overrides canvas-width detection
+	///
+	/// Zero means unlimited
+	#[must_use]
+	pub fn with_canvas_width(mut self, canvas_width: usize) -> Self {
+		self.canvas_width = NonZeroUsize::new(canvas_width).map_or(CanvasWidth::Unlimited, CanvasWidth::Columns);
+		self
+	}
+
+	/// Returns the unresolved canvas-width setting
+	#[must_use]
+	pub const fn canvas_width(self) -> CanvasWidth {
+		self.canvas_width
+	}
+
+	/// Overrides color-support detection
+	#[must_use]
+	pub const fn with_color(mut self, color: ColorOverride) -> Self {
+		self.color = color;
+		self
+	}
+
+	/// Returns the unresolved color setting
+	#[must_use]
+	pub const fn color(self) -> ColorOverride {
+		self.color
+	}
+
+	/// Overrides the host's entropy for reproducible candy colors
+	#[must_use]
+	pub const fn with_seed(mut self, seed: u64) -> Self {
+		self.seed = Some(seed);
+		self
+	}
+
+	/// Returns the seed override
+	#[must_use]
+	pub const fn seed(self) -> Option<u64> {
+		self.seed
+	}
+}
+
+/// The capabilities one render runs under: what targets read and hosts produce
+///
+/// Consumers ask through [`RenderOverrides`], a host or the host free path turns the request into this
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RenderContext {
+	canvas_width: Option<NonZeroUsize>,
+	color_level: Option<ColorLevel>,
+	seed: u64,
+}
+
+impl RenderContext {
+	/// The context a host's three answers make, zero columns mean unlimited
+	pub(crate) fn resolved(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: u64) -> Self {
+		Self { canvas_width: canvas_width.and_then(NonZeroUsize::new), color_level, seed }
+	}
+
+	/// Creates a context without a canvas-width limit
+	#[cfg(test)]
+	pub(crate) const fn unlimited() -> Self {
+		Self { canvas_width: None, color_level: None, seed: 0 }
+	}
+
+	/// Creates a context with a fixed canvas width
+	///
+	/// Zero means unlimited
+	#[cfg(test)]
+	pub(crate) fn with_canvas_width(canvas_width: usize) -> Self {
+		Self { canvas_width: NonZeroUsize::new(canvas_width), ..Self::unlimited() }
+	}
+
+	/// Creates a context with the given color support and no canvas-width limit
+	#[cfg(test)]
+	pub(crate) fn colored(color_level: ColorLevel) -> Self {
+		Self { color_level: Some(color_level), ..Self::unlimited() }
+	}
+
+	/// Returns the resolved width in columns
+	#[must_use]
+	pub fn canvas_width(self) -> Option<usize> {
+		self.canvas_width.map(NonZeroUsize::get)
+	}
+
+	/// Sets the resolved color support, None paints nothing
+	#[cfg(test)]
+	pub(crate) const fn with_color_level(mut self, color_level: Option<ColorLevel>) -> Self {
+		self.color_level = color_level;
+		self
+	}
+
+	/// Returns the resolved color support, None paints nothing
+	#[must_use]
+	pub const fn color_level(self) -> Option<ColorLevel> {
+		self.color_level
+	}
+
+	/// Sets the seed that makes candy colors reproducible
+	#[cfg(test)]
+	pub(crate) const fn with_seed(mut self, seed: u64) -> Self {
+		self.seed = seed;
+		self
+	}
+
+	/// Returns the seed that makes candy colors reproducible
+	#[must_use]
+	pub const fn seed(self) -> u64 {
+		self.seed
+	}
+
+	/// Builds layout once under this context and renders it through a pure target
+	pub(crate) fn render<T: Target + ?Sized>(self, options: &Options, target: &T) -> Rendered {
+		let mut rows = Layout::build(options, self.canvas_width()).into_rows();
+
+		// Targets that own their frame align rows within the widest line when
+		// no canvas exists, so gradients and padding share one column story
+		if self.canvas_width().is_none() && target.frames_alignment_to_widest() && options.align != Align::Left {
+			let widest = rows.iter().map(|row| row.width).max().unwrap_or(0);
+
+			// Zero-width rows have nothing to align, matching Layout::align_offset's canvas rule:
+			// empty `||` lines still carry their zero-width buffer entries, so width is the real test
+			for row in rows.iter_mut().filter(|row| row.has_columns()) {
+				row.align_offset = options.align.offset(widest - row.width);
+			}
+		}
+
+		target.render_rows(&rows, options, &self)
+	}
+}
+
+/// Which paint path covers one block's segments
+///
+/// A ramp exists only under a color level, so the ramping paths carry the level they paint at
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PaintDomain {
+	/// Slot colors or nothing: the plan's slots decide per segment
+	Slots,
+
+	/// The block's own gradient, ramping over the block's columns at this level
+	Block(ColorLevel),
+
+	/// The composition wide gradient at this level, ramping over the columns of every block that paints from it
+	Global(ColorLevel),
+}
+
+/// One slot's resolved paint
+#[derive(Debug)]
+pub(crate) enum SlotPaint<T> {
+	/// Nothing paints this slot
+	None,
+
+	/// One resolved paint for every segment of this slot
+	Fixed(T),
+
+	/// A fresh pick from the candy assortment per painted segment
+	Candy,
+}
+
+impl<T> SlotPaint<T> {
+	/// Whether this slot state paints at all
+	fn paints(&self) -> bool {
+		matches!(self, Self::Fixed(_) | Self::Candy)
+	}
+}
+
+/// One block's resolved paints, one entry per font color slot
+#[derive(Debug)]
+pub(crate) struct BlockPlan<T> {
+	slots: Vec<SlotPaint<T>>,
+
+	/// The paint path covering this block's segments
+	domain: PaintDomain,
+
+	/// Whether untagged paintable segments take the block's single color
+	/// (single-color fonts carry no slot tags, their glyph and letter-space text paints wholesale)
+	paint_plain: bool,
+}
+
+impl<T> BlockPlan<T> {
+	/// The plan of a block without slot paints
+	fn bare(domain: PaintDomain) -> Self {
+		Self { slots: Vec::new(), domain, paint_plain: false }
+	}
+
+	/// The slot one text segment selects, holding the single copy of the routing rule
+	///
+	/// Tagged segments use their slot; untagged paintable segments take slot zero
+	/// when the block paints plain; everything else selects nothing
+	fn slot_index(&self, slot: Option<usize>, paintable: bool) -> Option<usize> {
+		match slot {
+			Some(slot) => Some(slot),
+			None if paintable && self.paint_plain => Some(0),
+			None => None,
+		}
+	}
+
+	/// The slot paint one text segment resolves to
+	fn slot_paint(&self, slot: Option<usize>, paintable: bool) -> Option<&SlotPaint<T>> {
+		self.slots.get(self.slot_index(slot, paintable)?)
+	}
+}
+
+/// The convert-once color cache of one render:
+/// every configured color resolved to the target's paint exactly once
+#[derive(Debug)]
+pub(crate) struct PaintPlan<T> {
+	blocks: Vec<BlockPlan<T>>,
+
+	/// The candy assortment resolved through the target, present only when a slot rolls
+	candy: Option<Box<[Option<T>; CANDY.len()]>>,
+
+	/// The deterministic roll source, seeded by the host through the context
+	rng: CandyRng,
+
+	/// Whether any slot resolved to paint
+	will_style: bool,
+}
+
+impl<T> PaintPlan<T> {
+	/// Resolves every configured color through `resolve` exactly once per block and slot
+	///
+	/// A block's own color wins over the global color, without a color level nothing paints
+	/// and `resolve` never runs, so it takes the level as given and never checks for one
+	pub(crate) fn build(
+		options: &Options,
+		context: &RenderContext,
+		mut resolve: impl FnMut(Color, ColorLevel) -> Option<T>,
+	) -> Self {
+		let rng = CandyRng::new(context.seed());
+
+		// without a color level nothing paints, and the lookups read a missing block as unpainted
+		let Some(level) = context.color_level() else {
+			return Self { blocks: Vec::new(), candy: None, rng, will_style: false };
+		};
+
+		let blocks = options
+			.blocks
+			.iter()
+			.map(|block| {
+				let Some(color) = block.colors.as_ref().or(options.global_colors.as_ref()) else {
+					return BlockPlan::bare(PaintDomain::Slots);
+				};
+
+				match color {
+					ColorOption::Colors(colors) => {
+						let font_colors = block.font.get_font().colors();
+
+						// Colors beyond the font's slots can never paint, so they don't shape the plan
+						let slots: Vec<SlotPaint<T>> = colors
+							.iter()
+							.take(font_colors)
+							.map(|color| match *color {
+								Color::SYSTEM => SlotPaint::None,
+								Color::CANDY => SlotPaint::Candy,
+								color => resolve(color, level).map_or(SlotPaint::None, SlotPaint::Fixed),
+							})
+							.collect();
+
+						let paint_plain = font_colors == 1 && slots.first().is_some_and(SlotPaint::paints);
+
+						BlockPlan { slots, domain: PaintDomain::Slots, paint_plain }
+					}
+					ColorOption::Gradient(_) => {
+						// the block's own gradient wins, otherwise the global one covers it
+						BlockPlan::bare(if block.colors.is_some() { PaintDomain::Block(level) } else { PaintDomain::Global(level) })
+					}
+				}
+			})
+			.collect::<Vec<BlockPlan<T>>>();
+
+		// Both summaries derive from the finished blocks and are stored, not recomputed
+		let will_style =
+			blocks.iter().any(|block| block.domain != PaintDomain::Slots || block.slots.iter().any(SlotPaint::paints));
+		let rolls = blocks.iter().any(|block| block.slots.iter().any(|slot| matches!(slot, SlotPaint::Candy)));
+		let candy = rolls.then(|| Box::new(CANDY.map(|color| resolve(color, level))));
+
+		Self { blocks, candy, rng, will_style }
+	}
+
+	/// The paint path of one block
+	pub(crate) fn domain(&self, block_index: usize) -> PaintDomain {
+		self.blocks.get(block_index).map_or(PaintDomain::Slots, |block| block.domain)
+	}
+
+	/// The paint path of every block in block order, none without a color level
+	pub(crate) fn domains(&self) -> impl Iterator<Item = PaintDomain> {
+		self.blocks.iter().map(|block| block.domain)
+	}
+
+	/// Whether any segment of these rows actually paints under this plan
+	///
+	/// Resolution alone is not enough: a resolved slot may cover no segment at all, and escaping must match
+	/// the styles that actually get emitted, so the plan's resolution is confirmed against the rows
+	/// A plan without a resolved slot skips the scan, and the scan stops at the first painted segment
+	pub(crate) fn paints_any_segment(&self, rows: &[LayoutRow]) -> bool {
+		self.will_style
+			&& rows.iter().any(|row| {
+				row.entries.iter().any(|entry| match entry {
+					RowEntry::Data { glyph_row, block_index, paintable, .. } => glyph_row
+						.segments()
+						.any(|(text, slot)| !text.is_empty() && self.resolves(*block_index as usize, slot, *paintable)),
+					RowEntry::Blank { .. } => false,
+				})
+			})
+	}
+
+	/// Whether one text segment resolves to paint, without consuming a roll
+	///
+	/// The pre-paint scan uses this so candy determinism is untouched by scanning
+	pub(crate) fn resolves(&self, block_index: usize, slot: Option<usize>, paintable: bool) -> bool {
+		let Some(block) = self.blocks.get(block_index) else {
+			return false;
+		};
+
+		block.domain != PaintDomain::Slots || block.slot_paint(slot, paintable).is_some_and(SlotPaint::paints)
+	}
+
+	/// The paint of one text segment, if any; a candy slot rolls a fresh pick
+	pub(crate) fn paint_for(&mut self, block_index: usize, slot: Option<usize>, paintable: bool) -> Option<&T> {
+		let block = self.blocks.get(block_index)?;
+
+		match block.slot_paint(slot, paintable)? {
+			SlotPaint::Fixed(paint) => Some(paint),
+			SlotPaint::Candy => {
+				let pick = self.rng.pick();
+				self.candy.as_ref().and_then(|candy| candy[pick].as_ref())
+			}
+			SlotPaint::None => None,
+		}
+	}
+}
+
+/// One gradient domain: its stops, the ramp they fill and the absolute column the ramp starts at
+#[derive(Debug)]
+pub(crate) struct GradientState {
+	/// The stops as given, a preset's borrowed from its table, the others owned
+	stops: Cow<'static, [Rgb]>,
+	transition: bool,
+	colors: GradientColors,
+
+	/// The absolute column of the ramp's first color
+	origin: usize,
+}
+
+impl GradientState {
+	fn new(gradient: &GradientOption) -> Self {
+		let (stops, transition) = match gradient {
+			GradientOption::TwoStop { start, end } => (Cow::Owned(vec![start.to_rgb(), end.to_rgb()]), false),
+			GradientOption::Transition(stops) => (Cow::Owned(stops.iter().map(|stop| stop.to_rgb()).collect()), true),
+			GradientOption::Preset(preset) => (Cow::Borrowed(preset.stops()), true),
+		};
+
+		Self { stops, transition, colors: GradientColors::new(), origin: 0 }
+	}
+
+	/// Moves the ramp to one column extent, reusing the buffer; no extent leaves the ramp empty
+	///
+	/// The stops never change, so a ramp of the same length holds the same colors and only the origin moves,
+	/// which spares an independent composition the refill on every row of a line
+	fn fill(&mut self, extent: Option<Range<usize>>) {
+		let extent = extent.unwrap_or(0..0);
+		self.origin = extent.start;
+		if self.colors.colors().len() != extent.len() {
+			self.colors.fill(&self.stops, self.transition, extent.len());
+		}
+	}
+
+	/// The ramp from one absolute column onward; empty before the origin and past the ramp
+	fn window(&self, column: usize) -> &[Rgb] {
+		column.checked_sub(self.origin).and_then(|cursor| self.colors.colors().get(cursor..)).unwrap_or(&[])
+	}
+}
+
+/// The gradient ramps of one render: one state per active domain, every ramp indexed by absolute column
+///
+/// A domain is the global gradient or one block's own gradient, and its extent runs from the first column
+/// of the first block that paints from it to the last column of the last one: a block in between that paints
+/// its own colors consumes its columns of the ramp, a block at either edge stretches nothing
+///
+/// A fixed ramp fills once over the extent across every row, an independent one refills per row
+#[derive(Debug)]
+pub(crate) struct GradientPlans {
+	/// The paint path of every block, deciding which ramp its columns sample
+	domains: Vec<PaintDomain>,
+	blocks: Vec<Option<GradientState>>,
+	global: Option<GradientState>,
+
+	/// Whether every ramp refills per row over that row's extent
+	independent: bool,
+
+	/// The absolute column the next cell of the current row lands on
+	column: usize,
+}
+
+impl GradientPlans {
+	/// Builds every active gradient domain along the paint plan's routing and fills the fixed ramps
+	///
+	/// Without a color level the plan routes every block through its slots, so nothing ramps
+	pub(crate) fn build<T>(plan: &PaintPlan<T>, options: &Options, rows: &[LayoutRow]) -> Self {
+		// a composition without a ramp needs no tables, the lookups read a missing block as unramped
+		if plan.domains().all(|domain| domain == PaintDomain::Slots) {
+			return Self { domains: Vec::new(), blocks: Vec::new(), global: None, independent: false, column: 0 };
+		}
+
+		let domains: Vec<PaintDomain> = plan.domains().collect();
+
+		let mut blocks: Vec<Option<GradientState>> = options
+			.blocks
+			.iter()
+			.zip(&domains)
+			.map(|(block, domain)| match (domain, &block.colors) {
+				(PaintDomain::Block(_), Some(ColorOption::Gradient(gradient))) => Some(GradientState::new(gradient)),
+				_ => None,
+			})
+			.collect();
+
+		let mut global = match &options.global_colors {
+			Some(ColorOption::Gradient(gradient))
+				if domains.iter().any(|domain| matches!(domain, PaintDomain::Global(_))) =>
+			{
+				Some(GradientState::new(gradient))
+			}
+			_ => None,
+		};
+
+		let independent = options.independent_gradient;
+
+		if !independent {
+			if let Some(global) = global.as_mut() {
+				global.fill(Self::extent(rows, |block_index| matches!(domains.get(block_index), Some(PaintDomain::Global(_)))));
+			}
+
+			for (block_index, state) in blocks.iter_mut().enumerate() {
+				if let Some(state) = state {
+					state.fill(Self::extent(rows, |span_block| span_block == block_index));
+				}
+			}
+		}
+
+		Self { domains, blocks, global, independent, column: 0 }
+	}
+
+	/// The absolute columns one domain paints on one row: from its first participating span to the end of its last
+	///
+	/// Zero width spans paint nothing and anchor nothing, so an empty line never pulls the ramp to its column
+	fn row_extent(row: &LayoutRow, participates: impl Fn(usize) -> bool) -> Option<Range<usize>> {
+		row
+			.span_columns()
+			.filter(|(block_index, columns)| !columns.is_empty() && participates(*block_index))
+			.map(|(_, columns)| columns)
+			.reduce(|extent, columns| extent.start..columns.end)
+	}
+
+	/// The absolute columns one domain paints across every row: the union of its row extents
+	fn extent(rows: &[LayoutRow], participates: impl Fn(usize) -> bool) -> Option<Range<usize>> {
+		rows
+			.iter()
+			.filter_map(|row| Self::row_extent(row, &participates))
+			.reduce(|whole, extent| whole.start.min(extent.start)..whole.end.max(extent.end))
+	}
+
+	/// Starts one row: an independent composition refills every ramp over the row's own extent,
+	/// then the cursor moves to the row's first column
+	pub(crate) fn start_row(&mut self, row: &LayoutRow) {
+		if self.independent {
+			let domains = &self.domains;
+			if let Some(global) = self.global.as_mut() {
+				global
+					.fill(Self::row_extent(row, |block_index| matches!(domains.get(block_index), Some(PaintDomain::Global(_)))));
+			}
+
+			// a block occupies one run of columns per row, which is its whole extent there
+			for (block_index, columns) in row.span_columns() {
+				if let Some(Some(state)) = self.blocks.get_mut(block_index) {
+					state.fill(Some(columns));
+				}
+			}
+		}
+
+		self.column = row.align_offset;
+	}
+
+	/// The ramp one block samples at the current column, a block painted through its slots has none
+	fn window(&self, block_index: usize) -> &[Rgb] {
+		let state = match self.domains.get(block_index) {
+			Some(PaintDomain::Global(_)) => self.global.as_ref(),
+			Some(PaintDomain::Block(_)) => self.blocks.get(block_index).and_then(Option::as_ref),
+			_ => None,
+		};
+
+		state.map_or(&[], |state| state.window(self.column))
+	}
+
+	/// Paints one segment of a block through `paint`, handing it the ramp window at the current column,
+	/// and claims the columns `paint` reports consumed
+	///
+	/// The window is pre-sliced to the segment's first column and empty for a block painted through its slots,
+	/// `paint` answers with the columns it walked so the cursor stays honest even past the ramp
+	pub(crate) fn paint_segment(&mut self, block_index: usize, paint: impl FnOnce(&[Rgb]) -> usize) {
+		let consumed = paint(self.window(block_index));
+		self.column += consumed;
+	}
+
+	/// Claims columns of the current row, painted or blank: every ramp indexes by absolute column
+	pub(crate) fn advance(&mut self, columns: usize) {
+		self.column += columns;
+	}
+
+	/// Ends one entry of the current row: a slot painted entry claims its columns whole,
+	/// a ramped block's segments claimed theirs per column already
+	pub(crate) fn end_entry(&mut self, block_index: usize, width: usize) {
+		if self.domains.get(block_index).is_none_or(|domain| *domain == PaintDomain::Slots) {
+			self.advance(width);
+		}
+	}
+
+	/// Walks `text` one column at a time, handing each character its color from `window` while the ramp lasts,
+	/// and returns the columns consumed
+	///
+	/// A target paints one segment with the window [`paint_segment`](Self::paint_segment) hands it
+	/// and answers with this count
+	pub(crate) fn each_column(text: &str, window: &[Rgb], mut paint: impl FnMut(char, Option<&Rgb>)) -> usize {
+		let mut consumed = 0;
+
+		for character in text.chars() {
+			paint(character, window.get(consumed));
+			consumed += 1;
+		}
+
+		consumed
+	}
+}
+
+/// The background bands of one render: one paint per output row, padding rows included
+///
+/// A fixed color resolves once and repeats on every row, a gradient fills its ramp once over
+/// the row count, so the bands run from the top row to the bottom row, a bare backdrop
+/// has no band on any row
+#[derive(Debug)]
+pub(crate) enum Backdrop<T> {
+	/// No row carries a band, every row paints as if no background was set
+	Bare,
+	Fixed(T),
+	Ramp(Vec<Option<T>>),
+}
+
+impl<T> Backdrop<T> {
+	/// Resolves the background of a render with `rows` output rows through `resolve`
+	///
+	/// Without a background, a color level or rows, or with a color that resolves to no paint,
+	/// the backdrop is bare, `resolve` never runs without a level, so it takes the level as given
+	pub(crate) fn build(
+		options: &Options,
+		context: &RenderContext,
+		rows: usize,
+		mut resolve: impl FnMut(Color<Background>, ColorLevel) -> Option<T>,
+	) -> Self {
+		let Some(level) = context.color_level() else {
+			return Self::Bare;
+		};
+		if rows == 0 {
+			return Self::Bare;
+		}
+
+		match options.background.as_ref() {
+			None => Self::Bare,
+			Some(BackgroundOption::Color(color)) => resolve(*color, level).map_or(Self::Bare, Self::Fixed),
+			Some(BackgroundOption::Gradient(gradient)) => {
+				let mut ramp = GradientState::new(gradient);
+				ramp.fill(Some(0..rows));
+
+				// the ramp holds exactly one color per row, so the bands are the ramp read in order
+				let paints: Vec<Option<T>> = ramp.window(0).iter().map(|&rgb| resolve(Color::from(rgb), level)).collect();
+
+				if paints.iter().any(Option::is_some) { Self::Ramp(paints) } else { Self::Bare }
+			}
+		}
+	}
+
+	/// Whether any row carries a band
+	pub(crate) fn paints(&self) -> bool {
+		!matches!(self, Self::Bare)
+	}
+
+	/// The paint of one output row, counted from the first padding row
+	pub(crate) fn band(&self, row: usize) -> Option<&T> {
+		match self {
+			Self::Bare => None,
+			Self::Fixed(paint) => Some(paint),
+			Self::Ramp(paints) => paints.get(row).and_then(Option::as_ref),
+		}
+	}
+}
+
+/// Renders through a pure target without a host
+///
+/// Nothing detects or decides here, so `Auto` means off: no canvas limit, no color and the zero seed
+pub fn render_with<T: Target + ?Sized>(options: &Options, target: &T, overrides: RenderOverrides) -> Rendered {
+	RenderContext::resolved(
+		overrides.canvas_width().columns_or(None),
+		overrides.color().level_or(None),
+		overrides.seed().unwrap_or(0),
+	)
+	.render(options, target)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{Cfonts, Font, GradientPreset, layout::BlockSpan};
+
+	/// A plan whose resolver marks every resolved color with its debug name
+	fn plan_for(options: &Options, context: &RenderContext) -> (PaintPlan<String>, usize) {
+		let mut calls = 0;
+		let plan = PaintPlan::build(options, context, |color, _| {
+			calls += 1;
+			Some(format!("{color:?}"))
+		});
+
+		(plan, calls)
+	}
+
+	// PaintPlan::build
+
+	#[test]
+	fn the_resolver_runs_once_per_block_and_slot() {
+		let options: Options = Cfonts::text("one")
+			.font(Font::Block)
+			.colors(vec![Color::RED, Color::BLUE])
+			.next("two")
+			.font(Font::Block)
+			.colors(vec![Color::GREEN])
+			.into();
+
+		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+
+		assert_eq!(calls, 3);
+		assert!(plan.will_style);
+		assert_eq!(plan.paint_for(0, Some(0), true), Some(&String::from("Red")));
+		assert_eq!(plan.paint_for(0, Some(1), true), Some(&String::from("Blue")));
+		assert_eq!(plan.paint_for(1, Some(0), true), Some(&String::from("Green")));
+	}
+
+	#[test]
+	fn no_color_level_builds_a_bare_plan() {
+		let options: Options = Cfonts::text("hello").colors(vec![Color::RED]).into();
+
+		let (mut plan, calls) = plan_for(&options, &RenderContext::unlimited());
+
+		assert_eq!(calls, 0);
+		assert!(!plan.will_style);
+		assert_eq!(plan.paint_for(0, Some(0), true), None);
+	}
+
+	#[test]
+	fn system_and_colors_beyond_the_fonts_slots_never_paint() {
+		// Tiny holds one color slot, so the second color can never apply and must not style the render
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::SYSTEM, Color::RED]).into();
+
+		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+
+		assert_eq!(calls, 0);
+		assert!(!plan.will_style);
+		assert_eq!(plan.paint_for(0, Some(0), true), None);
+		assert_eq!(plan.paint_for(0, Some(1), true), None);
+	}
+
+	#[test]
+	fn untagged_text_paints_only_in_single_color_fonts() {
+		let single: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::RED]).into();
+		let multi: Options = Cfonts::text("hello").font(Font::Block).colors(vec![Color::RED, Color::BLUE]).into();
+
+		let (mut plan, _) = plan_for(&single, &RenderContext::colored(ColorLevel::TrueColor));
+		assert_eq!(plan.paint_for(0, None, true), Some(&String::from("Red")));
+		assert_eq!(plan.paint_for(0, None, false), None); // buffer seams stay bare
+
+		let (mut plan, _) = plan_for(&multi, &RenderContext::colored(ColorLevel::TrueColor));
+		assert_eq!(plan.paint_for(0, None, true), None); // letter spaces stay bare in tagged fonts
+	}
+
+	#[test]
+	fn a_blocks_own_color_wins_over_the_global_colors() {
+		let options: Options = Cfonts::text("one")
+			.font(Font::Tiny)
+			.colors(vec![Color::RED])
+			.next("two")
+			.font(Font::Tiny)
+			.global_colors(vec![Color::BLUE])
+			.into();
+
+		let (mut plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+
+		assert_eq!(plan.paint_for(0, None, true), Some(&String::from("Red")));
+		assert_eq!(plan.paint_for(1, None, true), Some(&String::from("Blue")));
+	}
+
+	#[test]
+	fn a_candy_slot_resolves_the_assortment_once_and_rolls_per_segment() {
+		// two candy slots share the one resolved assortment
+		let options: Options = Cfonts::text("hello")
+			.font(Font::Tiny)
+			.colors(vec![Color::CANDY])
+			.next("world")
+			.font(Font::Tiny)
+			.colors(vec![Color::CANDY])
+			.into();
+
+		let (mut plan, calls) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+
+		// eleven resolver calls for the assortment, none per slot
+		assert_eq!(calls, 11);
+		assert!(plan.will_style);
+		assert!(plan.resolves(0, None, true));
+		assert!(plan.resolves(1, None, true));
+
+		let rolls: Vec<String> =
+			(0..32).map(|_| plan.paint_for(0, None, true).expect("candy always paints").clone()).collect();
+		let assortment: Vec<String> = CANDY.iter().map(|color| format!("{color:?}")).collect();
+
+		// every roll comes from the assortment and the rolls vary
+		assert!(rolls.iter().all(|roll| assortment.contains(roll)));
+		assert!(rolls.windows(2).any(|pair| pair[0] != pair[1]));
+	}
+
+	#[test]
+	fn candy_rolls_are_deterministic_for_a_seed() {
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::CANDY]).into();
+		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
+
+		let (mut one, _) = plan_for(&options, &seeded);
+		let (mut two, _) = plan_for(&options, &seeded);
+		let (mut other, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor).with_seed(43));
+
+		let picks = |plan: &mut PaintPlan<String>| -> Vec<String> {
+			(0..16).map(|_| plan.paint_for(0, None, true).expect("candy always paints").clone()).collect()
+		};
+
+		let first = picks(&mut one);
+		assert_eq!(first, picks(&mut two));
+		assert_ne!(first, picks(&mut other));
+	}
+
+	#[test]
+	fn the_scan_does_not_consume_rolls() {
+		let options: Options = Cfonts::text("hello").font(Font::Tiny).colors(vec![Color::CANDY]).into();
+		let seeded = RenderContext::colored(ColorLevel::TrueColor).with_seed(42);
+
+		let (mut scanned, _) = plan_for(&options, &seeded);
+		let (mut bare, _) = plan_for(&options, &seeded);
+
+		// resolving repeatedly must not shift the roll sequence
+		for _ in 0..8 {
+			assert!(scanned.resolves(0, None, true));
+		}
+
+		assert_eq!(scanned.paint_for(0, None, true), bare.paint_for(0, None, true));
+	}
+
+	#[test]
+	fn gradient_domains_route_around_the_slots() {
+		let block: Options = Cfonts::text("hello").font(Font::Tiny).colors(GradientPreset::Pride).into();
+
+		let (mut plan, calls) = plan_for(&block, &RenderContext::colored(ColorLevel::TrueColor));
+
+		assert_eq!(calls, 0);
+		assert!(plan.will_style);
+		assert_eq!(plan.domain(0), PaintDomain::Block(ColorLevel::TrueColor));
+		assert!(plan.resolves(0, None, false)); // even buffer seams paint in a gradient domain
+		assert_eq!(plan.paint_for(0, Some(0), true), None); // the ramp paints, the slots stay empty
+
+		let unleveled: Options = Cfonts::text("hello").font(Font::Tiny).colors(GradientPreset::Pride).into();
+		let (plan, _) = plan_for(&unleveled, &RenderContext::unlimited());
+		assert_eq!(plan.domain(0), PaintDomain::Slots);
+		assert!(!plan.will_style);
+	}
+
+	#[test]
+	fn a_blocks_own_color_suppresses_the_global_gradient_for_it() {
+		let options: Options = Cfonts::text("one")
+			.font(Font::Tiny)
+			.colors(vec![Color::RED])
+			.next("two")
+			.font(Font::Tiny)
+			.global_colors(GradientPreset::Pride)
+			.into();
+
+		let (plan, _) = plan_for(&options, &RenderContext::colored(ColorLevel::TrueColor));
+
+		assert_eq!(plan.domain(0), PaintDomain::Slots);
+		assert_eq!(plan.domain(1), PaintDomain::Global(ColorLevel::TrueColor));
+	}
+
+	// GradientPlans::extent
+
+	#[test]
+	fn extents_cover_the_participating_spans_only() {
+		// extents read only the alignment offset and the spans, so the rows carry no entries
+		let row = |align_offset: usize, spans: &[(usize, usize)]| LayoutRow {
+			entries: Vec::new(),
+			width: spans.iter().map(|(_, width)| width).sum(),
+			align_offset,
+			block_spans: spans.iter().map(|&(block_index, width)| BlockSpan { block_index, width }).collect(),
+		};
+		let rows = [row(2, &[(0, 3), (1, 2), (2, 4)]), row(0, &[(2, 5)])];
+
+		// blocks zero and two share the first row's extent, block one in between is consumed
+		assert_eq!(GradientPlans::row_extent(&rows[0], |block| block != 1), Some(2..11));
+		assert_eq!(GradientPlans::row_extent(&rows[0], |block| block == 1), Some(5..7));
+		assert_eq!(GradientPlans::row_extent(&rows[0], |_| false), None);
+
+		// across rows the extent is the union: block two starts at column zero on the second row
+		assert_eq!(GradientPlans::extent(&rows, |block| block == 2), Some(0..11));
+		assert_eq!(GradientPlans::extent(&rows, |block| block == 1), Some(5..7));
+		assert_eq!(GradientPlans::extent(&rows, |block| block == 3), None);
+
+		// an empty line keeps a zero width span at column zero, which must not anchor the ramp there
+		let with_empty_line = [row(4, &[(0, 3)]), row(0, &[(0, 0)])];
+		assert_eq!(GradientPlans::row_extent(&with_empty_line[1], |_| true), None);
+		assert_eq!(GradientPlans::extent(&with_empty_line, |_| true), Some(4..7));
+	}
+
+	// Backdrop
+
+	/// Resolves every color but the terminal's own to itself, the way a target with a palette would
+	fn resolve(color: Color<Background>, _level: ColorLevel) -> Option<Color<Background>> {
+		(color != Color::SYSTEM).then_some(color)
+	}
+
+	#[test]
+	fn a_fixed_background_repeats_on_every_row() {
+		let options = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::Basic), 3, resolve);
+
+		for row in 0..3 {
+			assert_eq!(backdrop.band(row), Some(&Color::BLUE), "row {row}");
+		}
+	}
+
+	#[test]
+	fn a_background_gradient_runs_from_the_top_row_to_the_bottom_row() {
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
+		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 5, resolve);
+
+		assert_eq!(backdrop.band(0), Some(&Color::rgb(255, 0, 0)));
+		assert_eq!(backdrop.band(4), Some(&Color::rgb(0, 0, 255)));
+		assert!(backdrop.band(2).is_some_and(|band| *band != Color::rgb(255, 0, 0)));
+		assert_eq!(backdrop.band(5), None, "no band past the rows");
+	}
+
+	#[test]
+	fn a_single_row_gradient_still_paints_a_band() {
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
+		let options = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
+		let backdrop = Backdrop::build(&options, &RenderContext::colored(ColorLevel::TrueColor), 1, resolve);
+
+		assert!(backdrop.band(0).is_some());
+	}
+
+	#[test]
+	fn nothing_to_paint_means_a_bare_backdrop() {
+		let level = RenderContext::colored(ColorLevel::Basic);
+
+		let unset = Options::default();
+		assert!(!Backdrop::build(&unset, &level, 3, resolve).paints());
+
+		let system = Options { background: Some(BackgroundOption::Color(Color::SYSTEM)), ..Default::default() };
+		assert!(!Backdrop::build(&system, &level, 3, resolve).paints());
+
+		let blue = Options { background: Some(BackgroundOption::Color(Color::BLUE)), ..Default::default() };
+		assert!(!Backdrop::build(&blue, &RenderContext::unlimited(), 3, resolve).paints(), "no color level");
+		assert!(!Backdrop::build(&blue, &level, 0, resolve).paints(), "no rows");
+
+		// a target that paints no RGB values turns a gradient into a bare backdrop as well
+		let gradient = GradientOption::TwoStop { start: Color::RED, end: Color::BLUE };
+		let ramped = Options { background: Some(BackgroundOption::Gradient(gradient)), ..Default::default() };
+		assert!(!Backdrop::build(&ramped, &level, 3, |_, _| None::<Color>).paints(), "no paint");
+	}
+}

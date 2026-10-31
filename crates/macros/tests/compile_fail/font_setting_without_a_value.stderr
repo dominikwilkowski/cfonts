@@ -1,0 +1,9 @@
+error: font!: expected a count such as `1`
+ --> tests/compile_fail/font_setting_without_a_value.rs:4:2
+  |
+4 | /     font! {
+5 | |         letter_spacing:
+6 | |     };
+  | |_____^
+  |
+  = note: this error originates in the macro `font` (in Nightly builds, run with -Z macro-backtrace for more info)

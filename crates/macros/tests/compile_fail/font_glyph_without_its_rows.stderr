@@ -1,0 +1,5 @@
+error: font!: expected the rows of the art as `[r"…", …]`
+ --> tests/compile_fail/font_glyph_without_its_rows.rs:5:20
+  |
+5 |         glyphs: { 'A' => },
+  |                          ^

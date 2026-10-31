@@ -1,0 +1,5 @@
+error: font!: expected a plain string such as "block", found `r"block"`
+ --> tests/compile_fail/font_name_that_is_a_raw_string.rs:5:9
+  |
+5 |         name: r"block",
+  |               ^^^^^^^^

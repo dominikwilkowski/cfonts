@@ -1,0 +1,34 @@
+[package]
+name = "cfonts-perf"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# standalone on purpose: the comparison pulls in the published v3 crate and dhat,
+# normal workspace builds stay free of both
+[workspace]
+members = ["interpose"]
+
+# v4 needs no feature, the terminal target and render_with are always on outside the browser
+[dependencies]
+cfonts = { path = "../crates/cfonts" }
+cfonts_v3 = { package = "cfonts", version = "=1.3.0" }
+console = "0.16.6"
+dhat = "0.3.3"
+indicatif = "0.18.6"
+libc = "0.2.190"
+pprof = { version = "0.15.0", features = ["flamegraph"] }
+rayon = "1.12.0"
+sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
+tabled = { version = "0.22.0", default-features = false, features = ["std"] }
+wait-timeout = "0.2.1"
+
+# The same code generation as the v4 workspace's release profile, so the API path and the CLI path measure one build:
+# - link-time optimization across every crate with the default codegen units, as the workspace sets them
+# - symbols stay, stripping changes nothing that runs and the interpose library keeps its exports readable
+# - line tables name the inlined functions in the flamegraphs and heap profiles, they change no code
+# - the v3 binary of the CLI path is the published crate installed by cargo install, built with its own profile,
+#   the same settings and stripped
+[profile.release]
+lto = "fat"
+debug = "line-tables-only"

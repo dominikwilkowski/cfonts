@@ -1,0 +1,5 @@
+error: All does not support generics on enum Align
+ --> tests/compile_fail/all_on_a_generic_enum.rs:4:11
+  |
+4 | enum Align<T> {
+  |           ^
