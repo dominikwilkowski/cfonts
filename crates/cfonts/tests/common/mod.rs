@@ -7,7 +7,7 @@ use std::{ffi::OsStr, process::Command};
 use cfonts::Rendered;
 
 /// Runs a test with the `FORCE_SIZE` environment variable set to `size`
-pub fn with_force_size<T>(size: usize, test: impl FnOnce() -> T) -> T {
+pub fn with_force_size<T>(size: u16, test: impl FnOnce() -> T) -> T {
 	temp_env::with_var("FORCE_SIZE", Some(&size.to_string()), test)
 }
 

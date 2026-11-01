@@ -1075,13 +1075,21 @@ test("invalid FORCE_SIZE falls through to the API override", () => {
 		canvasWidth: 13,
 	});
 
-	for (const garbage of ["", "abc", "-1", "12.5", "4294967296"]) {
+	for (const garbage of ["", "abc", "-1", "12.5", "65536"]) {
 		const ignored = withTerminal(120, garbage, () => Cfonts.text("AAAA").render(host, TerminalTarget).text);
 
 		const expected = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(host, TerminalTarget).text);
 
 		assert.equal(ignored, expected, `FORCE_SIZE=${JSON.stringify(garbage)} must fall through`);
 	}
+});
+
+test("FORCE_SIZE takes the widest width", () => {
+	const widest = NodeHost.fromOverrides({ canvasWidth: 65535 });
+	const forced = withTerminal(120, "65535", () => Cfonts.text("AAAA").render(new NodeHost(), TerminalTarget).text);
+	const overridden = withTerminal(120, undefined, () => Cfonts.text("AAAA").render(widest, TerminalTarget).text);
+
+	assert.equal(forced, overridden);
 });
 
 test("NodeHost render does not write to stdout", () => {

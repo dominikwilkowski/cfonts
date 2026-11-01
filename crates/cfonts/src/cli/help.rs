@@ -71,7 +71,7 @@ pub(crate) fn cli_help_with(context: RenderContext) -> String {
 		"\n",
 		HELP_INDENT, "*FORCE_SIZE*",
 		VALUE_LEAD, "Set the layout width in terminal columns.",
-		VALUE_LEAD, "Accepts decimal digits from `0` through `4294967295`",
+		VALUE_LEAD, "Accepts decimal digits from `0` through `65535`",
 		VALUE_LEAD, "`0` removes the canvas width limit; `--max-length` still applies",
 		VALUE_LEAD, "Invalid values are ignored, `COLUMNS` is not read",
 		VALUE_LEAD, "Otherwise use the measured terminal width fallback to `80` columns\n\n",

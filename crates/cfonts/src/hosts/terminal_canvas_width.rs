@@ -99,11 +99,11 @@ impl TerminalCanvasWidth<'_> {
 	#[must_use]
 	pub fn resolve(&self) -> Option<NonZeroUsize> {
 		// The outer Option distinguishes invalid input from valid FORCE_SIZE=0
-		// Digits only and at most u32::MAX: the same rule the npm host applies
+		// Digits only and a u16, the width a terminal reports, the npm host resolves through this same code
 		if let Some(forced_width) = (self.environment)("FORCE_SIZE")
 			.filter(|value| value.bytes().all(|byte| byte.is_ascii_digit()))
-			.and_then(|value| value.parse::<u32>().ok())
-			.map(|value| NonZeroUsize::new(value as usize))
+			.and_then(|value| value.parse::<u16>().ok())
+			.map(|value| NonZeroUsize::new(usize::from(value)))
 		{
 			return forced_width;
 		}
@@ -221,16 +221,21 @@ mod tests {
 	}
 
 	#[test]
+	fn force_size_takes_the_widest_width() {
+		assert_eq!(resolve_with(Some("65535"), Some(200), CanvasWidth::Auto), Some(width(65_535)));
+	}
+
+	#[test]
 	fn invalid_force_size_falls_through_to_the_api_override() {
-		// "+5" and 2^32 parse as numbers in Rust but not under the npm host's rule
-		for forced in ["", "abc", "-1", "12.5", "+5", "4294967296"] {
+		// "+5" and 65536 parse as numbers in Rust but not as a width
+		for forced in ["", "abc", "-1", "12.5", "+5", "65536"] {
 			assert_eq!(resolve_with(Some(forced), Some(200), CanvasWidth::Columns(width(42))), Some(width(42)), "{forced:?}");
 		}
 	}
 
 	#[test]
 	fn invalid_force_size_falls_through_to_the_measurement() {
-		for forced in ["", "abc", "-1", "12.5", "+5", "4294967296"] {
+		for forced in ["", "abc", "-1", "12.5", "+5", "65536"] {
 			assert_eq!(resolve_with(Some(forced), Some(200), CanvasWidth::Auto), Some(width(200)), "{forced:?}");
 		}
 	}
