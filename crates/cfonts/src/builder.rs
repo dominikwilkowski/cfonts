@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, num::NonZeroUsize};
+use std::{marker::PhantomData, num::NonZeroU16};
 
 use crate::{
 	color::{BackgroundOption, ColorOption},
@@ -140,7 +140,7 @@ impl<
 	///
 	/// assert_eq!(options.blocks[0].letter_spacing, Some(2));
 	/// ```
-	pub fn letter_spacing(mut self, letter_spacing: usize) -> Self {
+	pub fn letter_spacing(mut self, letter_spacing: u16) -> Self {
 		self.current_block_mut().letter_spacing = Some(letter_spacing);
 		self
 	}
@@ -205,7 +205,7 @@ impl<
 	///
 	/// assert_eq!(options.blocks[0].line_height, Some(2));
 	/// ```
-	pub fn line_height(mut self, line_height: usize) -> Self {
+	pub fn line_height(mut self, line_height: u16) -> Self {
 		self.current_block_mut().line_height = Some(line_height);
 		self
 	}
@@ -543,13 +543,13 @@ impl<
 	/// ```
 	pub fn max_length(
 		self,
-		max_length: usize,
+		max_length: u16,
 	) -> Cfonts<AlignState, ValignState, SpacelessState, Set, GlobalColorState, IndependentGradientState, BackgroundState>
 	where
 		Self: CanSetMaxLength,
 	{
 		let mut options = self.options;
-		options.max_length = NonZeroUsize::new(max_length);
+		options.max_length = NonZeroU16::new(max_length);
 
 		Cfonts { options, _state: PhantomData }
 	}
@@ -750,7 +750,7 @@ mod tests {
 		assert_eq!(options.align, Align::Center);
 		assert_eq!(options.valign, Valign::Top);
 		assert!(options.spaceless);
-		assert_eq!(options.max_length, NonZeroUsize::new(20));
+		assert_eq!(options.max_length, NonZeroU16::new(20));
 		assert_eq!(options.global_colors, Some(ColorOption::from(GradientPreset::Pride)));
 		assert!(options.independent_gradient);
 		assert_eq!(options.background, Some(BackgroundOption::Color(Color::BLUE)));
@@ -850,7 +850,7 @@ mod tests {
 	impl Host for CaptureHost {
 		type Error = Infallible;
 
-		fn canvas_width(&self) -> Option<usize> {
+		fn canvas_width(&self) -> Option<u16> {
 			None
 		}
 
@@ -858,7 +858,7 @@ mod tests {
 			None
 		}
 
-		fn seed(&self) -> u64 {
+		fn seed(&self) -> u32 {
 			0
 		}
 
@@ -874,7 +874,7 @@ mod tests {
 	impl Host for FailingHost {
 		type Error = &'static str;
 
-		fn canvas_width(&self) -> Option<usize> {
+		fn canvas_width(&self) -> Option<u16> {
 			None
 		}
 
@@ -882,7 +882,7 @@ mod tests {
 			None
 		}
 
-		fn seed(&self) -> u64 {
+		fn seed(&self) -> u32 {
 			0
 		}
 

@@ -107,8 +107,8 @@ impl Widget for &CfontsWidget<'_> {
 
 		// the area is the terminal the widget measures, the overrides name a canvas instead,
 		// and the application owns the terminal so nothing is detected: automatic color paints in full
-		let canvas_width = self.overrides.canvas_width().columns_or(Some(area.width as usize));
-		let rows = Layout::build(self.options, canvas_width).into_rows();
+		let canvas_width = self.overrides.canvas_width().columns_or(Some(area.width));
+		let rows = Layout::build(self.options, canvas_width.map(usize::from)).into_rows();
 		let context = RenderContext::resolved(
 			canvas_width,
 			self.overrides.color().level_or(Some(ColorLevel::TrueColor)),
@@ -146,9 +146,11 @@ impl Widget for &CfontsWidget<'_> {
 			RowEvent::RowStart { row, index } => {
 				y = area.y.saturating_add(index as u16);
 				gradients.start_row(row);
-				// the layout computed each row's alignment inside the canvas already, an offset beyond u16
-				// saturates so the row lands past the area and paints nothing instead of wrapping around
-				x = area.x.saturating_add(u16::try_from(row.align_offset).unwrap_or(u16::MAX));
+				// the layout computed each row's alignment inside the u16 canvas already, so the offset fits,
+				// and an area near the right edge saturates so the row lands past it instead of wrapping around
+				x = area.x.saturating_add(
+					u16::try_from(row.align_offset).expect("an alignment offset fits the u16 canvas it was computed in"),
+				);
 			}
 			RowEvent::Text { text, block_index, slot, paintable } => match plan.domain(block_index) {
 				PaintDomain::Slots => {
@@ -180,7 +182,7 @@ impl Widget for &CfontsWidget<'_> {
 			},
 			RowEvent::EntryEnd { width, block_index } => gradients.end_entry(block_index, width),
 			// Blank columns leave cells untouched: they keep the row's band, or stay transparent without one,
-			// and a run past u16 saturates past the area like the alignment offset does
+			// and a run past the area saturates the column so what follows paints nothing instead of wrapping around
 			RowEvent::Blank { width, .. } => {
 				x = x.saturating_add(u16::try_from(width).unwrap_or(u16::MAX));
 				gradients.advance(width);
@@ -200,7 +202,7 @@ mod tests {
 		BackgroundOption, Color, ColorOption, ColorOverride, GradientOption,
 		fonts::Font,
 		options::{Align, Valign},
-		tests::{block, options},
+		tests::{block, options, spaced_block},
 	};
 
 	// render
@@ -607,7 +609,7 @@ mod tests {
 	}
 
 	/// Overrides pinning candy to one seed, so every draw of the same options rolls the same assortment
-	fn seeded(seed: u64) -> RenderOverrides {
+	fn seeded(seed: u32) -> RenderOverrides {
 		RenderOverrides::default().with_seed(seed)
 	}
 
@@ -723,13 +725,19 @@ mod tests {
 	}
 
 	#[test]
-	fn an_alignment_past_the_u16_edge_paints_nothing() {
-		// a canvas override wider than u16 holds aligns the row that far right, past any buffer, so the
-		// offset saturates instead of wrapping around into a column the buffer has
-		let mut options = options(Valign::Top, None, vec![block("A", Font::Tiny, false)]);
-		options.align = Align::Right;
-		let overrides = RenderOverrides::default().with_canvas_width(u16::MAX as usize + 6);
+	fn a_padding_run_past_the_u16_edge_paints_nothing_past_it() {
+		// a letter space run on a padding row crosses as blank columns: 32764 two column spaces after an
+		// eight column glyph end 8 columns past u16::MAX, so a wrapping cursor would paint the next glyph's
+		// first column inside the area and a saturating one paints nothing, the same cells a short run leaves
+		let composition = |spacing: u16| {
+			let mut spaced = spaced_block("AB", spacing, false);
+			spaced.font = Font::SimpleBlock;
+			options(Valign::Bottom, None, vec![spaced, block("C", Font::Block, false)])
+		};
+		let unlimited = RenderOverrides::default().with_canvas_width(0);
+		let far = drawn(&composition(32_764), unlimited, 9, 6, Rect::new(0, 0, 9, 6));
 
-		assert_eq!(drawn(&options, overrides, 9, 2, Rect::new(0, 0, 9, 2)), Buffer::empty(Rect::new(0, 0, 9, 2)));
+		assert_eq!(far, drawn(&composition(3), unlimited, 9, 6, Rect::new(0, 0, 9, 6)));
+		assert_ne!(far, Buffer::empty(Rect::new(0, 0, 9, 6)));
 	}
 }

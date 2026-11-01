@@ -22,7 +22,7 @@ fn js(json: &str) -> JsValue {
 }
 
 /// The overrides object `renderWith()` takes, a member left out leaves its decision open
-fn overrides(canvas_width: Option<u32>, color: Option<ColorLevel>, seed: Option<u32>) -> JsValue {
+fn overrides(canvas_width: Option<u16>, color: Option<ColorLevel>, seed: Option<u32>) -> JsValue {
 	let object = Object::new();
 	let set = |key: &str, value: JsValue| {
 		Reflect::set(&object, &JsValue::from_str(key), &value).expect("an object takes a member");
@@ -144,7 +144,7 @@ fn wrapping_core() -> Options {
 }
 
 /// The same render through the core directly, the boundary's oracle
-fn render_core(target: TargetKind, canvas_width: Option<usize>) -> String {
+fn render_core(target: TargetKind, canvas_width: Option<u16>) -> String {
 	let options = wrapping_core();
 	let overrides = RenderOverrides::default().with_canvas_width(canvas_width.unwrap_or(0));
 
@@ -201,7 +201,7 @@ fn facts(json: &str, variables: &[(&str, &str)]) -> JsValue {
 }
 
 /// The terminal facts of a darwin terminal, the way the Node host gathers them, the variables behind the lookup
-fn terminal(stdout: Option<u32>, variables: &[(&str, &str)]) -> JsValue {
+fn terminal(stdout: Option<u16>, variables: &[(&str, &str)]) -> JsValue {
 	let stdout = stdout.map_or(String::new(), |columns| format!("\"stdoutColumns\": {columns}, "));
 
 	facts(&format!("{{ {stdout}\"attached\": true, \"platform\": \"darwin\", \"release\": \"25.6.0\" }}"), variables)
@@ -272,12 +272,16 @@ fn the_overrides_are_read_behind_the_boundary() {
 	}
 
 	// every member crosses with the sentence of its type
-	for input in [js("{ \"canvasWidth\": -1 }"), js("{ \"canvasWidth\": 1.5 }"), js("{ \"seed\": 4294967296 }")] {
+	for input in [js("{ \"canvasWidth\": -1 }"), js("{ \"canvasWidth\": 1.5 }"), js("{ \"canvasWidth\": 65536 }")] {
 		assert_eq!(
 			message(banner.render(input, TargetKind::Terminal, false)),
-			"`renderWith()` expects an unsigned 32-bit integer"
+			"`renderWith()` expects an unsigned 16-bit integer"
 		);
 	}
+	assert_eq!(
+		message(banner.render(js("{ \"seed\": 4294967296 }"), TargetKind::Terminal, false)),
+		"`renderWith()` expects an unsigned 32-bit integer"
+	);
 	for input in [js("{ \"color\": 99 }"), js("{ \"color\": true }")] {
 		assert_eq!(
 			message(banner.render(input, TargetKind::Terminal, false)),
@@ -407,15 +411,13 @@ fn the_texts_and_the_counts_are_read_behind_the_boundary() {
 
 	let mut banner = text("A");
 	assert_eq!(message(banner.next(1.into())), "`next()` expects a string");
-	for input in
-		[(-1).into(), 1.5.into(), 4_294_967_296_f64.into(), f64::NAN.into(), "1".into(), true.into(), JsValue::NULL]
-	{
-		assert_eq!(message(banner.letter_spacing(input.clone())), "`letterSpacing()` expects an unsigned 32-bit integer");
-		assert_eq!(message(banner.line_height(input.clone())), "`lineHeight()` expects an unsigned 32-bit integer");
-		assert_eq!(message(banner.max_length(input)), "`maxLength()` expects an unsigned 32-bit integer");
+	for input in [(-1).into(), 1.5.into(), 65_536.into(), f64::NAN.into(), "1".into(), true.into(), JsValue::NULL] {
+		assert_eq!(message(banner.letter_spacing(input.clone())), "`letterSpacing()` expects an unsigned 16-bit integer");
+		assert_eq!(message(banner.line_height(input.clone())), "`lineHeight()` expects an unsigned 16-bit integer");
+		assert_eq!(message(banner.max_length(input)), "`maxLength()` expects an unsigned 16-bit integer");
 	}
 	assert!(banner.letter_spacing(0.into()).is_ok());
-	assert!(banner.line_height(4_294_967_295_u32.into()).is_ok());
+	assert!(banner.line_height(65_535.into()).is_ok());
 	assert!(banner.max_length(0.into()).is_ok()); // a refused count leaves the slot unclaimed
 }
 
@@ -1185,7 +1187,7 @@ fn the_hosts_read_their_overrides_behind_the_boundary() {
 	}
 	assert_eq!(
 		message(NodeHost::from_overrides(js("{ \"canvasWidth\": -1 }"))),
-		"`fromOverrides()` expects an unsigned 32-bit integer"
+		"`fromOverrides()` expects an unsigned 16-bit integer"
 	);
 	assert_eq!(
 		message(NodeHost::from_overrides(js("{ \"color\": 99 }"))),
@@ -1287,7 +1289,8 @@ fn the_node_host_resolves_the_color_from_the_terminal_facts() {
 		assert_eq!(refused(facts), "`render()` expects the terminal facts");
 	}
 	assert_eq!(refused(js("{}")), "`render()` expects a boolean");
-	assert_eq!(refused(js("{ \"stdoutColumns\": -1 }")), "`render()` expects an unsigned 32-bit integer");
+	assert_eq!(refused(js("{ \"stdoutColumns\": -1 }")), "`render()` expects an unsigned 16-bit integer");
+	assert_eq!(refused(js("{ \"stdoutColumns\": 65536 }")), "`render()` expects an unsigned 16-bit integer");
 	assert_eq!(refused(js("{ \"attached\": true, \"platform\": 1 }")), "`render()` expects a string");
 	for environment in ["", ", \"environment\": \"TERM\"", ", \"environment\": [\"TERM\"]", ", \"environment\": {}"] {
 		assert_eq!(

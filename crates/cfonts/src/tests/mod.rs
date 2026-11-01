@@ -1,6 +1,6 @@
 //! Shared helpers for the unit tests across all modules
 
-use std::num::NonZeroUsize;
+use std::num::NonZeroU16;
 
 use crate::{
 	NEW_LINE_CHAR,
@@ -9,11 +9,11 @@ use crate::{
 };
 
 /// A convenience wrapper around Options for tests
-pub(crate) fn options(valign: Valign, max_length: Option<usize>, blocks: Vec<BlockOptions>) -> Options {
+pub(crate) fn options(valign: Valign, max_length: Option<u16>, blocks: Vec<BlockOptions>) -> Options {
 	Options {
 		valign,
 		// mirrors the CLI conversion: a zero max-length means unlimited
-		max_length: max_length.and_then(NonZeroUsize::new),
+		max_length: max_length.and_then(NonZeroU16::new),
 		blocks,
 		..Default::default()
 	}
@@ -28,7 +28,7 @@ pub(crate) fn block(text: &str, font: Font, word_wrap: bool) -> BlockOptions {
 }
 
 /// A convenience wrapper around BlockOptions for tests with the Tiny font
-pub(crate) fn spaced_block(text: &str, letter_spacing: usize, word_wrap: bool) -> BlockOptions {
+pub(crate) fn spaced_block(text: &str, letter_spacing: u16, word_wrap: bool) -> BlockOptions {
 	let mut block = BlockOptions::new(text);
 	block.font = Font::Tiny;
 	block.letter_spacing = Some(letter_spacing);

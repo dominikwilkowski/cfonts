@@ -1,4 +1,4 @@
-use std::{borrow::Cow, num::NonZeroUsize, ops::Range};
+use std::{borrow::Cow, num::NonZeroU16, ops::Range};
 
 use crate::{
 	color::{
@@ -20,12 +20,12 @@ pub enum CanvasWidth {
 	Unlimited,
 
 	/// Render into a fixed number of columns
-	Columns(NonZeroUsize),
+	Columns(NonZeroU16),
 }
 
 impl CanvasWidth {
 	/// The width in columns, with `auto` standing in where the request leaves the decision open
-	pub(crate) fn columns_or(self, auto: Option<usize>) -> Option<usize> {
+	pub(crate) fn columns_or(self, auto: Option<u16>) -> Option<u16> {
 		match self {
 			Self::Auto => auto,
 			Self::Unlimited => None,
@@ -67,7 +67,7 @@ impl ColorOverride {
 pub struct RenderOverrides {
 	canvas_width: CanvasWidth,
 	color: ColorOverride,
-	seed: Option<u64>,
+	seed: Option<u32>,
 }
 
 impl RenderOverrides {
@@ -75,8 +75,8 @@ impl RenderOverrides {
 	///
 	/// Zero means unlimited
 	#[must_use]
-	pub fn with_canvas_width(mut self, canvas_width: usize) -> Self {
-		self.canvas_width = NonZeroUsize::new(canvas_width).map_or(CanvasWidth::Unlimited, CanvasWidth::Columns);
+	pub fn with_canvas_width(mut self, canvas_width: u16) -> Self {
+		self.canvas_width = NonZeroU16::new(canvas_width).map_or(CanvasWidth::Unlimited, CanvasWidth::Columns);
 		self
 	}
 
@@ -101,14 +101,14 @@ impl RenderOverrides {
 
 	/// Overrides the host's entropy for reproducible candy colors
 	#[must_use]
-	pub const fn with_seed(mut self, seed: u64) -> Self {
+	pub const fn with_seed(mut self, seed: u32) -> Self {
 		self.seed = Some(seed);
 		self
 	}
 
 	/// Returns the seed override
 	#[must_use]
-	pub const fn seed(self) -> Option<u64> {
+	pub const fn seed(self) -> Option<u32> {
 		self.seed
 	}
 }
@@ -118,15 +118,15 @@ impl RenderOverrides {
 /// Consumers ask through [`RenderOverrides`], a host or the host free path turns the request into this
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RenderContext {
-	canvas_width: Option<NonZeroUsize>,
+	canvas_width: Option<NonZeroU16>,
 	color_level: Option<ColorLevel>,
-	seed: u64,
+	seed: u32,
 }
 
 impl RenderContext {
 	/// The context a host's three answers make, zero columns mean unlimited
-	pub(crate) fn resolved(canvas_width: Option<usize>, color_level: Option<ColorLevel>, seed: u64) -> Self {
-		Self { canvas_width: canvas_width.and_then(NonZeroUsize::new), color_level, seed }
+	pub(crate) fn resolved(canvas_width: Option<u16>, color_level: Option<ColorLevel>, seed: u32) -> Self {
+		Self { canvas_width: canvas_width.and_then(NonZeroU16::new), color_level, seed }
 	}
 
 	/// Creates a context without a canvas-width limit
@@ -139,8 +139,8 @@ impl RenderContext {
 	///
 	/// Zero means unlimited
 	#[cfg(test)]
-	pub(crate) fn with_canvas_width(canvas_width: usize) -> Self {
-		Self { canvas_width: NonZeroUsize::new(canvas_width), ..Self::unlimited() }
+	pub(crate) fn with_canvas_width(canvas_width: u16) -> Self {
+		Self { canvas_width: NonZeroU16::new(canvas_width), ..Self::unlimited() }
 	}
 
 	/// Creates a context with the given color support and no canvas-width limit
@@ -151,8 +151,8 @@ impl RenderContext {
 
 	/// Returns the resolved width in columns
 	#[must_use]
-	pub fn canvas_width(self) -> Option<usize> {
-		self.canvas_width.map(NonZeroUsize::get)
+	pub fn canvas_width(self) -> Option<u16> {
+		self.canvas_width.map(NonZeroU16::get)
 	}
 
 	/// Sets the resolved color support, None paints nothing
@@ -170,20 +170,20 @@ impl RenderContext {
 
 	/// Sets the seed that makes candy colors reproducible
 	#[cfg(test)]
-	pub(crate) const fn with_seed(mut self, seed: u64) -> Self {
+	pub(crate) const fn with_seed(mut self, seed: u32) -> Self {
 		self.seed = seed;
 		self
 	}
 
 	/// Returns the seed that makes candy colors reproducible
 	#[must_use]
-	pub const fn seed(self) -> u64 {
+	pub const fn seed(self) -> u32 {
 		self.seed
 	}
 
 	/// Builds layout once under this context and renders it through a pure target
 	pub(crate) fn render<T: Target + ?Sized>(self, options: &Options, target: &T) -> Rendered {
-		let mut rows = Layout::build(options, self.canvas_width()).into_rows();
+		let mut rows = Layout::build(options, self.canvas_width().map(usize::from)).into_rows();
 
 		// Targets that own their frame align rows within the widest line when
 		// no canvas exists, so gradients and padding share one column story

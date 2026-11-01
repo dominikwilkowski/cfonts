@@ -66,6 +66,9 @@ const INVALID_U32_VALUES = [
 	1n,
 ];
 
+// a count and a width are u16, so 65536 is refused on top of everything a u32 refuses
+const INVALID_U16_VALUES = [...INVALID_U32_VALUES, 2 ** 16];
+
 // a string is a name and gets the name sentence, every other value is no enum member
 const INVALID_ENUM_VALUES = [-1, 1.5, 99, Number.NaN, true, null, undefined];
 
@@ -227,24 +230,24 @@ test("text inputs accept strings including empty strings", () => {
 	Cfonts.text("").next("");
 });
 
-const u32Setters = [
+const countSetters = [
 	["letterSpacing", (banner, value) => banner.letterSpacing(value)],
 	["lineHeight", (banner, value) => banner.lineHeight(value)],
 	["maxLength", (banner, value) => banner.maxLength(value)],
 ];
 
-for (const [method, invoke] of u32Setters) {
-	test(`${method} rejects values that cannot be represented by u32`, () => {
+for (const [method, invoke] of countSetters) {
+	test(`${method} rejects values that cannot be represented by u16`, () => {
 		assertTypeErrors(
-			INVALID_U32_VALUES,
+			INVALID_U16_VALUES,
 			(value) => invoke(Cfonts.text("A"), value),
-			`\`${method}()\` expects an unsigned 32-bit integer`,
+			`\`${method}()\` expects an unsigned 16-bit integer`,
 		);
 	});
 
-	test(`${method} accepts the u32 boundaries`, () => {
+	test(`${method} accepts the u16 boundaries`, () => {
 		invoke(Cfonts.text("A"), 0);
-		invoke(Cfonts.text("A"), 0xffff_ffff);
+		invoke(Cfonts.text("A"), 0xffff);
 	});
 }
 
@@ -790,15 +793,15 @@ test("renderWith rejects invalid overrides", () => {
 });
 
 test("renderWith validates canvasWidth at runtime", () => {
-	for (const canvasWidth of INVALID_U32_VALUES.filter((value) => value !== undefined)) {
+	for (const canvasWidth of INVALID_U16_VALUES.filter((value) => value !== undefined)) {
 		assert.throws(() => wrappingBanner().renderWith(TerminalTarget, { canvasWidth }), {
 			name: "TypeError",
-			message: "`renderWith()` expects an unsigned 32-bit integer",
+			message: "`renderWith()` expects an unsigned 16-bit integer",
 		});
 	}
 
 	wrappingBanner().renderWith(TerminalTarget, { canvasWidth: 0 });
-	wrappingBanner().renderWith(TerminalTarget, { canvasWidth: 0xffff_ffff });
+	wrappingBanner().renderWith(TerminalTarget, { canvasWidth: 0xffff });
 });
 
 test("custom hosts receive the composition and the target exactly once", () => {
@@ -877,7 +880,7 @@ test("the constructor takes the overrides object fromOverrides takes", () => {
 });
 
 test("NodeHost validates override widths", () => {
-	for (const canvasWidth of INVALID_U32_VALUES.filter((value) => value !== undefined)) {
+	for (const canvasWidth of INVALID_U16_VALUES.filter((value) => value !== undefined)) {
 		assert.throws(
 			() =>
 				NodeHost.fromOverrides({
@@ -885,7 +888,7 @@ test("NodeHost validates override widths", () => {
 				}),
 			{
 				name: "TypeError",
-				message: "`fromOverrides()` expects an unsigned 32-bit integer",
+				message: "`fromOverrides()` expects an unsigned 16-bit integer",
 			},
 		);
 	}
@@ -894,7 +897,7 @@ test("NodeHost validates override widths", () => {
 		canvasWidth: 0,
 	});
 	NodeHost.fromOverrides({
-		canvasWidth: 0xffff_ffff,
+		canvasWidth: 0xffff,
 	});
 });
 
@@ -1190,6 +1193,7 @@ test("FORCE_SIZE garbage falls through to detection", () => {
 test("color overrides are validated", () => {
 	assert.throws(() => NodeHost.fromOverrides({ color: 99 }), TypeError);
 	assert.throws(() => NodeHost.fromOverrides({ seed: -1 }), TypeError);
+	assert.throws(() => NodeHost.fromOverrides({ seed: 2 ** 32 }), TypeError);
 	NodeHost.fromOverrides({ color: false });
 	NodeHost.fromOverrides({ color: ColorLevel.Basic, seed: 42 });
 });
@@ -1197,6 +1201,7 @@ test("color overrides are validated", () => {
 test("renderWith validates the color override fields", () => {
 	assert.throws(() => Cfonts.text("A").renderWith(TerminalTarget, { color: 99 }), TypeError);
 	assert.throws(() => Cfonts.text("A").renderWith(TerminalTarget, { seed: 1.5 }), TypeError);
+	assert.throws(() => Cfonts.text("A").renderWith(TerminalTarget, { seed: 2 ** 32 }), TypeError);
 });
 
 test("a color level without color options paints nothing", () => {

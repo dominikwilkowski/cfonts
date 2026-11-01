@@ -1101,8 +1101,9 @@ pub(crate) struct CandyRng {
 }
 
 impl CandyRng {
-	pub(crate) const fn new(seed: u64) -> Self {
-		Self { state: seed }
+	/// Seeds the generator, the u32 seed widens into the 64-bit state the mixer runs on
+	pub(crate) const fn new(seed: u32) -> Self {
+		Self { state: seed as u64 }
 	}
 
 	/// The next random pick from the candy assortment, as an index into [`CANDY`]

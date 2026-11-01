@@ -247,10 +247,6 @@ pub(crate) struct Layout<'a> {
 }
 
 impl<'a> Layout<'a> {
-	/// The widest letter spacing the layout lays out, a glyph repeats as a `u32`,
-	/// the Rust API is clamped to it and the command line stops far below, at `Args::MAX_COUNT`
-	pub(crate) const MAX_LETTER_SPACING: usize = u32::MAX as usize;
-
 	/// Creates a new layout with the given options
 	pub fn new(options: &'a Options) -> Self {
 		Self {
@@ -304,19 +300,14 @@ impl<'a> Layout<'a> {
 
 		// The block's line contribution is only staged: its first committing char
 		// commits it, so a block whose text commits nothing adds no buffers and no height
-		self.staged_block =
-			Some(StagedBlock { buffer_start, line_height: block.line_height.unwrap_or_else(|| font.line_height()) });
+		let line_height = block.line_height.unwrap_or_else(|| font.line_height());
+		self.staged_block = Some(StagedBlock { buffer_start, line_height: usize::from(line_height) });
 
 		// The letter spaces between two glyphs are one glyph repeated as often as the block asks,
-		// so flush_line handles the run like any other glyph,
-		// a spacing past MAX_LETTER_SPACING cannot show anyway, so it clamps there instead of panicking
-		let spacing = block.letter_spacing.unwrap_or_else(|| font.letter_spacing()).min(Self::MAX_LETTER_SPACING);
-		let letter_space = LayoutGlyph {
-			glyph: font.letter_space(),
-			block_index,
-			paintable: true,
-			repeat: u32::try_from(spacing).expect("a spacing clamped to MAX_LETTER_SPACING fits a u32"),
-		};
+		// so flush_line handles the run like any other glyph
+		let spacing = block.letter_spacing.unwrap_or_else(|| font.letter_spacing());
+		let letter_space =
+			LayoutGlyph { glyph: font.letter_space(), block_index, paintable: true, repeat: u32::from(spacing) };
 
 		// Now we iterate each character in this block
 		for ch in block.text().chars() {
@@ -420,7 +411,7 @@ impl<'a> Layout<'a> {
 			&& self
 				.options
 				.max_length
-				.is_none_or(|max_length| self.line_glyph_count + self.word_glyph_count <= max_length.get())
+				.is_none_or(|max_length| self.line_glyph_count + self.word_glyph_count <= usize::from(max_length.get()))
 	}
 
 	/// Move the pending word onto the line, wrapping first if it will not fit whole
@@ -482,7 +473,10 @@ impl<'a> Layout<'a> {
 				// A glyph wider than the canvas overflows on the spot:
 				// wrapping the still empty line would only add a blank line in front of it
 				if (canvas_width.is_some_and(|canvas_width| self.line_output_width + next_glyph_width > canvas_width)
-					|| self.options.max_length.is_some_and(|max_length| self.line_glyph_count + 1 > max_length.get()))
+					|| self
+						.options
+						.max_length
+						.is_some_and(|max_length| self.line_glyph_count + 1 > usize::from(max_length.get())))
 					&& self.line_glyph_count > 0
 				{
 					self.flush_line(canvas_width);
@@ -794,11 +788,10 @@ mod tests {
 	}
 
 	#[test]
-	fn layout_block_clamps_a_letter_spacing_past_the_u32_range() {
-		// the field is public, so a spacing past MAX_LETTER_SPACING reaches the layout and must lay out, not panic
-		let options = options(Valign::Top, None, vec![spaced_block("AB", usize::MAX, false)]);
+	fn layout_block_lays_out_the_widest_letter_spacing() {
+		// the widest count a field holds lays out like any other, the run fits no line, so the glyphs split
+		let options = options(Valign::Top, None, vec![spaced_block("AB", u16::MAX, false)]);
 
-		// the clamped run fits no line, so the glyphs split onto lines of their own
 		assert_eq!(layout_lines(&options, Some(80)).len(), 2);
 	}
 
@@ -1502,7 +1495,7 @@ mod tests {
 
 	#[test]
 	fn cli_style_zero_max_length_means_unlimited() {
-		// `--max-length 0` parses as NonZeroUsize::new(0) == None: zero means unlimited,
+		// `--max-length 0` parses as NonZeroU16::new(0) == None: zero means unlimited,
 		// and Some(0) itself is unrepresentable in the options type
 		let text = "A".repeat(40);
 		let lines = line_widths(&options(Valign::Top, Some(0), vec![block(&text, Font::Tiny, false)]));
@@ -1536,7 +1529,7 @@ mod tests {
 	// Word wrap must place the same glyphs as the identical text with explicit line breaks:
 	// `|` is notation for NEW_LINE_CHAR in both arguments, and the break-free input on the
 	// left wraps into exactly the lines spelled out on the right
-	fn assert_wraps_like(text: &str, max_length: usize, piped: &str) {
+	fn assert_wraps_like(text: &str, max_length: u16, piped: &str) {
 		let text = text.replace('|', &NEW_LINE_CHAR.to_string());
 		let piped = piped.replace('|', &NEW_LINE_CHAR.to_string());
 		let wrapped = options(Valign::Top, Some(max_length), vec![block(&text, Font::Tiny, true)]);

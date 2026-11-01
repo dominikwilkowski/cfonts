@@ -2,7 +2,7 @@ use std::{
 	error::Error,
 	fmt::{self, Display, Formatter},
 	io, iter,
-	num::NonZeroUsize,
+	num::NonZeroU16,
 	process::ExitCode,
 	slice,
 };
@@ -131,7 +131,7 @@ pub enum ParseError<'a> {
 	/// ```
 	InvalidValue { argument: Args, value: &'a str, source: Option<ColorError> },
 
-	/// A flag's number is past what the command line takes, carries the value as typed and the bound it passed
+	/// A flag's count is past the `u16` every count is, carries the value as typed
 	///
 	/// ```
 	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
@@ -143,11 +143,10 @@ pub enum ParseError<'a> {
 	///     ParseError::ValueTooLarge {
 	///         argument: Args::LetterSpacing,
 	///         value: "65536",
-	///         limit: 65_535,
 	///     }
 	/// );
 	/// ```
-	ValueTooLarge { argument: Args, value: &'a str, limit: usize },
+	ValueTooLarge { argument: Args, value: &'a str },
 
 	/// A flag that takes a value sat inside a short flag cluster instead of at its end
 	///
@@ -421,11 +420,12 @@ impl ParseError<'_> {
 
 				write!(f, "\n\n{}", args.help(color_enabled))
 			}
-			Self::ValueTooLarge { argument: args, value, limit } => {
+			Self::ValueTooLarge { argument: args, value } => {
 				write!(
 					f,
-					"{flag} The option \"{open}{}{close}\" was given a value that is too large\n\"{open}{value}{close}\" is above its limit of {open}{limit}{close}\n\n{}",
+					"{flag} The option \"{open}{}{close}\" was given a value that is too large\n\"{open}{value}{close}\" is above its limit of {open}{}{close}\n\n{}",
 					args.infos().long,
+					u16::MAX,
 					args.help(color_enabled)
 				)
 			}
@@ -537,7 +537,7 @@ pub(crate) struct CliOptions {
 	pub(crate) align: Align,
 	pub(crate) valign: Valign,
 	pub(crate) spaceless: bool,
-	pub(crate) max_length: Option<NonZeroUsize>,
+	pub(crate) max_length: Option<NonZeroU16>,
 	pub(crate) global_colors: Option<ColorOption>,
 	pub(crate) independent_gradient: bool,
 	pub(crate) background: Option<BackgroundOption>,
@@ -1178,7 +1178,7 @@ mod argument_parsing {
 
 	#[test]
 	fn number_flags_refuse_values_past_the_bound() {
-		// every count stops at v3's bound, the widest value a render shows
+		// every count is a u16, v3's bound and more than any render shows
 		let widest = args(&["my text", "-l", "65535", "-z", "65535", "-m", "65535"]);
 		let parsed = parse_args(&widest, tty()).unwrap();
 		assert_eq!(parsed.options.blocks[0].letter_spacing, Some(65_535));
@@ -1189,16 +1189,16 @@ mod argument_parsing {
 			let past_bound = args(&["my text", flag, "65536"]);
 			assert_eq!(
 				parse_args(&past_bound, tty()).unwrap_err().error,
-				ParseError::ValueTooLarge { argument, value: "65536", limit: 65_535 },
+				ParseError::ValueTooLarge { argument, value: "65536" },
 				"{flag}"
 			);
 		}
 
-		// past what the number type holds reads the same
-		let past_usize = args(&["my text", "-z", "99999999999999999999"]);
+		// far past the type reads the same
+		let far_past = args(&["my text", "-z", "99999999999999999999"]);
 		assert_eq!(
-			parse_args(&past_usize, tty()).unwrap_err().error,
-			ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999", limit: 65_535 }
+			parse_args(&far_past, tty()).unwrap_err().error,
+			ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999" }
 		);
 	}
 
@@ -1899,7 +1899,7 @@ mod error_messages {
 			ParseError::MissingValue(Args::Font),
 			ParseError::InvalidValue { argument: Args::Color, value: "nope", source: None },
 			ParseError::InvalidValue { argument: Args::Color, value: "#zz", source: Some(ColorError::HexCharacter) },
-			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "65536", limit: 65_535 },
+			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "65536" },
 			ParseError::MidClusterArgumentRequired(Args::Font),
 			ParseError::EmptyColorSegment { argument: Args::Color, value: "red-" },
 			ParseError::MixedColorDelimiters { argument: Args::Color, value: "red,blue-green" },

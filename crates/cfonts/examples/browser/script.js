@@ -111,9 +111,9 @@ function shellWord(value) {
 
 // One whole number, or the value that is none, the sentence the framework pages print for it
 //
-// The framework pages count in usize, 32 bits on wasm32, so a larger number is none on every page
+// The framework pages count in u16, so a larger number is none on every page
 function wholeNumber(value) {
-	if (!/^\d+$/.test(value) || Number(value) > 4294967295) {
+	if (!/^\d+$/.test(value) || Number(value) > 65535) {
 		throw new Error(`"${value}" is not a whole number`);
 	}
 

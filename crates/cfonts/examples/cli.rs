@@ -294,7 +294,7 @@ impl Host for BuildLog {
 	type Error = io::Error;
 
 	// A build log has a known width and color depth, and a fixed seed keeps candy stable between runs
-	fn canvas_width(&self) -> Option<usize> {
+	fn canvas_width(&self) -> Option<u16> {
 		Some(60)
 	}
 
@@ -302,7 +302,7 @@ impl Host for BuildLog {
 		Some(ColorLevel::Ansi256)
 	}
 
-	fn seed(&self) -> u64 {
+	fn seed(&self) -> u32 {
 		7
 	}
 

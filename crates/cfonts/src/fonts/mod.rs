@@ -106,8 +106,8 @@ pub(crate) struct FontFile {
 	name: &'static str,
 	colors: usize,
 	rows: usize,
-	line_height: usize,
-	letter_spacing: usize,
+	line_height: u16,
+	letter_spacing: u16,
 	buffer_start: Glyph,
 	buffer_end: Glyph,
 	letter_space: Glyph,
@@ -160,12 +160,12 @@ impl FontFile {
 	}
 
 	/// The number of blank rows the font asks for between rendered lines
-	pub(crate) fn line_height(&self) -> usize {
+	pub(crate) fn line_height(&self) -> u16 {
 		self.line_height
 	}
 
 	/// The number of letter-space glyphs the font puts between glyphs
-	pub(crate) fn letter_spacing(&self) -> usize {
+	pub(crate) fn letter_spacing(&self) -> u16 {
 		self.letter_spacing
 	}
 

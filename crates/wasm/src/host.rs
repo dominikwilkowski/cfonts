@@ -1,7 +1,7 @@
 //! The two hosts of the npm package behind the boundary: the decisions run here, TypeScript gathers the facts
 //! a page or a Node process alone can read and keeps the one write to its own stream or console
 
-use std::{cell::OnceCell, convert::Infallible, num::NonZeroUsize};
+use std::{cell::OnceCell, convert::Infallible, num::NonZeroU16};
 
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
@@ -44,11 +44,8 @@ impl BrowserHost {
 	}
 
 	/// A fresh seed for candy colors, the one the hosts roll when no seed override is given
-	///
-	/// The boundary carries seeds as u32, so the core's roll is cut to that width,
-	/// which loses nothing a seed needs: every call still rolls a value of its own
 	pub fn entropy() -> u32 {
-		CoreBrowserHost::entropy() as u32
+		CoreBrowserHost::entropy()
 	}
 
 	/// Renders the composition into the target's format with the host's three answers pinned
@@ -81,9 +78,9 @@ pub(crate) type Lookup = Box<dyn Fn(&str) -> Result<Option<String>, JsValue>>;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Terminal {
 	#[tsify(optional)]
-	pub(crate) stdout_columns: Option<u32>,
+	pub(crate) stdout_columns: Option<u16>,
 	#[tsify(optional)]
-	pub(crate) stderr_columns: Option<u32>,
+	pub(crate) stderr_columns: Option<u16>,
 	pub(crate) attached: bool,
 	pub(crate) platform: String,
 	pub(crate) release: String,
@@ -95,11 +92,8 @@ impl Terminal {
 	/// The measured width of the stream still attached to a terminal, stdout first, then stderr
 	///
 	/// A zero width stream measures nothing, matching the native probe
-	fn measured(&self) -> Option<NonZeroUsize> {
-		[self.stdout_columns, self.stderr_columns]
-			.into_iter()
-			.flatten()
-			.find_map(|columns| NonZeroUsize::new(columns as usize))
+	fn measured(&self) -> Option<NonZeroU16> {
+		[self.stdout_columns, self.stderr_columns].into_iter().flatten().find_map(NonZeroU16::new)
 	}
 
 	/// The Windows console facts, absent off Windows
@@ -137,12 +131,9 @@ impl NodeHost {
 
 	/// A fresh seed for candy colors, the one the hosts roll when no seed override is given
 	///
-	/// The boundary carries seeds as u32, so the core's roll is cut to that width,
-	/// which loses nothing a seed needs: every call still rolls a value of its own
-	///
 	/// The roll is the core's one, reached through its page host, the native host does not exist on wasm32
 	pub fn entropy() -> u32 {
-		CoreBrowserHost::entropy() as u32
+		CoreBrowserHost::entropy()
 	}
 
 	/// What a host writes after the artifact to end it, the target's own answer
@@ -212,7 +203,7 @@ impl Host for TerminalHost<'_> {
 	type Error = Infallible;
 
 	/// `FORCE_SIZE`, then the API override, then the measured width, then the eighty column fallback
-	fn canvas_width(&self) -> Option<usize> {
+	fn canvas_width(&self) -> Option<u16> {
 		let environment = self.environment();
 
 		TerminalCanvasWidth {
@@ -221,7 +212,7 @@ impl Host for TerminalHost<'_> {
 			override_width: self.overrides.canvas_width(),
 		}
 		.resolve()
-		.map(NonZeroUsize::get)
+		.map(NonZeroU16::get)
 	}
 
 	/// `FORCE_COLOR`, then `NO_COLOR`, then the API override, then the cascade of an attached terminal
@@ -240,7 +231,7 @@ impl Host for TerminalHost<'_> {
 		.resolve()
 	}
 
-	fn seed(&self) -> u64 {
+	fn seed(&self) -> u32 {
 		self.overrides.seed().unwrap_or_else(CoreBrowserHost::entropy)
 	}
 
@@ -257,7 +248,7 @@ mod tests {
 	use cfonts::ColorOverride;
 
 	/// A darwin terminal with the given columns and variables, the variables behind a map backed lookup
-	fn terminal(stdout: Option<u32>, stderr: Option<u32>, variables: &[(&str, &str)]) -> Terminal {
+	fn terminal(stdout: Option<u16>, stderr: Option<u16>, variables: &[(&str, &str)]) -> Terminal {
 		let variables: HashMap<String, String> =
 			variables.iter().map(|(name, value)| (String::from(*name), String::from(*value))).collect();
 
@@ -383,9 +374,9 @@ mod tests {
 		let rolling = || TerminalHost::new(RenderOverrides::default(), &terminal);
 
 		assert_eq!(TerminalHost::new(RenderOverrides::default().with_seed(42), &terminal).seed(), 42);
-		// eight u64 rolls agree only at 2^-448, a bound no run meets, so the roll is guarded
+		// eight u32 rolls agree only at 2^-224, a bound no run meets, so the roll is guarded
 		// without a seam into the entropy source
-		let rolls: Vec<u64> = (0..8).map(|_| rolling().seed()).collect();
+		let rolls: Vec<u32> = (0..8).map(|_| rolling().seed()).collect();
 		assert!(rolls.iter().any(|roll| *roll != rolls[0]), "all rolls agree");
 	}
 }

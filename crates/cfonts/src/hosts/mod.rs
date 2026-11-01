@@ -27,23 +27,24 @@ pub use rust::RustHost;
 /// A fresh seed for candy colors, the one every host rolls when no seed override is given
 ///
 /// The standard library seeds its hasher keys randomly per thread and steps them per instance,
-/// so every hash of nothing is a new value
+/// so every hash of nothing is a new value, its 64 bits folded onto the seed's 32 so every bit
+/// of the hash shapes the roll
 #[cfg(not(all(target_family = "wasm", target_os = "unknown")))]
-pub(crate) fn entropy() -> u64 {
-	RandomState::new().build_hasher().finish()
+pub(crate) fn entropy() -> u32 {
+	let hash = RandomState::new().build_hasher().finish();
+
+	(hash ^ (hash >> 32)) as u32
 }
 
 /// A fresh seed for candy colors, the one every host rolls when no seed override is given
 ///
 /// The browser keys the standard library's hasher from memory addresses, identical on every
-/// page load, so the seed asks the page instead: two draws of `Math.random`, one per half
+/// page load, so the seed asks the page instead: one draw of `Math.random` spread over the seed's width
 ///
 /// The browser host, the widget and the wasm package behind the npm hosts all roll here
 #[cfg(all(target_family = "wasm", target_os = "unknown", any(feature = "web", feature = "ratatui")))]
-pub(crate) fn entropy() -> u64 {
-	let half = || (js_sys::Math::random() * f64::from(u32::MAX)) as u64;
-
-	(half() << 32) | half()
+pub(crate) fn entropy() -> u32 {
+	(js_sys::Math::random() * f64::from(u32::MAX)) as u32
 }
 
 /// Answers where a render runs and how its output leaves the program
@@ -56,13 +57,13 @@ pub trait Host {
 	type Error;
 
 	/// The width in columns the render wraps at, None for no limit
-	fn canvas_width(&self) -> Option<usize>;
+	fn canvas_width(&self) -> Option<u16>;
 
 	/// The color support the render paints with, None paints nothing
 	fn color_level(&self) -> Option<ColorLevel>;
 
 	/// The seed that makes candy colors reproducible
-	fn seed(&self) -> u64;
+	fn seed(&self) -> u32;
 
 	/// Performs the host-specific output action, `line_end` is what the target ends the artifact with
 	fn write(&self, rendered: &Rendered, line_end: &str) -> Result<(), Self::Error>;
@@ -118,7 +119,7 @@ mod tests {
 	impl Host for SpyHost {
 		type Error = Infallible;
 
-		fn canvas_width(&self) -> Option<usize> {
+		fn canvas_width(&self) -> Option<u16> {
 			self.answers.set(self.answers.get() + 1);
 
 			Some(3)
@@ -130,7 +131,7 @@ mod tests {
 			Some(ColorLevel::TrueColor)
 		}
 
-		fn seed(&self) -> u64 {
+		fn seed(&self) -> u32 {
 			self.answers.set(self.answers.get() + 1);
 
 			42

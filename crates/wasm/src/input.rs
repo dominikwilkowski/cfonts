@@ -178,11 +178,11 @@ pub enum BackgroundOption {
 #[derive(Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RenderOverrides {
-	/// Width requested by the consumer
+	/// Width requested by the consumer, a whole number up to 65535
 	///
 	/// Left out means automatic detection and zero means unlimited
 	#[tsify(optional)]
-	pub canvas_width: Option<u32>,
+	pub canvas_width: Option<u16>,
 
 	/// Color support requested by the consumer
 	///
@@ -313,13 +313,27 @@ impl Input {
 		self.value.as_string().ok_or_else(|| self.type_error("expects a string"))
 	}
 
-	/// An unsigned 32-bit integer, the one type the counts take
+	/// An unsigned 16-bit integer, the type of every count and width
+	pub(crate) fn expect_u16(&self) -> Result<u16, JsValue> {
+		self
+			.whole_number()
+			.filter(|number| *number <= f64::from(u16::MAX))
+			.map(|number| number as u16)
+			.ok_or_else(|| self.type_error("expects an unsigned 16-bit integer"))
+	}
+
+	/// An unsigned 32-bit integer, the type of the seed
 	pub(crate) fn expect_u32(&self) -> Result<u32, JsValue> {
 		self
 			.whole_number()
 			.filter(|number| *number <= f64::from(u32::MAX))
 			.map(|number| number as u32)
 			.ok_or_else(|| self.type_error("expects an unsigned 32-bit integer"))
+	}
+
+	/// An unsigned 16-bit integer where the member is set, `undefined` leaves the decision open
+	fn optional_u16(&self) -> Result<Option<u16>, JsValue> {
+		(!self.value.is_undefined()).then(|| self.expect_u16()).transpose()
 	}
 
 	/// An unsigned 32-bit integer where the member is set, `undefined` leaves the decision open
@@ -472,8 +486,8 @@ impl Input {
 
 		let mut overrides = CoreRenderOverrides::default();
 
-		if let Some(columns) = self.member("canvasWidth")?.optional_u32()? {
-			overrides = overrides.with_canvas_width(columns as usize);
+		if let Some(columns) = self.member("canvasWidth")?.optional_u16()? {
+			overrides = overrides.with_canvas_width(columns);
 		}
 
 		let color = self.member("color")?;
@@ -484,7 +498,7 @@ impl Input {
 		}
 
 		if let Some(seed) = self.member("seed")?.optional_u32()? {
-			overrides = overrides.with_seed(u64::from(seed));
+			overrides = overrides.with_seed(seed);
 		}
 
 		Ok(overrides)
@@ -500,8 +514,8 @@ impl Input {
 		}
 
 		Ok(Terminal {
-			stdout_columns: self.member("stdoutColumns")?.optional_u32()?,
-			stderr_columns: self.member("stderrColumns")?.optional_u32()?,
+			stdout_columns: self.member("stdoutColumns")?.optional_u16()?,
+			stderr_columns: self.member("stderrColumns")?.optional_u16()?,
 			attached: self.member("attached")?.expect_bool()?,
 			platform: self.member("platform")?.expect_string()?,
 			release: self.member("release")?.expect_string()?,

@@ -6,7 +6,7 @@
 
 #![cfg(windows)]
 
-use std::{env, num::NonZeroUsize, ptr};
+use std::{env, num::NonZeroU16, ptr};
 
 use windows_sys::Win32::{
 	Foundation::{GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE},
@@ -69,9 +69,9 @@ fn a_console_reports_its_window_width() {
 		// the environment must not decide before the measurement can
 		env::remove_var("FORCE_SIZE");
 
-		usize::try_from(i32::from(info.srWindow.Right) - i32::from(info.srWindow.Left) + 1).expect("a window has width")
+		u16::try_from(i32::from(info.srWindow.Right) - i32::from(info.srWindow.Left) + 1).expect("a window has width")
 	};
 
 	assert!(expected > 0, "the console window must have columns");
-	assert_eq!(TerminalCanvasWidth::detect(CanvasWidth::Auto), NonZeroUsize::new(expected));
+	assert_eq!(TerminalCanvasWidth::detect(CanvasWidth::Auto), NonZeroU16::new(expected));
 }

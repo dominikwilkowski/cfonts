@@ -1,4 +1,4 @@
-use std::num::{IntErrorKind, NonZeroUsize};
+use std::num::{IntErrorKind, NonZeroU16};
 
 use crate::{
 	Align, Background, BackgroundOption, Color, ColorError, ColorOption, Font, GradientPreset, RustHost, Text, Valign,
@@ -140,10 +140,6 @@ pub enum Args {
 }
 
 impl Args {
-	/// The largest count an option takes, v3's bound: more letter spaces, empty rows or characters per line
-	/// than any terminal shows, and a line height far past it fills memory with empty rows
-	pub(crate) const MAX_COUNT: usize = u16::MAX as usize;
-
 	pub(crate) fn parse(input: &str) -> Option<Self> {
 		#[deny(unreachable_patterns)]
 		match input {
@@ -203,7 +199,7 @@ impl Args {
 			Self::MaxLength => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
 				// zero means unlimited
-				state.options.max_length = NonZeroUsize::new(self.parse_count(value)?);
+				state.options.max_length = NonZeroU16::new(self.parse_count(value)?);
 			}
 			Self::Stdin => {
 				// The options that are passed in keep the promise that there is always at least one block present
@@ -269,17 +265,13 @@ impl Args {
 		from_name(value).ok_or(ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
-	/// Parses one count up to [`MAX_COUNT`](Self::MAX_COUNT), a larger one is reported as too large,
+	/// Parses one count, the `u16` every count is: a larger number is reported as too large,
 	/// anything else as invalid
-	fn parse_count<'a>(self, value: &'a str) -> Result<usize, ParseError<'a>> {
-		match value.parse::<usize>() {
-			Ok(count) if count <= Self::MAX_COUNT => Ok(count),
-			Ok(_) => Err(ParseError::ValueTooLarge { argument: self, value, limit: Self::MAX_COUNT }),
-			Err(error) if *error.kind() == IntErrorKind::PosOverflow => {
-				Err(ParseError::ValueTooLarge { argument: self, value, limit: Self::MAX_COUNT })
-			}
-			Err(_) => Err(ParseError::InvalidValue { argument: self, value, source: None }),
-		}
+	fn parse_count<'a>(self, value: &'a str) -> Result<u16, ParseError<'a>> {
+		value.parse::<u16>().map_err(|error| match error.kind() {
+			IntErrorKind::PosOverflow => ParseError::ValueTooLarge { argument: self, value },
+			_ => ParseError::InvalidValue { argument: self, value, source: None },
+		})
 	}
 
 	/// Parses one colors value through the core's grammar, or reports it against this argument
@@ -722,14 +714,14 @@ mod tests {
 		assert_eq!(Args::LineHeight.parse_count("0"), Ok(0));
 		assert_eq!(Args::LetterSpacing.parse_count("65535"), Ok(65_535));
 
-		// past the bound, and past what the number type holds, read the same to the user
+		// one past the type, and far past it, read the same to the user
 		assert_eq!(
 			Args::LetterSpacing.parse_count("65536"),
-			Err(ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "65536", limit: 65_535 })
+			Err(ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "65536" })
 		);
 		assert_eq!(
 			Args::LineHeight.parse_count("99999999999999999999"),
-			Err(ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999", limit: 65_535 })
+			Err(ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999" })
 		);
 
 		// anything that is no count at all stays an invalid value

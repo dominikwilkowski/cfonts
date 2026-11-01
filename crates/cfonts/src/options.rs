@@ -1,6 +1,6 @@
 //! The configuration types a composition is built from
 
-use std::num::NonZeroUsize;
+use std::num::NonZeroU16;
 
 use crate::{
 	color::{BackgroundOption, ColorOption},
@@ -102,12 +102,12 @@ pub struct BlockOptions {
 	/// Number of font-defined letter-space glyphs inserted between glyphs
 	///
 	/// `None` uses the letter spacing the font declares for itself
-	pub letter_spacing: Option<usize>,
+	pub letter_spacing: Option<u16>,
 
 	/// Number of blank rows inserted after each rendered line from this block
 	///
 	/// `None` uses the line height the font declares for itself
-	pub line_height: Option<usize>,
+	pub line_height: Option<u16>,
 
 	/// Whether wrapping should prefer word boundaries
 	pub word_wrap: bool,
@@ -174,7 +174,7 @@ pub struct Options {
 	/// Maximum printable glyphs per rendered line
 	///
 	/// `None` means unlimited
-	pub max_length: Option<NonZeroUsize>,
+	pub max_length: Option<NonZeroU16>,
 
 	/// Colors or a gradient across the whole composition
 	///

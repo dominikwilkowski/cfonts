@@ -19,10 +19,10 @@ use cfonts_v3::{
 };
 
 /// The width every render wraps at
-pub const COLUMNS: usize = 80;
+pub const COLUMNS: u16 = 80;
 
 /// The candy seed of every v4 API render, v3 and the v4 binary roll their own
-const SEED: u64 = 4;
+const SEED: u32 = 4;
 
 // VERSIONS AND PATHS
 

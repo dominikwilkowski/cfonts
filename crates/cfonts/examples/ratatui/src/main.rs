@@ -37,7 +37,7 @@ struct App {
 	selected: usize,
 	options: Options,
 	/// Rolled once per run and again on every event while a rolling choice is selected
-	seed: u64,
+	seed: u32,
 	exit: bool,
 }
 

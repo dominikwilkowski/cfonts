@@ -1,6 +1,6 @@
 use cfonts::{Align, BackgroundOption, BlockOptions, ColorOption, Font, Options, Valign};
 use dioxus::prelude::*;
-use std::num::NonZeroUsize;
+use std::num::NonZeroU16;
 
 use crate::components::{configurator::FormState, helper::FormError};
 
@@ -29,8 +29,8 @@ impl Setting {
 		options.blocks.last_mut().expect("compose starts with the text block")
 	}
 
-	/// One whole number, or the value that is none
-	fn number(value: &str) -> Result<usize, String> {
+	/// One whole number up to 65535, a count, or the value that is none
+	fn number(value: &str) -> Result<u16, String> {
 		value.parse().map_err(|_| format!("\"{value}\" is not a whole number"))
 	}
 }
@@ -159,7 +159,7 @@ static OPTIONS: [Row; 13] = [
 			unset: "0",
 			apply: |options, value| {
 				// zero means unlimited
-				options.max_length = NonZeroUsize::new(Setting::number(value)?);
+				options.max_length = NonZeroU16::new(Setting::number(value)?);
 				Ok(())
 			},
 		},

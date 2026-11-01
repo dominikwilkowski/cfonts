@@ -152,7 +152,7 @@ pub fn problems(versions: &[Version], verdicts: &[Verdict]) -> Vec<String> {
 /// What the probe found wrong on one path and version, `None` when it wrapped at exactly 80 columns in true color
 fn probe_problem(outcome: &Outcome) -> Option<String> {
 	match outcome {
-		Outcome::Passed { widest, .. } if *widest == COLUMNS => None,
+		Outcome::Passed { widest, .. } if *widest == usize::from(COLUMNS) => None,
 		Outcome::Passed { widest, .. } => Some(format!("the probe wraps at {widest} columns, not {COLUMNS}")),
 		Outcome::Unfair(problem) => Some(format!("the probe found {problem}")),
 		Outcome::Crashed(crash) => Some(format!("the probe crashed, {crash}")),
@@ -190,7 +190,7 @@ fn inspect(scenario: &Scenario, output: &str, time: Duration) -> Outcome {
 
 	let rows: Vec<String> = output.lines().map(visible).collect();
 	let widest = rows.iter().map(|row| row.chars().count()).max().unwrap_or(0);
-	if widest > COLUMNS {
+	if widest > usize::from(COLUMNS) {
 		return Outcome::Unfair(format!("a row {widest} columns wide"));
 	}
 

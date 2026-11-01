@@ -1,6 +1,6 @@
 use std::{
 	io::{self, Write},
-	num::NonZeroUsize,
+	num::NonZeroU16,
 };
 
 use crate::{
@@ -34,15 +34,15 @@ impl RustHost {
 impl Host for RustHost {
 	type Error = io::Error;
 
-	fn canvas_width(&self) -> Option<usize> {
-		TerminalCanvasWidth::detect(self.overrides.canvas_width()).map(NonZeroUsize::get)
+	fn canvas_width(&self) -> Option<u16> {
+		TerminalCanvasWidth::detect(self.overrides.canvas_width()).map(NonZeroU16::get)
 	}
 
 	fn color_level(&self) -> Option<ColorLevel> {
 		TerminalColorSupport::detect(Stream::Stdout, self.overrides.color(), Some(ColorLevel::TrueColor))
 	}
 
-	fn seed(&self) -> u64 {
+	fn seed(&self) -> u32 {
 		self.overrides.seed().unwrap_or_else(Self::entropy)
 	}
 
@@ -76,7 +76,7 @@ impl RustHost {
 	/// assert_ne!(seed, RustHost::entropy());
 	/// ```
 	#[must_use]
-	pub fn entropy() -> u64 {
+	pub fn entropy() -> u32 {
 		entropy()
 	}
 }
@@ -130,7 +130,10 @@ mod tests {
 
 	#[test]
 	fn entropy_differs_between_calls() {
-		assert_ne!(RustHost::entropy(), RustHost::entropy());
+		// eight u32 rolls agree only at 2^-224, a bound no run meets
+		let rolls: Vec<u32> = (0..8).map(|_| RustHost::entropy()).collect();
+
+		assert!(rolls.iter().any(|roll| *roll != rolls[0]), "all rolls agree");
 	}
 
 	// the answers
@@ -152,10 +155,10 @@ mod tests {
 		temp_env::with_vars(
 			[("FORCE_SIZE", None::<&str>), ("FORCE_COLOR", None::<&str>), ("NO_COLOR", None::<&str>)],
 			|| {
-				let one = RustHost::default().seed();
-				let two = RustHost::default().seed();
+				// eight u32 rolls agree only at 2^-224, a bound no run meets
+				let rolls: Vec<u32> = (0..8).map(|_| RustHost::default().seed()).collect();
 
-				assert_ne!(one, two);
+				assert!(rolls.iter().any(|roll| *roll != rolls[0]), "all rolls agree");
 			},
 		);
 	}

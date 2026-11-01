@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::num::NonZeroU16;
 
 use tsify::Ts;
 use wasm_bindgen::prelude::*;
@@ -83,13 +83,13 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Sets the letter spacing for the current block
+	/// Sets the letter spacing for the current block, a whole number up to 65535
 	#[wasm_bindgen(js_name = letterSpacing)]
 	pub fn letter_spacing(
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] letter_spacing: JsValue,
 	) -> Result<(), JsValue> {
-		self.current_block_mut().letter_spacing = Some(Input::new(letter_spacing, "letterSpacing").expect_u32()? as usize);
+		self.current_block_mut().letter_spacing = Some(Input::new(letter_spacing, "letterSpacing").expect_u16()?);
 		Ok(())
 	}
 
@@ -99,13 +99,13 @@ impl Cfonts {
 		self.current_block_mut().word_wrap = true;
 	}
 
-	/// Sets the line height for the current block
+	/// Sets the line height for the current block, a whole number up to 65535
 	#[wasm_bindgen(js_name = lineHeight)]
 	pub fn line_height(
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] line_height: JsValue,
 	) -> Result<(), JsValue> {
-		self.current_block_mut().line_height = Some(Input::new(line_height, "lineHeight").expect_u32()? as usize);
+		self.current_block_mut().line_height = Some(Input::new(line_height, "lineHeight").expect_u16()?);
 		Ok(())
 	}
 
@@ -149,7 +149,7 @@ impl Cfonts {
 		Ok(())
 	}
 
-	/// Sets the maximum glyph count per line
+	/// Sets the maximum glyph count per line, a whole number up to 65535
 	///
 	/// A value of zero disables the limit
 	#[wasm_bindgen(js_name = maxLength)]
@@ -157,9 +157,9 @@ impl Cfonts {
 		&mut self,
 		#[wasm_bindgen(unchecked_param_type = "number")] max_length: JsValue,
 	) -> Result<(), JsValue> {
-		let max_length = Input::new(max_length, "maxLength").expect_u32()?; // The javascript name instead of the rust spelling
+		let max_length = Input::new(max_length, "maxLength").expect_u16()?; // The javascript name instead of the rust spelling
 		self.set_global(MAX_LENGTH_SET, "maxLength")?;
-		self.options.max_length = NonZeroUsize::new(max_length as usize);
+		self.options.max_length = NonZeroU16::new(max_length);
 		Ok(())
 	}
 

@@ -47,7 +47,7 @@ impl BrowserHost {
 	/// assert_ne!(seed, BrowserHost::entropy());
 	/// ```
 	#[must_use]
-	pub fn entropy() -> u64 {
+	pub fn entropy() -> u32 {
 		entropy()
 	}
 }
@@ -56,7 +56,7 @@ impl Host for BrowserHost {
 	type Error = Infallible;
 
 	/// A page has no terminal to measure, so only a column count wraps
-	fn canvas_width(&self) -> Option<usize> {
+	fn canvas_width(&self) -> Option<u16> {
 		self.overrides.canvas_width().columns_or(None)
 	}
 
@@ -65,7 +65,7 @@ impl Host for BrowserHost {
 		self.overrides.color().level_or(Some(ColorLevel::TrueColor))
 	}
 
-	fn seed(&self) -> u64 {
+	fn seed(&self) -> u32 {
 		self.overrides.seed().unwrap_or_else(Self::entropy)
 	}
 

@@ -121,6 +121,15 @@ impl Tables {
 			});
 		}
 
+		for (setting, count) in [("line_height", font.line_height), ("letter_spacing", font.letter_spacing)] {
+			if count > limit {
+				return Err(Problem {
+					place: Place::Setting(setting),
+					message: format!("declares {count}, a font has at most {limit}"),
+				});
+			}
+		}
+
 		Ok(())
 	}
 }
@@ -269,5 +278,14 @@ mod tests {
 
 		let problem = Tables::expand(&font).unwrap_err();
 		assert_eq!(problem.to_string(), "colors: declares 257 colors, a font has at most 256");
+	}
+
+	#[test]
+	fn a_count_past_what_the_options_hold_fails() {
+		let mut font = font();
+		font.line_height = 65_536;
+
+		let problem = Tables::expand(&font).unwrap_err();
+		assert_eq!(problem.to_string(), "line_height: declares 65536, a font has at most 65535");
 	}
 }

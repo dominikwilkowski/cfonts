@@ -8,7 +8,7 @@
 
 #[cfg(any(unix, windows))]
 use std::io;
-use std::num::NonZeroUsize;
+use std::num::NonZeroU16;
 #[cfg(unix)]
 use std::os::fd::AsRawFd;
 #[cfg(windows)]
@@ -25,7 +25,7 @@ use crate::CanvasWidth;
 use crate::hosts::terminal_color_support::TerminalColorSupport;
 
 /// The width a render wraps to when nothing can be measured
-const FALLBACK_WIDTH: usize = 80;
+const FALLBACK_WIDTH: u16 = 80;
 
 /// Everything one canvas-width resolution reads, gathered before any decision
 ///
@@ -35,7 +35,7 @@ const FALLBACK_WIDTH: usize = 80;
 pub struct TerminalCanvasWidth<'a> {
 	/// The measured width of the terminal behind stdout or stderr, `None` when
 	/// both are redirected
-	pub measured: Option<NonZeroUsize>,
+	pub measured: Option<NonZeroU16>,
 
 	/// The environment FORCE_SIZE is read from
 	pub environment: &'a dyn Fn(&str) -> Option<String>,
@@ -50,12 +50,12 @@ impl TerminalCanvasWidth<'_> {
 	/// # Examples
 	///
 	/// ```
-	/// use std::num::NonZeroUsize;
+	/// use std::num::NonZeroU16;
 	///
 	/// use cfonts::{CanvasWidth, hosts::terminal_canvas_width::TerminalCanvasWidth};
 	///
 	/// temp_env::with_var("FORCE_SIZE", Some("12"), || {
-	///     assert_eq!(TerminalCanvasWidth::detect(CanvasWidth::Auto), NonZeroUsize::new(12));
+	///     assert_eq!(TerminalCanvasWidth::detect(CanvasWidth::Auto), NonZeroU16::new(12));
 	/// });
 	///
 	/// temp_env::with_var("FORCE_SIZE", Some("0"), || {
@@ -64,7 +64,7 @@ impl TerminalCanvasWidth<'_> {
 	/// ```
 	#[cfg(not(target_arch = "wasm32"))]
 	#[must_use]
-	pub fn detect(override_width: CanvasWidth) -> Option<NonZeroUsize> {
+	pub fn detect(override_width: CanvasWidth) -> Option<NonZeroU16> {
 		TerminalCanvasWidth {
 			measured: Self::measure(),
 			environment: &TerminalColorSupport::process_environment,
@@ -81,35 +81,35 @@ impl TerminalCanvasWidth<'_> {
 	/// # Examples
 	///
 	/// ```
-	/// use std::num::NonZeroUsize;
+	/// use std::num::NonZeroU16;
 	///
 	/// use cfonts::{CanvasWidth, hosts::terminal_canvas_width::TerminalCanvasWidth};
 	///
 	/// let environment = |name: &str| (name == "FORCE_SIZE").then(|| String::from("12"));
 	///
 	/// let resolved = TerminalCanvasWidth {
-	///     measured: NonZeroUsize::new(200),
+	///     measured: NonZeroU16::new(200),
 	///     environment: &environment,
 	///     override_width: CanvasWidth::Auto,
 	/// }
 	/// .resolve();
 	///
-	/// assert_eq!(resolved, NonZeroUsize::new(12));
+	/// assert_eq!(resolved, NonZeroU16::new(12));
 	/// ```
 	#[must_use]
-	pub fn resolve(&self) -> Option<NonZeroUsize> {
+	pub fn resolve(&self) -> Option<NonZeroU16> {
 		// The outer Option distinguishes invalid input from valid FORCE_SIZE=0
 		// Digits only and a u16, the width a terminal reports, the npm host resolves through this same code
 		if let Some(forced_width) = (self.environment)("FORCE_SIZE")
 			.filter(|value| value.bytes().all(|byte| byte.is_ascii_digit()))
 			.and_then(|value| value.parse::<u16>().ok())
-			.map(|value| NonZeroUsize::new(usize::from(value)))
+			.map(NonZeroU16::new)
 		{
 			return forced_width;
 		}
 
 		match self.override_width {
-			CanvasWidth::Auto => self.measured.or_else(|| NonZeroUsize::new(FALLBACK_WIDTH)),
+			CanvasWidth::Auto => self.measured.or_else(|| NonZeroU16::new(FALLBACK_WIDTH)),
 			CanvasWidth::Unlimited => None,
 			CanvasWidth::Columns(width) => Some(width),
 		}
@@ -121,13 +121,13 @@ impl TerminalCanvasWidth<'_> {
 	/// Captured output is never wrapped to an invisible window, so a fully
 	/// redirected process falls back instead of probing stdin
 	#[cfg(any(unix, windows))]
-	fn measure() -> Option<NonZeroUsize> {
+	fn measure() -> Option<NonZeroU16> {
 		Self::width_of(&io::stdout()).or_else(|| Self::width_of(&io::stderr()))
 	}
 
 	/// A target without terminals measures nothing
 	#[cfg(not(any(unix, windows, target_arch = "wasm32")))]
-	fn measure() -> Option<NonZeroUsize> {
+	fn measure() -> Option<NonZeroU16> {
 		None
 	}
 
@@ -137,7 +137,7 @@ impl TerminalCanvasWidth<'_> {
 	/// the same reading the npm host takes from `stream.columns`
 	/// A stream without a terminal fails the ioctl and measures nothing
 	#[cfg(unix)]
-	fn width_of(stream: &impl AsRawFd) -> Option<NonZeroUsize> {
+	fn width_of(stream: &impl AsRawFd) -> Option<NonZeroU16> {
 		let mut size = libc::winsize { ws_row: 0, ws_col: 0, ws_xpixel: 0, ws_ypixel: 0 };
 
 		// SAFETY: TIOCGWINSZ writes only the winsize struct behind the valid
@@ -146,12 +146,12 @@ impl TerminalCanvasWidth<'_> {
 			return None;
 		}
 
-		NonZeroUsize::new(size.ws_col as usize)
+		NonZeroU16::new(size.ws_col)
 	}
 
 	/// The width of the console window behind one stream
 	#[cfg(windows)]
-	fn width_of(stream: &impl AsRawHandle) -> Option<NonZeroUsize> {
+	fn width_of(stream: &impl AsRawHandle) -> Option<NonZeroU16> {
 		Self::console_width(stream.as_raw_handle().cast())
 	}
 
@@ -160,7 +160,7 @@ impl TerminalCanvasWidth<'_> {
 	/// Only the column count matters; a handle without a console fails the
 	/// call and measures nothing
 	#[cfg(windows)]
-	fn console_width(handle: HANDLE) -> Option<NonZeroUsize> {
+	fn console_width(handle: HANDLE) -> Option<NonZeroU16> {
 		if handle.is_null() || handle == INVALID_HANDLE_VALUE {
 			return None;
 		}
@@ -181,7 +181,7 @@ impl TerminalCanvasWidth<'_> {
 		}
 
 		let width = i32::from(info.srWindow.Right) - i32::from(info.srWindow.Left) + 1;
-		usize::try_from(width).ok().and_then(NonZeroUsize::new)
+		u16::try_from(width).ok().and_then(NonZeroU16::new)
 	}
 }
 
@@ -189,14 +189,14 @@ impl TerminalCanvasWidth<'_> {
 mod tests {
 	use super::*;
 
-	fn width(value: usize) -> NonZeroUsize {
-		NonZeroUsize::new(value).expect("test widths must be non-zero")
+	fn width(value: u16) -> NonZeroU16 {
+		NonZeroU16::new(value).expect("test widths must be non-zero")
 	}
 
-	fn resolve_with(forced: Option<&str>, measured: Option<usize>, override_width: CanvasWidth) -> Option<NonZeroUsize> {
+	fn resolve_with(forced: Option<&str>, measured: Option<u16>, override_width: CanvasWidth) -> Option<NonZeroU16> {
 		let environment = |name: &str| if name == "FORCE_SIZE" { forced.map(String::from) } else { None };
 
-		TerminalCanvasWidth { measured: measured.and_then(NonZeroUsize::new), environment: &environment, override_width }
+		TerminalCanvasWidth { measured: measured.and_then(NonZeroU16::new), environment: &environment, override_width }
 			.resolve()
 	}
 
@@ -267,7 +267,7 @@ mod tests {
 		let resolved =
 			TerminalCanvasWidth { measured: None, environment: &environment, override_width: CanvasWidth::Auto }.resolve();
 
-		assert_eq!(resolved, NonZeroUsize::new(FALLBACK_WIDTH));
+		assert_eq!(resolved, NonZeroU16::new(FALLBACK_WIDTH));
 	}
 
 	#[test]
@@ -311,8 +311,8 @@ mod tests {
 		fn a_pty_reports_its_configured_width() {
 			let (controller, follower) = pty(137, 43);
 
-			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroUsize::new(137));
-			assert_eq!(TerminalCanvasWidth::width_of(&follower), NonZeroUsize::new(137));
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroU16::new(137));
+			assert_eq!(TerminalCanvasWidth::width_of(&follower), NonZeroU16::new(137));
 		}
 
 		#[test]
@@ -326,7 +326,7 @@ mod tests {
 		fn a_zero_row_pty_still_measures() {
 			let (controller, _follower) = pty(120, 0);
 
-			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroUsize::new(120));
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroU16::new(120));
 		}
 
 		#[test]
@@ -346,7 +346,7 @@ mod tests {
 			let result = unsafe { libc::ioctl(controller.as_raw_fd(), libc::TIOCSWINSZ, &raw const size) };
 			assert_eq!(result, 0);
 
-			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroUsize::new(66));
+			assert_eq!(TerminalCanvasWidth::width_of(&controller), NonZeroU16::new(66));
 		}
 
 		/// The oracle comparison ported from the terminal_size crate
@@ -372,7 +372,7 @@ mod tests {
 
 			assert_eq!(
 				TerminalCanvasWidth::width_of(&io::stderr()),
-				NonZeroUsize::new(columns.parse().expect("stty answers numbers"))
+				NonZeroU16::new(columns.parse().expect("stty answers numbers"))
 			);
 		}
 	}

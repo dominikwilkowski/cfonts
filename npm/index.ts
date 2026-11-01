@@ -144,7 +144,7 @@ export class Cfonts {
 	}
 
 	/**
-	 * Sets the space between letters for the current text block, in glyph columns
+	 * Sets the space between letters for the current text block, in glyph columns, a whole number up to 65535
 	 *
 	 * Unset, the block takes the letter spacing its font declares
 	 *
@@ -157,7 +157,7 @@ export class Cfonts {
 	}
 
 	/**
-	 * Sets how many blank rows follow each rendered line of the current text block
+	 * Sets how many blank rows follow each rendered line of the current text block, a whole number up to 65535
 	 *
 	 * @example
 	 * Cfonts.text("hello|world").lineHeight(0); // lines touch
@@ -233,7 +233,7 @@ export class Cfonts {
 	}
 
 	/**
-	 * Sets the maximum glyph count per line, zero disables the limit
+	 * Sets the maximum glyph count per line, a whole number up to 65535, zero disables the limit
 	 *
 	 * @example
 	 * Cfonts.text("hello world").maxLength(8);
