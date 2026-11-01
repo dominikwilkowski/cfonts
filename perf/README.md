@@ -81,7 +81,7 @@ Each generated block below starts with the date, the system, the CPU and the rus
 ## Scenarios
 
 <!-- perf:scenarios:start -->
-Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
+Ran 2026-11-01 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
 
 | scenario                      | why                                                                                                 |
 |-------------------------------|-----------------------------------------------------------------------------------------------------|
@@ -136,153 +136,153 @@ Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-1
 ### Speed, median time per render
 
 <!-- perf:results:speed:start -->
-Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
+Ran 2026-11-01 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
 
 | scenario                      | v4 api median | v4 cli median |
 |-------------------------------|---------------|---------------|
-| `short-plain`                 | 4.49 µs       | 1.63 ms       |
-| `short-colors`                | 5.82 µs       | 1.67 ms       |
-| `short-gradient`              | 11.2 µs       | 1.65 ms       |
-| `short-transition`            | 10.4 µs       | 1.65 ms       |
-| `short-background`            | 4.64 µs       | 1.63 ms       |
-| `short-colors-background`     | 5.96 µs       | 1.63 ms       |
-| `short-gradient-background`   | 11.3 µs       | 1.64 ms       |
-| `short-transition-background` | 10.6 µs       | 1.67 ms       |
-| `long-plain`                  | 189 µs        | 1.92 ms       |
-| `long-colors`                 | 238 µs        | 1.99 ms       |
-| `long-gradient`               | 429 µs        | 2.35 ms       |
-| `long-transition`             | 424 µs        | 2.33 ms       |
-| `long-background`             | 194 µs        | 1.97 ms       |
-| `long-colors-background`      | 242 µs        | 2.02 ms       |
-| `long-gradient-background`    | 432 µs        | 2.35 ms       |
-| `long-transition-background`  | 427 µs        | 2.35 ms       |
-| `startup`                     | n/a           | 1.62 ms       |
-| `single-character`            | 840 ns        | 1.63 ms       |
-| `console-font`                | 601 ns        | 1.61 ms       |
-| `line-breaks`                 | 6.22 µs       | 1.63 ms       |
-| `long-center`                 | 190 µs        | 1.92 ms       |
-| `long-right`                  | 191 µs        | 1.92 ms       |
-| `long-spacing`                | 257 µs        | 2.02 ms       |
-| `long-independent-gradient`   | 477 µs        | 2.41 ms       |
-| `long-candy`                  | 242 µs        | 2.00 ms       |
-| `scaling-125`                 | 43.6 µs       | 1.69 ms       |
-| `scaling-250`                 | 86.3 µs       | 1.77 ms       |
-| `scaling-500`                 | 171 µs        | 1.91 ms       |
-| `scaling-1000`                | 343 µs        | 2.12 ms       |
-| `alphabet-console`            | 1.18 µs       | 1.64 ms       |
-| `alphabet-block`              | 10.2 µs       | 1.65 ms       |
-| `alphabet-simpleblock`        | 6.33 µs       | 1.73 ms       |
-| `alphabet-simple`             | 5.20 µs       | 1.64 ms       |
-| `alphabet-3d`                 | 16.9 µs       | 1.66 ms       |
-| `alphabet-chrome`             | 3.94 µs       | 1.64 ms       |
-| `alphabet-huge`               | 20.2 µs       | 1.66 ms       |
-| `alphabet-shade`              | 10.2 µs       | 1.63 ms       |
-| `alphabet-slick`              | 8.69 µs       | 1.65 ms       |
-| `alphabet-grid`               | 7.26 µs       | 1.64 ms       |
-| `alphabet-pallet`             | 8.65 µs       | 1.65 ms       |
-| `alphabet-tiny`               | 2.87 µs       | 1.63 ms       |
+| `short-plain`                 | 4.58 µs       | 1.67 ms       |
+| `short-colors`                | 5.90 µs       | 1.71 ms       |
+| `short-gradient`              | 11.0 µs       | 1.70 ms       |
+| `short-transition`            | 10.2 µs       | 1.68 ms       |
+| `short-background`            | 4.67 µs       | 1.78 ms       |
+| `short-colors-background`     | 6.04 µs       | 1.66 ms       |
+| `short-gradient-background`   | 11.1 µs       | 1.68 ms       |
+| `short-transition-background` | 10.3 µs       | 1.68 ms       |
+| `long-plain`                  | 199 µs        | 2.03 ms       |
+| `long-colors`                 | 241 µs        | 2.05 ms       |
+| `long-gradient`               | 420 µs        | 2.43 ms       |
+| `long-transition`             | 417 µs        | 2.44 ms       |
+| `long-background`             | 197 µs        | 1.96 ms       |
+| `long-colors-background`      | 245 µs        | 2.05 ms       |
+| `long-gradient-background`    | 423 µs        | 2.42 ms       |
+| `long-transition-background`  | 430 µs        | 2.34 ms       |
+| `startup`                     | n/a           | 1.67 ms       |
+| `single-character`            | 862 ns        | 1.66 ms       |
+| `console-font`                | 608 ns        | 1.67 ms       |
+| `line-breaks`                 | 6.47 µs       | 1.77 ms       |
+| `long-center`                 | 196 µs        | 2.03 ms       |
+| `long-right`                  | 196 µs        | 1.96 ms       |
+| `long-spacing`                | 267 µs        | 2.64 ms       |
+| `long-independent-gradient`   | 483 µs        | 2.83 ms       |
+| `long-candy`                  | 252 µs        | 2.21 ms       |
+| `scaling-125`                 | 45.9 µs       | 1.97 ms       |
+| `scaling-250`                 | 88.2 µs       | 1.80 ms       |
+| `scaling-500`                 | 176 µs        | 2.27 ms       |
+| `scaling-1000`                | 360 µs        | 2.65 ms       |
+| `alphabet-console`            | 1.21 µs       | 1.93 ms       |
+| `alphabet-block`              | 10.7 µs       | 2.01 ms       |
+| `alphabet-simpleblock`        | 6.59 µs       | 1.72 ms       |
+| `alphabet-simple`             | 5.51 µs       | 2.00 ms       |
+| `alphabet-3d`                 | 17.6 µs       | 1.74 ms       |
+| `alphabet-chrome`             | 4.17 µs       | 1.83 ms       |
+| `alphabet-huge`               | 21.0 µs       | 1.82 ms       |
+| `alphabet-shade`              | 10.6 µs       | 1.71 ms       |
+| `alphabet-slick`              | 9.07 µs       | 1.82 ms       |
+| `alphabet-grid`               | 7.70 µs       | 2.03 ms       |
+| `alphabet-pallet`             | 9.16 µs       | 2.15 ms       |
+| `alphabet-tiny`               | 2.99 µs       | 1.71 ms       |
 
 <!-- perf:results:speed:end -->
 
 ### Allocations, one render
 
 <!-- perf:results:allocations:start -->
-Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
+Ran 2026-11-01 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
 
 | scenario                      | v4 api allocations | v4 api bytes | v4 cli allocations | v4 cli bytes |
 |-------------------------------|--------------------|--------------|--------------------|--------------|
-| `short-plain`                 | 43                 | 9,872 B      | 241                | 29,968 B     |
-| `short-colors`                | 45                 | 14,064 B     | 251                | 34,336 B     |
-| `short-gradient`              | 55                 | 39,371 B     | 260                | 59,627 B     |
-| `short-transition`            | 55                 | 39,374 B     | 264                | 59,684 B     |
-| `short-background`            | 43                 | 9,883 B      | 246                | 30,090 B     |
-| `short-colors-background`     | 45                 | 14,075 B     | 256                | 34,482 B     |
-| `short-gradient-background`   | 55                 | 39,382 B     | 265                | 59,773 B     |
-| `short-transition-background` | 55                 | 39,385 B     | 269                | 59,830 B     |
-| `long-plain`                  | 794                | 305,772 B    | 993                | 326,962 B    |
-| `long-colors`                 | 796                | 551,623 B    | 1,003              | 572,989 B    |
-| `long-gradient`               | 807                | 2,239,915 B  | 1,012              | 2,261,249 B  |
-| `long-transition`             | 807                | 2,239,918 B  | 1,016              | 2,261,306 B  |
-| `long-background`             | 795                | 404,091 B    | 998                | 425,376 B    |
-| `long-colors-background`      | 797                | 666,331 B    | 1,008              | 687,816 B    |
-| `long-gradient-background`    | 807                | 2,239,926 B  | 1,017              | 2,261,395 B  |
-| `long-transition-background`  | 807                | 2,239,929 B  | 1,021              | 2,261,452 B  |
-| `startup`                     | n/a                | n/a          | 190                | 19,937 B     |
-| `single-character`            | 22                 | 1,390 B      | 221                | 21,482 B     |
-| `console-font`                | 11                 | 1,828 B      | 209                | 21,928 B     |
-| `line-breaks`                 | 56                 | 10,992 B     | 254                | 31,100 B     |
-| `long-center`                 | 794                | 305,772 B    | 996                | 327,048 B    |
-| `long-right`                  | 794                | 305,772 B    | 996                | 327,046 B    |
-| `long-spacing`                | 964                | 368,796 B    | 1,167              | 390,160 B    |
-| `long-independent-gradient`   | 807                | 2,239,915 B  | 1,013              | 2,261,299 B  |
-| `long-candy`                  | 797                | 552,151 B    | 1,004              | 573,526 B    |
-| `scaling-125`                 | 192                | 76,412 B     | 391                | 96,752 B     |
-| `scaling-250`                 | 376                | 150,060 B    | 575                | 170,650 B    |
-| `scaling-500`                 | 716                | 297,612 B    | 915                | 318,702 B    |
-| `scaling-1000`                | 1,407              | 593,020 B    | 1,606              | 615,110 B    |
-| `alphabet-console`            | 13                 | 3,320 B      | 211                | 23,450 B     |
-| `alphabet-block`              | 72                 | 22,462 B     | 271                | 42,604 B     |
-| `alphabet-simpleblock`        | 62                 | 14,404 B     | 260                | 34,542 B     |
-| `alphabet-simple`             | 44                 | 9,544 B      | 242                | 29,672 B     |
-| `alphabet-3d`                 | 172                | 43,252 B     | 370                | 63,372 B     |
-| `alphabet-chrome`             | 31                 | 10,092 B     | 229                | 30,220 B     |
-| `alphabet-huge`               | 134                | 39,431 B     | 333                | 59,571 B     |
-| `alphabet-shade`              | 52                 | 17,848 B     | 250                | 37,974 B     |
-| `alphabet-slick`              | 58                 | 18,463 B     | 257                | 38,605 B     |
-| `alphabet-grid`               | 45                 | 18,688 B     | 243                | 38,812 B     |
-| `alphabet-pallet`             | 58                 | 18,463 B     | 257                | 38,607 B     |
-| `alphabet-tiny`               | 26                 | 8,400 B      | 224                | 28,524 B     |
+| `short-plain`                 | 43                 | 9,872 B      | 241                | 29,920 B     |
+| `short-colors`                | 45                 | 14,064 B     | 251                | 34,288 B     |
+| `short-gradient`              | 55                 | 39,372 B     | 260                | 59,580 B     |
+| `short-transition`            | 55                 | 39,375 B     | 264                | 59,637 B     |
+| `short-background`            | 43                 | 9,883 B      | 246                | 30,042 B     |
+| `short-colors-background`     | 45                 | 14,075 B     | 256                | 34,434 B     |
+| `short-gradient-background`   | 55                 | 39,383 B     | 265                | 59,726 B     |
+| `short-transition-background` | 55                 | 39,386 B     | 269                | 59,783 B     |
+| `long-plain`                  | 794                | 305,772 B    | 993                | 326,914 B    |
+| `long-colors`                 | 796                | 551,623 B    | 1,003              | 572,941 B    |
+| `long-gradient`               | 807                | 2,239,916 B  | 1,012              | 2,261,202 B  |
+| `long-transition`             | 807                | 2,239,919 B  | 1,016              | 2,261,259 B  |
+| `long-background`             | 795                | 404,091 B    | 998                | 425,328 B    |
+| `long-colors-background`      | 797                | 666,331 B    | 1,008              | 687,768 B    |
+| `long-gradient-background`    | 807                | 2,239,927 B  | 1,017              | 2,261,348 B  |
+| `long-transition-background`  | 807                | 2,239,930 B  | 1,021              | 2,261,405 B  |
+| `startup`                     | n/a                | n/a          | 190                | 19,913 B     |
+| `single-character`            | 22                 | 1,390 B      | 221                | 21,434 B     |
+| `console-font`                | 11                 | 1,828 B      | 209                | 21,880 B     |
+| `line-breaks`                 | 56                 | 10,992 B     | 254                | 31,052 B     |
+| `long-center`                 | 794                | 305,772 B    | 996                | 327,000 B    |
+| `long-right`                  | 794                | 305,772 B    | 996                | 326,998 B    |
+| `long-spacing`                | 964                | 368,796 B    | 1,167              | 390,112 B    |
+| `long-independent-gradient`   | 807                | 2,239,916 B  | 1,013              | 2,261,252 B  |
+| `long-candy`                  | 797                | 552,151 B    | 1,004              | 573,478 B    |
+| `scaling-125`                 | 192                | 76,412 B     | 391                | 96,704 B     |
+| `scaling-250`                 | 376                | 150,060 B    | 575                | 170,602 B    |
+| `scaling-500`                 | 716                | 297,612 B    | 915                | 318,654 B    |
+| `scaling-1000`                | 1,407              | 593,020 B    | 1,606              | 615,062 B    |
+| `alphabet-console`            | 13                 | 3,320 B      | 211                | 23,402 B     |
+| `alphabet-block`              | 72                 | 22,462 B     | 271                | 42,556 B     |
+| `alphabet-simpleblock`        | 62                 | 14,404 B     | 260                | 34,494 B     |
+| `alphabet-simple`             | 44                 | 9,544 B      | 242                | 29,624 B     |
+| `alphabet-3d`                 | 172                | 43,252 B     | 370                | 63,324 B     |
+| `alphabet-chrome`             | 31                 | 10,092 B     | 229                | 30,172 B     |
+| `alphabet-huge`               | 134                | 39,431 B     | 333                | 59,523 B     |
+| `alphabet-shade`              | 52                 | 17,848 B     | 250                | 37,926 B     |
+| `alphabet-slick`              | 58                 | 18,463 B     | 257                | 38,557 B     |
+| `alphabet-grid`               | 45                 | 18,688 B     | 243                | 38,764 B     |
+| `alphabet-pallet`             | 58                 | 18,463 B     | 257                | 38,559 B     |
+| `alphabet-tiny`               | 26                 | 8,400 B      | 224                | 28,476 B     |
 
 <!-- perf:results:allocations:end -->
 
 ### Memory, peak per render
 
 <!-- perf:results:memory:start -->
-Ran 2026-10-25 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
+Ran 2026-11-01 on macos aarch64, Apple M1 Max, rustc 1.99.1 (58cf8f9c3 2026-10-13)
 
 | scenario                      | v4 api peak heap | v4 cli peak heap | v4 cli peak RSS |
 |-------------------------------|------------------|------------------|-----------------|
-| `short-plain`                 | 4,760 B          | 24,096 B         | 1,671,168 B     |
-| `short-colors`                | 6,904 B          | 26,320 B         | 1,671,168 B     |
-| `short-gradient`              | 19,551 B         | 38,976 B         | 1,720,320 B     |
-| `short-transition`            | 19,554 B         | 38,992 B         | 1,720,320 B     |
-| `short-background`            | 4,779 B          | 24,192 B         | 1,671,168 B     |
-| `short-colors-background`     | 6,923 B          | 26,448 B         | 1,671,168 B     |
-| `short-gradient-background`   | 19,570 B         | 39,104 B         | 1,703,936 B     |
-| `short-transition-background` | 19,573 B         | 39,120 B         | 1,720,320 B     |
-| `long-plain`                  | 191,352 B        | 217,568 B        | 2,015,232 B     |
-| `long-colors`                 | 314,328 B        | 348,816 B        | 2,129,920 B     |
-| `long-gradient`               | 1,158,463 B      | 1,184,768 B      | 2,605,056 B     |
-| `long-transition`             | 1,158,466 B      | 1,184,784 B      | 2,588,672 B     |
-| `long-background`             | 240,523 B        | 266,816 B        | 2,048,000 B     |
-| `long-colors-background`      | 371,691 B        | 398,096 B        | 2,113,536 B     |
-| `long-gradient-background`    | 1,158,482 B      | 1,184,896 B      | 2,605,056 B     |
-| `long-transition-background`  | 1,158,485 B      | 1,184,912 B      | 2,605,056 B     |
+| `short-plain`                 | 4,760 B          | 24,080 B         | 1,671,168 B     |
+| `short-colors`                | 6,904 B          | 26,304 B         | 1,687,552 B     |
+| `short-gradient`              | 19,552 B         | 38,960 B         | 1,736,704 B     |
+| `short-transition`            | 19,555 B         | 38,976 B         | 1,720,320 B     |
+| `short-background`            | 4,779 B          | 24,176 B         | 1,687,552 B     |
+| `short-colors-background`     | 6,923 B          | 26,432 B         | 1,687,552 B     |
+| `short-gradient-background`   | 19,571 B         | 39,088 B         | 1,736,704 B     |
+| `short-transition-background` | 19,574 B         | 39,104 B         | 1,736,704 B     |
+| `long-plain`                  | 191,352 B        | 217,552 B        | 2,031,616 B     |
+| `long-colors`                 | 314,328 B        | 348,800 B        | 2,113,536 B     |
+| `long-gradient`               | 1,158,464 B      | 1,184,752 B      | 2,539,520 B     |
+| `long-transition`             | 1,158,467 B      | 1,184,768 B      | 2,523,136 B     |
+| `long-background`             | 240,523 B        | 266,800 B        | 2,097,152 B     |
+| `long-colors-background`      | 371,691 B        | 398,080 B        | 2,146,304 B     |
+| `long-gradient-background`    | 1,158,483 B      | 1,184,880 B      | 2,539,520 B     |
+| `long-transition-background`  | 1,158,486 B      | 1,184,896 B      | 2,539,520 B     |
 | `startup`                     | n/a              | 19,120 B         | 1,572,864 B     |
-| `single-character`            | 1,080 B          | 20,352 B         | 1,671,168 B     |
-| `console-font`                | 1,292 B          | 20,496 B         | 1,687,552 B     |
-| `line-breaks`                 | 6,264 B          | 25,888 B         | 1,671,168 B     |
-| `long-center`                 | 191,352 B        | 217,632 B        | 1,998,848 B     |
-| `long-right`                  | 191,352 B        | 217,632 B        | 2,015,232 B     |
-| `long-spacing`                | 222,888 B        | 257,184 B        | 2,113,536 B     |
-| `long-independent-gradient`   | 1,158,463 B      | 1,184,816 B      | 2,605,056 B     |
-| `long-candy`                  | 314,856 B        | 349,456 B        | 2,097,152 B     |
-| `scaling-125`                 | 46,344 B         | 67,552 B         | 1,785,856 B     |
-| `scaling-250`                 | 91,960 B         | 122,848 B        | 1,884,160 B     |
-| `scaling-500`                 | 183,576 B        | 209,248 B        | 1,998,848 B     |
-| `scaling-1000`                | 367,048 B        | 406,912 B        | 2,228,224 B     |
-| `alphabet-console`            | 2,112 B          | 21,392 B         | 1,687,552 B     |
-| `alphabet-block`              | 12,168 B         | 32,288 B         | 1,703,936 B     |
-| `alphabet-simpleblock`        | 8,396 B          | 28,064 B         | 1,687,552 B     |
-| `alphabet-simple`             | 5,392 B          | 24,960 B         | 1,687,552 B     |
-| `alphabet-3d`                 | 24,828 B         | 44,896 B         | 1,769,472 B     |
-| `alphabet-chrome`             | 5,300 B          | 24,640 B         | 1,687,552 B     |
-| `alphabet-huge`               | 23,268 B         | 44,272 B         | 1,736,704 B     |
-| `alphabet-shade`              | 10,560 B         | 30,016 B         | 1,703,936 B     |
-| `alphabet-slick`              | 10,152 B         | 30,592 B         | 1,703,936 B     |
-| `alphabet-grid`               | 8,968 B          | 28,672 B         | 1,654,784 B     |
-| `alphabet-pallet`             | 10,152 B         | 30,592 B         | 1,687,552 B     |
-| `alphabet-tiny`               | 4,632 B          | 23,936 B         | 1,671,168 B     |
+| `single-character`            | 1,080 B          | 20,336 B         | 1,671,168 B     |
+| `console-font`                | 1,292 B          | 20,480 B         | 1,671,168 B     |
+| `line-breaks`                 | 6,264 B          | 25,872 B         | 1,671,168 B     |
+| `long-center`                 | 191,352 B        | 217,616 B        | 2,031,616 B     |
+| `long-right`                  | 191,352 B        | 217,616 B        | 2,015,232 B     |
+| `long-spacing`                | 222,888 B        | 257,168 B        | 2,113,536 B     |
+| `long-independent-gradient`   | 1,158,464 B      | 1,184,800 B      | 2,539,520 B     |
+| `long-candy`                  | 314,856 B        | 349,440 B        | 2,129,920 B     |
+| `scaling-125`                 | 46,344 B         | 67,536 B         | 1,802,240 B     |
+| `scaling-250`                 | 91,960 B         | 122,832 B        | 1,900,544 B     |
+| `scaling-500`                 | 183,576 B        | 209,232 B        | 1,998,848 B     |
+| `scaling-1000`                | 367,048 B        | 406,896 B        | 2,195,456 B     |
+| `alphabet-console`            | 2,112 B          | 21,376 B         | 1,671,168 B     |
+| `alphabet-block`              | 12,168 B         | 32,272 B         | 1,720,320 B     |
+| `alphabet-simpleblock`        | 8,396 B          | 28,048 B         | 1,687,552 B     |
+| `alphabet-simple`             | 5,392 B          | 24,944 B         | 1,671,168 B     |
+| `alphabet-3d`                 | 24,828 B         | 44,880 B         | 1,785,856 B     |
+| `alphabet-chrome`             | 5,300 B          | 24,624 B         | 1,671,168 B     |
+| `alphabet-huge`               | 23,268 B         | 44,256 B         | 1,753,088 B     |
+| `alphabet-shade`              | 10,560 B         | 30,000 B         | 1,687,552 B     |
+| `alphabet-slick`              | 10,152 B         | 30,576 B         | 1,736,704 B     |
+| `alphabet-grid`               | 8,968 B          | 28,656 B         | 1,654,784 B     |
+| `alphabet-pallet`             | 10,152 B         | 30,576 B         | 1,720,320 B     |
+| `alphabet-tiny`               | 4,632 B          | 23,920 B         | 1,671,168 B     |
 
 <!-- perf:results:memory:end -->
 
