@@ -65,8 +65,12 @@ fn help_prints_usage_on_stdout() {
 
 	assert_eq!(output.status.code(), Some(0));
 	let help = text(&output.stdout);
-	assert!(help.contains("Usage: cfonts <text> [options]"));
-	assert!(help.contains("or: <command> | cfonts [options]"));
+	assert!(help.contains("cfonts — Sexy fonts for the console"));
+	assert!(help.contains("DESCRIPTION"));
+	assert!(help.contains("SYNOPSIS"));
+	assert!(help.contains("OPTIONS"));
+	assert!(help.contains("ENVIRONMENT"));
+	assert!(help.contains("EXAMPLES"));
 	assert!(output.stderr.is_empty());
 }
 

@@ -4,13 +4,16 @@
 
 use crate::color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Value};
 
+/// One level of indentation in the CLI help
+pub(crate) const HELP_INDENT: &str = "  ";
+
 /// The shell prompt every example line starts with, styled and plain
-pub(crate) const PROMPT_COLORED: &str = "  \x1B[1m$\x1B[0m";
-pub(crate) const PROMPT_PLAIN: &str = "  $";
+pub(crate) const PROMPT_COLORED: &str = const_concat!(HELP_INDENT, "\x1B[1m$\x1B[0m");
+pub(crate) const PROMPT_PLAIN: &str = const_concat!(HELP_INDENT, "$");
 
 /// The line break and indent every continued line of the help starts with, and the deeper one its values start with
-pub(crate) const LINE_LEAD: &str = "\n  ";
-pub(crate) const VALUE_LEAD: &str = "\n    ";
+pub(crate) const LINE_LEAD: &str = const_concat!("\n", HELP_INDENT);
+pub(crate) const VALUE_LEAD: &str = const_concat!(LINE_LEAD, HELP_INDENT);
 
 /// The colors every backticked input of the help renders in, and the codes that end them
 ///
@@ -138,32 +141,50 @@ macro_rules! const_chunk {
 
 pub(crate) use const_chunk;
 
-/// How many pieces a marked text has: the spans between its backticks and a code beside every backtick
+/// ASCII characters that may surround a literal underscore in a name
+const fn is_identifier_byte(byte: u8) -> bool {
+	byte.is_ascii_alphanumeric() || byte == b'_'
+}
+
+/// An underscore inside an ASCII name is text, not an underline marker
+const fn is_mark(marker: u8, bytes: &[u8], index: usize) -> bool {
+	bytes[index] == marker
+		&& !(marker == b'_'
+			&& index > 0
+			&& index + 1 < bytes.len()
+			&& is_identifier_byte(bytes[index - 1])
+			&& is_identifier_byte(bytes[index + 1]))
+}
+
+/// How many pieces a marked text has: the spans between its markers and a code beside every marker
 ///
-/// Backticks come in pairs, an unclosed one stops the build
-pub(crate) const fn mark_count(text: &str) -> usize {
+/// Markers are ASCII and come in pairs; an unclosed one stops the build
+pub(crate) const fn mark_count(marker: u8, text: &str) -> usize {
+	assert!(marker.is_ascii(), "a help marker must be ASCII");
 	let bytes = text.as_bytes();
-	let mut backticks = 0;
+	let mut markers = 0;
 	let mut index = 0;
 
 	while index < bytes.len() {
-		if bytes[index] == b'`' {
-			backticks += 1;
+		if is_mark(marker, bytes, index) {
+			markers += 1;
 		}
 		index += 1;
 	}
 
-	assert!(backticks % 2 == 0, "an unclosed backtick in the help text");
+	assert!(markers % 2 == 0, "an unclosed help marker");
 
-	2 * backticks + 1
+	2 * markers + 1
 }
 
-/// The pieces of a marked text: every span between backticks, `open` before and `close` after each marked span
+/// The pieces of a marked text: every span between markers, `open` before and `close` after each marked span
 pub(crate) const fn mark_pieces<'a, const COUNT: usize>(
+	marker: u8,
 	text: &'a str,
 	open: &'a str,
 	close: &'a str,
 ) -> [&'a str; COUNT] {
+	assert!(marker.is_ascii(), "a help marker must be ASCII");
 	let bytes = text.as_bytes();
 	let mut pieces = [""; COUNT];
 	let mut piece = 0;
@@ -172,7 +193,7 @@ pub(crate) const fn mark_pieces<'a, const COUNT: usize>(
 	let mut index = 0;
 
 	while index < bytes.len() {
-		if bytes[index] == b'`' {
+		if is_mark(marker, bytes, index) {
 			pieces[piece] = text.split_at(index).0.split_at(start).1;
 			pieces[piece + 1] = if marked { close } else { open };
 			piece += 2;
@@ -186,12 +207,28 @@ pub(crate) const fn mark_pieces<'a, const COUNT: usize>(
 	pieces
 }
 
-/// Renders the backticked spans of a text between `open` and `close` into one `&'static str` at compile time
+/// Renders paired ASCII markers into one string at compile time; the three-argument form uses backticks
 macro_rules! const_mark {
-	($text:expr, $open:expr, $close:expr) => {{
-		const COUNT: usize = crate::cli::helper::mark_count($text);
-		const PIECES: [&str; COUNT] = crate::cli::helper::mark_pieces($text, $open, $close);
+	($text:expr, $open:expr, $close:expr) => {
+		crate::cli::helper::const_mark!(b'`', $text, $open, $close)
+	};
+	($marker:expr, $text:expr, $open:expr, $close:expr) => {{
+		const COUNT: usize = crate::cli::helper::mark_count($marker, $text);
+		const PIECES: [&str; COUNT] = crate::cli::helper::mark_pieces($marker, $text, $open, $close);
 		crate::cli::helper::const_join!(&PIECES, "")
+	}};
+	// Formats *bold*, _underline_ and backticked inputs; no escaping
+	($text:expr, $styled:literal) => {{
+		const BOLD_OPEN: &str = if $styled { "\x1B[1m" } else { "" };
+		const BOLD_CLOSE: &str = if $styled { "\x1B[22m" } else { "" };
+		const UNDERLINE_OPEN: &str = if $styled { "\x1B[4m" } else { "" };
+		const UNDERLINE_CLOSE: &str = if $styled { "\x1B[24m" } else { "" };
+		const OPEN: &str = if $styled { crate::cli::helper::MARK_OPEN } else { "" };
+		const CLOSE: &str = if $styled { crate::cli::helper::MARK_CLOSE } else { "" };
+		// Read underscore boundaries before other passes insert ANSI bytes
+		const UNDERLINE: &str = crate::cli::helper::const_mark!(b'_', $text, UNDERLINE_OPEN, UNDERLINE_CLOSE);
+		const BOLD: &str = crate::cli::helper::const_mark!(b'*', UNDERLINE, BOLD_OPEN, BOLD_CLOSE);
+		crate::cli::helper::const_mark!(BOLD, OPEN, CLOSE)
 	}};
 }
 
@@ -437,39 +474,85 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic(expected = "an unclosed backtick")]
+	#[should_panic(expected = "an unclosed help marker")]
 	fn mark_count_refuses_an_unclosed_backtick() {
-		mark_count(black_box("a `b"));
+		mark_count(b'`', black_box("a `b"));
+		mark_count(b'`', black_box("a *b"));
+		mark_count(b'`', black_box("a _b"));
 	}
 
 	#[test]
 	fn mark_count_is_two_pieces_per_backtick_plus_one() {
-		assert_eq!(mark_count(black_box("é\0🦀")), 1);
-		assert_eq!(mark_count(black_box("a `b` c")), 5);
-		assert_eq!(mark_count(black_box("``")), 5);
-		assert_eq!(mark_count(black_box("`a` and `b`")), 9);
+		assert_eq!(mark_count(b'`', black_box("é\0🦀")), 1);
+		assert_eq!(mark_count(b'`', black_box("a `b` c")), 5);
+		assert_eq!(mark_count(b'`', black_box("``")), 5);
+		assert_eq!(mark_count(b'`', black_box("`a` and `b`")), 9);
 	}
 
 	#[test]
 	fn mark_pieces_alternate_spans_and_codes() {
-		let pieces: [&str; 9] = mark_pieces(black_box("é `🦀` and `\0` end"), black_box("<"), black_box(">"));
+		let pieces: [&str; 9] = mark_pieces(b'`', black_box("é `🦀` and `\0` end"), black_box("<"), black_box(">"));
 
 		assert_eq!(pieces, ["é ", "<", "🦀", ">", " and ", "<", "\0", ">", " end"]);
 	}
 
 	#[test]
 	fn mark_pieces_of_a_text_without_backticks_are_the_text() {
-		let pieces: [&str; 1] = mark_pieces(black_box("é\0🦀"), black_box("<"), black_box(">"));
+		let pieces: [&str; 1] = mark_pieces(b'`', black_box("é\0🦀"), black_box("<"), black_box(">"));
 
 		assert_eq!(pieces, ["é\0🦀"]);
 	}
 
 	#[test]
 	fn mark_pieces_keep_empty_spans_at_the_edges_and_between_adjacent_backticks() {
-		let edges: [&str; 5] = mark_pieces(black_box("`a`"), black_box("<"), black_box(">"));
-		let adjacent: [&str; 5] = mark_pieces(black_box("x``"), black_box("<"), black_box(">"));
+		let edges: [&str; 5] = mark_pieces(b'`', black_box("`a`"), black_box("<"), black_box(">"));
+		let adjacent: [&str; 5] = mark_pieces(b'`', black_box("x``"), black_box("<"), black_box(">"));
 
 		assert_eq!(edges, ["", "<", "a", ">", ""]);
 		assert_eq!(adjacent, ["x", "<", "", ">", ""]);
+	}
+
+	#[test]
+	fn const_mark_plain_removes_all_three_markers_without_ansi() {
+		const TEXT: &str = const_mark!("*é _🦀 `x`_*\0", false);
+
+		assert_eq!(TEXT, "é 🦀 x\0");
+		assert!(!TEXT.contains('\x1B'));
+	}
+
+	#[test]
+	fn const_mark_nested_styles_end_only_their_own_attributes() {
+		const TEXT: &str = const_mark!("*é _🦀 `x`_*\0", true);
+
+		assert_eq!(TEXT, "\x1B[1mé \x1B[4m🦀 \x1B[32m\x1B[40mx\x1B[39m\x1B[49m\x1B[24m\x1B[22m\0");
+	}
+
+	#[test]
+	fn new_markers_must_close_and_every_marker_must_be_ascii() {
+		for (marker, text) in [(b'*', "before *after"), (b'_', "before _after")] {
+			assert!(std::panic::catch_unwind(|| mark_count(marker, black_box(text))).is_err());
+		}
+		assert!(std::panic::catch_unwind(|| mark_count(0xA9, black_box("é"))).is_err());
+		assert!(std::panic::catch_unwind(|| mark_pieces::<1>(0xA9, black_box("é"), "", "")).is_err());
+	}
+
+	#[test]
+	fn environment_names_keep_their_underscores() {
+		const INPUT: &str = "*FORCE_COLOR* `NO_COLOR` A__B";
+		const PLAIN: &str = const_mark!(INPUT, false);
+		const STYLED: &str = const_mark!(INPUT, true);
+
+		assert_eq!(PLAIN, "FORCE_COLOR NO_COLOR A__B");
+		assert_eq!(STYLED, "\x1B[1mFORCE_COLOR\x1B[22m \x1B[32m\x1B[40mNO_COLOR\x1B[39m\x1B[49m A__B");
+	}
+
+	#[test]
+	fn underline_still_wraps_names_and_nests_with_bold() {
+		const INPUT: &str = "*_text_* _FORCE_COLOR_";
+		const PLAIN: &str = const_mark!(INPUT, false);
+		const STYLED: &str = const_mark!(INPUT, true);
+
+		assert_eq!(PLAIN, "text FORCE_COLOR");
+		assert_eq!(STYLED, "\x1B[1m\x1B[4mtext\x1B[24m\x1B[22m \x1B[4mFORCE_COLOR\x1B[24m");
 	}
 }

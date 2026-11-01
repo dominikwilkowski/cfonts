@@ -5,8 +5,8 @@ use crate::{
 	cli::{
 		CliBlockOptions, ParseError, ParseState,
 		helper::{
-			LINE_LEAD, MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, VALUE_LEAD, const_chunk, const_concat,
-			const_join, const_mark,
+			HELP_INDENT, LINE_LEAD, MARK_CLOSE, MARK_OPEN, PROMPT_COLORED, PROMPT_PLAIN, VALUE_LEAD, const_chunk,
+			const_concat, const_join, const_mark,
 		},
 	},
 	color::ColorShape,
@@ -46,13 +46,17 @@ macro_rules! help_line {
 		const PROMPT: &str = if $colored { PROMPT_COLORED } else { PROMPT_PLAIN };
 		const OPEN: &str = if $colored { MARK_OPEN } else { "" };
 		const CLOSE: &str = if $colored { MARK_CLOSE } else { "" };
+
 		const SHORT_LEAD: &str = match INFO.short.len() {
 			0 => "",
 			_ => "`, `-",
 		};
 		const SHORT: &str = const_join!(INFO.short, "`, `-");
-		const EXAMPLE_LEAD: &str = const_concat!("\n", PROMPT, " ");
-		const EXAMPLES: &str = const_join!(INFO.examples, EXAMPLE_LEAD);
+
+		const EXAMPLE_LEAD: &str = const_concat!(LINE_LEAD, "Examples:");
+		const EXAMPLE_PROMPT: &str = const_concat!(LINE_LEAD, PROMPT, " ");
+		const EXAMPLES: &str = const_join!(INFO.examples, EXAMPLE_PROMPT);
+
 		const SCOPE_LEAD: &str = match INFO.scope.len() {
 			0 => "",
 			_ => LINE_LEAD,
@@ -62,11 +66,13 @@ macro_rules! help_line {
 			0 => "",
 			_ => RESET,
 		};
+
 		const DESCRIPTION_LEAD: &str = match INFO.description.len() {
 			0 => "",
 			_ => LINE_LEAD,
 		};
 		const DESCRIPTION: &str = const_join!(INFO.description, LINE_LEAD);
+
 		const ARGUMENTS_OPEN: &str = match INFO.arguments {
 			Some(_) => const_concat!(LINE_LEAD, "Possible arguments:", VALUE_LEAD),
 			None => "",
@@ -75,8 +81,9 @@ macro_rules! help_line {
 			Some(arguments) => arguments,
 			None => "",
 		};
+
 		const LINE: &str = const_concat!(
-			"  ",
+			HELP_INDENT,
 			BOLD,
 			INFO.title,
 			RESET,
@@ -92,10 +99,11 @@ macro_rules! help_line {
 			SCOPE_RESET,
 			DESCRIPTION_LEAD,
 			DESCRIPTION,
-			EXAMPLE_LEAD,
-			EXAMPLES,
 			ARGUMENTS_OPEN,
 			ARGUMENTS,
+			EXAMPLE_LEAD,
+			EXAMPLE_PROMPT,
+			EXAMPLES,
 		);
 		const_mark!(LINE, OPEN, CLOSE)
 	}};
@@ -645,11 +653,12 @@ mod tests {
 			if !info.description.is_empty() {
 				expected.push_str(&format!("{LINE_LEAD}{}", marked(&info.description.join(LINE_LEAD), open, close)));
 			}
-			for example in info.examples {
-				expected.push_str(&format!("\n{PROMPT_COLORED} {example}"));
-			}
 			if let Some(arguments) = info.arguments {
 				expected.push_str(&format!("{LINE_LEAD}Possible arguments:{VALUE_LEAD}{}", marked(arguments, open, close)));
+			}
+			expected.push_str(&format!("{LINE_LEAD}Examples:"));
+			for example in info.examples {
+				expected.push_str(&format!("{LINE_LEAD}{PROMPT_COLORED} {example}"));
 			}
 
 			assert_eq!(argument.help_colored(), expected, "{argument:?}");
