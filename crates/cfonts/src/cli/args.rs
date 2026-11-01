@@ -10,7 +10,6 @@ use crate::{
 		},
 	},
 	color::ColorShape,
-	layout::Layout,
 };
 use cfonts_macros::All;
 
@@ -141,6 +140,10 @@ pub enum Args {
 }
 
 impl Args {
+	/// The largest count an option takes, v3's bound: more letter spaces, empty rows or characters per line
+	/// than any terminal shows, and a line height far past it fills memory with empty rows
+	pub(crate) const MAX_COUNT: usize = u16::MAX as usize;
+
 	pub(crate) fn parse(input: &str) -> Option<Self> {
 		#[deny(unreachable_patterns)]
 		match input {
@@ -200,7 +203,7 @@ impl Args {
 			Self::MaxLength => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
 				// zero means unlimited
-				state.options.max_length = NonZeroUsize::new(self.parse_count(value, usize::MAX)?);
+				state.options.max_length = NonZeroUsize::new(self.parse_count(value)?);
 			}
 			Self::Stdin => {
 				// The options that are passed in keep the promise that there is always at least one block present
@@ -241,11 +244,11 @@ impl Args {
 			}
 			Self::LetterSpacing => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.current_block_mut().block.letter_spacing = Some(self.parse_count(value, Layout::MAX_LETTER_SPACING)?);
+				state.current_block_mut().block.letter_spacing = Some(self.parse_count(value)?);
 			}
 			Self::LineHeight => {
 				let value = value.ok_or(ParseError::MissingValue(self))?;
-				state.current_block_mut().block.line_height = Some(self.parse_count(value, usize::MAX)?);
+				state.current_block_mut().block.line_height = Some(self.parse_count(value)?);
 			}
 
 			// Boolean flags
@@ -266,13 +269,14 @@ impl Args {
 		from_name(value).ok_or(ParseError::InvalidValue { argument: self, value, source: None })
 	}
 
-	/// Parses one count up to `limit`, a larger one is reported as too large, anything else as invalid
-	fn parse_count<'a>(self, value: &'a str, limit: usize) -> Result<usize, ParseError<'a>> {
+	/// Parses one count up to [`MAX_COUNT`](Self::MAX_COUNT), a larger one is reported as too large,
+	/// anything else as invalid
+	fn parse_count<'a>(self, value: &'a str) -> Result<usize, ParseError<'a>> {
 		match value.parse::<usize>() {
-			Ok(count) if count <= limit => Ok(count),
-			Ok(_) => Err(ParseError::ValueTooLarge { argument: self, value, limit }),
+			Ok(count) if count <= Self::MAX_COUNT => Ok(count),
+			Ok(_) => Err(ParseError::ValueTooLarge { argument: self, value, limit: Self::MAX_COUNT }),
 			Err(error) if *error.kind() == IntErrorKind::PosOverflow => {
-				Err(ParseError::ValueTooLarge { argument: self, value, limit })
+				Err(ParseError::ValueTooLarge { argument: self, value, limit: Self::MAX_COUNT })
 			}
 			Err(_) => Err(ParseError::InvalidValue { argument: self, value, source: None }),
 		}
@@ -714,28 +718,24 @@ mod tests {
 	// Args::parse_count
 
 	#[test]
-	fn counts_parse_up_to_their_limit_and_name_what_went_wrong() {
-		assert_eq!(Args::LineHeight.parse_count("0", usize::MAX), Ok(0));
-		assert_eq!(Args::LetterSpacing.parse_count("4294967295", Layout::MAX_LETTER_SPACING), Ok(4_294_967_295));
+	fn counts_parse_up_to_the_bound_and_name_what_went_wrong() {
+		assert_eq!(Args::LineHeight.parse_count("0"), Ok(0));
+		assert_eq!(Args::LetterSpacing.parse_count("65535"), Ok(65_535));
 
-		// past the limit of the option, and past what the number type holds, read the same to the user
+		// past the bound, and past what the number type holds, read the same to the user
 		assert_eq!(
-			Args::LetterSpacing.parse_count("4294967296", Layout::MAX_LETTER_SPACING),
-			Err(ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "4294967296", limit: 4_294_967_295 })
+			Args::LetterSpacing.parse_count("65536"),
+			Err(ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "65536", limit: 65_535 })
 		);
 		assert_eq!(
-			Args::LetterSpacing.parse_count("99999999999999999999", Layout::MAX_LETTER_SPACING),
-			Err(ParseError::ValueTooLarge {
-				argument: Args::LetterSpacing,
-				value: "99999999999999999999",
-				limit: 4_294_967_295
-			})
+			Args::LineHeight.parse_count("99999999999999999999"),
+			Err(ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999", limit: 65_535 })
 		);
 
 		// anything that is no count at all stays an invalid value
 		for value in ["-1", "2.5", "abc", ""] {
 			assert_eq!(
-				Args::LineHeight.parse_count(value, usize::MAX),
+				Args::LineHeight.parse_count(value),
 				Err(ParseError::InvalidValue { argument: Args::LineHeight, value, source: None }),
 				"{value:?}"
 			);

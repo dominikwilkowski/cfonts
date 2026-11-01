@@ -248,7 +248,7 @@ pub(crate) struct Layout<'a> {
 
 impl<'a> Layout<'a> {
 	/// The widest letter spacing the layout lays out, a glyph repeats as a `u32`,
-	/// the command line refuses more and the Rust API is clamped to it
+	/// the Rust API is clamped to it and the command line stops far below, at `Args::MAX_COUNT`
 	pub(crate) const MAX_LETTER_SPACING: usize = u32::MAX as usize;
 
 	/// Creates a new layout with the given options

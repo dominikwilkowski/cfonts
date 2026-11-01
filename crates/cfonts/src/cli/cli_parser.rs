@@ -131,19 +131,19 @@ pub enum ParseError<'a> {
 	/// ```
 	InvalidValue { argument: Args, value: &'a str, source: Option<ColorError> },
 
-	/// A flag's number is past what cfonts can take, carries the value as typed and the limit it passed
+	/// A flag's number is past what the command line takes, carries the value as typed and the bound it passed
 	///
 	/// ```
 	/// # use cfonts::cli::{Args, ParseError, StdinProvider, parse_args};
 	/// # let terminal = StdinProvider { interactive: true, read: || panic!("this example never reads stdin") };
-	/// let args = ["hello", "--letter-spacing", "4294967296"].map(String::from);
+	/// let args = ["hello", "--letter-spacing", "65536"].map(String::from);
 	/// let failure = parse_args(&args, terminal).unwrap_err();
 	/// assert_eq!(
 	///     failure.error,
 	///     ParseError::ValueTooLarge {
 	///         argument: Args::LetterSpacing,
-	///         value: "4294967296",
-	///         limit: 4_294_967_295,
+	///         value: "65536",
+	///         limit: 65_535,
 	///     }
 	/// );
 	/// ```
@@ -1177,22 +1177,28 @@ mod argument_parsing {
 	}
 
 	#[test]
-	fn number_flags_refuse_values_past_their_limit() {
-		// the layout repeats the letter space with a u32, so the flag ends where that ends
-		let widest = args(&["my text", "-l", "4294967295"]);
-		assert_eq!(parse_args(&widest, tty()).unwrap().options.blocks[0].letter_spacing, Some(4_294_967_295));
+	fn number_flags_refuse_values_past_the_bound() {
+		// every count stops at v3's bound, the widest value a render shows
+		let widest = args(&["my text", "-l", "65535", "-z", "65535", "-m", "65535"]);
+		let parsed = parse_args(&widest, tty()).unwrap();
+		assert_eq!(parsed.options.blocks[0].letter_spacing, Some(65_535));
+		assert_eq!(parsed.options.blocks[0].line_height, Some(65_535));
+		assert_eq!(parsed.options.max_length.map(|length| length.get()), Some(65_535));
 
-		let too_wide = args(&["my text", "-l", "4294967296"]);
-		assert_eq!(
-			parse_args(&too_wide, tty()).unwrap_err().error,
-			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "4294967296", limit: 4_294_967_295 }
-		);
+		for (flag, argument) in [("-l", Args::LetterSpacing), ("-z", Args::LineHeight), ("-m", Args::MaxLength)] {
+			let past_bound = args(&["my text", flag, "65536"]);
+			assert_eq!(
+				parse_args(&past_bound, tty()).unwrap_err().error,
+				ParseError::ValueTooLarge { argument, value: "65536", limit: 65_535 },
+				"{flag}"
+			);
+		}
 
-		// the other counts end where usize ends
+		// past what the number type holds reads the same
 		let past_usize = args(&["my text", "-z", "99999999999999999999"]);
 		assert_eq!(
 			parse_args(&past_usize, tty()).unwrap_err().error,
-			ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999", limit: usize::MAX }
+			ParseError::ValueTooLarge { argument: Args::LineHeight, value: "99999999999999999999", limit: 65_535 }
 		);
 	}
 
@@ -1893,7 +1899,7 @@ mod error_messages {
 			ParseError::MissingValue(Args::Font),
 			ParseError::InvalidValue { argument: Args::Color, value: "nope", source: None },
 			ParseError::InvalidValue { argument: Args::Color, value: "#zz", source: Some(ColorError::HexCharacter) },
-			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "4294967296", limit: 4_294_967_295 },
+			ParseError::ValueTooLarge { argument: Args::LetterSpacing, value: "65536", limit: 65_535 },
 			ParseError::MidClusterArgumentRequired(Args::Font),
 			ParseError::EmptyColorSegment { argument: Args::Color, value: "red-" },
 			ParseError::MixedColorDelimiters { argument: Args::Color, value: "red,blue-green" },
