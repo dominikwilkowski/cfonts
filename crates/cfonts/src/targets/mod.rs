@@ -121,8 +121,12 @@ impl<'a> RowEvent<'a> {
 							event(Self::EntryEnd { width: usize::from(*width), block_index });
 						}
 					}
-					RowEntry::Blank { width, block_index } => {
-						event(Self::Blank { width: *width as usize, block_index: *block_index as usize });
+					RowEntry::Blank { block_index, width, repeat } => {
+						// a run of copies spans the columns of all of them at once
+						event(Self::Blank {
+							width: usize::from(*width) * usize::from(*repeat),
+							block_index: *block_index as usize,
+						});
 					}
 				}
 			}
@@ -406,7 +410,7 @@ mod tests {
 				.iter()
 				.flat_map(|row| row.entries.iter())
 				.filter_map(|entry| match entry {
-					RowEntry::Blank { width, .. } => Some(*width as usize),
+					RowEntry::Blank { width, repeat, .. } => Some(usize::from(*width) * usize::from(*repeat)),
 					RowEntry::Data { .. } => None,
 				})
 				.sum::<usize>();

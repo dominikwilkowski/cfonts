@@ -50,10 +50,20 @@ impl LayoutGlyph {
 		RowEntry::Data {
 			glyph_row: self.row(row),
 			block_index: Layout::entry_block(self.block_index),
-			width: u16::try_from(self.width()).expect("a glyph is narrower than 65,536 columns"),
+			width: self.entry_width(),
 			repeat,
 			paintable: self.paintable,
 		}
+	}
+
+	/// The columns one copy claims, as a row entry stores them
+	fn entry_width(&self) -> u16 {
+		u16::try_from(self.width()).expect("a glyph is narrower than 65,536 columns")
+	}
+
+	/// The glyph as blank padding holding `repeat` copies, every copy an empty span of its width
+	fn blank(&self, repeat: u8) -> RowEntry {
+		RowEntry::Blank { block_index: Layout::entry_block(self.block_index), width: self.entry_width(), repeat }
 	}
 }
 
@@ -83,8 +93,18 @@ pub enum RowEntry {
 		paintable: bool,
 	},
 
-	/// A run of empty columns (valign padding), tagged with its block for background colors later
-	Blank { width: u32, block_index: u32 },
+	/// A run of empty columns (valign padding), tagged with its block for background colors later,
+	/// shaped like `Data`: the columns one copy claims and how many copies stand side by side
+	Blank {
+		/// The block whose options cover this row's paint
+		block_index: u32,
+
+		/// The columns one copy claims
+		width: u16,
+
+		/// How many copies stand side by side
+		repeat: u8,
+	},
 }
 
 /// Where a glyph allows a soft line break, relative to itself
@@ -564,23 +584,14 @@ impl<'a> Layout<'a> {
 					current_block = Some(glyph.block_index);
 				}
 
-				if row < padding || row >= padding + glyph.rows() {
-					// Blank padding rows for fonts that are not as tall as another on the same line,
-					// a run past the u32 range cannot show anyway, so it clamps like the letter spacing
-					entries.push(RowEntry::Blank {
-						width: u32::try_from(glyph.columns()).unwrap_or(u32::MAX),
-						block_index: Self::entry_block(glyph.block_index),
-					});
-				} else if let Ok(repeat) = u8::try_from(glyph.repeat) {
-					entries.push(glyph.entry(row - padding, repeat));
-				} else {
-					// a run longer than one entry holds spreads over several
-					let mut left = glyph.repeat;
-					while left > 0 {
-						let repeat = left.min(u32::from(u8::MAX));
-						entries.push(glyph.entry(row - padding, u8::try_from(repeat).expect("a slice of a run fits one entry")));
-						left -= repeat;
-					}
+				// Blank padding rows for fonts that are not as tall as another on the same line
+				let padding_row = row < padding || row >= padding + glyph.rows();
+				// a run longer than one entry holds spreads over several, padding and data alike
+				let mut left = glyph.repeat;
+				while left > 0 {
+					let repeat = u8::try_from(left.min(u32::from(u8::MAX))).expect("a slice of a run fits one entry");
+					entries.push(if padding_row { glyph.blank(repeat) } else { glyph.entry(row - padding, repeat) });
+					left -= u32::from(repeat);
 				}
 			}
 			self.output.push(LayoutRow { entries, width: line_width, align_offset, block_spans: line_spans.clone() });
@@ -621,7 +632,7 @@ mod tests {
 				RowEntry::Data { glyph_row, repeat, .. } => {
 					glyph_row.segments().map(|(text, _)| text.chars().count()).sum::<usize>() * usize::from(*repeat)
 				}
-				RowEntry::Blank { width, .. } => *width as usize,
+				RowEntry::Blank { width, repeat, .. } => usize::from(*width) * usize::from(*repeat),
 			})
 			.sum()
 	}
@@ -1322,7 +1333,66 @@ mod tests {
 		// every row spans the same columns: Blank rows claim exactly the glyph width
 		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
 		assert!(widths.iter().all(|width| *width == widths[0]));
-		assert!(matches!(layout.output[0].entries[1], RowEntry::Blank { width, .. } if width as usize == tiny_glyph.width));
+		assert!(matches!(
+			layout.output[0].entries[1],
+			RowEntry::Blank { width, repeat: 1, .. } if usize::from(width) == tiny_glyph.width
+		));
+	}
+
+	#[test]
+	fn flush_line_pads_a_run_with_its_shape() {
+		// a letter space run pads as one entry carrying its repeat, the way its data rows do
+		let options = options(Valign::Bottom, None, vec![]);
+		let mut layout = Layout::new(&options);
+		let block_font = Font::Block.get_font();
+		let tiny_font = Font::Tiny.get_font();
+		layout.current_font_rows = block_font.rows();
+		layout.line_max_rows = block_font.rows();
+		layout.push_glyph(LayoutGlyph {
+			glyph: block_font.get_glyph('A').unwrap(),
+			block_index: 0,
+			paintable: true,
+			repeat: 1,
+		});
+		layout.push_glyph(LayoutGlyph { glyph: tiny_font.letter_space(), block_index: 1, paintable: true, repeat: 3 });
+		layout.flush_line(None);
+
+		let letter_space_width = u16::try_from(tiny_font.letter_space().width).unwrap();
+		assert_eq!(layout.output[0].entries[1], RowEntry::Blank { block_index: 1, width: letter_space_width, repeat: 3 });
+		let widths: Vec<usize> = layout.output.iter().map(|row| row_width(&row.entries)).collect();
+		assert!(widths.iter().all(|width| *width == widths[0]));
+	}
+
+	#[test]
+	fn flush_line_spreads_a_long_padding_run_like_a_data_run() {
+		// 300 letter spaces beside a taller glyph: the padding row holds the run in 255 + 45, as the data rows do
+		let options = options(Valign::Bottom, None, vec![]);
+		let mut layout = Layout::new(&options);
+		let block_font = Font::Block.get_font();
+		let tiny_font = Font::Tiny.get_font();
+		layout.current_font_rows = block_font.rows();
+		layout.line_max_rows = block_font.rows();
+		layout.push_glyph(LayoutGlyph {
+			glyph: block_font.get_glyph('A').unwrap(),
+			block_index: 0,
+			paintable: true,
+			repeat: 1,
+		});
+		layout.push_glyph(LayoutGlyph { glyph: tiny_font.letter_space(), block_index: 1, paintable: true, repeat: 300 });
+		layout.flush_line(None);
+
+		let repeats = |row: &LayoutRow| -> Vec<u8> {
+			row.entries[1..]
+				.iter()
+				.map(|entry| match entry {
+					RowEntry::Data { repeat, .. } | RowEntry::Blank { repeat, .. } => *repeat,
+				})
+				.collect()
+		};
+		assert!(matches!(layout.output[0].entries[1], RowEntry::Blank { .. }));
+		assert_eq!(repeats(&layout.output[0]), [255, 45]);
+		assert!(matches!(layout.output[5].entries[1], RowEntry::Data { .. }));
+		assert_eq!(repeats(&layout.output[5]), [255, 45]);
 	}
 
 	#[test]
