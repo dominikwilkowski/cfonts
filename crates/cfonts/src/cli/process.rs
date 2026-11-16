@@ -64,7 +64,6 @@ impl Process {
 	/// assert_eq!(Process::exit_after_writing(Ok(())), ExitCode::SUCCESS);
 	/// assert_eq!(Process::exit_after_writing(Err(io::ErrorKind::BrokenPipe.into())), ExitCode::SUCCESS);
 	/// ```
-	#[must_use]
 	pub fn exit_after_writing(written: io::Result<()>) -> ExitCode {
 		match written {
 			Ok(()) => ExitCode::SUCCESS,

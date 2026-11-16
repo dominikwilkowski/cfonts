@@ -335,7 +335,15 @@ impl<AlignState, SpacelessState, MaxLengthState, GlobalColorState, IndependentGr
 pub trait CanSetSpaceless {}
 impl<AlignState, ValignState, MaxLengthState, GlobalColorState, IndependentGradientState, BackgroundState>
 	CanSetSpaceless
-	for Cfonts<AlignState, ValignState, Unset, MaxLengthState, GlobalColorState, IndependentGradientState, BackgroundState>
+	for Cfonts<
+		AlignState,
+		ValignState,
+		Unset,
+		MaxLengthState,
+		GlobalColorState,
+		IndependentGradientState,
+		BackgroundState,
+	>
 {
 }
 
@@ -350,7 +358,15 @@ impl<AlignState, ValignState, MaxLengthState, GlobalColorState, IndependentGradi
 pub trait CanSetMaxLength {}
 impl<AlignState, ValignState, SpacelessState, GlobalColorState, IndependentGradientState, BackgroundState>
 	CanSetMaxLength
-	for Cfonts<AlignState, ValignState, SpacelessState, Unset, GlobalColorState, IndependentGradientState, BackgroundState>
+	for Cfonts<
+		AlignState,
+		ValignState,
+		SpacelessState,
+		Unset,
+		GlobalColorState,
+		IndependentGradientState,
+		BackgroundState,
+	>
 {
 }
 

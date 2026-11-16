@@ -9,7 +9,7 @@ edition = "2024"
 rust-version = "1.95.0"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
-homepage = "https://github.com/dominikwilkowski/cfonts"
+homepage = "https://dominikwilkowski.github.io/cfonts/"
 repository = "https://github.com/dominikwilkowski/cfonts"
 
 [workspace.dependencies]

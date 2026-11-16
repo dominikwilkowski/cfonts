@@ -335,7 +335,6 @@ impl ParseError<'_> {
 	/// let unreadable = ParseError::StdinUnreadable(StdinError(std::io::ErrorKind::BrokenPipe.into()));
 	/// assert_eq!(unreadable.exit_code(), ExitCode::from(74));
 	/// ```
-	#[must_use]
 	pub fn exit_code(&self) -> ExitCode {
 		match self {
 			Self::StdinUnreadable(_) => Process::io_error(),
@@ -675,7 +674,6 @@ impl ParseFailure<'_> {
 	///
 	/// assert_eq!(failure.exit_code(), ExitCode::from(64));
 	/// ```
-	#[must_use]
 	pub fn exit_code(&self) -> ExitCode {
 		self.error.exit_code()
 	}
