@@ -1,0 +1,5 @@
+error: cli_docs!: expected `=` and `>` between an option and its settings, found `:`
+ --> tests/compile_fail/cli_docs_option_without_an_arrow.rs:9:8
+  |
+9 |         Align: {
+  |              ^

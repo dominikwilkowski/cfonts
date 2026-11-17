@@ -1,0 +1,5 @@
+error: cli_docs!: `name` is set twice, keep one
+  --> tests/compile_fail/cli_docs_setting_set_twice.rs:17:2
+   |
+17 |     name: "again",
+   |     ^^^^

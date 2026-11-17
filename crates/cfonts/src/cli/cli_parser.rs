@@ -9,10 +9,7 @@ use std::{
 
 use crate::{
 	Align, BackgroundOption, BlockOptions, ColorError, ColorOption, NEW_LINE_CHAR, Options, Valign,
-	cli::{
-		Args, Process,
-		helper::{PROMPT_COLORED, PROMPT_PLAIN},
-	},
+	cli::{Args, PROMPT_COLORED, PROMPT_PLAIN, Process},
 	color::{ANSI_RESET, Value},
 };
 
@@ -401,17 +398,12 @@ impl ParseError<'_> {
 			Self::MissingValue(args) => {
 				write!(
 					f,
-					"{flag} The option \"{open}{}{close}\" was supplied but no value was given\n\n{}",
-					args.infos().long,
+					"{flag} The option \"{open}{args}{close}\" was supplied but no value was given\n\n{}",
 					args.help(color_enabled)
 				)
 			}
 			Self::InvalidValue { argument: args, value, source } => {
-				write!(
-					f,
-					"{flag} The option \"{open}{}{close}\" was given an invalid value \"{open}{value}{close}\"",
-					args.infos().long,
-				)?;
+				write!(f, "{flag} The option \"{open}{args}{close}\" was given an invalid value \"{open}{value}{close}\"")?;
 
 				if let Some(source) = source {
 					write!(f, "\nCause: {source}")?;
@@ -422,8 +414,7 @@ impl ParseError<'_> {
 			Self::ValueTooLarge { argument: args, value } => {
 				write!(
 					f,
-					"{flag} The option \"{open}{}{close}\" was given a value that is too large\n\"{open}{value}{close}\" is above its limit of {open}{}{close}\n\n{}",
-					args.infos().long,
+					"{flag} The option \"{open}{args}{close}\" was given a value that is too large\n\"{open}{value}{close}\" is above its limit of {open}{}{close}\n\n{}",
 					u16::MAX,
 					args.help(color_enabled)
 				)
@@ -431,24 +422,21 @@ impl ParseError<'_> {
 			Self::MidClusterArgumentRequired(args) => {
 				write!(
 					f,
-					"{flag} The option \"{open}{}{close}\" was supplied in a cluster without a value\nTo keep it in a cluster, make sure you add it to the end of it\n\n{}",
-					args.infos().long,
+					"{flag} The option \"{open}{args}{close}\" was supplied in a cluster without a value\nTo keep it in a cluster, make sure you add it to the end of it\n\n{}",
 					args.help(color_enabled)
 				)
 			}
 			Self::EmptyColorSegment { argument: args, value } => {
 				write!(
 					f,
-					"{flag} The option \"{open}{}{close}\" has an empty segment in \"{open}{value}{close}\"\nEvery comma, dash or colon needs a color on both sides\n\n{}",
-					args.infos().long,
+					"{flag} The option \"{open}{args}{close}\" has an empty segment in \"{open}{value}{close}\"\nEvery comma, dash or colon needs a color on both sides\n\n{}",
 					args.help(color_enabled)
 				)
 			}
 			Self::MixedColorDelimiters { argument: args, value } => {
 				write!(
 					f,
-					"{flag} The option \"{open}{}{close}\" mixes delimiters in \"{open}{value}{close}\"\nUse commas for a list, a dash for a gradient or colons for a transition\n\n{}",
-					args.infos().long,
+					"{flag} The option \"{open}{args}{close}\" mixes delimiters in \"{open}{value}{close}\"\nUse commas for a list, a dash for a gradient or colons for a transition\n\n{}",
 					args.help(color_enabled)
 				)
 			}
@@ -766,8 +754,8 @@ impl<'a> Parser<'a> {
 					self.warn(ParseError::DelimiterIgnored);
 				} else if Args::gradient_flag_moved(name) {
 					return Err(ParseError::GradientFlagMoved(name));
-				} else if let Some(arg) = Args::parse(name) {
-					self.apply_with_value(arg)?;
+				} else if let Some((arg, takes_value)) = Args::parse(name) {
+					self.apply_with_value(arg, takes_value)?;
 				} else {
 					self.warn(ParseError::UnknownFlag(arg_str));
 				}
@@ -785,12 +773,12 @@ impl<'a> Parser<'a> {
 							return Err(ParseError::GradientFlagMoved(short_str));
 						}
 
-						if let Some(arg) = Args::parse(short_str) {
-							if arg.infos().arguments.is_some() && index + length < cluster.len() {
+						if let Some((arg, takes_value)) = Args::parse(short_str) {
+							if takes_value && index + length < cluster.len() {
 								return Err(ParseError::MidClusterArgumentRequired(arg));
 							}
 
-							self.apply_with_value(arg)?;
+							self.apply_with_value(arg, takes_value)?;
 						} else {
 							self.warn(ParseError::UnknownShortFlag(short));
 						}
@@ -849,9 +837,9 @@ impl<'a> Parser<'a> {
 		self.warnings.push(warning);
 	}
 
-	/// Pulls the value one argument demands from the token stream, then applies it
-	fn apply_with_value(&mut self, arg: Args) -> Result<(), ParseError<'a>> {
-		let value = if arg.infos().arguments.is_some() { self.tokens.next().map(String::as_str) } else { None };
+	/// Pulls the value an argument takes from the token stream, then applies it
+	fn apply_with_value(&mut self, arg: Args, takes_value: bool) -> Result<(), ParseError<'a>> {
+		let value = if takes_value { self.tokens.next().map(String::as_str) } else { None };
 
 		arg.apply(value, &mut self.state)
 	}

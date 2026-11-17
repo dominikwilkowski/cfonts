@@ -18,6 +18,7 @@ include = [
 	"examples/**",
 	"Cargo.toml",
 	"LICENSE",
+	"cfonts.1",
 ]
 
 [dependencies]

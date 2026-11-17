@@ -1,9 +1,6 @@
 use crate::{
 	Cfonts, Color, Font, GradientOption, Host, Options, RenderContext, RustHost, TerminalTarget, Valign,
-	cli::{
-		VERSION,
-		helper::{PROMPT_COLORED, PROMPT_PLAIN},
-	},
+	cli::{PROMPT_COLORED, PROMPT_PLAIN, VERSION},
 };
 
 /// The full demo screen, resolved like any render: real width, real color level

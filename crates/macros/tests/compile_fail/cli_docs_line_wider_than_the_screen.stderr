@@ -1,0 +1,5 @@
+error: cli_docs!: the help line "  This line of the description runs on and on until it is wider than the eighty columns a terminal holds" is 104 columns wide, the screen holds 80
+ --> tests/compile_fail/cli_docs_line_wider_than_the_screen.rs:7:16
+  |
+7 |     description: ["This line of the description runs on and on until it is wider than the eighty columns a terminal holds"],
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

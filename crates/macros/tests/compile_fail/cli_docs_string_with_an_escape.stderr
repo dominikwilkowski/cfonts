@@ -1,0 +1,5 @@
+error: cli_docs!: expected a string without escapes such as "hello", a quote or a backslash goes into a raw string such as r#"say "hi""#, found `"Quote text \"like this\""`
+ --> tests/compile_fail/cli_docs_string_with_an_escape.rs:7:16
+  |
+7 |     description: ["Quote text \"like this\""],
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^

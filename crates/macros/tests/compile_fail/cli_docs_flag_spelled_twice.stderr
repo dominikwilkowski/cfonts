@@ -1,0 +1,5 @@
+error: cli_docs!: the flag "a" is spelled twice, every spelling names one option
+  --> tests/compile_fail/cli_docs_flag_spelled_twice.rs:14:3
+   |
+14 |         Valign => {
+   |         ^^^^^^

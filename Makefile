@@ -6,7 +6,7 @@
 # the JavaScript examples build the npm package first and need node and pnpm for that
 
 .DEFAULT_GOAL := help
-.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test coverage coverage-lcov perf perf-save compare flamegraph
+.PHONY: help cli ratatui leptos dioxus topcoat node browser bundle check test man coverage coverage-lcov perf perf-save compare flamegraph
 
 help:
 	@echo "make cli            the Rust API tour, printed to the terminal"
@@ -22,6 +22,7 @@ help:
 	@echo "                    after pnpm run build"
 	@echo "make check          compiles the ratatui, leptos and dioxus examples"
 	@echo "make test           the whole gate, every check and every test"
+	@echo "make man            the man page, written from the words in cli/docs.rs"
 	@echo "make coverage       the coverage of the cfonts and macro crates"
 	@echo "                    saved as an HTML report under target/llvm-cov/html"
 	@echo "make coverage-lcov  the same coverage into lcov.info"
@@ -86,6 +87,11 @@ test: wasm32
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features dioxus
 	cargo check --locked -p cfonts --lib --target wasm32-unknown-unknown --no-default-features --features wasm
 	pnpm test
+
+# Writes crates/cfonts/cfonts.1 from the words in crates/cfonts/src/cli/docs.rs, dated today
+# the cargo tests hold the committed page to those words, so run this after changing them or the version
+man:
+	CFONTS_MAN_DATE=$$(date +%Y-%m-%d) cargo test --locked -p cfonts --lib -- --ignored --exact cli::docs::tests::write_the_man_page
 
 # Coverage of the cfonts and macro crates with every feature, the same run locally and in CI
 # the wasm crate stays out since its code runs in the browser, and cargo llvm-cov records the macros running inside
