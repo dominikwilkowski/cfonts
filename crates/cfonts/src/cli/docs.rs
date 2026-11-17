@@ -543,6 +543,7 @@ mod tests {
 		assert_eq!(found.next(), None, "cfonts.1 runs on after the page the docs compile to, run `make man`");
 	}
 
+	// This is the function that writes the man page via `make` in the event the man page has drifted and the above test fails
 	#[test]
 	#[ignore = "writes crates/cfonts/cfonts.1, `make man` runs it"]
 	fn write_the_man_page() {

@@ -127,7 +127,7 @@ impl<'a> Expansion<'a> {
 
 	/// The man page as a string constant, for the tests that hold the committed page to it and write it
 	fn man(&mut self) -> Result<(), Problem> {
-		let page = Man::page(self.docs).map_err(|message| Problem { place: None, message })?;
+		let page = Man::generate(self.docs).map_err(|message| Problem { place: None, message })?;
 		let man = format!("pub(crate) const MAN: &str = {page:?};");
 
 		self.line(format!(
@@ -193,7 +193,7 @@ mod tests {
 	#[test]
 	fn the_man_page_is_written_for_test_builds_alone() {
 		let items = Expansion::write(&Docs::fixture()).expect("the fixture writes as roff");
-		let page = Man::page(&Docs::fixture()).expect("the fixture writes as roff");
+		let page = Man::generate(&Docs::fixture()).expect("the fixture writes as roff");
 
 		assert!(items.contains(&format!("#[cfg(test)]\npub(crate) const MAN: &str = {page:?};")), "{items}");
 	}
