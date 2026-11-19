@@ -293,7 +293,7 @@ cli_docs! {
 		],
 		"Automatic color detection" => [
 			"Terminal hints:",
-			["`TERM`, `COLORTERM`, `TERM_PROGRAM`,`TERM_PROGRAM_VERSION`, `TMUX`"],
+			["`TERM`, `COLORTERM`, `TERM_PROGRAM`, `TERM_PROGRAM_VERSION`, `TMUX`"],
 			"CI hints",
 			[
 				"`CI`, `CI_NAME`, `TEAMCITY_VERSION`, `TF_BUILD`, `AGENT_NAME`,",
