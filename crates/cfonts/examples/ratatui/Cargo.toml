@@ -1,0 +1,12 @@
+[package]
+name = "cfonts-example-ratatui"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# standalone on purpose: normal workspace builds stay crossterm-free
+[workspace]
+
+[dependencies]
+cfonts = { path = "../..", default-features = false, features = ["ratatui"] }
+ratatui = { version = "0.30", features = ["crossterm"] }

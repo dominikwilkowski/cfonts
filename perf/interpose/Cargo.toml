@@ -1,0 +1,12 @@
+[package]
+name = "cfonts-perf-interpose"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# the cdylib is what gets injected, the rlib is only there so `cargo test` builds the cdylib next to its tests
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+libc = "0.2"

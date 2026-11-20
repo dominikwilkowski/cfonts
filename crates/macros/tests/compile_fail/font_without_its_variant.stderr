@@ -1,0 +1,5 @@
+error: font!: expected the font's variant such as `Font::Block`
+ --> tests/compile_fail/font_without_its_variant.rs:5:9
+  |
+5 |         font: ,
+  |               ^

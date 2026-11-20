@@ -1,0 +1,5 @@
+error: font!: unknown check `tidy`, a font promises plain_segments_are_spaces, slots_paint_only, rows_stripe_their_slot or no_space_cells
+ --> tests/compile_fail/font_unknown_check.rs:5:13
+  |
+5 |         checks: { tidy },
+  |                   ^^^^

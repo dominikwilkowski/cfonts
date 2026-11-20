@@ -1,0 +1,5 @@
+error: cli_docs!: set `title` for `Align`
+ --> tests/compile_fail/cli_docs_option_without_a_title.rs:9:3
+  |
+9 |         Align => {
+  |         ^^^^^

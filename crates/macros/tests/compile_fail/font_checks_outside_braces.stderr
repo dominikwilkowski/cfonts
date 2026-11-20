@@ -1,0 +1,5 @@
+error: font!: expected the checks as `{ name, name: value, … }`
+ --> tests/compile_fail/font_checks_outside_braces.rs:5:11
+  |
+5 |         checks: [no_space_cells],
+  |                 ^^^^^^^^^^^^^^^^

@@ -1,0 +1,5 @@
+error: font!: expected `=` and `>` between a character and its rows
+ --> tests/compile_fail/font_glyph_without_an_arrow.rs:5:17
+  |
+5 |         glyphs: { 'A' },
+  |                       ^

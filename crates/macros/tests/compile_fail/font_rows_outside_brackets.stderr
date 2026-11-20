@@ -1,0 +1,5 @@
+error: font!: expected the rows of the art as `[r"…", …]`
+ --> tests/compile_fail/font_rows_outside_brackets.rs:5:17
+  |
+5 |         letter_space: (r" "),
+  |                       ^^^^^^

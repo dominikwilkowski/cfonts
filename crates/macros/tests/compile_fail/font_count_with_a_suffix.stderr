@@ -1,0 +1,5 @@
+error: font!: expected a count such as `1`, found `1usize`
+ --> tests/compile_fail/font_count_with_a_suffix.rs:5:9
+  |
+5 |         rows: 1usize,
+  |               ^^^^^^

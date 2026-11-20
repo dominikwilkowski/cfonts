@@ -1,0 +1,5 @@
+error: cli_docs!: unknown setting `footer`, the docs set name, tagline, synopsis, description, options, environment and examples
+  --> tests/compile_fail/cli_docs_unknown_setting.rs:17:2
+   |
+17 |     footer: "the end",
+   |     ^^^^^^

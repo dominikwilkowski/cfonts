@@ -1,0 +1,5 @@
+error: font!: expected `,` between checks, found `plain_segments_are_spaces`
+ --> tests/compile_fail/font_checks_without_a_comma.rs:5:28
+  |
+5 |         checks: { no_space_cells plain_segments_are_spaces },
+  |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,5 @@
+error: font!: expected a list of characters such as `['─', '│']`
+ --> tests/compile_fail/font_ground_outside_brackets.rs:5:11
+  |
+5 |         ground: ' ',
+  |                 ^^^

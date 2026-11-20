@@ -1,0 +1,5 @@
+error: font!: expected `,` between rows, found `r" "`
+ --> tests/compile_fail/font_rows_without_a_comma.rs:5:21
+  |
+5 |         buffer_end: [r" " r" "],
+  |                           ^^^^

@@ -1,0 +1,5 @@
+error: font!: expected a character such as 'A', found `" "`
+ --> tests/compile_fail/font_ground_character_in_quotes.rs:5:12
+  |
+5 |         ground: [" "],
+  |                  ^^^

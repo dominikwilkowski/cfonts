@@ -1,0 +1,423 @@
+use std::borrow::Cow;
+
+use crate::{
+	color::{ANSI_BACKGROUND_RESET, ANSI_RESET, Background, Color, ColorLevel, Rgb, Text, Value},
+	layout::LayoutRow,
+	render::GradientPlans,
+	targets::{ColorTokens, PADDING_ROWS, Rendered, Target},
+};
+
+/// Erases from the cursor to the end of the line, which a terminal with background color erase
+/// fills with the open background: this carries a band to the edge of the terminal
+///
+/// It goes out right after the band opens, while the cursor still sits on the first column:
+/// after the text a terminal whose cursor rests on the last column would erase that column
+const ERASE_TO_LINE_END: &str = "\x1b[K";
+
+/// The longest start code, `\x1b[38;2;255;255;255m`, so a token's string is sized once and never grows
+const LONGEST_CODE: usize = 19;
+
+/// The layer a color code paints on: the one place that knows a layer's code openings, fixed codes and reset
+#[derive(Debug, Clone, Copy)]
+enum Layer {
+	Foreground,
+	Background,
+}
+
+impl Layer {
+	/// The opening of a 24 bit code on this layer, SGR parameter 38 or 48, every channel follows behind a `;`
+	const fn truecolor_opening(self) -> &'static str {
+		match self {
+			Self::Foreground => "\x1b[38;2",
+			Self::Background => "\x1b[48;2",
+		}
+	}
+
+	/// The opening of a 256 color code on this layer, the palette index follows
+	const fn ansi256_opening(self) -> &'static str {
+		match self {
+			Self::Foreground => "\x1b[38;5;",
+			Self::Background => "\x1b[48;5;",
+		}
+	}
+
+	/// The fixed sixteen color code of a named color on this layer, None for the values without one
+	const fn named_code(self, value: Value) -> Option<&'static str> {
+		match self {
+			Self::Foreground => value.ansi16_sgr(),
+			Self::Background => value.ansi16_background_sgr(),
+		}
+	}
+
+	/// The fixed sixteen color code nearest to one RGB value on this layer
+	fn basic_code(self, rgb: Rgb) -> &'static str {
+		match self {
+			Self::Foreground => rgb.ansi16_sgr(),
+			Self::Background => rgb.ansi16_background_sgr(),
+		}
+	}
+
+	/// The code that returns this layer to the terminal's own color
+	const fn reset(self) -> &'static str {
+		match self {
+			Self::Foreground => ANSI_RESET,
+			Self::Background => ANSI_BACKGROUND_RESET,
+		}
+	}
+}
+
+/// The terminal artifact formatter
+#[derive(Debug, Clone, Copy)]
+pub struct TerminalTarget {
+	line_end: &'static str,
+}
+
+impl Default for TerminalTarget {
+	fn default() -> Self {
+		Self { line_end: "\n" }
+	}
+}
+
+impl TerminalTarget {
+	/// Ends every line with `\r\n`, the ending a terminal in raw mode needs
+	#[must_use]
+	pub const fn raw_mode(mut self) -> Self {
+		self.line_end = "\r\n";
+		self
+	}
+
+	/// The tokens of one color on one layer
+	///
+	/// Named colors keep their fixed sixteen color codes at every level so the terminal's own palette applies,
+	/// only RGB values level down
+	fn tokens(value: Value, level: ColorLevel, layer: Layer) -> ColorTokens {
+		let start = match value {
+			Value::System | Value::Candy => return ColorTokens::default(),
+			Value::Rgb(rgb) => Self::rgb_code(rgb, level, layer),
+			named => Cow::Borrowed(layer.named_code(named).expect("every named color carries a fixed code")),
+		};
+
+		ColorTokens { start, end: Cow::Borrowed(layer.reset()) }
+	}
+
+	/// The start code of one RGB value at one support level as a token,
+	/// the fixed sixteen color codes borrowed, the others written once into a string of the right size
+	fn rgb_code(rgb: Rgb, level: ColorLevel, layer: Layer) -> Cow<'static, str> {
+		match level {
+			ColorLevel::Basic => Cow::Borrowed(layer.basic_code(rgb)),
+			extended => {
+				let mut code = String::with_capacity(LONGEST_CODE);
+				Self::push_rgb_code(rgb, extended, layer, &mut code);
+				Cow::Owned(code)
+			}
+		}
+	}
+
+	/// Writes the start code of one RGB value at one support level straight into `out`,
+	/// the opening goes in one push and the digits in place, so a gradient formats no string per column
+	fn push_rgb_code(rgb: Rgb, level: ColorLevel, layer: Layer, out: &mut String) {
+		match level {
+			ColorLevel::TrueColor => {
+				out.push_str(layer.truecolor_opening());
+				for channel in [rgb.red, rgb.green, rgb.blue] {
+					out.push(';');
+					Self::push_decimal(channel, out);
+				}
+				out.push('m');
+			}
+			ColorLevel::Ansi256 => {
+				out.push_str(layer.ansi256_opening());
+				Self::push_decimal(rgb.ansi256_index(), out);
+				out.push('m');
+			}
+			ColorLevel::Basic => out.push_str(layer.basic_code(rgb)),
+		}
+	}
+
+	/// Writes `value` in decimal, the digits an SGR parameter carries
+	fn push_decimal(value: u8, out: &mut String) {
+		if value >= 100 {
+			out.push(char::from(b'0' + value / 100));
+		}
+		if value >= 10 {
+			out.push(char::from(b'0' + value / 10 % 10));
+		}
+		out.push(char::from(b'0' + value % 10));
+	}
+
+	/// One padding row: its band filled to the edge of the terminal, or nothing at all
+	fn padding_row(band: Option<&ColorTokens>, out: &mut Rendered) {
+		if let Some(band) = band {
+			out.text.push_str(&band.start);
+			out.text.push_str(ERASE_TO_LINE_END);
+			out.text.push_str(&band.end);
+		}
+	}
+}
+
+impl Target for TerminalTarget {
+	/// The line ending every row break writes, so the host closes the artifact like the rows
+	fn line_end(&self) -> &'static str {
+		self.line_end
+	}
+
+	/// Named colors keep their fixed sixteen-color codes at every level so the terminal's own palette applies,
+	/// only RGB values level down
+	fn color_tokens(&self, color: Color<Text>, level: ColorLevel) -> ColorTokens {
+		Self::tokens(color.value, level, Layer::Foreground)
+	}
+
+	/// The background follows the foreground rules on its own layer
+	fn background_tokens(&self, color: Color<Background>, level: ColorLevel) -> ColorTokens {
+		Self::tokens(color.value, level, Layer::Background)
+	}
+
+	/// Every column opens the ramp color it samples, the run resets once where the ramp stops or the segment ends
+	///
+	/// A column past the ramp's end paints bare, so an open color closes before it
+	fn gradient_paint(
+		&self,
+		text: &str,
+		colors: &[Rgb],
+		_band: Option<&ColorTokens>,
+		level: ColorLevel,
+		out: &mut Rendered,
+	) -> usize {
+		let mut open = false;
+		let consumed = GradientPlans::each_column(text, colors, |character, rgb| {
+			if let Some(rgb) = rgb {
+				Self::push_rgb_code(*rgb, level, Layer::Foreground, &mut out.text);
+			} else if open {
+				out.text.push_str(ANSI_RESET);
+			}
+			open = rgb.is_some();
+			out.text.push(character);
+		});
+
+		if open {
+			out.text.push_str(ANSI_RESET);
+		}
+
+		consumed
+	}
+
+	/// A band fills to the edge of the terminal the moment it opens, so the row's text lands on it
+	fn row_start(&self, row: &LayoutRow, band: Option<&ColorTokens>, out: &mut Rendered) {
+		if let Some(band) = band {
+			out.text.push_str(&band.start);
+			out.text.push_str(ERASE_TO_LINE_END);
+		}
+
+		self.blank(row.align_offset, band, out);
+	}
+
+	fn row_break(&self, _row: &LayoutRow, _band: Option<&ColorTokens>, out: &mut Rendered) {
+		out.text.push_str(self.line_end);
+	}
+
+	fn top_padding(&self, bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
+		for band in bands {
+			Self::padding_row(band, out);
+			out.text.push_str(self.line_end);
+		}
+	}
+
+	fn bottom_padding(&self, bands: [Option<&ColorTokens>; PADDING_ROWS], out: &mut Rendered) {
+		for band in bands {
+			out.text.push_str(self.line_end);
+			Self::padding_row(band, out);
+		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{Cfonts, Font, RenderOverrides};
+
+	// start codes
+
+	#[test]
+	fn start_codes_spell_every_channel_value_like_the_format_macro() {
+		// the digits are written by hand, so every channel value is checked against the standard formatting
+		for value in 0..=u8::MAX {
+			let rgb = Rgb { red: value, green: value, blue: value };
+
+			assert_eq!(
+				TerminalTarget::rgb_code(rgb, ColorLevel::TrueColor, Layer::Foreground),
+				format!("\x1b[38;2;{value};{value};{value}m")
+			);
+			assert_eq!(
+				TerminalTarget::rgb_code(rgb, ColorLevel::TrueColor, Layer::Background),
+				format!("\x1b[48;2;{value};{value};{value}m")
+			);
+			assert_eq!(
+				TerminalTarget::rgb_code(rgb, ColorLevel::Ansi256, Layer::Foreground),
+				format!("\x1b[38;5;{}m", rgb.ansi256_index())
+			);
+			assert_eq!(
+				TerminalTarget::rgb_code(rgb, ColorLevel::Ansi256, Layer::Background),
+				format!("\x1b[48;5;{}m", rgb.ansi256_index())
+			);
+			assert_eq!(TerminalTarget::rgb_code(rgb, ColorLevel::Basic, Layer::Foreground), rgb.ansi16_sgr());
+			assert_eq!(TerminalTarget::rgb_code(rgb, ColorLevel::Basic, Layer::Background), rgb.ansi16_background_sgr());
+		}
+	}
+
+	// color_tokens
+
+	#[test]
+	fn named_colors_borrow_their_fixed_codes_at_every_level() {
+		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
+			let tokens = TerminalTarget::default().color_tokens(Color::RED, level);
+
+			assert_eq!(tokens.start, "\u{1b}[31m", "{level:?}");
+			assert_eq!(tokens.end, "\u{1b}[39m");
+			assert!(matches!(tokens.start, Cow::Borrowed(_)), "named colors never allocate");
+		}
+	}
+
+	#[test]
+	fn rgb_colors_level_down() {
+		let rgb = Color::rgb(255, 136, 0);
+
+		assert_eq!(TerminalTarget::default().color_tokens(rgb, ColorLevel::TrueColor).start, "\u{1b}[38;2;255;136;0m");
+		assert_eq!(TerminalTarget::default().color_tokens(rgb, ColorLevel::Ansi256).start, "\u{1b}[38;5;208m");
+		assert_eq!(TerminalTarget::default().color_tokens(rgb, ColorLevel::Basic).start, "\u{1b}[91m");
+	}
+
+	// background_tokens
+
+	#[test]
+	fn background_codes_follow_the_foreground_rules() {
+		let target = TerminalTarget::default();
+		let rgb = Color::rgb(255, 136, 0);
+
+		for level in [ColorLevel::Basic, ColorLevel::Ansi256, ColorLevel::TrueColor] {
+			let tokens = target.background_tokens(Color::BLUE, level);
+			assert_eq!(tokens.start, "\u{1b}[44m", "{level:?}");
+			assert_eq!(tokens.end, "\u{1b}[49m");
+		}
+
+		assert_eq!(target.background_tokens(rgb, ColorLevel::TrueColor).start, "\u{1b}[48;2;255;136;0m");
+		assert_eq!(target.background_tokens(rgb, ColorLevel::Ansi256).start, "\u{1b}[48;5;208m");
+		assert_eq!(target.background_tokens(rgb, ColorLevel::Basic).start, "\u{1b}[101m");
+
+		assert!(!target.background_tokens(Color::SYSTEM, ColorLevel::Basic).paints());
+	}
+
+	// gradient_paint
+
+	#[test]
+	fn a_gradient_run_opens_every_column_and_resets_once() {
+		let target = TerminalTarget::default();
+		let ramp = [Rgb { red: 255, green: 0, blue: 0 }, Rgb { red: 0, green: 0, blue: 255 }];
+
+		// the third column is past the ramp, so the run closes before it and the column paints bare
+		let mut out = Rendered::default();
+		let consumed = target.gradient_paint("▄▀█", &ramp, None, ColorLevel::TrueColor, &mut out);
+		assert_eq!(out.text, "\u{1b}[38;2;255;0;0m▄\u{1b}[38;2;0;0;255m▀\u{1b}[39m█");
+		assert_eq!(consumed, 3);
+
+		// a run the ramp covers closes once at its end, at every level
+		let mut out = Rendered::default();
+		target.gradient_paint("▄▀", &ramp, None, ColorLevel::Ansi256, &mut out);
+		assert_eq!(out.text, "\u{1b}[38;5;196m▄\u{1b}[38;5;21m▀\u{1b}[39m");
+
+		// an empty segment opens nothing, so it closes nothing
+		let mut out = Rendered::default();
+		assert_eq!(target.gradient_paint("", &ramp, None, ColorLevel::TrueColor, &mut out), 0);
+		assert!(out.text.is_empty());
+	}
+
+	// row_start, top_padding, bottom_padding
+
+	#[test]
+	fn a_row_opens_its_band_and_fills_to_the_edge_before_its_alignment() {
+		let target = TerminalTarget::default();
+		let band = target.background_tokens(Color::BLUE, ColorLevel::Basic);
+		let row = LayoutRow { entries: Vec::new(), width: 3, align_offset: 2, block_spans: Vec::new() };
+
+		let mut out = Rendered::default();
+		target.row_start(&row, Some(&band), &mut out);
+		assert_eq!(out.text, "\u{1b}[44m\u{1b}[K  ");
+
+		let mut out = Rendered::default();
+		target.row_start(&row, None, &mut out);
+		assert_eq!(out.text, "  ");
+	}
+
+	#[test]
+	fn padding_rows_carry_their_bands_around_their_line_ends() {
+		let target = TerminalTarget::default().raw_mode();
+		let band = target.background_tokens(Color::BLUE, ColorLevel::Basic);
+
+		let mut out = Rendered::default();
+		target.top_padding([Some(&band), None], &mut out);
+		assert_eq!(out.text, "\u{1b}[44m\u{1b}[K\u{1b}[49m\r\n\r\n");
+
+		let mut out = Rendered::default();
+		target.bottom_padding([None, Some(&band)], &mut out);
+		assert_eq!(out.text, "\r\n\r\n\u{1b}[44m\u{1b}[K\u{1b}[49m");
+	}
+
+	#[test]
+	fn rgb_black_levels_down_to_ansi_black() {
+		let black = Color::rgb(0, 0, 0);
+		let tokens = TerminalTarget::default().color_tokens(black, ColorLevel::Basic);
+
+		assert_eq!(tokens.start, "\u{1b}[30m");
+		assert_eq!(tokens.end, "\u{1b}[39m");
+		// the RGB path and the named path agree on black at the basic level
+		assert_eq!(tokens, TerminalTarget::default().color_tokens(Color::BLACK, ColorLevel::Basic));
+	}
+
+	#[test]
+	fn system_and_candy_paint_nothing() {
+		// the paint plan rolls candy into a named color before tokens resolve, so raw candy never paints
+		assert!(!TerminalTarget::default().color_tokens(Color::SYSTEM, ColorLevel::TrueColor).paints());
+		assert!(!TerminalTarget::default().color_tokens(Color::CANDY, ColorLevel::TrueColor).paints());
+	}
+
+	// line endings
+
+	#[test]
+	fn the_line_end_follows_the_raw_flag() {
+		assert_eq!(TerminalTarget::default().line_end(), "\n");
+		assert_eq!(TerminalTarget::default().raw_mode().line_end(), "\r\n");
+	}
+
+	#[test]
+	fn raw_mode_pairs_every_line_break_with_a_carriage_return() {
+		let raw =
+			Cfonts::text("A").font(Font::Tiny).render_with(&TerminalTarget::default().raw_mode(), RenderOverrides::default());
+
+		assert!(raw.text.contains("\r\n"));
+		assert_eq!(
+			raw.text.matches('\n').count(),
+			raw.text.matches("\r\n").count(),
+			"no bare newline survives, padding included"
+		);
+	}
+
+	#[test]
+	fn the_default_line_ending_carries_no_carriage_return() {
+		let plain = Cfonts::text("A").font(Font::Tiny).render_with(&TerminalTarget::default(), RenderOverrides::default());
+
+		assert!(plain.text.contains('\n'));
+		assert!(!plain.text.contains('\r'));
+	}
+
+	#[test]
+	fn raw_mode_changes_nothing_but_the_line_endings() {
+		// blank rows from line_height and the paddings travel through the same endings as the glyph rows
+		let banner = Cfonts::text("AB").font(Font::Tiny).line_height(2);
+		let raw = banner.render_with(&TerminalTarget::default().raw_mode(), RenderOverrides::default());
+		let plain = banner.render_with(&TerminalTarget::default(), RenderOverrides::default());
+
+		assert!(
+			raw.text.split("\r\n").eq(plain.text.split('\n')),
+			"raw output must differ from plain output only by its endings"
+		);
+	}
+}

@@ -1,0 +1,5 @@
+error: font!: expected `:` after the setting name, found `=`
+ --> tests/compile_fail/font_setting_without_a_colon.rs:5:10
+  |
+5 |         colors = 2,
+  |                ^

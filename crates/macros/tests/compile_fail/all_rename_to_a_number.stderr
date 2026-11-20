@@ -1,0 +1,5 @@
+error: all(rename) expects a plain string literal, found 3
+ --> tests/compile_fail/all_rename_to_a_number.rs:5:17
+  |
+5 |     #[all(rename = 3)]
+  |                    ^

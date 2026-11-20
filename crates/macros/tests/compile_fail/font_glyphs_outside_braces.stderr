@@ -1,0 +1,5 @@
+error: font!: expected the glyphs as `{ 'A' => [r"…", …], … }`
+ --> tests/compile_fail/font_glyphs_outside_braces.rs:5:11
+  |
+5 |         glyphs: [],
+  |                 ^^

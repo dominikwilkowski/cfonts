@@ -1,0 +1,5 @@
+error: cli_docs!: `title` is set twice, keep one
+  --> tests/compile_fail/cli_docs_option_setting_set_twice.rs:12:4
+   |
+12 |             title: "Align it again",
+   |             ^^^^^

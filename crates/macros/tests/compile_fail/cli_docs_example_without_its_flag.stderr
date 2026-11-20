@@ -1,0 +1,5 @@
+error: cli_docs!: the example "fixture hello -a center" of `Align` does not use `--align`
+  --> tests/compile_fail/cli_docs_example_without_its_flag.rs:12:15
+   |
+12 |             examples: ["fixture hello -a center"],
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^

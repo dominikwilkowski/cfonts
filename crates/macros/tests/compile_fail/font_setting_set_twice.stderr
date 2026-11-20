@@ -1,0 +1,5 @@
+error: font!: `colors` is set twice, keep one
+ --> tests/compile_fail/font_setting_set_twice.rs:6:3
+  |
+6 |         colors: 2,
+  |         ^^^^^^

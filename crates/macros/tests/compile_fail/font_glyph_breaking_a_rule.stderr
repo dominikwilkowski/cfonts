@@ -1,0 +1,5 @@
+error: font!: glyph 'A' row 2: takes 2 columns but row 1 takes 3, every row of a glyph takes the same columns
+  --> tests/compile_fail/font_glyph_breaking_a_rule.rs:15:5
+   |
+15 |                 r"█▀",
+   |                 ^^^^^

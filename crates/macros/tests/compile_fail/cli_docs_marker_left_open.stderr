@@ -1,0 +1,5 @@
+error: cli_docs!: the marker '`' is never closed in "Use `--next to start another block"
+ --> tests/compile_fail/cli_docs_marker_left_open.rs:7:16
+  |
+7 |     description: ["Use `--next to start another block"],
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

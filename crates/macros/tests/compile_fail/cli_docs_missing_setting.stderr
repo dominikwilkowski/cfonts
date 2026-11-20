@@ -1,0 +1,9 @@
+error: cli_docs!: set `tagline`
+ --> tests/compile_fail/cli_docs_missing_setting.rs:3:1
+  |
+3 | / cli_docs! {
+4 | |     name: "fixture",
+5 | | }
+  | |_^
+  |
+  = note: this error originates in the macro `cli_docs` (in Nightly builds, run with -Z macro-backtrace for more info)

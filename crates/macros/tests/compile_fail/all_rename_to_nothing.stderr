@@ -1,0 +1,5 @@
+error: all(rename) expects a simple name, found ""
+ --> tests/compile_fail/all_rename_to_nothing.rs:5:17
+  |
+5 |     #[all(rename = "")]
+  |                    ^^

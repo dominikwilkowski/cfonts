@@ -1,0 +1,5 @@
+error: font!: expected `,` between lists, found `['─']`
+ --> tests/compile_fail/font_check_lists_without_a_comma.rs:5:38
+  |
+5 |         checks: { slots_paint_only: [['█'] ['─']] },
+  |                                            ^^^^^
