@@ -124,12 +124,12 @@ impl<'a> Help<'a> {
 		for part in &text.parts {
 			match part {
 				Part::Words(words) => self.text.push_str(words),
-				Part::Open(Mark::Bold) => self.style(BOLD),
-				Part::Close(Mark::Bold) => self.style(BOLD_END),
-				Part::Open(Mark::Underline) => self.style(UNDERLINE),
-				Part::Close(Mark::Underline) => self.style(UNDERLINE_END),
-				Part::Open(Mark::Input) => self.style(INPUT),
-				Part::Close(Mark::Input) => self.style(INPUT_END),
+				Part::Open(Mark::Strong) => self.style(BOLD),
+				Part::Close(Mark::Strong) => self.style(BOLD_END),
+				Part::Open(Mark::Emphasis) => self.style(UNDERLINE),
+				Part::Close(Mark::Emphasis) => self.style(UNDERLINE_END),
+				Part::Open(Mark::Code) => self.style(INPUT),
+				Part::Close(Mark::Code) => self.style(INPUT_END),
 			}
 		}
 	}
@@ -393,8 +393,7 @@ mod tests {
 	fn the_screen_remembers_where_every_text_flag_line_and_name_starts() {
 		let mut docs = Docs::fixture();
 		docs.options[0].place = 3;
-		docs.options[0].description =
-			vec![Text::read("`0` is no alignment", Marks::Inputs, 4).expect("the backticks close")];
+		docs.options[0].description = vec![Text::read("`0` is no alignment", Marks::All, 4).expect("the backticks close")];
 		docs.options[0].values = Values::Names(["left", "center"].map(String::from).to_vec(), 5);
 
 		for styled in [true, false] {
@@ -428,7 +427,7 @@ mod tests {
 	fn a_line_of_sample_values_prints_as_written() {
 		let mut docs = Docs::fixture();
 		docs.options[0].values =
-			Values::Free(Text::read("`0`, `10`, `20`...", Marks::Inputs, 0).expect("the backticks close"));
+			Values::Free(Text::read("`0`, `10`, `20`...", Marks::All, 0).expect("the backticks close"));
 
 		let plain = Help::screen(&docs, false);
 		let styled = Help::screen(&docs, true);

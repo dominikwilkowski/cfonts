@@ -44,11 +44,13 @@ impl<'a> Rules<'a> {
 	pub(crate) fn run(docs: &'a Docs) -> Result<(), Problem> {
 		let rules = Self { docs };
 
+		rules.markers_sit_tight_on_their_words()?;
 		rules.flags_are_spelled_once()?;
 		rules.examples_use_their_own_flag()?;
 		rules.options_keep_to_plain_punctuation()?;
 		rules.value_names_are_single_words()?;
 		rules.sample_values_are_marked_one_by_one()?;
+		rules.titles_hold_no_strong()?;
 		rules.lines_fit_the_screen()
 	}
 
@@ -72,6 +74,59 @@ impl<'a> Rules<'a> {
 		}
 
 		words
+	}
+
+	/// Every text of the docs, in the order the help prints them
+	fn every_text(&self) -> Vec<&Text> {
+		let docs = self.docs;
+		let mut texts = vec![&docs.name, &docs.tagline];
+
+		texts.extend(&docs.synopsis);
+		texts.extend(&docs.description);
+		texts.extend(docs.options.iter().flat_map(Self::texts));
+		for variable in &docs.environment {
+			texts.push(&variable.name);
+			texts.extend(variable.lines.iter().map(|line| &line.text));
+		}
+		for example in &docs.examples {
+			texts.push(&example.note);
+			texts.extend(example.commands.iter().flatten());
+		}
+
+		texts
+	}
+
+	/// A marker sits tight on the words it marks, the way markdown asks, and marks at least one word
+	/// Two stray stars in a sentence such as `2 * 3 * 4` would otherwise vanish and set the words between them in bold
+	fn markers_sit_tight_on_their_words(&self) -> Result<(), Problem> {
+		for text in self.every_text() {
+			for (index, part) in text.parts.iter().enumerate() {
+				let apart = match part {
+					Part::Open(_) => match text.parts.get(index + 1) {
+						Some(Part::Words(words)) => words.starts_with(char::is_whitespace),
+						Some(Part::Close(_)) => true,
+						Some(Part::Open(_)) | None => false,
+					},
+					Part::Close(_) => index
+						.checked_sub(1)
+						.and_then(|before| text.parts.get(before))
+						.is_some_and(|before| matches!(before, Part::Words(words) if words.ends_with(char::is_whitespace))),
+					Part::Words(_) => false,
+				};
+
+				if apart {
+					return Err(Problem::at(
+						text.place,
+						format!(
+							"a marker in {:?} stands apart from its words, write it tight as in `*word*`, prose holds no bare marker",
+							text.plain()
+						),
+					));
+				}
+			}
+		}
+
+		Ok(())
 	}
 
 	/// An option is one variant with one long name of two characters or more and short letters of exactly one,
@@ -171,26 +226,44 @@ impl<'a> Rules<'a> {
 		Ok(())
 	}
 
-	/// A line of sample values marks every value on its own, no input reaches across a comma
+	/// A line of sample values marks every value on its own, no mark reaches across a comma
 	fn sample_values_are_marked_one_by_one(&self) -> Result<(), Problem> {
 		for option in &self.docs.options {
 			let Values::Free(text) = &option.values else {
 				continue;
 			};
-			let mut marked = false;
+			let mut open = 0usize;
 
 			for part in &text.parts {
 				match part {
-					Part::Open(Mark::Input) => marked = true,
-					Part::Close(Mark::Input) => marked = false,
-					Part::Words(words) if marked && words.contains(',') => {
+					Part::Open(_) => open += 1,
+					Part::Close(_) => open -= 1,
+					Part::Words(words) if open > 0 && words.contains(',') => {
 						return Err(Problem::at(
 							text.place,
-							format!("the input {words:?} of `{}` holds a comma, mark every value on its own", option.variant),
+							format!(
+								"a mark in the values {:?} of `{}` reaches across a comma, mark every value on its own",
+								text.plain(),
+								option.variant
+							),
 						));
 					}
-					Part::Words(_) | Part::Open(_) | Part::Close(_) => {}
+					Part::Words(_) => {}
 				}
+			}
+		}
+
+		Ok(())
+	}
+
+	/// The help sets the whole title of an option in bold, a `*strong*` inside it would end that bold at its own end
+	fn titles_hold_no_strong(&self) -> Result<(), Problem> {
+		for option in &self.docs.options {
+			if option.title.parts.contains(&Part::Open(Mark::Strong)) {
+				return Err(Problem::at(
+					option.title.place,
+					format!("the title of `{}` is bold as a whole, drop the `*` inside it", option.variant),
+				));
 			}
 		}
 
@@ -228,7 +301,7 @@ mod tests {
 
 	/// A text of an option written at `place`
 	fn text(source: &str, place: usize) -> Text {
-		Text::read(source, Marks::Inputs, place).expect("the test closes its markers")
+		Text::read(source, Marks::All, place).expect("the test closes its markers")
 	}
 
 	/// What `Rules::run` says about the fixture after one change
@@ -367,10 +440,63 @@ mod tests {
 	#[test]
 	fn a_line_of_sample_values_marks_every_value_on_its_own() {
 		let found = problem(|docs| docs.options[0].values = Values::Free(text("`0, 10`, `20`...", 8)));
-		assert_eq!(found, Problem::at(8, "the input \"0, 10\" of `Align` holds a comma, mark every value on its own"));
+		assert_eq!(
+			found,
+			Problem::at(
+				8,
+				"a mark in the values \"0, 10, 20...\" of `Align` reaches across a comma, mark every value on its own"
+			)
+		);
+
+		// any mark counts, `_emphasis_` reaches no further than `` `code` `` does
+		let found = problem(|docs| docs.options[0].values = Values::Free(text("_low, high_", 8)));
+		assert_eq!(
+			found,
+			Problem::at(
+				8,
+				"a mark in the values \"low, high\" of `Align` reaches across a comma, mark every value on its own"
+			)
+		);
 
 		let mut docs = Docs::fixture();
 		docs.options[0].values = Values::Free(text("`0`, `10`, `20`...", 8));
+		assert_eq!(Rules::run(&docs), Ok(()));
+	}
+
+	#[test]
+	fn a_marker_sits_tight_on_its_words() {
+		// two stray stars, a space behind the opening marker, a space in front of the closing one, and nothing marked
+		for (source, plain) in [
+			("scale 2 * 3 * 4", "scale 2  3  4"),
+			("an * open* star", "an  open star"),
+			("a *closing * star", "a closing  star"),
+			("nothing `` inside", "nothing  inside"),
+		] {
+			let found = problem(|docs| docs.description = vec![text(source, 6)]);
+
+			assert_eq!(
+				found,
+				Problem::at(
+					6,
+					format!(
+						"a marker in {plain:?} stands apart from its words, write it tight as in `*word*`, prose holds no bare marker"
+					)
+				)
+			);
+		}
+
+		let mut docs = Docs::fixture();
+		docs.description = vec![text("a *strong* word and one mark inside another, *_text_*", 6)];
+		assert_eq!(Rules::run(&docs), Ok(()));
+	}
+
+	#[test]
+	fn a_title_takes_every_mark_but_a_strong() {
+		let found = problem(|docs| docs.options[0].title = text("Align the *output*", 4));
+		assert_eq!(found, Problem::at(4, "the title of `Align` is bold as a whole, drop the `*` inside it"));
+
+		let mut docs = Docs::fixture();
+		docs.options[0].title = text("Align the _output_ of `cfonts`", 4);
 		assert_eq!(Rules::run(&docs), Ok(()));
 	}
 

@@ -25,10 +25,15 @@
 //! Every setting appears once and in any order
 //! A text is a plain string, or a raw string when it holds a quote or a backslash
 //!
-//! `*bold*`, `_underline_` and `` `input` `` style a span of the tagline, the synopsis, the description
-//! and the lines of a variable, the title, scope, description and values of an option read `` `input` `` alone
-//! A name, a note and every command, the examples of an option included, print as typed
-//! An underscore between identifier characters is always text, so `FORCE_COLOR` needs no escaping
+//! Every text that is prose reads three markers, the way a line of markdown does:
+//! `*strong*`, `_emphasis_` and `` `code` ``
+//! Prose is the tagline, the synopsis, the description, the lines of a variable, the note over a group of examples,
+//! and the title, the scope, the description and the line of sample values of an option
+//! A command prints as typed, under an option and in the examples, and so do the name, a flag, a value name
+//! and the name of a variable
+//! An underscore between identifier characters is always text, so `FORCE_COLOR` reads as written
+//! No other marker has a way out: prose holds no bare `*`, `_` or backtick, and a marker sits tight on its words,
+//! so `2 * 3 * 4` is refused where its stars would otherwise vanish
 
 use std::mem;
 
@@ -36,26 +41,26 @@ use proc_macro::{Delimiter, Ident, Span, TokenStream, TokenTree};
 
 use crate::{cursor::Cursor, error::CompileError};
 
-/// A style a marker switches on and off
+/// A mark on a span of prose, named the way markdown names it, every writer picks how it looks
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mark {
-	/// `*bold*`
-	Bold,
+	/// `*strong*`, the help sets it in bold
+	Strong,
 
-	/// `_underline_`
-	Underline,
+	/// `_emphasis_`, the help underlines it
+	Emphasis,
 
-	/// `` `input` ``, something the user types
-	Input,
+	/// `` `code` ``, the help paints it in the colors of an input
+	Code,
 }
 
 impl Mark {
-	/// The character that opens and closes this style
+	/// The character that opens and closes this mark
 	pub(crate) const fn marker(self) -> char {
 		match self {
-			Self::Bold => '*',
-			Self::Underline => '_',
-			Self::Input => '`',
+			Self::Strong => '*',
+			Self::Emphasis => '_',
+			Self::Code => '`',
 		}
 	}
 
@@ -63,33 +68,30 @@ impl Mark {
 	fn is_text(self, bytes: &[u8], index: usize) -> bool {
 		let names = |byte: u8| byte.is_ascii_alphanumeric() || byte == b'_';
 
-		self == Self::Underline
+		self == Self::Emphasis
 			&& index > 0
 			&& bytes.get(index - 1).copied().is_some_and(names)
 			&& bytes.get(index + 1).copied().is_some_and(names)
 	}
 }
 
-/// Which markers a text reads
+/// Whether a text reads its markers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Marks {
-	/// No marker, every character is text
+	/// No marker, every character is text, the way a command and a name print
 	None,
 
-	/// `` `input` `` alone, the markers of an option
-	Inputs,
-
-	/// `*bold*`, `_underline_` and `` `input` ``, the markers of the sections
+	/// `*strong*`, `_emphasis_` and `` `code` ``, the markers of prose
 	All,
 }
 
 impl Marks {
-	/// The style a character switches in a text read this way, none when the character is text there
+	/// The mark a character switches in a text read this way, none when the character is text there
 	fn mark(self, character: char) -> Option<Mark> {
 		match (self, character) {
-			(Self::All, '*') => Some(Mark::Bold),
-			(Self::All, '_') => Some(Mark::Underline),
-			(Self::All | Self::Inputs, '`') => Some(Mark::Input),
+			(Self::All, '*') => Some(Mark::Strong),
+			(Self::All, '_') => Some(Mark::Emphasis),
+			(Self::All, '`') => Some(Mark::Code),
 			_ => None,
 		}
 	}
@@ -115,7 +117,8 @@ pub(crate) struct Text {
 impl Text {
 	/// Reads the markers of `source`, a marker left open is refused
 	///
-	/// Styles switch on their own, so one may open inside another and close after it, the way the help always read them
+	/// Every mark opens and closes on its own, so one may open inside another and close after it,
+	/// the way the help always read them
 	pub(crate) fn read(source: &str, marks: Marks, place: usize) -> Result<Self, String> {
 		let bytes = source.as_bytes();
 		let mut parts = Vec::new();
@@ -152,7 +155,7 @@ impl Text {
 		}
 	}
 
-	/// The words alone, without any style
+	/// The words alone, without any marker
 	pub(crate) fn plain(&self) -> String {
 		self
 			.parts
@@ -406,15 +409,15 @@ impl Reader {
 			match name.to_string().as_str() {
 				"flags" => Self::once(&mut option.flags, cursor.names("the flags as `[\"align\", \"a\"]`")?.0, &name)?,
 				"title" => {
-					let value = self.text(cursor, Marks::Inputs)?;
+					let value = self.text(cursor, Marks::All)?;
 					Self::once(&mut option.title, value, &name)?;
 				}
 				"scope" => {
-					let value = self.texts(cursor, Marks::Inputs)?;
+					let value = self.texts(cursor, Marks::All)?;
 					Self::once(&mut option.scope, value, &name)?;
 				}
 				"description" => {
-					let value = self.texts(cursor, Marks::Inputs)?;
+					let value = self.texts(cursor, Marks::All)?;
 					Self::once(&mut option.description, value, &name)?;
 				}
 				"values" => {
@@ -463,7 +466,7 @@ impl Reader {
 			return Ok(Values::Names(names, self.spans.keep(span)));
 		}
 
-		self.text(cursor, Marks::Inputs).map(Values::Free)
+		self.text(cursor, Marks::All).map(Values::Free)
 	}
 
 	/// Every environment entry, `{ "NAME" => ["…", ["…"], …], … }`
@@ -503,7 +506,7 @@ impl Reader {
 		let mut examples = Vec::new();
 
 		while !entries.is_empty() {
-			let note = self.text(&mut entries, Marks::None)?;
+			let note = self.text(&mut entries, Marks::All)?;
 			entries.points_to("between a note and its commands")?;
 			let list = entries.group(Delimiter::Bracket, "the commands under the note as `[\"command\", …]`")?;
 			let mut items = Cursor::inside(&list);
@@ -588,7 +591,6 @@ impl Docs {
 	/// A small set of docs that follows every rule: two options, one variable, two groups of examples
 	pub(crate) fn fixture() -> Self {
 		let all = |source: &str| Text::read(source, Marks::All, 0).expect("the fixture closes its markers");
-		let inputs = |source: &str| Text::read(source, Marks::Inputs, 0).expect("the fixture closes its markers");
 		let none = |source: &str| Text::read(source, Marks::None, 0).expect("a text without markers always reads");
 
 		Self {
@@ -601,9 +603,9 @@ impl Docs {
 					variant: String::from("Align"),
 					long: String::from("align"),
 					shorts: vec![String::from("a")],
-					title: inputs("Align the output"),
-					scope: vec![inputs("This will apply globally")],
-					description: vec![inputs("`0` is no alignment")],
+					title: all("Align the output"),
+					scope: vec![all("This will apply globally")],
+					description: vec![all("`0` is no alignment")],
 					values: Values::Names(["left", "center", "right"].map(String::from).to_vec(), 0),
 					examples: vec![none("cfonts hello --align center"), none("cfonts hi --align right")],
 					place: 0,
@@ -612,7 +614,7 @@ impl Docs {
 					variant: String::from("Version"),
 					long: String::from("version"),
 					shorts: vec![String::from("v"), String::from("V")],
-					title: inputs("Print the version and exit"),
+					title: all("Print the version and exit"),
 					scope: Vec::new(),
 					description: Vec::new(),
 					values: Values::None,
@@ -628,9 +630,9 @@ impl Docs {
 				],
 			}],
 			examples: vec![
-				Example { note: none("the default font"), commands: vec![vec![none("cfonts hello")]] },
+				Example { note: all("the default font"), commands: vec![vec![none("cfonts hello")]] },
 				Example {
-					note: none("two blocks"),
+					note: all("two blocks"),
 					commands: vec![vec![none("cfonts a \\"), none("--next b")], vec![none("cfonts --demo")]],
 				},
 			],
@@ -656,17 +658,17 @@ mod tests {
 		assert_eq!(
 			parts("*cfonts* <_text_> `--next`"),
 			[
-				Part::Open(Mark::Bold),
+				Part::Open(Mark::Strong),
 				words("cfonts"),
-				Part::Close(Mark::Bold),
+				Part::Close(Mark::Strong),
 				words(" <"),
-				Part::Open(Mark::Underline),
+				Part::Open(Mark::Emphasis),
 				words("text"),
-				Part::Close(Mark::Underline),
+				Part::Close(Mark::Emphasis),
 				words("> "),
-				Part::Open(Mark::Input),
+				Part::Open(Mark::Code),
 				words("--next"),
-				Part::Close(Mark::Input),
+				Part::Close(Mark::Code),
 			]
 		);
 	}
@@ -677,56 +679,43 @@ mod tests {
 		assert_eq!(
 			parts("*FORCE_COLOR* `NO_COLOR`"),
 			[
-				Part::Open(Mark::Bold),
+				Part::Open(Mark::Strong),
 				words("FORCE_COLOR"),
-				Part::Close(Mark::Bold),
+				Part::Close(Mark::Strong),
 				words(" "),
-				Part::Open(Mark::Input),
+				Part::Open(Mark::Code),
 				words("NO_COLOR"),
-				Part::Close(Mark::Input),
+				Part::Close(Mark::Code),
 			]
 		);
 	}
 
 	#[test]
-	fn still_underlines_a_name_that_carries_underscores() {
-		assert_eq!(
-			parts("_FORCE_COLOR_"),
-			[Part::Open(Mark::Underline), words("FORCE_COLOR"), Part::Close(Mark::Underline)]
-		);
+	fn still_reads_an_emphasis_that_carries_underscores() {
+		assert_eq!(parts("_FORCE_COLOR_"), [Part::Open(Mark::Emphasis), words("FORCE_COLOR"), Part::Close(Mark::Emphasis)]);
 	}
 
 	#[test]
-	fn lets_a_style_open_inside_another() {
+	fn lets_a_mark_open_inside_another() {
 		assert_eq!(
 			parts("*_text_*"),
 			[
-				Part::Open(Mark::Bold),
-				Part::Open(Mark::Underline),
+				Part::Open(Mark::Strong),
+				Part::Open(Mark::Emphasis),
 				words("text"),
-				Part::Close(Mark::Underline),
-				Part::Close(Mark::Bold),
+				Part::Close(Mark::Emphasis),
+				Part::Close(Mark::Strong),
 			]
 		);
 	}
 
 	#[test]
 	fn keeps_an_empty_span_between_two_markers() {
-		assert_eq!(parts("x``"), [words("x"), Part::Open(Mark::Input), Part::Close(Mark::Input)]);
+		assert_eq!(parts("x``"), [words("x"), Part::Open(Mark::Code), Part::Close(Mark::Code)]);
 	}
 
 	#[test]
-	fn an_option_reads_backticks_alone() {
-		let text = Text::read("*not bold* _not underlined_ `input`", Marks::Inputs, 0).expect("the backticks close");
-
-		assert_eq!(
-			text.parts,
-			[words("*not bold* _not underlined_ "), Part::Open(Mark::Input), words("input"), Part::Close(Mark::Input)]
-		);
-	}
-
-	#[test]
-	fn an_example_reads_no_marker() {
+	fn a_command_reads_no_marker() {
 		let text = Text::read("echo `date` | cfonts *", Marks::None, 0).expect("a text without markers always reads");
 
 		assert_eq!(text.parts, [words("echo `date` | cfonts *")]);
