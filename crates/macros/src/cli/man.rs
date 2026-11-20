@@ -45,22 +45,23 @@
 //!
 //! Inside text a backslash starts an escape
 //!
-//! | Escape | Stands for           | What it does                                                                |
-//! | ------ | -------------------- | --------------------------------------------------------------------------- |
-//! | `\fB`  | font Bold            | bold                                                                        |
-//! | `\fI`  | font Italic          | italic (underlined in some terminals)                                       |
-//! | `\fR`  | font Roman           | roman                                                                       |
-//! | `\fP`  | font Previous        | back to previous font                                                       |
-//! | `\-`   | minus                | a minus sign, a bare `-` is a hyphen that may print as a typographic one    |
-//! |        |                      | and no longer copies as a flag                                              |
-//! | `\e`   | escape character     | a backslash, a bare `\` always starts an escape, word-wrap on or off,       |
-//! |        |                      | so text never holds one                                                     |
-//! | `\(aq` | apostrophe quote     | a plain `'`, a line starting with ' reads as a request otherwise            |
-//! | `\(ga` | grave accent         | `` ` ``                                                                     |
-//! | `\(ha` | hat                  | `^`                                                                         |
-//! | `\(ti` | tilde                | `~`                                                                         |
-//! | `\&`   | zero-width character | in front of a leading dot it keeps a text line from being read as a request |
-//! | `.\"`  | comment              | comments, ignored by roff                                                   |
+//! | Escape  | Stands for           | What it does                                                                |
+//! | ------- | -------------------- | --------------------------------------------------------------------------- |
+//! | `\fB`   | font Bold            | bold                                                                        |
+//! | `\fI`   | font Italic          | italic (underlined in some terminals)                                       |
+//! | `\f(BI` | font Bold Italic     | bold and italic at once, fonts do not nest so the pair is a font of its own |
+//! | `\fR`   | font Roman           | roman                                                                       |
+//! | `\fP`   | font Previous        | back to previous font                                                       |
+//! | `\-`    | minus                | a minus sign, a bare `-` is a hyphen that may print as a typographic one    |
+//! |         |                      | and no longer copies as a flag                                              |
+//! | `\e`    | escape character     | a backslash, a bare `\` always starts an escape, word-wrap on or off,       |
+//! |         |                      | so text never holds one                                                     |
+//! | `\(aq`  | apostrophe quote     | a plain `'`, a line starting with ' reads as a request otherwise            |
+//! | `\(ga`  | grave accent         | `` ` ``                                                                     |
+//! | `\(ha`  | hat                  | `^`                                                                         |
+//! | `\(ti`  | tilde                | `~`                                                                         |
+//! | `\&`    | zero-width character | in front of a leading dot it keeps a text line from being read as a request |
+//! | `.\"`   | comment              | comments, ignored by roff                                                   |
 //!
 //! Indentation
 //!
@@ -78,29 +79,60 @@
 //!
 //! Use `mandoc -T lint crates/cfonts/cfonts.1` to lint result
 
-use crate::cli::source::Docs;
+use std::fmt;
 
-// TODO: draw the rest of the owl!
+use crate::cli::source::{Docs, Mark, Part, Text};
 
 /// The name of that section, printed in the middle of the page header
 const MANUAL: &str = "User Commands";
 
-/// The font escapes
-const BOLD: &str = "\\fB";
-const ITALIC: &str = "\\fI";
-const ROMAN: &str = "\\fR";
-
 /// How many columns a block steps in below the line that introduces it
-const INDENT: &str = "4";
+const _INDENT: &str = "4";
 /// What a command starts with
-const PROMPT: &str = "$ ";
+const _PROMPT: &str = "$ ";
 /// What the continuation of a command starts with, as wide as the prompt so it lines up with the command
-const PROMPT_CONTINUATION: &str = "  ";
+const _PROMPT_CONTINUATION: &str = "  ";
+
+/// The four styles of a man page
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Style {
+	Roman,
+	Bold,
+	Italic,
+	BoldItalic,
+}
+
+impl Style {
+	/// The font for the marks that are open
+	fn new(bold: u8, italic: u8) -> Self {
+		match (bold > 0, italic > 0) {
+			(false, false) => Self::Roman,
+			(true, false) => Self::Bold,
+			(false, true) => Self::Italic,
+			(true, true) => Self::BoldItalic,
+		}
+	}
+}
+
+/// A font prints as the escape that switches to it
+impl fmt::Display for Style {
+	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		formatter.write_str(match self {
+			Self::Roman => "\\fR",
+			Self::Bold => "\\fB",
+			Self::Italic => "\\fI",
+			Self::BoldItalic => "\\f(BI",
+		})
+	}
+}
 
 /// The man page of one set of docs
 pub(crate) struct Man<'a> {
 	docs: &'a Docs,
 	page: String,
+	bold: u8,
+	italic: u8,
+	style: Style,
 }
 
 impl<'a> Man<'a> {
@@ -114,7 +146,7 @@ impl<'a> Man<'a> {
 	///
 	/// This function is used in both the drift test as well as the writer `make man`
 	pub(crate) fn generate(docs: &'a Docs) -> Result<String, String> {
-		let mut man = Self { docs, page: String::new() };
+		let mut man = Self { docs, page: String::new(), bold: 0, italic: 0, style: Style::Roman };
 
 		man.warning();
 		man.title();
@@ -174,29 +206,81 @@ impl<'a> Man<'a> {
 		self.page.push_str(&name);
 	}
 
+	/// Insert parsed text into our page
+	fn parse_insert(&mut self, input: &Text) {
+		for part in &input.parts {
+			match part {
+				Part::Open(Mark::Strong | Mark::Code) => self.bold += 1,
+				Part::Close(Mark::Strong | Mark::Code) => self.bold -= 1,
+				Part::Open(Mark::Emphasis) => self.italic += 1,
+				Part::Close(Mark::Emphasis) => self.italic -= 1,
+				Part::Words(words) => {
+					self.font();
+					self.escape_insert(words);
+				}
+			}
+		}
+		self.font();
+	}
+
+	/// The font for what is open right now
+	fn font(&mut self) {
+		let font = Style::new(self.bold, self.italic);
+
+		if font != self.style {
+			self.page.push_str(&font.to_string());
+			self.style = font;
+		}
+	}
+
+	/// Insert parsed text one escaped character into our page
+	fn escape_insert(&mut self, input: &str) {
+		for c in input.chars() {
+			match c {
+				'\\' => self.page.push_str("\\e"),
+				'-' => self.page.push_str("\\-"),
+				'\'' => self.page.push_str("\\(aq"),
+				'`' => self.page.push_str("\\(ga"),
+				'^' => self.page.push_str("\\(ha"),
+				'~' => self.page.push_str("\\(ti"),
+				'.' if self.page.is_empty() || self.page.ends_with('\n') => self.page.push_str("\\&."),
+				_ => self.page.push(c),
+			}
+		}
+	}
+
 	// Adding synopsis
 	fn synopsis(&mut self) {
-		self.page.push_str(".SH SYNOPSIS\n");
+		self.page.push_str(".SH SYNOPSIS\n.nf\n");
+		for text in self.docs.synopsis.iter() {
+			self.parse_insert(text);
+			self.page.push('\n');
+		}
+		self.page.push_str(".fi\n");
 	}
 
 	// Adding description
 	fn description(&mut self) {
 		self.page.push_str(".SH DESCRIPTION\n");
+		// TODO
 	}
 
 	// Adding options
 	fn options(&mut self) {
 		self.page.push_str(".SH OPTIONS\n");
+		// TODO
 	}
 
 	// Adding environment
 	fn environment(&mut self) {
 		self.page.push_str(".SH ENVIRONMENT\n");
+		// TODO
 	}
 
 	// Adding examples
 	fn examples(&mut self) {
 		self.page.push_str(".SH EXAMPLES\n");
+		// TODO
 	}
 }
 
@@ -208,13 +292,110 @@ mod tests {
 	fn the_page_opens_with_the_title_line_and_its_two_slots() {
 		let page = Man::generate(&Docs::fixture()).expect("the fixture writes as roff");
 
-		assert!(page.contains(".TH CFONTS 1 \"{date}\" \"cfonts {version}\" \"{MANUAL}\"\n"), "{page}");
+		assert!(page.contains(&format!(".TH CFONTS 1 \"{{date}}\" \"cfonts {{version}}\" \"{MANUAL}\"\n")), "{page}");
 	}
 
 	#[test]
-	fn the_name_section_joins_the_name_and_the_tagline_with_a_minus() {
-		let page = Man::generate(&Docs::fixture()).expect("the fixture writes as roff");
+	fn warning_says_not_to_edit() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.warning();
 
-		assert!(page.ends_with(".SH NAME\ncfonts \\- Sexy fonts for the console\n"), "{page}");
+		assert!(man.page.contains("DO NOT EDIT!"));
+	}
+
+	#[test]
+	fn title_contains_version_date_placeholders() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.title();
+
+		assert!(man.page.contains("{date}"));
+		assert!(man.page.contains("{version}"));
+	}
+
+	#[test]
+	fn banner_contains_art() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.banner();
+
+		assert!(man.page.contains("█║"));
+	}
+
+	#[test]
+	fn name_contains_name() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.name();
+
+		assert!(man.page.contains("cfonts"));
+	}
+
+	#[test]
+	fn parse_insert_renders_markdown() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.parse_insert(&Text {
+			parts: vec![
+				Part::Words(String::from("roman")),
+				Part::Open(Mark::Strong),
+				Part::Words(String::from("bold")),
+				Part::Close(Mark::Strong),
+				Part::Words(String::from("roman")),
+				Part::Open(Mark::Emphasis),
+				Part::Words(String::from("italic")),
+				Part::Open(Mark::Strong),
+				Part::Words(String::from("bolditalic")),
+				Part::Close(Mark::Strong),
+				Part::Close(Mark::Emphasis),
+				Part::Words(String::from("roman")),
+			],
+			place: 0,
+		});
+
+		assert_eq!(man.page, String::from("roman\\fBbold\\fRroman\\fIitalic\\f(BIbolditalic\\fRroman"));
+	}
+
+	#[test]
+	fn font_is_written_only_when_it_changes() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+
+		man.font();
+		assert_eq!(man.page, "");
+
+		man.bold = 1;
+		man.font();
+		man.bold = 2;
+		man.font();
+		man.font();
+		assert_eq!(man.page, "\\fB");
+
+		man.italic = 1;
+		man.font();
+		assert_eq!(man.page, "\\fB\\f(BI");
+
+		man.bold = 0;
+		man.font();
+		assert_eq!(man.page, "\\fB\\f(BI\\fI");
+
+		man.italic = 0;
+		man.font();
+		assert_eq!(man.page, "\\fB\\f(BI\\fI\\fR");
+		assert_eq!(man.style, Style::Roman);
+	}
+
+	#[test]
+	fn all_content_is_escaped() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.escape_insert(r#".c\f-o'n`t^s~y.ay"#);
+
+		assert_eq!(man.page, String::from(r#"\&.c\ef\-o\(aqn\(gat\(has\(tiy.ay"#));
+	}
+
+	#[test]
+	fn synopsis_lists_every_form_and_ends_each_line_in_roman() {
+		let mut man = Man { docs: &Docs::fixture(), page: String::new(), bold: 0, italic: 0, style: Style::Roman };
+		man.synopsis();
+
+		assert_eq!(
+			man.page,
+			".SH SYNOPSIS\n.nf\n\\fBcfonts\\fR <\\fItext\\fR> [\\fIoptions\\fR]\n\\fBcfonts\\fR \\fB\\-\\-help\\fR\n.fi\n"
+		);
 	}
 }
